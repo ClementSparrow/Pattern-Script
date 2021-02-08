@@ -217,14 +217,14 @@ function generateTitleScreen()
 
 function wordwrap( str, width ) {
  
-    width = width || 75;
-    var cut = true;
+	width = width || 75;
+	var cut = true;
  
-    if (!str) { return str; }
+	if (!str) { return str; }
  
-    var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
+	var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
  
-    return str.match( RegExp(regex, 'g') );
+	return str.match( RegExp(regex, 'g') );
  
 }
 
@@ -282,7 +282,7 @@ function drawMessageScreen() {
 		} else {
 			endPos = 12;
 		}
-        }
+		}
 	if (quittingMessageScreen) {
 		titleImage[endPos]=emptyLineStr;
 	} else {

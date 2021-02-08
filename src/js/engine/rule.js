@@ -126,21 +126,21 @@ Rule.prototype.toJSON = function() {
 Rule.prototype.findMatches = function() {
 	var matches=[];
 	var cellRowMasks=this.cellRowMasks;
-    for (var cellRowIndex=0;cellRowIndex<this.patterns.length;cellRowIndex++) {
-        var cellRow = this.patterns[cellRowIndex];
-        var matchFunction = this.cellRowMatches[cellRowIndex];
-        if (this.isEllipsis[cellRowIndex]) {//if ellipsis     
-        	var match = matchCellRowWildCard(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);  
-        } else {
-        	var match = matchCellRow(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);               	
-        }
-        if (match.length===0) {
-            return [];
-        } else {
-            matches.push(match);
-        }
-    }
-    return matches;
+	for (var cellRowIndex=0;cellRowIndex<this.patterns.length;cellRowIndex++) {
+		var cellRow = this.patterns[cellRowIndex];
+		var matchFunction = this.cellRowMatches[cellRowIndex];
+		if (this.isEllipsis[cellRowIndex]) {//if ellipsis     
+			var match = matchCellRowWildCard(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);  
+		} else {
+			var match = matchCellRow(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);               	
+		}
+		if (match.length===0) {
+			return [];
+		} else {
+			matches.push(match);
+		}
+	}
+	return matches;
 };
 
 Rule.prototype.directional = function(){
@@ -158,56 +158,56 @@ Rule.prototype.directional = function(){
 		}
 	}
 
-    return false;
+	return false;
 }
 
 Rule.prototype.applyAt = function(delta,tuple,check) {
 	var rule = this;
 	//have to double check they apply
 	//Q: why?
-    if (check) {
-        var ruleMatches=true;                
-        for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
-        	if (rule.isEllipsis[cellRowIndex]) {//if ellipsis
-            	if (DoesCellRowMatchWildCard(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex][0],
-            		tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1])===false) { /* pass mink to specify */
-                    ruleMatches=false;
-                    break;
-                }
-        	} else {
-            	if (DoesCellRowMatch(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex])===false) {
-                    ruleMatches=false;
-                    break;
-                }
-        	}
-        }
-        if (ruleMatches === false ) {
-            return false;
-        }
-    }
-    var result=false;
-    
-    //APPLY THE RULE
-    var d0 = delta[0]*level.height;
-    var d1 = delta[1];
-    for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
-        var preRow = rule.patterns[cellRowIndex];
-        
-        var currentIndex = rule.isEllipsis[cellRowIndex] ? tuple[cellRowIndex][0] : tuple[cellRowIndex];
-        for (var cellIndex=0;cellIndex<preRow.length;cellIndex++) {
-            var preCell = preRow[cellIndex];
+	if (check) {
+		var ruleMatches=true;                
+		for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
+			if (rule.isEllipsis[cellRowIndex]) {//if ellipsis
+				if (DoesCellRowMatchWildCard(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex][0],
+					tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1])===false) { /* pass mink to specify */
+					ruleMatches=false;
+					break;
+				}
+			} else {
+				if (DoesCellRowMatch(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex])===false) {
+					ruleMatches=false;
+					break;
+				}
+			}
+		}
+		if (ruleMatches === false ) {
+			return false;
+		}
+	}
+	var result=false;
+	
+	//APPLY THE RULE
+	var d0 = delta[0]*level.height;
+	var d1 = delta[1];
+	for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
+		var preRow = rule.patterns[cellRowIndex];
+		
+		var currentIndex = rule.isEllipsis[cellRowIndex] ? tuple[cellRowIndex][0] : tuple[cellRowIndex];
+		for (var cellIndex=0;cellIndex<preRow.length;cellIndex++) {
+			var preCell = preRow[cellIndex];
 
-            if (preCell === ellipsisPattern) {
-            	var k = tuple[cellRowIndex][1];
-            	currentIndex = (currentIndex+(d1+d0)*k);
-            	continue;
-            }
+			if (preCell === ellipsisPattern) {
+				var k = tuple[cellRowIndex][1];
+				currentIndex = (currentIndex+(d1+d0)*k);
+				continue;
+			}
 
-            result = preCell.replace(rule, currentIndex) || result;
+			result = preCell.replace(rule, currentIndex) || result;
 
-            currentIndex = (currentIndex+d1+d0);
-        }
-    }
+			currentIndex = (currentIndex+d1+d0);
+		}
+	}
 
 	if (verbose_logging && result){
 		var ruleDirection = dirMaskName[rule.direction];
@@ -220,33 +220,33 @@ Rule.prototype.applyAt = function(delta,tuple,check) {
 		consolePrint(logString);
 	}
 
-    return result;
+	return result;
 };
 
 Rule.prototype.tryApply = function() {
 	var delta = dirMasksDelta[this.direction];
 
-    //get all cellrow matches
-    var matches = this.findMatches();
-    if (matches.length===0) {
-    	return false;
-    }
-
-    var result=false;	
-	if (this.hasReplacements) {
-	    var tuples = generateTuples(matches);
-	    for (var tupleIndex=0;tupleIndex<tuples.length;tupleIndex++) {
-	        var tuple = tuples[tupleIndex];
-	        var shouldCheck=tupleIndex>0;
-	        var success = this.applyAt(delta,tuple,shouldCheck);
-	        result = success || result;
-	    }
+	//get all cellrow matches
+	var matches = this.findMatches();
+	if (matches.length===0) {
+		return false;
 	}
 
-    if (matches.length>0) {
-    	this.queueCommands();
-    }
-    return result;
+	var result=false;	
+	if (this.hasReplacements) {
+		var tuples = generateTuples(matches);
+		for (var tupleIndex=0;tupleIndex<tuples.length;tupleIndex++) {
+			var tuple = tuples[tupleIndex];
+			var shouldCheck=tupleIndex>0;
+			var success = this.applyAt(delta,tuple,shouldCheck);
+			result = success || result;
+		}
+	}
+
+	if (matches.length>0) {
+		this.queueCommands();
+	}
+	return result;
 };
 
 Rule.prototype.queueCommands = function() {

@@ -113,14 +113,14 @@ function generateExtraMembers(state) {
 
 	//convert colors to hex
 	for (var n in state.objects) {
-	      if (state.objects.hasOwnProperty(n)) {
+		  if (state.objects.hasOwnProperty(n)) {
 			//convert color to hex
-	      	var o = state.objects[n];
-	      	if (o.colors.length>10) {
-	      		logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.",o.lineNumber+1);
-	      	}
-	      	for (var i=0;i<o.colors.length;i++) {
-	      		var c = o.colors[i];
+			var o = state.objects[n];
+			if (o.colors.length>10) {
+				logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.",o.lineNumber+1);
+			}
+			for (var i=0;i<o.colors.length;i++) {
+				var c = o.colors[i];
 				if (isColor(c)) {
 					c = colorToHex(colorPalette,c);
 					o.colors[i] = c;
@@ -134,12 +134,12 @@ function generateExtraMembers(state) {
 
 	//generate sprite matrix
 	for (var n in state.objects) {
-	      if (state.objects.hasOwnProperty(n)) {
-	      	var o = state.objects[n];
-	      	if (o.colors.length==0) {
-	      		logError('color not specified for object "' + n +'".',o.lineNumber);
-	      		o.colors=["#ff00ff"];
-	      	}
+		  if (state.objects.hasOwnProperty(n)) {
+			var o = state.objects[n];
+			if (o.colors.length==0) {
+				logError('color not specified for object "' + n +'".',o.lineNumber);
+				o.colors=["#ff00ff"];
+			}
 			if (o.spritematrix.length===0) {
 				o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
 			} else {
@@ -155,73 +155,73 @@ function generateExtraMembers(state) {
 	//calculate glyph dictionary
 	var glyphDict = {};
 	for (var n in state.objects) {
-	      if (state.objects.hasOwnProperty(n)) {
-	      	var o = state.objects[n];
+		  if (state.objects.hasOwnProperty(n)) {
+			var o = state.objects[n];
 			var mask = blankMask.concat([]);
 			mask[o.layer] = o.id;
 			glyphDict[n] = mask;
 		}
 	}
- 	var added=true;
-    while (added) {
-        added=false;
-        
-        //then, synonyms
-        for (var i = 0; i < state.legend_synonyms.length; i++) {
-            var dat = state.legend_synonyms[i];
-            var key = dat[0];
-            var val = dat[1];
-            if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&(glyphDict[val]!==undefined)) {
-                added=true;
-                glyphDict[key] = glyphDict[val];
-            }
-        }
-    
-        //then, aggregates
-        for (var i = 0; i < state.legend_aggregates.length; i++) {
-            var dat = state.legend_aggregates[i];
-            var key=dat[0];
-            var vals=dat.slice(1);
-            var allVallsFound=true;
-            for (var j=0;j<vals.length;j++) {
-            	var v = vals[j];
-            	if (glyphDict[v]===undefined) {
-            		allVallsFound=false;
-            		break;
-            	}
-            }
-            if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {            
-                var mask = blankMask.concat([]);
-        
-                for (var j = 1; j < dat.length; j++) {
-                    var n = dat[j];
-                    var o = state.objects[n];
-                    if (o == undefined) {
-                        logError('Object not found with name '+ n, state.lineNumber);
-                    }
-                    if (mask[o.layer] == -1) {
-                        mask[o.layer] = o.id;
-                    } else {
-                    	if (o.layer===undefined) {
-                    		logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.',dat.lineNumber);
-                    	} else {
-                    		var n1 = n.toUpperCase();
-                    		var n2 = state.idDict[mask[o.layer]].toUpperCase();
-                    		if (n1!==n2){
-		                        logError(
-		                            'Trying to create an aggregate object (defined in the legend) with both "'
-		                            + n1 + '" and "' + n2 + '", which are on the same layer and therefore can\'t coexist.',
-		                            dat.lineNumber
-		                            );
-		                    }
-	                    }
-                    }
-                }
-                added=true;
-                glyphDict[dat[0]] = mask;
-            }
-        }
-    }
+	var added=true;
+	while (added) {
+		added=false;
+		
+		//then, synonyms
+		for (var i = 0; i < state.legend_synonyms.length; i++) {
+			var dat = state.legend_synonyms[i];
+			var key = dat[0];
+			var val = dat[1];
+			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&(glyphDict[val]!==undefined)) {
+				added=true;
+				glyphDict[key] = glyphDict[val];
+			}
+		}
+	
+		//then, aggregates
+		for (var i = 0; i < state.legend_aggregates.length; i++) {
+			var dat = state.legend_aggregates[i];
+			var key=dat[0];
+			var vals=dat.slice(1);
+			var allVallsFound=true;
+			for (var j=0;j<vals.length;j++) {
+				var v = vals[j];
+				if (glyphDict[v]===undefined) {
+					allVallsFound=false;
+					break;
+				}
+			}
+			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {            
+				var mask = blankMask.concat([]);
+		
+				for (var j = 1; j < dat.length; j++) {
+					var n = dat[j];
+					var o = state.objects[n];
+					if (o == undefined) {
+						logError('Object not found with name '+ n, state.lineNumber);
+					}
+					if (mask[o.layer] == -1) {
+						mask[o.layer] = o.id;
+					} else {
+						if (o.layer===undefined) {
+							logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.',dat.lineNumber);
+						} else {
+							var n1 = n.toUpperCase();
+							var n2 = state.idDict[mask[o.layer]].toUpperCase();
+							if (n1!==n2){
+								logError(
+									'Trying to create an aggregate object (defined in the legend) with both "'
+									+ n1 + '" and "' + n2 + '", which are on the same layer and therefore can\'t coexist.',
+									dat.lineNumber
+									);
+							}
+						}
+					}
+				}
+				added=true;
+				glyphDict[dat[0]] = mask;
+			}
+		}
+	}
 	state.glyphDict = glyphDict;
 
 	var aggregatesDict = {};
@@ -675,7 +675,7 @@ function processRuleString(rule, state, curRules)
 						logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
 					} else if (!incellrow) {
 						logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
-  					} else {
+					} else {
 						curcell.push(token);
 					}
 				} else if (token == '|') {
@@ -720,9 +720,9 @@ function processRuleString(rule, state, curRules)
 					}
 				} else if (state.names.indexOf(token) >= 0) {
 					if (!incellrow) {
- 						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
- 					}
- 					else if (curcell.length % 2 == 0) {
+						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
+					}
+					else if (curcell.length % 2 == 0) {
 						curcell.push('');
 						curcell.push(token);
 					} else if (curcell.length % 2 == 1) {
@@ -730,11 +730,11 @@ function processRuleString(rule, state, curRules)
 					}
 				} else if (token==='...') {
 					if (!incellrow) {
- 						logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
- 					} else {
- 						curcell.push(token);
- 						curcell.push(token);
- 					}
+						logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
+					} else {
+						curcell.push(token);
+						curcell.push(token);
+					}
 				} else if (commandwords.indexOf(token)>=0) {
 					if (rhs===false) {
 						logError("Commands cannot appear on the left-hand side of the arrow.",lineNumber);
@@ -1085,12 +1085,12 @@ function concretizePropertyRule(state, rule,lineNumber) {
 							if (newrule.rhs.length>0) {
 								concretizePropertyInCell(newrule.rhs[j][k], property, concreteType);//do for the corresponding rhs cell as well
 							}
-                            
-                            if (newrule.propertyReplacement[property]===undefined) {
-    							newrule.propertyReplacement[property]=[concreteType,1];
-                            } else {
-    							newrule.propertyReplacement[property][1]=newrule.propertyReplacement[property][1]+1;                                
-                            }
+							
+							if (newrule.propertyReplacement[property]===undefined) {
+								newrule.propertyReplacement[property]=[concreteType,1];
+							} else {
+								newrule.propertyReplacement[property][1]=newrule.propertyReplacement[property][1]+1;                                
+							}
 
 							result.push(newrule);
 						}
@@ -1107,22 +1107,22 @@ function concretizePropertyRule(state, rule,lineNumber) {
 		}
 	}
 
-    
+	
 	for (var i = 0; i < result.length; i++) {
-        //for each rule
+		//for each rule
 		var cur_rule = result[i];
-        if (cur_rule.propertyReplacement===undefined) {
-            continue;
-        }
-        
-        //for each property replacement in that rule
-        for (var property in cur_rule.propertyReplacement) {
-            if (cur_rule.propertyReplacement.hasOwnProperty(property)) {
-            	var replacementInfo = cur_rule.propertyReplacement[property];
-            	var concreteType = replacementInfo[0];
-            	var occurrenceCount = replacementInfo[1];
-            	if (occurrenceCount===1) {
-            		//do the replacement
+		if (cur_rule.propertyReplacement===undefined) {
+			continue;
+		}
+		
+		//for each property replacement in that rule
+		for (var property in cur_rule.propertyReplacement) {
+			if (cur_rule.propertyReplacement.hasOwnProperty(property)) {
+				var replacementInfo = cur_rule.propertyReplacement[property];
+				var concreteType = replacementInfo[0];
+				var occurrenceCount = replacementInfo[1];
+				if (occurrenceCount===1) {
+					//do the replacement
 					for (var j=0;j<cur_rule.rhs.length;j++) {
 						var cellRow_rhs = cur_rule.rhs[j];
 						for (var k=0;k<cellRow_rhs.length;k++) {
@@ -1130,9 +1130,9 @@ function concretizePropertyRule(state, rule,lineNumber) {
 							concretizePropertyInCell(cell, property, concreteType);
 						}
 					}
-            	}
-            }
-        }
+				}
+			}
+		}
 	}
 
 	//if any properties remain on the RHSes, bleep loudly
@@ -1203,12 +1203,12 @@ function concretizeMovingRule(state, rule,lineNumber) {
 							if (newrule.rhs.length>0) {
 								concretizeMovingInCell(newrule.rhs[j][k], ambiguous_dir, cand_name, concreteDirection);//do for the corresponding rhs cell as well
 							}
-                            
-                            if (newrule.movingReplacement[cand_name]===undefined) {
-    							newrule.movingReplacement[cand_name]=[concreteDirection,1,ambiguous_dir];
-                            } else {
-    							newrule.movingReplacement[cand_name][1]=newrule.movingReplacement[cand_name][1]+1;                                
-                            }
+							
+							if (newrule.movingReplacement[cand_name]===undefined) {
+								newrule.movingReplacement[cand_name]=[concreteDirection,1,ambiguous_dir];
+							} else {
+								newrule.movingReplacement[cand_name][1]=newrule.movingReplacement[cand_name][1]+1;                                
+							}
 
 							result.push(newrule);
 						}
@@ -1223,30 +1223,30 @@ function concretizeMovingRule(state, rule,lineNumber) {
 		}
 	}
 
-    
+	
 	for (var i = 0; i < result.length; i++) {
-        //for each rule
+		//for each rule
 		var cur_rule = result[i];
-        if (cur_rule.movingReplacement===undefined) {
-            continue;
-        }
-        var ambiguous_movement_dict={};
-        //strict first - matches movement direction to objects
-        //for each property replacement in that rule
-        for (var cand_name in cur_rule.movingReplacement) {
-            if (cur_rule.movingReplacement.hasOwnProperty(cand_name)) {
-            	var replacementInfo = cur_rule.movingReplacement[cand_name];
-            	var concreteMovement = replacementInfo[0];
-            	var occurrenceCount = replacementInfo[1];
-            	var ambiguousMovement = replacementInfo[2];
-            	if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1)) {
-            		ambiguous_movement_dict[ambiguousMovement] = "INVALID";
-            	} else {
-            		ambiguous_movement_dict[ambiguousMovement] = concreteMovement
-            	}
+		if (cur_rule.movingReplacement===undefined) {
+			continue;
+		}
+		var ambiguous_movement_dict={};
+		//strict first - matches movement direction to objects
+		//for each property replacement in that rule
+		for (var cand_name in cur_rule.movingReplacement) {
+			if (cur_rule.movingReplacement.hasOwnProperty(cand_name)) {
+				var replacementInfo = cur_rule.movingReplacement[cand_name];
+				var concreteMovement = replacementInfo[0];
+				var occurrenceCount = replacementInfo[1];
+				var ambiguousMovement = replacementInfo[2];
+				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1)) {
+					ambiguous_movement_dict[ambiguousMovement] = "INVALID";
+				} else {
+					ambiguous_movement_dict[ambiguousMovement] = concreteMovement
+				}
 
-            	if (occurrenceCount===1) {
-            		//do the replacement
+				if (occurrenceCount===1) {
+					//do the replacement
 					for (var j=0;j<cur_rule.rhs.length;j++) {
 						var cellRow_rhs = cur_rule.rhs[j];
 						for (var k=0;k<cellRow_rhs.length;k++) {
@@ -1254,17 +1254,17 @@ function concretizeMovingRule(state, rule,lineNumber) {
 							concretizeMovingInCell(cell, ambiguousMovement, cand_name, concreteMovement);
 						}
 					}
-            	}
-            }
-        }
+				}
+			}
+		}
 
-        //for each ambiguous word, if there's a single ambiguous movement specified in the whole lhs, then replace that wholesale
-        for(var ambiguousMovement in ambiguous_movement_dict) {
-        	if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID") {
-        		concreteMovement = ambiguous_movement_dict[ambiguousMovement];
-        		if (concreteMovement==="INVALID"){
-   					continue;
-        		}
+		//for each ambiguous word, if there's a single ambiguous movement specified in the whole lhs, then replace that wholesale
+		for(var ambiguousMovement in ambiguous_movement_dict) {
+			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID") {
+				concreteMovement = ambiguous_movement_dict[ambiguousMovement];
+				if (concreteMovement==="INVALID"){
+					continue;
+				}
 				for (var j=0;j<cur_rule.rhs.length;j++) {
 					var cellRow_rhs = cur_rule.rhs[j];
 					for (var k=0;k<cellRow_rhs.length;k++) {
@@ -1272,8 +1272,8 @@ function concretizeMovingRule(state, rule,lineNumber) {
 						concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, concreteMovement);
 					}
 				}
-        	}
-        }
+			}
+		}
 	}
 
 	//if any properties remain on the RHSes, bleep loudly
@@ -1552,27 +1552,27 @@ function rulesToMask(state) {
 					} else if (object_dir==='random') {
 						if (object_name in state.objectMasks) {
 							var mask = state.objectMasks[object_name];
- 							randomMask_r.ior(mask);
- 							var values;
- 							if (state.propertiesDict.hasOwnProperty(object_name)) {
- 								values = state.propertiesDict[object_name];
- 							} else {
- 								values = [object_name];
- 							}
- 							for (var m = 0; m < values.length; m++) {
- 								var subobject = values[m];
- 								var layerIndex = state.objects[subobject].layer|0;
- 								var existingname = layersUsed_r[layerIndex];
- 								if (existingname !== null) {
- 									var o1 = subobject.toUpperCase();
- 									var o2 = existingname.toUpperCase();
- 									if (o1!==o2) {
- 										logWarning("This rule may try to spawn a "+o1+" with random, but also requires a "+o2+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
- 									}
- 								}
+							randomMask_r.ior(mask);
+							var values;
+							if (state.propertiesDict.hasOwnProperty(object_name)) {
+								values = state.propertiesDict[object_name];
+							} else {
+								values = [object_name];
+							}
+							for (var m = 0; m < values.length; m++) {
+								var subobject = values[m];
+								var layerIndex = state.objects[subobject].layer|0;
+								var existingname = layersUsed_r[layerIndex];
+								if (existingname !== null) {
+									var o1 = subobject.toUpperCase();
+									var o2 = existingname.toUpperCase();
+									if (o1!==o2) {
+										logWarning("This rule may try to spawn a "+o1+" with random, but also requires a "+o2+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
+									}
+								}
  
- 								layersUsedRand_r[layerIndex] = subobject;
- 							}                      
+								layersUsedRand_r[layerIndex] = subobject;
+							}                      
 
 						} else {
 							logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
@@ -1594,8 +1594,8 @@ function rulesToMask(state) {
 					} else {
 						var existingname = layersUsed_r[layerIndex];
 						if (existingname === null) {
- 							existingname = layersUsedRand_r[layerIndex];
- 						}
+							existingname = layersUsedRand_r[layerIndex];
+						}
 
 						if (existingname !== null) {
 							if (rule.hasOwnProperty('discard')){
@@ -2466,7 +2466,7 @@ function formatHomePage(state){
 
 var MAX_ERRORS=5;
 function loadFile(str) {
-	var processor = new codeMirrorFn();
+	var processor = new codeMirrorFn(); // defined in parser.js
 	var state = processor.startState();
 
 	var lines = str.split('\n');
