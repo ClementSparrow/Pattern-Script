@@ -68,7 +68,12 @@ java -jar ~/progs/closure.jar --js_output_file ../bin/js/scripts_compiled.js  \
 --js js/inputoutput.js \
 --js js/mobile.js \
 --js js/buildStandalone.js \
---js js/engine.js \
+--js js/engine/message_screen.js \
+--js js/engine/level.js \
+--js js/engine/bitvec.js \
+--js js/engine/rule.js \
+--js js/engine/cell_pattern.js \
+--js js/engine/engine_base.js \
 --js js/parser.js \
 --js js/editor.js \
 --js js/compiler.js \
@@ -89,7 +94,12 @@ java -jar ~/progs/closure.jar --js_output_file ../bin/js/scripts_play_compiled.j
 --js js/codemirror/codemirror.js \
 --js js/colors.js \
 --js js/graphics.js \
---js js/engine.js \
+--js js/engine/message_screen.js \
+--js js/engine/level.js \
+--js js/engine/bitvec.js \
+--js js/engine/rule.js \
+--js js/engine/cell_pattern.js \
+--js js/engine/engine_base.js \
 --js js/parser.js \
 --js js/compiler.js \
 --js js/inputoutput.js \
