@@ -327,15 +327,13 @@ function setGameState(_state, command, randomseed) {
 	}
 	//set sprites
 	sprites = [];
-	for (var n in state.objects) {
-		if (state.objects.hasOwnProperty(n)) {
-			var object = state.objects[n];
-			var sprite = {
-				colors: object.colors,
-				dat: object.spritematrix
-			};
-			sprites[object.id] = sprite;
-		}
+	for (var object of state.objects)
+	{
+		var sprite = {
+			colors: object.colors,
+			dat: object.spritematrix
+		};
+		sprites[object.id] = sprite;
 	}
 	if (state.metadata.realtime_interval!==undefined) {
 		autotick=0;
@@ -635,7 +633,7 @@ function getLayersOfMask(cellMask) {
 	for (var i=0;i<state.objectCount;i++) {
 		if (cellMask.get(i)) {
 			var n = state.idDict[i];
-			var o = state.objects[n];
+			var o = state.objects[state.object_names.indexOf(n)]; // TODO ...
 			layers.push(o.layer)
 		}
 	}

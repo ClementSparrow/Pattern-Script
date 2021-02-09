@@ -92,7 +92,8 @@ function PuzzleScriptParser()
 	/*
 		permanently useful
 	*/
-	this.objects = {} // TODO: why use an object instead of an Array?
+	this.objects = []
+	this.object_names = []
 
 	/*
 		for parsing
@@ -106,6 +107,7 @@ function PuzzleScriptParser()
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
 	this.objects_candname = '' // The name of the object currently parsed
+	this.objects_candindex = '' // The index of the object currently parsed -> should always be the last index of the array?
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
 
@@ -141,60 +143,68 @@ function PuzzleScriptParser()
 	this.subsection = ''
 }
 
-PuzzleScriptParser.prototype.copy = function()
-{
-	var result = new PuzzleScriptParser()
+// PuzzleScriptParser.prototype.copy = function()
+// {
+// 	var result = new PuzzleScriptParser()
 
-	result.lineNumber = this.lineNumber
+// 	result.lineNumber = this.lineNumber
 
-	result.objects = {};
-	for (var i in this.objects) {
-		if (this.objects.hasOwnProperty(i)) {
-			var o = this.objects[i];
-			result.objects[i] = {
-			  colors: o.colors.concat([]),
-			  lineNumber : o.lineNumber,
-			  spritematrix: o.spritematrix.concat([])
-			}
-		}
-	}
+// 	// result.objects = {};
+// 	// for (var i in this.objects) {
+// 	// 	if (this.objects.hasOwnProperty(i)) {
+// 	// 		var o = this.objects[i];
+// 	// 		result.objects[i] = {
+//	//		  name: o.name,
+// 	// 		  colors: o.colors.concat([]),
+// 	// 		  lineNumber : o.lineNumber,
+// 	// 		  spritematrix: o.spritematrix.concat([])
+// 	// 		}
+// 	// 	}
+// 	// }
+// 	result.objects = this.objects.map( (o) => ({
+// 			colors: o.colors.concat([]),
+// 			lineNumber : o.lineNumber,
+// 			spritematrix: o.spritematrix.concat([])
+// 		}))
+// 	result.object_names = Array.from(this.object_names) // we can use Array.from because it will copy the strings (they are passed by value)
 
-	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
+// 	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
 
-	result.commentLevel = this.commentLevel
-	result.section = this.section
-	result.visitedSections = this.visitedSections.concat([])
+// 	result.commentLevel = this.commentLevel
+// 	result.section = this.section
+// 	result.visitedSections = this.visitedSections.concat([])
 
-	result.objects_candname = this.objects_candname
-	result.objects_section = this.objects_section
-	result.objects_spritematrix = this.objects_spritematrix.concat([])
+// 	result.objects_candname = this.objects_candname
+// 	result.objects_candindex = this.objects_candindex
+// 	result.objects_section = this.objects_section
+// 	result.objects_spritematrix = this.objects_spritematrix.concat([])
 
-	result.tokenIndex = this.tokenIndex
-	result.legend_synonyms = this.legend_synonyms.map( i => i.concat([]) )
-	result.legend_aggregates = this.legend_aggregates.map( i => i.concat([]) )
-	result.legend_properties = this.legend_properties.map( i => i.concat([]) )
+// 	result.tokenIndex = this.tokenIndex
+// 	result.legend_synonyms = this.legend_synonyms.map( i => i.concat([]) )
+// 	result.legend_aggregates = this.legend_aggregates.map( i => i.concat([]) )
+// 	result.legend_properties = this.legend_properties.map( i => i.concat([]) )
 
-	result.sounds = this.sounds.map( i => i.concat([]) )
+// 	result.sounds = this.sounds.map( i => i.concat([]) )
 
-	result.rules = this.rules.concat([])
+// 	result.rules = this.rules.concat([])
 
-	result.names = this.names.concat([])
+// 	result.names = this.names.concat([])
 
-	result.winconditions = this.winconditions.map( i => i.concat([]) )
+// 	result.winconditions = this.winconditions.map( i => i.concat([]) )
 
-	result.original_case_names = Object.assign({}, this.original_case_names);
+// 	result.original_case_names = Object.assign({}, this.original_case_names);
 
-	result.abbrevNames = this.abbrevNames.concat([])
+// 	result.abbrevNames = this.abbrevNames.concat([])
 
-	result.metadata = this.metadata.concat([])
+// 	result.metadata = this.metadata.concat([])
 
-	result.levels = this.levels.map( i => i.concat([]) )
+// 	result.levels = this.levels.map( i => i.concat([]) )
 
-	result.STRIDE_OBJ = this.STRIDE_OBJ
-	result.STRIDE_MOV = this.STRIDE_MOV
+// 	result.STRIDE_OBJ = this.STRIDE_OBJ
+// 	result.STRIDE_MOV = this.STRIDE_MOV
 
-	return result;
-}
+// 	return result;
+// }
 
 
 PuzzleScriptParser.prototype.blankLine = function()
@@ -303,7 +313,8 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 	const candname = match_name[0].trim();
 
 	// Check if there is already an object definition for this name
-	if (this.objects[candname] !== undefined)
+	// if (this.objects[candname] !== undefined)
+	if (this.object_names.indexOf(candname) >= 0)
 	{
 		logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
 		return 'ERROR';
@@ -327,12 +338,15 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 	if (is_start_of_line)
 	{
 		this.objects_candname = candname;
+		this.objects_candindex = this.objects.length
 		this.registerOriginalCaseName(candname, mixedCase);
-		this.objects[this.objects_candname] = {
+		this.objects.push( {
+			name: candname,
 			lineNumber: this.lineNumber,
 			colors: [],
 			spritematrix: []
-		};
+		});
+		this.object_names.push(candname)
 	} else {
 		//set up alias
 		this.registerOriginalCaseName(candname, mixedCase);
@@ -378,11 +392,11 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return null;
 			}
 
-			if (this.objects[this.objects_candname].colors === undefined)
+			if (this.objects[this.objects_candindex].colors === undefined)
 			{
-				this.objects[this.objects_candname].colors = [match_color[0].trim()];
+				this.objects[this.objects_candindex].colors = [match_color[0].trim()];
 			} else {
-				this.objects[this.objects_candname].colors.push(match_color[0].trim());
+				this.objects[this.objects_candindex].colors.push(match_color[0].trim());
 			}
 
 			var candcol = match_color[0].trim().toLowerCase();
@@ -410,7 +424,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				spritematrix.push('');
 			}
 
-			var o = this.objects[this.objects_candname];
+			var o = this.objects[this.objects_candindex];
 
 			spritematrix[spritematrix.length - 1] += ch;
 			if (spritematrix[spritematrix.length-1].length>5)
@@ -453,7 +467,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 PuzzleScriptParser.prototype.substitutor2 = function(n)
 {
 	n = n.toLowerCase();
-	if (n in this.objects)
+	if (this.object_names.indexOf(n) >= 0)
 		return [n];
 
 	for (var a of this.legend_synonyms)
@@ -481,7 +495,7 @@ PuzzleScriptParser.prototype.substitutor2 = function(n)
 PuzzleScriptParser.prototype.substitutor3 = function(n)
 {
 	n = n.toLowerCase();
-	if (n in this.objects)
+	if (this.object_names.indexOf(n) >= 0)
 		return [n];
 
 	for (var a of this.legend_synonyms)
@@ -513,7 +527,7 @@ PuzzleScriptParser.prototype.substitutor3 = function(n)
 PuzzleScriptParser.prototype.wordExists = function(n)
 {
 	n = n.toLowerCase();
-	if (n in this.objects)
+	if (this.object_names.indexOf(n) >= 0)
 		return true;
 	for (const a of this.legend_aggregates)
 	{
@@ -536,7 +550,7 @@ PuzzleScriptParser.prototype.wordExists = function(n)
 
 PuzzleScriptParser.prototype.checkNameNew = function(candname)
 {
-	if (this.objects[candname] !== undefined)
+	if (this.object_names.indexOf(candname) >= 0)
 	{
 		logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
 		return 'ERROR';
@@ -752,7 +766,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 PuzzleScriptParser.prototype.substitutor = function(n)
 {
 	n = n.toLowerCase();
-	if (n in this.objects)
+	if (this.object_names.indexOf(n) >= 0)
 		return [n];
 
 	for (var a of this.legend_synonyms)
@@ -1125,15 +1139,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 			if (this.section === 'sounds')
 			{
 				//populate names from rules
-				for (var n in this.objects) {
-					if (this.objects.hasOwnProperty(n))
-					{
-/*						if (this.names.indexOf(n)!==-1) {
-							logError('Object "'+n+'" has been declared to be multiple different things',this.objects[n].lineNumber);
-						}*/
-						this.names.push(n);
-					}
-				}
+				this.names.push(...this.object_names)
 				//populate names from legends
 				for (var i = 0; i < this.legend_synonyms.length; i++)
 				{
@@ -1169,12 +1175,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 			else if (this.section === 'levels')
 			{
 				//populate character abbreviations
-				for (var n in this.objects) {
-					if (this.objects.hasOwnProperty(n) && n.length == 1)
-					{
-						this.abbrevNames.push(n);
-					}
-				}
+				this.abbrevNames.push(...this.object_names)
 
 				for (var i = 0; i < this.legend_synonyms.length; i++)
 				{
@@ -1247,7 +1248,7 @@ window.CodeMirror.defineMode('puzzle', function()
 	{
 		'use strict';
 		return {
-			copyState: function(state) { return state.copy(); },
+			// copyState: function(state) { return state.copy(); },
 			blankLine: function(state) { state.blankLine(); },
 			token: function(stream, state) { return state.token(stream); },
 			startState: function() { return new PuzzleScriptParser(); }

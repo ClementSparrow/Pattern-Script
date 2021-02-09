@@ -60,9 +60,10 @@ function generateExtraMembers(state)
 	{
 		for (var n of layer)
 		{
-			if (n in state.objects)
+			const i = state.object_names.indexOf(n)
+			if (i >= 0)
 			{
-				var o = state.objects[n];
+				var o = state.objects[i];
 				o.layer = layerIndex;
 				o.id = state.idDict.length;
 				state.idDict.push(n);
@@ -120,57 +121,50 @@ function generateExtraMembers(state)
 	}
 
 	//convert colors to hex
-	for (var n in state.objects)
+	for (var o of state.objects)
 	{
-		if (state.objects.hasOwnProperty(n)) // TODO use an Array instead of an object for state.objects to void having to use hasOwnProperty
+		if (o.colors.length>10) {
+			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.",o.lineNumber+1);
+		}
+		for (var i=0;i<o.colors.length;i++)
 		{
-			//convert color to hex
-			var o = state.objects[n];
-			if (o.colors.length>10) {
-				logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.",o.lineNumber+1);
-			}
-			for (var i=0;i<o.colors.length;i++) {
-				var c = o.colors[i];
-				if (isColor(c)) {
-					c = colorToHex(colorPalette,c);
-					o.colors[i] = c;
-				} else {
-					logError('Invalid color specified for object "' + n + '", namely "' + o.colors[i] + '".', o.lineNumber + 1);
-					o.colors[i] = '#ff00ff'; // magenta error color
-				}
+			var c = o.colors[i];
+			if (isColor(c)) {
+				c = colorToHex(colorPalette,c);
+				o.colors[i] = c;
+			} else {
+				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', o.lineNumber + 1);
+				o.colors[i] = '#ff00ff'; // magenta error color
 			}
 		}
 	}
 
 	//generate sprite matrix
-	for (var n in state.objects) {
-		  if (state.objects.hasOwnProperty(n)) {
-			var o = state.objects[n];
-			if (o.colors.length==0) {
-				logError('color not specified for object "' + n +'".',o.lineNumber);
-				o.colors=["#ff00ff"];
+	for (var o of state.objects)
+	{
+		if (o.colors.length==0)
+		{
+			logError('color not specified for object "' + o.name +'".',o.lineNumber);
+			o.colors=["#ff00ff"];
+		}
+		if (o.spritematrix.length===0) {
+			o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
+		} else {
+			if ( o.spritematrix.length!==5 || o.spritematrix[0].length!==5 || o.spritematrix[1].length!==5 || o.spritematrix[2].length!==5 || o.spritematrix[3].length!==5 || o.spritematrix[4].length!==5 ){
+				logWarning("Sprite graphics must be 5 wide and 5 high exactly.",o.lineNumber);
 			}
-			if (o.spritematrix.length===0) {
-				o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
-			} else {
-				if ( o.spritematrix.length!==5 || o.spritematrix[0].length!==5 || o.spritematrix[1].length!==5 || o.spritematrix[2].length!==5 || o.spritematrix[3].length!==5 || o.spritematrix[4].length!==5 ){
-					logWarning("Sprite graphics must be 5 wide and 5 high exactly.",o.lineNumber);
-				}
-				o.spritematrix = generateSpriteMatrix(o.spritematrix);
-			}
+			o.spritematrix = generateSpriteMatrix(o.spritematrix);
 		}
 	}
 
 
 	//calculate glyph dictionary
 	var glyphDict = {};
-	for (var n in state.objects) {
-		  if (state.objects.hasOwnProperty(n)) {
-			var o = state.objects[n];
-			var mask = blankMask.concat([]);
-			mask[o.layer] = o.id;
-			glyphDict[n] = mask;
-		}
+	for (var o of state.objects)
+	{
+		var mask = blankMask.concat([]);
+		mask[o.layer] = o.id;
+		glyphDict[o.name] = mask;
 	}
 	var added=true;
 	while (added)
@@ -203,13 +197,16 @@ function generateExtraMembers(state)
 			}
 			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {            
 				var mask = blankMask.concat([]);
-		
-				for (var j = 1; j < dat.length; j++) {
+
+				for (var j = 1; j < dat.length; j++)
+				{
 					var n = dat[j];
-					var o = state.objects[n];
-					if (o == undefined) {
+					var oi = state.object_names.indexOf(n);
+					if (oi < 0)
+					{
 						logError('Object not found with name '+ n, state.lineNumber);
 					}
+					var o = state.objects[oi]; // TODO: we should store directly the index rather than the name
 					if (mask[o.layer] == -1) {
 						mask[o.layer] = o.id;
 					} else {
@@ -346,13 +343,13 @@ function generateExtraMembers(state)
 			var values = propertiesDict[key];
 			var sameLayer = true;
 			for (var i = 1; i < values.length; i++) {
-				if ((state.objects[values[i-1]].layer !== state.objects[values[i]].layer)) {
+				if ((state.objects[state.object_names.indexOf(values[i-1])].layer !== state.objects[state.object_names.indexOf(values[i])].layer)) { // TODO: we should store directly the indexes of objects rather than their names
 					sameLayer = false;
 					break;
 				}
 			}
 			if (sameLayer) {
-				state.propertiesSingleLayer[key] = state.objects[values[0]].layer;
+				state.propertiesSingleLayer[key] = state.objects[states.object_names.indexOf(values[0])].layer;
 			}
 		}
 	}
@@ -364,31 +361,32 @@ function generateExtraMembers(state)
 	//set default background object
 	var backgroundid;
 	var backgroundlayer;
-	if (state.objects.background===undefined) {
+	if (state.object_names.indexOf('background')<0)
+	{
 		if ('background' in state.synonymsDict) {
 			var n = state.synonymsDict['background'];
-			var o = state.objects[n];
+			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
 			backgroundid = o.id;
 			backgroundlayer = o.layer;
 		} else if ('background' in state.propertiesDict) {
 			var n = state.propertiesDict['background'][0];
-			var o = state.objects[n];
+			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
 			backgroundid = o.id;
 			backgroundlayer = o.layer;
-		}else if ('background' in state.aggregatesDict) {
-			var o=state.objects[state.idDict[0]];
+		} else if ('background' in state.aggregatesDict) {
+			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
 			backgroundid=o.id;
 			backgroundlayer=o.layer;
 			logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
 		} else {
-			var o=state.objects[state.idDict[0]];
+			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
 			backgroundid=o.id;
 			backgroundlayer=o.layer;
 			logError("you have to define something to be the background");
 		}
 	} else {
-		backgroundid = state.objects.background.id;
-		backgroundlayer = state.objects.background.layer;
+		backgroundid = state.objects[state.object_names.indexOf('background')].id;
+		backgroundlayer = state.objects[state.object_names.indexOf('background')].layer;
 	}
 	state.backgroundid=backgroundid;
 	state.backgroundlayer=backgroundlayer;
@@ -1474,7 +1472,7 @@ function rulesToMask(state) {
 					}
 
 					var object_name = cell_l[l + 1];
-					var object = state.objects[object_name];
+					var object = state.objects[state.object_names.indexOf(object_name)]; // TODO: we should store directly the object index in cell_l
 					var objectMask = state.objectMasks[object_name];
 					if (object) {
 						var layerIndex = object.layer|0;
@@ -1570,7 +1568,7 @@ function rulesToMask(state) {
 							}
 							for (var m = 0; m < values.length; m++) {
 								var subobject = values[m];
-								var layerIndex = state.objects[subobject].layer|0;
+								var layerIndex = state.objects[state.object_names.indexOf(subobject)].layer|0; // TODO: we should store...
 								var existingname = layersUsed_r[layerIndex];
 								if (existingname !== null) {
 									var o1 = subobject.toUpperCase();
@@ -1589,7 +1587,7 @@ function rulesToMask(state) {
 						continue;
 					}
 
-					var object = state.objects[object_name];
+					var object = state.objects[state.object_names.indexOf(object_name)];
 					var objectMask = state.objectMasks[object_name];
 					if (object) {
 						var layerIndex = object.layer|0;
@@ -1865,8 +1863,9 @@ function generateRigidGroupList(state) {
 
 function getMaskFromName(state,name) {
 	var objectMask=new BitVec(STRIDE_OBJ);
-	if (name in state.objects) {
-		var o=state.objects[name];
+	if (state.object_names.indexOf(name) >= 0)
+	{
+		var o=state.objects[state.object_names.indexOf(name)]; // TODO: we should store...
 		objectMask.ibitset(o.id);
 	}
 
@@ -1874,7 +1873,7 @@ function getMaskFromName(state,name) {
 		var objectnames = state.aggregatesDict[name];
 		for(var i=0;i<objectnames.length;i++) {
 			var n=objectnames[i];
-			var o = state.objects[n];
+			var o = state.objects[state.object_names.indexOf(n)]; // TODO...
 			objectMask.ibitset(o.id);
 		}
 	}
@@ -1883,14 +1882,14 @@ function getMaskFromName(state,name) {
 		var objectnames = state.propertiesDict[name];
 		for(var i=0;i<objectnames.length;i++) {
 			var n = objectnames[i];
-			var o = state.objects[n];
+			var o = state.objects[state.object_names.indexOf(n)]; // TODO
 			objectMask.ibitset(o.id);
 		}
 	}
 
 	if (name in state.synonymsDict) {
 		var n = state.synonymsDict[name];
-		var o = state.objects[n];
+		var o = state.objects[state.object_names.indexOf(n)]; // TODO
 		objectMask.ibitset(o.id);
 	}
 
@@ -1909,7 +1908,7 @@ function generateMasks(state) {
 		var layerMask=new BitVec(STRIDE_OBJ);
 		for (var j=0;j<state.objectCount;j++) {
 			var n=state.idDict[j];
-			var o = state.objects[n];
+			var o = state.objects[state.object_names.indexOf(n)]; // TODO
 			if (o.layer==layer) {
 				layerMask.ibitset(o.id);
 			}
@@ -1919,12 +1918,10 @@ function generateMasks(state) {
 	state.layerMasks=layerMasks;
 
 	var objectMask={};
-	for(var n in state.objects) {
-		if (state.objects.hasOwnProperty(n)) {
-			var o = state.objects[n];
-			objectMask[n] = new BitVec(STRIDE_OBJ);
-			objectMask[n].ibitset(o.id);
-		}
+	for(var o of state.objects)
+	{
+		objectMask[o.name] = new BitVec(STRIDE_OBJ);
+		objectMask[o.name].ibitset(o.id);
 	}
 
 	// Synonyms can depend on properties, and properties can depend on synonyms.
@@ -1959,26 +1956,26 @@ function generateMasks(state) {
 	state.objectMasks = objectMask;
 }
 
-function checkObjectsAreLayered(state) {
-	for (var n in state.objects) {
-		if (state.objects.hasOwnProperty(n)) {
-			var found=false;
-			for (var i=0;i<state.collisionLayers.length;i++) {
-				var layer = state.collisionLayers[i];
-				for (var j=0;j<layer.length;j++) {
-					if (layer[j]===n) {
-						found=true;
-						break;
-					}
-				}
-				if (found) {
+function checkObjectsAreLayered(state)
+{
+	for (var o of state.objects)
+	{
+		var found=false;
+		for (var i=0;i<state.collisionLayers.length;i++) {
+			var layer = state.collisionLayers[i];
+			for (var j=0;j<layer.length;j++) {
+				// if (layer[j]===n) {
+				if (layer[j]===o.name) {
+					found=true;
 					break;
 				}
 			}
-			if (found===false) {
-				var o = state.objects[n];
-				logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.',o.lineNumber);
+			if (found) {
+				break;
 			}
+		}
+		if (found===false) {
+			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.',o.lineNumber);
 		}
 	}
 }
@@ -2368,7 +2365,7 @@ function generateSoundData(state) {
 			if (verb==='move' || verb==='cantmove') {
 				for (var j=0;j<targets.length;j++) {
 					var targetName = targets[j];
-					var targetDat = state.objects[targetName];
+					var targetDat = state.objects[state.object_names.indexOf(targetName)]; // TODO
 					var targetLayer = targetDat.layer;
 					var shiftedDirectionMask = new BitVec(STRIDE_MOV);
 					shiftedDirectionMask.ishiftor(directionMask, 5*targetLayer);
