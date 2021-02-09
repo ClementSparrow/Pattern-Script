@@ -61,38 +61,30 @@ if (typeof Object.assign != 'function') {
 }
 
 
-var absolutedirs = ['up', 'down', 'right', 'left'];
-var relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
-var logicWords = ['all', 'no', 'on', 'some'];
-var sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
-var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
-var reg_commands = /\p{Z}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Z}*/u;
-var reg_name = /[\p{L}\p{N}_]+[\p{Z}]*/u;///\w*[a-uw-zA-UW-Z0-9_]/;
-var reg_number = /[\d]+/;
-var reg_soundseed = /\d+\b/;
-var reg_spriterow = /[\.0-9]{5}\p{Z}*/u;
-var reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{L}\p{N}_])[\p{Z}]*/u;
-var reg_equalsrow = /[\=]+/;
-var reg_notcommentstart = /[^\(]+/;
-var reg_csv_separators = /[ \,]*/;
-var reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\p{Z}+/u;
-var reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
-var reg_loopmarker = /^(startloop|endloop)$/;
-var reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-var reg_sounddirectionindicators = /\p{Z}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Z}*/u;
-var reg_winconditionquantifiers = /^(all|any|no|some)$/;
-var reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
-var keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
+const absolutedirs = ['up', 'down', 'right', 'left'];
+const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
+const logicWords = ['all', 'no', 'on', 'some'];
+const sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
+const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
+const reg_commands = /\p{Z}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Z}*/u;
+const reg_name = /[\p{L}\p{N}_]+[\p{Z}]*/u;///\w*[a-uw-zA-UW-Z0-9_]/;
+const reg_number = /[\d]+/;
+const reg_soundseed = /\d+\b/;
+const reg_spriterow = /[\.0-9]{5}\p{Z}*/u;
+const reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{L}\p{N}_])[\p{Z}]*/u;
+const reg_equalsrow = /[\=]+/;
+const reg_notcommentstart = /[^\(]+/;
+const reg_csv_separators = /[ \,]*/;
+const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\p{Z}+/u;
+const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
+const reg_loopmarker = /^(startloop|endloop)$/;
+const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
+const reg_sounddirectionindicators = /\p{Z}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Z}*/u;
+const reg_winconditionquantifiers = /^(all|any|no|some)$/;
+const reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
+const keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
 //  var keywordRegex = new RegExp("\\b(("+cons.join(")|(")+"))$", 'i');
-
-var fullSpriteMatrix = [
-	'00000',
-	'00000',
-	'00000',
-	'00000',
-	'00000'
-];
 
 
 function PuzzleScriptParser()
