@@ -1,7 +1,8 @@
 'use strict';
 
 
-function isColor(str) {
+function isColor(str)
+{
 	str = str.trim();
 	if (str in colorPalettes.arnecolors)
 		return true;
@@ -53,24 +54,24 @@ function generateExtraMembers(state)
 
 	//annotate objects with layers
 	//assign ids at the same time
-	state.idDict = {};
-	var idcount=0;
-	for (var layerIndex = 0; layerIndex < state.collisionLayers.length; layerIndex++) {
-		for (var j = 0; j < state.collisionLayers[layerIndex].length; j++)
+	// This could be done directly in the parser -- ClementSparrow
+	state.idDict = [];
+	for (var [layerIndex, layer] of state.collisionLayers.entries())
+	{
+		for (var n of layer)
 		{
-			var n = state.collisionLayers[layerIndex][j];
-			if (n in  state.objects)  {
+			if (n in state.objects)
+			{
 				var o = state.objects[n];
 				o.layer = layerIndex;
-				o.id=idcount;
-				state.idDict[idcount]=n;
-				idcount++;
+				o.id = state.idDict.length;
+				state.idDict.push(n);
 			}
 		}
 	}
 
 	//set object count
-	state.objectCount = idcount;
+	state.objectCount = state.idDict.length;
 
 	//calculate blank mask template
 	var layerCount = state.collisionLayers.length;
@@ -496,8 +497,6 @@ var relativeDirections = ['^', 'v', '<', '>','horizontal','vertical'];
 var simpleAbsoluteDirections = ['up', 'down', 'left', 'right'];
 var simpleRelativeDirections = ['^', 'v', '<', '>'];
 var reg_directions_only = /^(\>|\<|\^|v|up|down|left|right|moving|stationary|no|randomdir|random|horizontal|vertical|orthogonal|perpendicular|parallel|action)$/;
-//redeclaring here, i don't know why
-var commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
 
 
@@ -2477,6 +2476,7 @@ function loadFile(str)
 	const lines = str.split('\n');
 	for (const [i, line] of lines.entries())
 	{
+	//	Parse the line
 		state.lineNumber = i + 1;
 		var ss = new CodeMirror.StringStream(line, 4);
 		do

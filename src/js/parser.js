@@ -209,6 +209,8 @@ PuzzleScriptParser.prototype.blankLine = function()
 }
 
 
+const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
 
 PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream, mixedCase)
 {
@@ -219,11 +221,12 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 	if (this.tokenIndex==0)
 	{
 		var match = stream.match(/[\p{Z}]*[\p{L}\p{N}_]+[\p{Z}]*/u);	                    
-		if (match!==null) {
-			var token = match[0].trim();
+		if (match !== null)
+		{
+			const token = match[0].trim();
 			if (is_start_of_line)
 			{
-				if (['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube'].indexOf(token)>=0)
+				if (metadata_with_value.indexOf(token)>=0)
 				{
 					
 					if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
@@ -233,7 +236,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 					
 					var m2 = stream.match(reg_notcommentstart, false);
 					
-					if(m2!=null)
+					if(m2 != null)
 					{
 						this.metadata.push(token);
 						this.metadata.push(m2[0].trim());                                            
@@ -242,7 +245,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 					}
 					this.tokenIndex = 1;
 					return 'METADATA';
-				} else if ( ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline'].indexOf(token)>=0)
+				} else if ( metadata_without_value.indexOf(token)>=0)
 				{
 					this.metadata.push(token);
 					this.metadata.push("true");
@@ -1053,7 +1056,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 	}
 	if (this.commentLevel > 0)
 	{
-		while (true)
+		do
 		{
 			stream.eatWhile(/[^\(\)]+/);
 
@@ -1070,10 +1073,8 @@ PuzzleScriptParser.prototype.token = function(stream)
 				this.commentLevel--;
 			}
 			stream.next();
-
-			if (this.commentLevel === 0)
-				break;
 		}
+		while (this.commentLevel === 0);
 		return 'comment';
 	}
 
@@ -1093,12 +1094,15 @@ PuzzleScriptParser.prototype.token = function(stream)
 		if (stream.match(reg_sectionNames, true))
 		{
 			this.section = stream.string.slice(0, stream.pos).trim();
+
+		//	Check that we have the right to start this section at this point
+
 			if (this.visitedSections.indexOf(this.section) >= 0)
 			{
 				logError('cannot duplicate sections (you tried to duplicate \"' + this.section.toUpperCase() + '").', this.lineNumber);
 			}
 			this.visitedSections.push(this.section);
-			var sectionIndex = sectionNames.indexOf(this.section);
+			const sectionIndex = sectionNames.indexOf(this.section);
 			if (sectionIndex == 0)
 			{
 				this.objects_section = 0;
@@ -1108,13 +1112,15 @@ PuzzleScriptParser.prototype.token = function(stream)
 				}
 			} else if (this.visitedSections.indexOf(sectionNames[sectionIndex - 1]) == -1)
 			{
-				if (sectionIndex === -1)
+				if (sectionIndex === -1) // In theory, we can only get there if reg_sectionNames matches something not in sectionNames
 				{
 					logError('no such section as "' + this.section.toUpperCase() + '".', this.lineNumber);
 				} else {
 					logError('section "' + this.section.toUpperCase() + '" is out of order, must follow  "' + sectionNames[sectionIndex - 1].toUpperCase() + '" (or it could be that the section "'+sectionNames[sectionIndex - 1].toUpperCase()+`"is just missing totally.  You have to include all section headings, even if the section itself is empty).`, this.lineNumber);                            
 				}
 			}
+
+		//	Initialize the parser state for some sections depending on what has been parsed before
 
 			if (this.section === 'sounds')
 			{
@@ -1186,11 +1192,11 @@ PuzzleScriptParser.prototype.token = function(stream)
 				}
 			}
 			return 'HEADER';
-		} else {
-			if (this.section === undefined)
-			{
-				logError('must start with section "OBJECTS"', this.lineNumber);
-			}
+		}
+
+		if (this.section === undefined)
+		{
+			logError('must start with section "OBJECTS"', this.lineNumber);
 		}
 
 		if (stream.eol())
@@ -1236,6 +1242,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 	}
 }
 
+// see https://codemirror.net/doc/manual.html#modeapi
 window.CodeMirror.defineMode('puzzle', function()
 	{
 		'use strict';
