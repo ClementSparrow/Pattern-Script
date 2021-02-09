@@ -92,7 +92,7 @@ function PuzzleScriptParser()
 	/*
 		permanently useful
 	*/
-	this.objects = {}
+	this.objects = {} // TODO: why use an object instead of an Array?
 
 	/*
 		for parsing

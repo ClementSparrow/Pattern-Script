@@ -54,7 +54,7 @@ function generateExtraMembers(state)
 
 	//annotate objects with layers
 	//assign ids at the same time
-	// This could be done directly in the parser -- ClementSparrow
+	// TODO: This could be done directly in the parser -- ClementSparrow
 	state.idDict = [];
 	for (var [layerIndex, layer] of state.collisionLayers.entries())
 	{
@@ -74,11 +74,8 @@ function generateExtraMembers(state)
 	state.objectCount = state.idDict.length;
 
 	//calculate blank mask template
-	var layerCount = state.collisionLayers.length;
-	var blankMask = [];
-	for (var i = 0; i < layerCount; i++) {
-		blankMask.push(-1);
-	}
+	const layerCount = state.collisionLayers.length;
+	var blankMask = Array(layerCount).fill(-1)
 
 	// how many words do our bitvecs need to hold?
 	STRIDE_OBJ = Math.ceil(state.objectCount/32)|0;
@@ -87,36 +84,46 @@ function generateExtraMembers(state)
 	state.STRIDE_MOV=STRIDE_MOV;
 	
 	//get colorpalette name
-	debugMode=false;
-	verbose_logging=false;
-	throttle_movement=false;
-	colorPalette=colorPalettes.arnecolors;
-	for (var i=0;i<state.metadata.length;i+=2){
+	// TODO: it would be much easier if state.metadata was already changed into an associative array -- ClementSparrow
+	debugMode = false;
+	verbose_logging = false;
+	throttle_movement = false;
+	colorPalette = colorPalettes.arnecolors;
+	for (var i=0; i<state.metadata.length; i+=2)
+	{
 		var key = state.metadata[i];
 		var val = state.metadata[i+1];
-		if (key==='color_palette') {
-			if (val in colorPalettesAliases) {
+		if (key === 'color_palette')
+		{
+			if (val in colorPalettesAliases)
+			{
 				val = colorPalettesAliases[val];
 			}
-			if (colorPalettes[val]===undefined) {
+			if (colorPalettes[val] === undefined)
+			{
 				logError('Palette "'+val+'" not found, defaulting to arnecolors.',0);
-			}else {
-				colorPalette=colorPalettes[val];
+			} else {
+				colorPalette = colorPalettes[val];
 			}
-		} else if (key==='debug') {
-			debugMode=true;
-			cache_console_messages=true;
-		} else if (key ==='verbose_logging') {
-			verbose_logging=true;
-			cache_console_messages=true;
-		} else if (key==='throttle_movement') {
-			throttle_movement=true;
+		} else if (key === 'debug')
+		{
+			debugMode = true;
+			cache_console_messages = true;
+		} else if (key === 'verbose_logging')
+		{
+			verbose_logging = true;
+			cache_console_messages = true;
+		} else if (key === 'throttle_movement')
+		{
+			throttle_movement = true;
 		}
 	}
 
 	//convert colors to hex
-	for (var n in state.objects) {
-		  if (state.objects.hasOwnProperty(n)) {
+	for (var n in state.objects)
+	{
+		if (state.objects.hasOwnProperty(n)) // TODO use an Array instead of an object for state.objects to void having to use hasOwnProperty
+		{
 			//convert color to hex
 			var o = state.objects[n];
 			if (o.colors.length>10) {
