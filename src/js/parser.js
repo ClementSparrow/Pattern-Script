@@ -61,22 +61,6 @@ if (typeof Object.assign != 'function') {
 }
 
 
-function searchStringInArray(str, strArray) {
-	for (var j = 0; j < strArray.length; j++) {
-		if (strArray[j] === str) { return j; }
-	}
-	return -1;
-}
-
-function isMatrixLine(str) {
-	for (var j = 0; j < str.length; j++) {
-		if (str.charAt(j) !== '.' && str.charAt(j) !== '0') {
-			return false;
-		}
-	}
-	return true;
-}
-
 var absolutedirs = ['up', 'down', 'right', 'left'];
 var relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 var logicWords = ['all', 'no', 'on', 'some'];
