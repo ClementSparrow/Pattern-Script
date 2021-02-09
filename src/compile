@@ -68,6 +68,7 @@ java -jar ~/progs/closure.jar --js_output_file ../bin/js/scripts_compiled.js  \
 --js js/inputoutput.js \
 --js js/mobile.js \
 --js js/buildStandalone.js \
+--js js/engine/log.js \
 --js js/engine/message_screen.js \
 --js js/engine/level.js \
 --js js/engine/bitvec.js \
@@ -94,6 +95,7 @@ java -jar ~/progs/closure.jar --js_output_file ../bin/js/scripts_play_compiled.j
 --js js/codemirror/codemirror.js \
 --js js/colors.js \
 --js js/graphics.js \
+--js js/engine/log.js \
 --js js/engine/message_screen.js \
 --js js/engine/level.js \
 --js js/engine/bitvec.js \

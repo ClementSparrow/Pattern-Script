@@ -43,9 +43,11 @@ function generateSpriteMatrix(dat) {
 var debugMode;
 var colorPalette;
 
-function generateExtraMembers(state) {
+function generateExtraMembers(state)
+{
 
-	if (state.collisionLayers.length===0) {
+	if (state.collisionLayers.length === 0)
+	{
 		logError("No collision layers defined.  All objects need to be in collision layers.");
 	}
 
@@ -163,12 +165,13 @@ function generateExtraMembers(state) {
 		}
 	}
 	var added=true;
-	while (added) {
+	while (added)
+	{
 		added=false;
 		
 		//then, synonyms
-		for (var i = 0; i < state.legend_synonyms.length; i++) {
-			var dat = state.legend_synonyms[i];
+		for (const dat of state.legend_synonyms)
+		{
 			var key = dat[0];
 			var val = dat[1];
 			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&(glyphDict[val]!==undefined)) {
@@ -178,8 +181,8 @@ function generateExtraMembers(state) {
 		}
 	
 		//then, aggregates
-		for (var i = 0; i < state.legend_aggregates.length; i++) {
-			var dat = state.legend_aggregates[i];
+		for (var dat of state.legend_aggregates)
+		{
 			var key=dat[0];
 			var vals=dat.slice(1);
 			var allVallsFound=true;
@@ -225,23 +228,23 @@ function generateExtraMembers(state) {
 	state.glyphDict = glyphDict;
 
 	var aggregatesDict = {};
-	for (var i = 0; i < state.legend_aggregates.length; i++) {
-		var entry = state.legend_aggregates[i];
+	for (const entry of state.legend_aggregates)
+	{
 		aggregatesDict[entry[0]] = entry.slice(1);
 	}
 	state.aggregatesDict = aggregatesDict;
 
 	var propertiesDict = {};
-	for (var i = 0; i < state.legend_properties.length; i++) {
-		var entry = state.legend_properties[i];
+	for (const entry of state.legend_properties)
+	{
 		propertiesDict[entry[0]] = entry.slice(1);
 	}
 	state.propertiesDict = propertiesDict;
 
 	//calculate lookup dictionaries
 	var synonymsDict = {};
-	for (var i = 0; i < state.legend_synonyms.length; i++) {
-		var entry = state.legend_synonyms[i];
+	for (const entry of state.legend_synonyms)
+	{
 		var key = entry[0];
 		var value=entry[1];
 		if (value in aggregatesDict) {
@@ -1926,8 +1929,8 @@ function generateMasks(state) {
 		return a.lineNumber - b.lineNumber;
 	});
 
-	for (var i=0;i<synonyms_and_properties.length;i++) {
-		var synprop = synonyms_and_properties[i];
+	for (const synprop of synonyms_and_properties)
+	{
 		if (synprop.length == 2) {
 			// synonym (a = b)
 			objectMask[synprop[0]]=objectMask[synprop[1]];
@@ -2465,19 +2468,22 @@ function formatHomePage(state){
 }
 
 var MAX_ERRORS=5;
-function loadFile(str) {
-	var processor = new codeMirrorFn(); // defined in parser.js
-	var state = processor.startState();
+function loadFile(str)
+{
 
-	var lines = str.split('\n');
-	for (var i = 0; i < lines.length; i++) {
-		var line = lines[i];
+//	Parse the file	
+	var state = new PuzzleScriptParser()
+
+	const lines = str.split('\n');
+	for (const [i, line] of lines.entries())
+	{
 		state.lineNumber = i + 1;
 		var ss = new CodeMirror.StringStream(line, 4);
-		do {
-			processor.token(ss, state);
-
-			if (errorCount>MAX_ERRORS) {
+		do
+		{
+			state.token(ss)
+			if (errorCount>MAX_ERRORS)
+			{
 				consolePrint("too many errors, aborting compilation");
 				return;
 			}
@@ -2594,11 +2600,11 @@ function compile(command,text,randomseed) {
 	}
 	else {
 		var ruleCount=0;
-		for (var i=0;i<state.rules.length;i++) {
-			ruleCount+=state.rules[i].length;
+		for (const rule of state.rules) {
+			ruleCount += rule.length;
 		}
-		for (var i=0;i<state.lateRules.length;i++) {
-			ruleCount+=state.lateRules[i].length;
+		for (const rule of state.lateRules) {
+			ruleCount += rule.length;
 		}
 		if (command[0]=="restart") {
 			consolePrint('<span class="systemMessage">Successful Compilation, generated ' + ruleCount + ' instructions.</span>');
