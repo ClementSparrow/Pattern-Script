@@ -55,7 +55,7 @@ function generateExtraMembers(state)
 	//annotate objects with layers
 	//assign ids at the same time
 	// TODO: This could be done directly in the parser -- ClementSparrow
-	state.idDict = []; // TODO: this is a bad name, since it actually contains names, not ids...
+	state.idDict = []; // TODO: this is a bad name, since it actually contains names, not ids, and is a non-associative array...
 	for (var [layerIndex, layer] of state.collisionLayers.entries())
 	{
 		for (var n of layer)
