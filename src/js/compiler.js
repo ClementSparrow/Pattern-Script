@@ -84,47 +84,40 @@ function generateExtraMembers(state)
 	state.STRIDE_OBJ=STRIDE_OBJ;
 	state.STRIDE_MOV=STRIDE_MOV;
 	
-	//get colorpalette name
-	// TODO: it would be much easier if state.metadata was already changed into an associative array -- ClementSparrow
-	debugMode = false;
-	verbose_logging = false;
-	throttle_movement = false;
-	colorPalette = colorPalettes.arnecolors;
-	for (var i=0; i<state.metadata.length; i+=2)
+	debugMode = ('debug' in state.metadata)
+	verbose_logging = ('verbose_logging' in state.metadata)
+	throttle_movement = ('throttle_movement' in state.metadata)
+	if (debugMode||verbose_logging)
 	{
-		var key = state.metadata[i];
-		var val = state.metadata[i+1];
-		if (key === 'color_palette')
+		cache_console_messages = true;
+	}
+
+	// get colorpalette name
+	// TODO: move that in the parser so that it can display the exact colors
+	if ('color_palette' in state.metadata)
+	{
+		const val = state.metadata.color_palette
+		if (val in colorPalettesAliases)
 		{
-			if (val in colorPalettesAliases)
-			{
-				val = colorPalettesAliases[val];
-			}
-			if (colorPalettes[val] === undefined)
-			{
-				logError('Palette "'+val+'" not found, defaulting to arnecolors.',0);
-			} else {
-				colorPalette = colorPalettes[val];
-			}
-		} else if (key === 'debug')
-		{
-			debugMode = true;
-			cache_console_messages = true;
-		} else if (key === 'verbose_logging')
-		{
-			verbose_logging = true;
-			cache_console_messages = true;
-		} else if (key === 'throttle_movement')
-		{
-			throttle_movement = true;
+			val = colorPalettesAliases[val];
 		}
+		if (colorPalettes[val] === undefined)
+		{
+			logError('Palette "'+val+'" not found, defaulting to arnecolors.',0);
+		} else {
+			colorPalette = colorPalettes[val];
+		}
+	}
+	else
+	{
+		colorPalette = colorPalettes.arnecolors;
 	}
 
 	//convert colors to hex
 	for (var o of state.objects)
 	{
 		if (o.colors.length>10) {
-			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.",o.lineNumber+1);
+			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", o.lineNumber+1); // TODO: Seriously??? -- ClementSparrow
 		}
 		for (var i=0;i<o.colors.length;i++)
 		{
@@ -1977,28 +1970,23 @@ function checkObjectsAreLayered(state)
 	}
 }
 
-function twiddleMetaData(state) {
+function twiddleMetaData(state)
+{
 	var newmetadata = {};
-	for (var i=0;i<state.metadata.length;i+=2) {
-		var key = state.metadata[i];
-		var val = state.metadata[i+1];
-		newmetadata[key]=val;
+	state.metadata_keys.forEach( function(key, i) { newmetadata[key] = state.metadata_values[i]; } )
+
+	if (newmetadata.flickscreen !== undefined)
+	{
+		const coords = newmetadata.flickscreen.split('x');
+		newmetadata.flickscreen = [parseInt(coords[0]), parseInt(coords[1])];
+	}
+	if (newmetadata.zoomscreen !== undefined)
+	{
+		const coords = newmetadata.zoomscreen.split('x');
+		newmetadata.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])];
 	}
 
-	if (newmetadata.flickscreen!==undefined) {
-		var val = newmetadata.flickscreen;
-		var coords = val.split('x');
-		var intcoords = [parseInt(coords[0]),parseInt(coords[1])];
-		newmetadata.flickscreen=intcoords;
-	}
-	if (newmetadata.zoomscreen!==undefined) {
-		var val = newmetadata.zoomscreen;
-		var coords = val.split('x');
-		var intcoords = [parseInt(coords[0]),parseInt(coords[1])];
-		newmetadata.zoomscreen=intcoords;
-	}
-
-	state.metadata=newmetadata;	
+	state.metadata = newmetadata;	
 }
 
 function processWinConditions(state) {
@@ -2416,7 +2404,8 @@ function generateSoundData(state) {
 }
 
 
-function formatHomePage(state){
+function formatHomePage(state)
+{
 	if ('background_color' in state.metadata) {
 		state.bgcolor=colorToHex(colorPalette,state.metadata.background_color);
 	} else {
@@ -2479,7 +2468,7 @@ function loadFile(str)
 	{
 	//	Parse the line
 		state.lineNumber = i + 1;
-		var ss = new CodeMirror.StringStream(line, 4);
+		var ss = new CodeMirror.StringStream(line, 4); // note that we use the CodeMirror API to parse the file, here, but we don't have to
 		do
 		{
 			state.token(ss)
@@ -2493,6 +2482,8 @@ function loadFile(str)
 	}
 
 	delete state.lineNumber;
+
+	twiddleMetaData(state);
 
 	generateExtraMembers(state);
 	generateMasks(state);
@@ -2519,8 +2510,6 @@ function loadFile(str)
 	processWinConditions(state);
 	checkObjectsAreLayered(state);
 
-	twiddleMetaData(state);
-
 	generateLoopPoints(state);
 
 	generateSoundData(state);
@@ -2533,7 +2522,6 @@ function loadFile(str)
 	delete state.objects_section;
 	delete state.objects_spritematrix;
 	delete state.section;
-	delete state.subsection;
 	delete state.tokenIndex;
 	delete state.visitedSections;
 	delete state.loops;

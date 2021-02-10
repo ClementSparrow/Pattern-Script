@@ -61,6 +61,7 @@ const keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sou
 //  var keywordRegex = new RegExp("\\b(("+cons.join(")|(")+"))$", 'i');
 
 
+// NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
 function PuzzleScriptParser()
 {
 	/*
@@ -73,6 +74,7 @@ function PuzzleScriptParser()
 	this.identifiers_info = [] // for each identifier in the previous entry, gives:
 						  // its type (0=object, 1=synonym, 2=aggregate, 3=property), and its index in the list of entities of that type
 						  // TODO: add original_case_name and lineNumber in this structure too?
+	this.original_case_names = [] // retain the original case of a name so that the editor can suggest it as autocompletion.
 
 	/*
 		for parsing
@@ -83,6 +85,13 @@ function PuzzleScriptParser()
 
 	this.section = ''
 	this.visitedSections = [] // There are only 8 sections, so it could be a bitmask rather than an array...
+
+	this.tokenIndex = 0
+
+
+	// metadata defined in the preamble
+	this.metadata_keys = []   // TODO: we should not care about the keys, since it's a predefined set
+	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
 	this.objects_candname = '' // The name of the object currently parsed
@@ -97,29 +106,17 @@ function PuzzleScriptParser()
 	this.legend_synonyms = []
 	this.legend_aggregates = []
 	this.legend_properties = []
+	this.abbrevNames = []
 
 	this.sounds = []
 
 	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a list of the names of the objects belonging to that layer
 
-	this.tokenIndex = 0
-
 	this.rules = []
 
 	this.winconditions = []
-	this.metadata = [] // A list of 2n entries where even entries are the name of a metadata defined in the preamble and odd entries behind them are the value of the metadata.
-	                   // This structure is only used for the parsing and in compiler.js/generateExtraMembers.
-	                   // It will be changed in compiler.js/twiddleMetaData to an associative array, and the values of some parameters will be further parsed then.
-	                   // In my mind, this should be done directly in the parser -- ClementSparrow
-
-	// this.original_case_names = {} // retain the original case of a name so that the editor can suggest it as autocompletion.
-	this.original_case_names = [] // retain the original case of a name so that the editor can suggest it as autocompletion.
-
-	this.abbrevNames = []
 
 	this.levels = [[]]
-
-	this.subsection = ''
 }
 
 PuzzleScriptParser.prototype.copy = function()
@@ -164,7 +161,9 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.abbrevNames = this.abbrevNames.concat([])
 
-	result.metadata = this.metadata.concat([])
+	// result.metadata = this.metadata.concat([])
+	result.metadata_keys   = this.metadata_keys.concat([])
+	result.metadata_values = this.metadata_values.concat([])
 
 	result.levels = this.levels.map( i => i.concat([]) )
 
@@ -191,96 +190,17 @@ PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 
 
 
-// ====== OTHERS =======
 
+//  ======= PARSING LOGIC DISCONNECTED FROM CODEMIRROR'S API =========
 
-
-PuzzleScriptParser.prototype.blankLine = function()
+PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
-	if (state.section === 'levels')
-	{
-		if (state.levels[state.levels.length - 1].length > 0)
-		{
-			state.levels.push([]);
-		}
-	}
+	this.metadata_keys.push(key)
+	this.metadata_values.push(value)
 }
-
 
 const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
 const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
-
-PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream, mixedCase)
-{
-	if (is_start_of_line)
-	{
-		this.tokenIndex=0;
-	}
-	else if (this.tokenIndex != 0)
-	{
-		stream.match(reg_notcommentstart, true);
-		return "METADATATEXT";
-	}
-
-	const token = this.parse_keyword_or_identifier(stream)
-	if (token !== null)
-	{
-		if (is_start_of_line)
-		{
-			if (metadata_with_value.indexOf(token)>=0)
-			{
-				
-				if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
-				{
-					stream.string = mixedCase;
-				}
-				
-				var m2 = stream.match(reg_notcommentstart, false);
-				
-				if(m2 != null)
-				{
-					this.metadata.push(token);
-					this.metadata.push(m2[0].trim());                                            
-				} else {
-					logError('MetaData "'+token+'" needs a value.',this.lineNumber);
-				}
-				this.tokenIndex = 1;
-				return 'METADATA';
-			} else if ( metadata_without_value.indexOf(token)>=0)
-			{
-				this.metadata.push(token);
-				this.metadata.push("true");
-				this.tokenIndex = -1;
-				return 'METADATA';
-			} else  {
-				logError('Unrecognised stuff in the prelude.', this.lineNumber);
-				return 'ERROR';
-			}
-		} else if (this.tokenIndex == -1)
-		{
-			logError('MetaData "'+token+'" has no parameters.', this.lineNumber);
-			return 'ERROR';
-		}
-		return 'METADATA';
-	}
-}
-
-
-function findOriginalCaseName(candname, mixedCase)
-{
-	function escapeRegExp(str)
-	{
-	  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-	}
-
-	var nameFinder =  new RegExp("\\b"+escapeRegExp(candname)+"\\b","i")
-	var match = mixedCase.match(nameFinder);
-	if (match != null)
-	{
-		return match[0]; // TODO: we need to use a name index instead of candname
-	}
-	return null;
-}
 
 PuzzleScriptParser.prototype.registerNewIdentifier = function(candname, original_case, type)
 {
@@ -325,6 +245,101 @@ PuzzleScriptParser.prototype.registerNewProperty = function(property, original_c
 	property.lineNumber = this.lineNumber;
 	this.legend_properties.push(property);
 }
+
+PuzzleScriptParser.prototype.wordExists = function(n)
+{
+	return (this.identifiers.indexOf(n.toLowerCase()) >= 0);
+}
+
+
+
+// ====== OTHERS =======
+
+
+
+PuzzleScriptParser.prototype.blankLine = function()
+{
+	if (state.section === 'levels')
+	{
+		if (state.levels[state.levels.length - 1].length > 0)
+		{
+			state.levels.push([]);
+		}
+	}
+}
+
+
+PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream, mixedCase)
+{
+	if (is_start_of_line)
+	{
+		this.tokenIndex=0;
+	}
+	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessiraly in the metadata value's text
+	{
+		stream.match(reg_notcommentstart, true);
+		return "METADATATEXT";
+	}
+
+//	Get the metadata key
+	const token = this.parse_keyword_or_identifier(stream)
+	if (token === null)
+		return null; // TODO: we should probably log an error, here?
+
+	if (is_start_of_line)
+	{
+		if (metadata_with_value.indexOf(token)>=0)
+		{
+			
+			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
+			{
+				stream.string = mixedCase;
+			}
+			
+			var m2 = stream.match(reg_notcommentstart, false);
+			
+			if(m2 != null)
+			{
+				this.registerMetaData(token, m2[0].trim())
+			} else {
+				logError('MetaData "'+token+'" needs a value.',this.lineNumber);
+			}
+			this.tokenIndex = 1;
+			return 'METADATA';
+		} else if ( metadata_without_value.indexOf(token)>=0)
+		{
+			this.registerMetaData(token, "true") // TODO: return the value instead of a string?
+			this.tokenIndex = -1;
+			return 'METADATA';
+		} else  {
+			logError('Unrecognised stuff in the prelude.', this.lineNumber);
+			return 'ERROR';
+		}
+	} else if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
+	{
+		logError('MetaData "'+token+'" has no parameters.', this.lineNumber);
+		return 'ERROR';
+	}
+	return 'METADATA';
+}
+
+
+function findOriginalCaseName(candname, mixedCase)
+{
+	function escapeRegExp(str)
+	{
+	  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+	}
+
+	var nameFinder =  new RegExp("\\b"+escapeRegExp(candname)+"\\b","i")
+	var match = mixedCase.match(nameFinder);
+	if (match != null)
+	{
+		return match[0]; // TODO: we need to use a name index instead of candname
+	}
+	return null;
+}
+
 
 PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, mixedCase)
 {
@@ -482,8 +497,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 }
 
 
-// BUG: in these functions, the paramater n is modified and should be modified when exiting the function but javascript passes non-object parameters by value
-//      similarly, some of these functions modify the "ok" variable defined in tokenInLegendSection
+// BUG: some of these functions modify the "ok" variable defined in tokenInLegendSection
 //      In addition, the new version is not recursive, so it may be broken
 PuzzleScriptParser.prototype.substitutor_for_aggregate = function(n)
 {
@@ -569,30 +583,6 @@ PuzzleScriptParser.prototype.substitutor_for_property = function(n)
 }
 
 
-PuzzleScriptParser.prototype.wordExists = function(n)
-{
-	n = n.toLowerCase();
-	return (this.identifiers.indexOf(n) >= 0);
-	// if (this.object_names.indexOf(n) >= 0)
-	// 	return true;
-	// for (const a of this.legend_aggregates)
-	// {
-	// 	if (a[0]===n)
-	// 		return true;
-	// }
-	// for (const a of this.legend_properties)
-	// {
-	// 	if (a[0]===n)
-	// 		return true;
-	// }
-	// for (const a of this.legend_synonyms)
-	// {
-	// 	if (a[0]===n)
-	// 		return true;
-	// }
-	// return false;
-}
-
 
 PuzzleScriptParser.prototype.checkNameNew = function(candname)
 {
@@ -641,7 +631,9 @@ PuzzleScriptParser.prototype.checkNameNew = function(candname)
 	// }
 }
 
-
+// TODO: when defining an abrevation to use in a level, give the possibility to follow it with a (background) color that will be used in the editor to display the levels
+// Or maybe we want to directly use the object's sprite as a background image?
+// Also, it would be nice in the level editor to have the letter displayed on each tile (especially useful for transparent tiles) and activate it with that key.
 PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, stream, mixedCase)
 {
 	if (is_start_of_line)
@@ -745,7 +737,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		{
 			stream.next();
 			stream.match(/\p{Z}*/u, true);
-			return 'ASSSIGNMENT';
+			return 'ASSIGNMENT';
 		}
 	default:
 		{
@@ -931,28 +923,31 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 	}
 	
 	if ( ! this.addIdentifierInCurrentCollisionLayer( match_name[0].trim() ) )
-		return 'ERROR'
+		return 'ERROR' // this is a semantic rather than a syntactic error
 	return 'NAME'
 
 }
 
 PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, stream, mixedCase, ch)
 {
-	if (is_start_of_line) {
+	if (is_start_of_line)
+	{
 		var rule = reg_notcommentstart.exec(stream.string)[0];
 		this.rules.push([rule, this.lineNumber, mixedCase]);
 		this.tokenIndex = 0;//in rules, records whether bracket has been found or not
 	}
 
-	if (this.tokenIndex===-4) {
+	if (this.tokenIndex === -4)
+	{
 		stream.skipToEnd();
 		return 'MESSAGE';
 	}
-	if (stream.match(/\p{Z}*->\p{Z}*/u, true)) {
+	if (stream.match(/\p{Z}*->\p{Z}*/u, true)) // TODO: also match the unicode arrow character
 		return 'ARROW';
-	}
-	if (ch === '[' || ch === '|' || ch === ']' || ch==='+') {
-		if (ch!=='+') {
+	if (ch === '[' || ch === '|' || ch === ']' || ch==='+')
+	{
+		if (ch !== '+')
+		{
 			this.tokenIndex = 1;
 		}
 		stream.next();
@@ -961,47 +956,52 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 	} else {
 		var m = stream.match(/[^\[\|\]\p{Z}]*/u, true)[0].trim();
 
-		if (this.tokenIndex===0&&reg_loopmarker.exec(m)) {
+		if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
 			return 'BRACKET';
-		} else if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m)) {
+		if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
+		{
 			stream.match(/\p{Z}*/u, true);
 			return 'DIRECTION';
-		} else if (this.tokenIndex === 1 && reg_directions.exec(m)) {
+		}
+		if (this.tokenIndex === 1 && reg_directions.exec(m))
+		{
 			stream.match(/\p{Z}*/u, true);
 			return 'DIRECTION';
-		} else {
-			if (this.identifiers.indexOf(m) >= 0)
+		}
+		if (this.identifiers.indexOf(m) >= 0)
+		{
+			if (is_start_of_line)
 			{
-				if (is_start_of_line) {
-					logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
-					return 'ERROR';
-				} else {
-					stream.match(/\p{Z}*/u, true);
-					return 'NAME';
-				}
-			} else if (m==='...') {
-				return 'DIRECTION';
-			} else if (m==='rigid') {
-				return 'DIRECTION';
-			} else if (m==='random') {
-				return 'DIRECTION';
-			} else if (commandwords.indexOf(m)>=0) {
-				if (m==='message') {
-					this.tokenIndex=-4;
-				}                                	
-				return 'COMMAND';
-			} else {
-				logError('Name "' + m + '", referred to in a rule, does not exist.', this.lineNumber);
+				logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
 				return 'ERROR';
 			}
+			stream.match(/\p{Z}*/u, true);
+			return 'NAME';
 		}
+		if (m === '...')
+			return 'DIRECTION';
+		if (m === 'rigid')
+			return 'DIRECTION';
+		if (m === 'random')
+			return 'DIRECTION';
+		if (commandwords.indexOf(m) >= 0)
+		{
+			if (m === 'message')
+			{
+				this.tokenIndex=-4;
+			}                                	
+			return 'COMMAND';
+		}
+		logError('Name "' + m + '", referred to in a rule, does not exist.', this.lineNumber);
+		return 'ERROR';
 	}
 }
 
 
 PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_line, stream)
 {
-	if (is_start_of_line) {
+	if (is_start_of_line)
+	{
 		var tokenized = reg_notcommentstart.exec(stream.string);
 		var splitted = tokenized[0].split(/\p{Z}/u);
 		var filtered = splitted.filter(function(v) {return v !== ''});
@@ -1262,10 +1262,10 @@ PuzzleScriptParser.prototype.token = function(stream)
 		}
 	};
 
-	if (stream.eol()) {
+	if (stream.eol())
 		return null;
-	}
-	if (!stream.eol()) {
+	if (!stream.eol())
+	{
 		stream.next();
 		return null;
 	}
@@ -1276,7 +1276,7 @@ window.CodeMirror.defineMode('puzzle', function()
 	{
 		'use strict';
 		return {
-			// copyState: function(state) { return state.copy(); },
+			copyState: function(state) { return state.copy(); },
 			blankLine: function(state) { state.blankLine(); },
 			token: function(stream, state) { return state.token(stream); },
 			startState: function() { return new PuzzleScriptParser(); }
