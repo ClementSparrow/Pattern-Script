@@ -360,37 +360,33 @@ function generateExtraMembers(state)
 	}
 
 	//set default background object
-	var backgroundid;
-	var backgroundlayer;
 	if (state.object_names.indexOf('background')<0)
 	{
 		if ('background' in state.synonymsDict) {
 			var n = state.synonymsDict['background'];
 			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
-			backgroundid = o.id;
-			backgroundlayer = o.layer;
+			state.backgroundid = o.id;
+			state.backgroundlayer = o.layer;
 		} else if ('background' in state.propertiesDict) {
 			var n = state.propertiesDict['background'][0];
 			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
-			backgroundid = o.id;
-			backgroundlayer = o.layer;
+			state.backgroundid = o.id;
+			state.backgroundlayer = o.layer;
 		} else if ('background' in state.aggregatesDict) {
 			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
-			backgroundid=o.id;
-			backgroundlayer=o.layer;
+			state.backgroundid = o.id;
+			state.backgroundlayer = o.layer;
 			logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
 		} else {
 			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
-			backgroundid=o.id;
-			backgroundlayer=o.layer;
+			state.backgroundid = o.id;
+			state.backgroundlayer = o.layer;
 			logError("you have to define something to be the background");
 		}
 	} else {
-		backgroundid = state.objects[state.object_names.indexOf('background')].id;
-		backgroundlayer = state.objects[state.object_names.indexOf('background')].layer;
+		state.backgroundid = state.objects[state.object_names.indexOf('background')].id;
+		state.backgroundlayer = state.objects[state.object_names.indexOf('background')].layer;
 	}
-	state.backgroundid=backgroundid;
-	state.backgroundlayer=backgroundlayer;
 }
 
 Level.prototype.calcBackgroundMask = function(state) {
