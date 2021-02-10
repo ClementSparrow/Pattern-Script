@@ -55,7 +55,7 @@ function generateExtraMembers(state)
 	//annotate objects with layers
 	//assign ids at the same time
 	// TODO: This could be done directly in the parser -- ClementSparrow
-	state.idDict = [];
+	state.idDict = []; // TODO: this is a bad name, since it actually contains names, not ids...
 	for (var [layerIndex, layer] of state.collisionLayers.entries())
 	{
 		for (var n of layer)
@@ -176,8 +176,9 @@ function generateExtraMembers(state)
 		{
 			var key = dat[0];
 			var val = dat[1];
-			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&(glyphDict[val]!==undefined)) {
-				added=true;
+			if ( ( !(key in glyphDict) || (glyphDict[key]===undefined) ) && (glyphDict[val] !== undefined) )
+			{
+				added = true;
 				glyphDict[key] = glyphDict[val];
 			}
 		}
@@ -725,7 +726,8 @@ function processRuleString(rule, state, curRules)
 					} else {
 						rhs = true;
 					}
-				} else if (state.names.indexOf(token) >= 0) {
+				// } else if (state.names.indexOf(token) >= 0) {
+				} else if (state.identifiers.indexOf(token) >= 0) {
 					if (!incellrow) {
 						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 					}
@@ -2531,7 +2533,7 @@ function loadFile(str)
 	formatHomePage(state);
 
 	delete state.commentLevel;
-	delete state.names;
+	// delete state.names;
 	delete state.abbrevNames;
 	delete state.objects_candname;
 	delete state.objects_section;

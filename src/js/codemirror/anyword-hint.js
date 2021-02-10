@@ -75,6 +75,7 @@
         ]
 
         function renderHint(elt,data,cur){
+            console.log(elt, data, cur)
             var t1=cur.text;
             var t2=cur.extra;
             var tag=cur.tag;
@@ -226,19 +227,23 @@
                 seen = {};
 
             //first, add objects if needed
-            if (addObjects){
-                var obs = state.objects;
-                for (var key in obs) {
-                    if (obs.hasOwnProperty(key)) {
-                        var w = key;
+            if (addObjects)
+            {
+                for (var [object_index,w] of state.object_names.entries())
+                {
+                // var obs = state.objects;
+                // for (var key in obs) {
+                //     if (obs.hasOwnProperty(key)) {
+                //         var w = key;
                         var matchWord = w.toLowerCase();
                         if (matchWord === curWord) continue;
                         if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
                             seen[matchWord] = true;
-                            var hint = state.original_case_names[w]; 
+                            // var hint = state.original_case_names[w];
+                            var hint = state.original_case_names[object_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
-                    }
+                //    }
                 }
 
                 var legendbits = [state.legend_synonyms];

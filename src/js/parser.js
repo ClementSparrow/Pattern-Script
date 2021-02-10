@@ -95,6 +95,11 @@ function PuzzleScriptParser()
 	this.objects = []
 	this.object_names = []
 
+	this.identifiers = [] // an array of all the identifiers defined in the game, giving for each:
+	this.identifiers_info = [] // for each identifier in the previous entry, gives:
+						  // its type (0=object, 1=synonym, 2=aggregate, 3=property), and its index in the list of entities of that type
+						  // TODO: add original_case_name and lineNumber in this structure too?
+
 	/*
 		for parsing
 	*/
@@ -103,17 +108,13 @@ function PuzzleScriptParser()
 	this.commentLevel = 0
 
 	this.section = ''
-	this.visitedSections = []
+	this.visitedSections = [] // There are only 8 sections, so it could be a bitmask rather than an array...
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
 	this.objects_candname = '' // The name of the object currently parsed
-	this.objects_candindex = '' // The index of the object currently parsed -> should always be the last index of the array?
+	this.objects_candindex = null // The index of the object currently parsed -> should always be the last index of the array?
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
-
-	this.collisionLayers = []
-
-	this.tokenIndex = 0
 
 	// data for the LEGEND section. Only used in this file, compiler.js (generateExtraMembers and generateExtraMasks) and codemirror/anyword-hints.js (CodeMirror.registerHelper)
 	// Aggregates are "obj1 and obj2" that can appear in the definition of a legend character.
@@ -124,9 +125,14 @@ function PuzzleScriptParser()
 	this.legend_properties = []
 
 	this.sounds = []
+
+	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a list of the names of the objects belonging to that layer
+
+	this.tokenIndex = 0
+
 	this.rules = []
 
-	this.names = []
+	// this.names = [] // a list of all the identifiers defined in the OBJECTS and LEGEND sections, compiled after the SOUNDS section. TODO: replace it with this.identifiers.
 
 	this.winconditions = []
 	this.metadata = [] // A list of 2n entries where even entries are the name of a metadata defined in the preamble and odd entries behind them are the value of the metadata.
@@ -134,7 +140,8 @@ function PuzzleScriptParser()
 	                   // It will be changed in compiler.js/twiddleMetaData to an associative array, and the values of some parameters will be further parsed then.
 	                   // In my mind, this should be done directly in the parser -- ClementSparrow
 
-	this.original_case_names = {} // retain the original case of a name so that the editor can suggest it as autocompletion.
+	// this.original_case_names = {} // retain the original case of a name so that the editor can suggest it as autocompletion.
+	this.original_case_names = [] // retain the original case of a name so that the editor can suggest it as autocompletion.
 
 	this.abbrevNames = []
 
@@ -143,68 +150,72 @@ function PuzzleScriptParser()
 	this.subsection = ''
 }
 
-// PuzzleScriptParser.prototype.copy = function()
-// {
-// 	var result = new PuzzleScriptParser()
+PuzzleScriptParser.prototype.copy = function()
+{
+	var result = new PuzzleScriptParser()
 
-// 	result.lineNumber = this.lineNumber
+	result.lineNumber = this.lineNumber
 
-// 	// result.objects = {};
-// 	// for (var i in this.objects) {
-// 	// 	if (this.objects.hasOwnProperty(i)) {
-// 	// 		var o = this.objects[i];
-// 	// 		result.objects[i] = {
-//	//		  name: o.name,
-// 	// 		  colors: o.colors.concat([]),
-// 	// 		  lineNumber : o.lineNumber,
-// 	// 		  spritematrix: o.spritematrix.concat([])
-// 	// 		}
-// 	// 	}
-// 	// }
-// 	result.objects = this.objects.map( (o) => ({
-// 			colors: o.colors.concat([]),
-// 			lineNumber : o.lineNumber,
-// 			spritematrix: o.spritematrix.concat([])
-// 		}))
-// 	result.object_names = Array.from(this.object_names) // we can use Array.from because it will copy the strings (they are passed by value)
+	// result.objects = {};
+	// for (var i in this.objects) {
+	// 	if (this.objects.hasOwnProperty(i)) {
+	// 		var o = this.objects[i];
+	// 		result.objects[i] = {
+	//		  name: o.name,
+	// 		  colors: o.colors.concat([]),
+	// 		  lineNumber : o.lineNumber,
+	// 		  spritematrix: o.spritematrix.concat([])
+	// 		}
+	// 	}
+	// }
+	result.objects = this.objects.map( (o) => ({
+			colors: o.colors.concat([]),
+			lineNumber : o.lineNumber,
+			spritematrix: o.spritematrix.concat([])
+		}))
+	result.object_names = Array.from(this.object_names) // we can use Array.from because it will copy the strings (they are passed by value)
 
-// 	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
+	result.identifiers = Array.from(this.identifiers)
+	result.identifiers_info = this.identifiers_info.map( ([type,pos]) => [type, pos])
 
-// 	result.commentLevel = this.commentLevel
-// 	result.section = this.section
-// 	result.visitedSections = this.visitedSections.concat([])
+	result.commentLevel = this.commentLevel
+	result.section = this.section
+	result.visitedSections = this.visitedSections.concat([])
 
-// 	result.objects_candname = this.objects_candname
-// 	result.objects_candindex = this.objects_candindex
-// 	result.objects_section = this.objects_section
-// 	result.objects_spritematrix = this.objects_spritematrix.concat([])
+	result.objects_candname = this.objects_candname
+	result.objects_candindex = this.objects_candindex
+	result.objects_section = this.objects_section
+	result.objects_spritematrix = this.objects_spritematrix.concat([])
 
-// 	result.tokenIndex = this.tokenIndex
-// 	result.legend_synonyms = this.legend_synonyms.map( i => i.concat([]) )
-// 	result.legend_aggregates = this.legend_aggregates.map( i => i.concat([]) )
-// 	result.legend_properties = this.legend_properties.map( i => i.concat([]) )
+	result.tokenIndex = this.tokenIndex
+	result.legend_synonyms = this.legend_synonyms.map( i => i.concat([]) )
+	result.legend_aggregates = this.legend_aggregates.map( i => i.concat([]) )
+	result.legend_properties = this.legend_properties.map( i => i.concat([]) )
 
-// 	result.sounds = this.sounds.map( i => i.concat([]) )
+	result.sounds = this.sounds.map( i => i.concat([]) )
 
-// 	result.rules = this.rules.concat([])
+	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
 
-// 	result.names = this.names.concat([])
+	result.rules = this.rules.concat([])
 
-// 	result.winconditions = this.winconditions.map( i => i.concat([]) )
+	//result.names = this.names.concat([])
+
+	result.winconditions = this.winconditions.map( i => i.concat([]) )
 
 // 	result.original_case_names = Object.assign({}, this.original_case_names);
+	result.original_case_names = this.original_case_names.concat([])
 
-// 	result.abbrevNames = this.abbrevNames.concat([])
+	result.abbrevNames = this.abbrevNames.concat([])
 
-// 	result.metadata = this.metadata.concat([])
+	result.metadata = this.metadata.concat([])
 
-// 	result.levels = this.levels.map( i => i.concat([]) )
+	result.levels = this.levels.map( i => i.concat([]) )
 
-// 	result.STRIDE_OBJ = this.STRIDE_OBJ
-// 	result.STRIDE_MOV = this.STRIDE_MOV
+	result.STRIDE_OBJ = this.STRIDE_OBJ
+	result.STRIDE_MOV = this.STRIDE_MOV
 
-// 	return result;
-// }
+	return result;
+}
 
 
 PuzzleScriptParser.prototype.blankLine = function()
@@ -290,11 +301,50 @@ PuzzleScriptParser.prototype.registerOriginalCaseName = function(candname, mixed
 	var match = mixedCase.match(nameFinder);
 	if (match != null)
 	{
-		this.original_case_names[candname] = match[0];
+		this.original_case_names[candname] = match[0]; // TODO: we need to use a name index instead of candname
 	}
 }
 
+PuzzleScriptParser.prototype.registerNewIdentifier = function(candname, mixedCase, type)
+{
+	this.registerOriginalCaseName(candname, mixedCase);
+	this.identifiers.push( candname )
+	this.identifiers_info.push( [type, [this.objects, this.legend_synonyms, this.legend_aggregates, this.legend_properties][type].length] );
+}
 
+PuzzleScriptParser.prototype.registerNewObject = function(candname, mixedCase)
+{
+	this.registerNewIdentifier(candname, mixedCase, 0)
+	this.objects.push( {
+		name: candname,
+		lineNumber: this.lineNumber,
+		colors: [],
+		spritematrix: []
+	});
+	this.object_names.push(candname)
+}
+
+PuzzleScriptParser.prototype.registerNewSynonym = function(candname, mixedCase, old_identifier)
+{
+	this.registerNewIdentifier(candname, mixedCase, 1)
+	var synonym = [candname, old_identifier];
+	synonym.lineNumber = this.lineNumber;
+	this.legend_synonyms.push(synonym);
+}
+
+PuzzleScriptParser.prototype.registerNewAggregate = function(newlegend, mixedCase)
+{
+	this.registerNewIdentifier( newlegend[0], mixedCase, 2)
+	newlegend.lineNumber = this.lineNumber;
+	this.legend_aggregates.push(newlegend);
+}
+
+PuzzleScriptParser.prototype.registerNewProperty = function(property, mixedCase)
+{
+	this.registerNewIdentifier( property[0], mixedCase, 3)
+	property.lineNumber = this.lineNumber;
+	this.legend_properties.push(property);
+}
 
 PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, mixedCase)
 {
@@ -312,25 +362,25 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 
 	const candname = match_name[0].trim();
 
-	// Check if there is already an object definition for this name
-	// if (this.objects[candname] !== undefined)
-	if (this.object_names.indexOf(candname) >= 0)
+	// Check if this name is already used
+	const identifier_index = this.identifiers.indexOf(candname);
+	if (identifier_index >= 0)
 	{
-		logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
-		return 'ERROR';
-	}
-
-	// Check if this name is already used as a legend synonym
-	for (const entry of this.legend_synonyms)
-	{
-		if (entry[0]==candname)
+		switch (this.identifiers_info[identifier_index][0])
 		{
-			logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                		
+			case 0: //... by an object definition
+				{
+					logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
+					return 'ERROR';
+				}
+			case 1: //... as a legend synonym
+				logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber); // TODO: tell were it has been defined already
+			default: // no default? no return ERROR?
 		}
 	}
 
 	// Warn if the name is a keyword
-	if (keyword_array.indexOf(candname)>=0)
+	if (keyword_array.indexOf(candname) >= 0)
 	{
 		logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
 	}
@@ -339,20 +389,10 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 	{
 		this.objects_candname = candname;
 		this.objects_candindex = this.objects.length
-		this.registerOriginalCaseName(candname, mixedCase);
-		this.objects.push( {
-			name: candname,
-			lineNumber: this.lineNumber,
-			colors: [],
-			spritematrix: []
-		});
-		this.object_names.push(candname)
+		this.registerNewObject(candname, mixedCase)
 	} else {
 		//set up alias
-		this.registerOriginalCaseName(candname, mixedCase);
-		var synonym = [candname, this.objects_candname];
-		synonym.lineNumber = this.lineNumber;
-		this.legend_synonyms.push(synonym);
+		this.registerNewSynonym(candname, mixedCase, this.objects_candname)
 	}
 	this.objects_section = 1;
 	return 'NAME';
@@ -462,120 +502,162 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 }
 
 
-// All this stuff would be much more simpler if we had a dict for each possible name telling us if it's an object, a synonym, an aggregate or a property,
-// along with the expanded definition (if it's an aggregate or property).
+// BUG: in these functions, the paramater n is modified and should be modified when exiting the function but javascript passes non-object parameters by value
+//      similarly, some of these functions modify the "ok" variable defined in tokenInLegendSection
 PuzzleScriptParser.prototype.substitutor2 = function(n)
 {
 	n = n.toLowerCase();
-	if (this.object_names.indexOf(n) >= 0)
-		return [n];
-
-	for (var a of this.legend_synonyms)
+	const identifier_index = this.identifiers.indexOf(n);
+	if (identifier_index >= 0)
 	{
-		if (a[0]===n)
-			return this.substitutor2(a[1]);
-	}
-	for (var a of this.legend_aggregates)
-	{
-		if (a[0]===n)
-			return [].concat.apply([],a.slice(1).map(this.substitutor2));
-	}
-	for (var a of this.legend_properties)
-	{
-		if (a[0]===n)
+		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
+		switch (identifier_type)
 		{
-			logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
-			ok=false;
-			return [n];
+			case 0: return [n];
+			case 1: return this.legend_synonyms[index_for_type][1];
+			case 2: return this.aggregates[index_for_type];
+			case 3: 
+				logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
+				ok=false;
 		}
 	}
+	// if (this.object_names.indexOf(n) >= 0)
+	// 	return [n];
+
+	// for (var a of this.legend_synonyms)
+	// {
+	// 	if (a[0]===n)
+	// 		return this.substitutor2(a[1]);
+	// }
+	// for (var a of this.legend_aggregates)
+	// {
+	// 	if (a[0]===n)
+	// 		return [].concat.apply([],a.slice(1).map(this.substitutor2));
+	// }
+	// for (var a of this.legend_properties)
+	// {
+	// 	if (a[0]===n)
+	// 	{
+	// 		logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
+	// 		ok=false;
+	// 		return [n];
+	// 	}
+	// }
 	return [n];
-};
+}
 
 PuzzleScriptParser.prototype.substitutor3 = function(n)
 {
 	n = n.toLowerCase();
-	if (this.object_names.indexOf(n) >= 0)
-		return [n];
-
-	for (var a of this.legend_synonyms)
+	const identifier_index = this.identifiers.indexOf(n);
+	if (identifier_index >= 0)
 	{
-		if (a[0]===n)
-			return this.substitutor3(a[1]);
-	}
-	for (var a of this.legend_aggregates)
-	{
-		if (a[0]===n)
+		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
+		switch (identifier_type)
 		{
-			logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
-			ok=false;
+			case 0: return [n];
+			case 1: return this.legend_synonyms[index_for_type][1];
+			case 3: return this.properties[index_for_type];
+			case 2: 
+				logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
+				ok=false;
 		}
 	}
-	for (var a of this.legend_properties)
-	{
-		if (a[0]===n)
-			return [].concat.apply([],a.slice(1).map(this.substitutor3));
-	}
+	// if (this.object_names.indexOf(n) >= 0)
+	// 	return [n];
+
+	// for (var a of this.legend_synonyms)
+	// {
+	// 	if (a[0]===n)
+	// 		return this.substitutor3(a[1]);
+	// }
+	// for (var a of this.legend_aggregates)
+	// {
+	// 	if (a[0]===n)
+	// 	{
+	// 		logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
+	// 		ok=false;
+	// 	}
+	// }
+	// for (var a of this.legend_properties)
+	// {
+	// 	if (a[0]===n)
+	// 		return [].concat.apply([],a.slice(1).map(this.substitutor3));
+	// }
 	return [n];
-};
+}
 
 
-// TODO: this function is very similar to checkNameNew and the substitutor functions, and their logic should be factorized.
-// Also, we should use Array.some instead of for loops
-// BUG: in these functions, the paramater n is modified and should be modified when exiting the function but javascript passes non-object parameters by value
-//      similarly, some of these functions modify the "ok" variable defined in tokenInLegendSection
 PuzzleScriptParser.prototype.wordExists = function(n)
 {
 	n = n.toLowerCase();
-	if (this.object_names.indexOf(n) >= 0)
-		return true;
-	for (const a of this.legend_aggregates)
-	{
-		if (a[0]===n)
-			return true;
-	}
-	for (const a of this.legend_properties)
-	{
-		if (a[0]===n)
-			return true;
-	}
-	for (const a of this.legend_synonyms)
-	{
-		if (a[0]===n)
-			return true;
-	}
-	return false;
+	return (this.identifiers.indexOf(n) >= 0);
+	// if (this.object_names.indexOf(n) >= 0)
+	// 	return true;
+	// for (const a of this.legend_aggregates)
+	// {
+	// 	if (a[0]===n)
+	// 		return true;
+	// }
+	// for (const a of this.legend_properties)
+	// {
+	// 	if (a[0]===n)
+	// 		return true;
+	// }
+	// for (const a of this.legend_synonyms)
+	// {
+	// 	if (a[0]===n)
+	// 		return true;
+	// }
+	// return false;
 }
 
 
 PuzzleScriptParser.prototype.checkNameNew = function(candname)
 {
-	if (this.object_names.indexOf(candname) >= 0)
+	const identifier_index = this.identifiers.indexOf(candname);
+	if (identifier_index >= 0)
 	{
-		logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
-		return 'ERROR';
-	}
-	for (const entry of this.legend_synonyms)
-	{
-		if (entry[0]==candname)
+		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
+		switch (identifier_type)
 		{
-			logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
+			case 0:
+				logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
+				return 'ERROR';
+			case 1:
+			case 2:
+			case 3:
+				logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);
+				break;
 		}
 	}
-	for (const entry of this.legend_aggregates)
-	{
-		if (entry[0]==candname)
-		{
-			logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
-		}
-	}
-	for (const entry of this.legend_properties)
-	{
-		if (entry[0]==candname)
-		{
-			logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
-		}
-	}
+
+	// if (this.object_names.indexOf(candname) >= 0)
+	// {
+	// 	logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
+	// 	return 'ERROR';
+	// }
+	// for (const entry of this.legend_synonyms)
+	// {
+	// 	if (entry[0]==candname)
+	// 	{
+	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
+	// 	}
+	// }
+	// for (const entry of this.legend_aggregates)
+	// {
+	// 	if (entry[0]==candname)
+	// 	{
+	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
+	// 	}
+	// }
+	// for (const entry of this.legend_properties)
+	// {
+	// 	if (entry[0]==candname)
+	// 	{
+	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
+	// 	}
+	// }
 }
 
 
@@ -619,6 +701,8 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			return 'ERROR';
 		} */ else if (splits.length === 3)
 		{
+			this.identifiers.push(splits[0])
+			this.identifiers_info.push( [1, this.legend_synonyms.length])
 			var synonym = [splits[0], splits[2].toLowerCase()];
 			synonym.lineNumber = this.lineNumber;
 
@@ -641,10 +725,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 					for (var i = 2; i < splits.length; i += 2) {
 						newlegend = newlegend.concat(this.substitutor2(splits[i]));
 					}
-					newlegend.lineNumber = this.lineNumber;
-
-					this.registerOriginalCaseName(newlegend[0], mixedCase);
-					this.legend_aggregates.push(newlegend);
+					this.registerNewAggregate(newlegend, mixedCase);
 				}
 			} else if (lowertoken === 'or') {
 
@@ -659,10 +740,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 					for (var i = 6; i < splits.length; i += 2) {
 						newlegend.push(splits[i].toLowerCase());
 					}
-					newlegend.lineNumber = this.lineNumber;
-
-					this.registerOriginalCaseName(newlegend[0], mixedCase);
-					this.legend_properties.push(newlegend);
+					this.registerNewProperty(newlegend, mixedCase)
 				}
 			} else {
 				ok = false;
@@ -752,7 +830,8 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (candname!== null)
 	{
 		var m = candname[0].trim();
-		if (this.names.indexOf(m) >= 0)
+		// if (this.names.indexOf(m) >= 0)
+		if (this.identifiers.indexOf(m) >= 0)
 			return 'NAME';
 	}
 
@@ -763,34 +842,49 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 }
 
 // recursively replace a name that can be used in a CollisionLayer with the list of object names it can correspond to
-PuzzleScriptParser.prototype.substitutor = function(n)
+PuzzleScriptParser.prototype.substitutor = function(candname)
 {
-	n = n.toLowerCase();
-	if (this.object_names.indexOf(n) >= 0)
-		return [n];
-
-	for (var a of this.legend_synonyms)
+	n = candname.toLowerCase();
+	const identifier_index = this.identifiers.indexOf(n);
+	if (identifier_index >= 0)
 	{
-		if (a[0]===n)
-			return this.substitutor(a[1]);
-	}
-
-	for (var a of this.legend_aggregates)
-	{
-		if (a[0]===n)
+		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
+		switch (identifier_type)
 		{
-			logError('"'+n+'" is an aggregate (defined using "and"), and cannot be added to a single layer because its constituent objects must be able to coexist.', this.lineNumber);
-			return [];         
+			case 0: return [n];
+			case 1: return this.synonyms[index_for_type];
+			case 3: return this.properties[index_for_type];
+			case 2:
+				logError('"'+n+'" is an aggregate (defined using "and"), and cannot be added to a single layer because its constituent objects must be able to coexist.', this.lineNumber);
+				return [];
 		}
 	}
-	for (var a of this.legend_properties)
-	{
-		if (a[0]===n)
-		{
-			var result = [].concat.apply([],a.slice(1).map(this.substitutor));
-			return result;
-		}
-	}
+
+	// if (this.object_names.indexOf(n) >= 0)
+	// 	return [n];
+
+	// for (var a of this.legend_synonyms)
+	// {
+	// 	if (a[0]===n)
+	// 		return this.substitutor(a[1]);
+	// }
+
+	// for (var a of this.legend_aggregates)
+	// {
+	// 	if (a[0]===n)
+	// 	{
+	// 		logError('"'+n+'" is an aggregate (defined using "and"), and cannot be added to a single layer because its constituent objects must be able to coexist.', this.lineNumber);
+	// 		return [];
+	// 	}
+	// }
+	// for (var a of this.legend_properties)
+	// {
+	// 	if (a[0]===n)
+	// 	{
+	// 		var result = [].concat.apply([],a.slice(1).map(this.substitutor)); // concatenate all the arrays obtained by calling substitutor recursivelly
+	// 		return result;
+	// 	}
+	// }
 	logError('Cannot add "' + candname.toUpperCase() + '" to a collision layer; it has not been declared.', this.lineNumber);                                
 	return [];
 }
@@ -817,49 +911,47 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 		//have a name: let's see if it's valid
 		var candname = match_name[0].trim();
 
-		if (candname==='background' ) {
-			if (this.collisionLayers.length>0&&this.collisionLayers[this.collisionLayers.length-1].length>0) {
+		if (candname==='background' )
+		{
+			if ((this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0))
+			{
 				logError("Background must be in a layer by itself.",this.lineNumber);
 			}
 			this.tokenIndex=1;
-		} else if (this.tokenIndex!==0) {
+		} else if (this.tokenIndex!==0)
+		{
 			logError("Background must be in a layer by itself.",this.lineNumber);
 		}
 
 		var ar = this.substitutor(candname);
 
-		if (this.collisionLayers.length===0) {
-			logError("no layers found.",this.lineNumber);
+		if (this.collisionLayers.length === 0)
+		{
+			logError("no layers found.", this.lineNumber);
 			return 'ERROR';
 		}
 		
 		var foundOthers=[];
-		for (var i=0;i<ar.length;i++){
-			var candname = ar[i];
-			for (var j=0;j<=this.collisionLayers.length-1;j++){
-				var clj = this.collisionLayers[j];
-				if (clj.indexOf(candname)>=0){
-					if (j!=this.collisionLayers.length-1){
-						foundOthers.push(j);
-					}
+		for (const candname of ar)
+		{
+			for (var [j, clj] of this.collisionLayers.entries())
+			{
+				if ((clj.indexOf(candname) >= 0) && (j != this.collisionLayers.length-1) )
+				{
+					foundOthers.push(j);
 				}
 			}
 		}
-		if (foundOthers.length>0){
-			var warningStr = 'Object "'+candname.toUpperCase()+'" included in multiple collision layers ( layers ';
-			for (var i=0;i<foundOthers.length;i++){
-				warningStr+=foundOthers[i]+", ";
-			}
-			warningStr+=this.collisionLayers.length-1;
-			logWarning(warningStr +'). You should fix this!',this.lineNumber);                                        
+		if (foundOthers.length>0)
+		{
+			logWarning('Object "' + candname.toUpperCase() + '" included in multiple collision layers (layers ' + foundOthers.join(", ") + (this.collisionLayers.length-1) +
+			 	'). You should fix this!', this.lineNumber);                                        
 		}
 
-		this.collisionLayers[this.collisionLayers.length - 1] = this.collisionLayers[this.collisionLayers.length - 1].concat(ar);
-		if (ar.length>0) {
+		this.collisionLayers[this.collisionLayers.length - 1].push(...ar);
+		if (ar.length > 0)
 			return 'NAME';                            
-		} else {
-			return 'ERROR';
-		}
+		return 'ERROR';
 	}
 }
 
@@ -897,7 +989,8 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 			stream.match(/\p{Z}*/u, true);
 			return 'DIRECTION';
 		} else {
-			if (this.names.indexOf(m) >= 0) {
+			// if (this.names.indexOf(m) >= 0) {
+			if (this.identifiers.indexOf(m) >= 0) {
 				if (is_start_of_line) {
 					logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
 					return 'ERROR';
@@ -962,7 +1055,8 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 			}
 		}
 		else if (this.tokenIndex === 1 || this.tokenIndex === 3) {
-			if (this.names.indexOf(candword)===-1) {
+			// if (this.names.indexOf(candword)===-1) {
+			if (this.identifiers.indexOf(candword)===-1) {
 				logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.', this.lineNumber);
 				return 'ERROR';
 			} else {
@@ -1138,57 +1232,39 @@ PuzzleScriptParser.prototype.token = function(stream)
 
 			if (this.section === 'sounds')
 			{
-				//populate names from rules
-				this.names.push(...this.object_names)
-				//populate names from legends
-				for (var i = 0; i < this.legend_synonyms.length; i++)
-				{
-					var n = this.legend_synonyms[i][0];
-					/*
-					if (this.names.indexOf(n)!==-1) {
-						logError('Object "'+n+'" has been declared to be multiple different things',this.legend_synonyms[i].lineNumber);
-					}
-					*/
-					this.names.push(n);
-				}
-				for (var i = 0; i < this.legend_aggregates.length; i++)
-				{
-					var n = this.legend_aggregates[i][0];
-					/*
-					if (this.names.indexOf(n)!==-1) {
-						logError('Object "'+n+'" has been declared to be multiple different things',this.legend_aggregates[i].lineNumber);
-					}
-					*/
-					this.names.push(n);
-				}
-				for (var i = 0; i < this.legend_properties.length; i++)
-				{
-					var n = this.legend_properties[i][0];
-					/*
-					if (this.names.indexOf(n)!==-1) {
-						logError('Object "'+n+'" has been declared to be multiple different things',this.legend_properties[i].lineNumber);
-					}                           
-					*/ 
-					this.names.push(n);
-				}
+				// //populate names from rules
+				// this.names.push(...this.object_names)
+				// //populate names from legends
+				// for (const synonym of this.legend_synonyms)
+				// {
+				// 	this.names.push( synonym[0] );
+				// }
+				// for (const aggregate of this.legend_aggregates)
+				// {
+				// 	this.names.push( aggregate[0] );
+				// }
+				// for (const property of this.legend_properties)
+				// {
+				// 	this.names.push( property[0] );
+				// }
 			}
 			else if (this.section === 'levels')
 			{
 				//populate character abbreviations
 				this.abbrevNames.push(...this.object_names)
 
-				for (var i = 0; i < this.legend_synonyms.length; i++)
+				for (const synonym of this.legend_synonyms)
 				{
-					if (this.legend_synonyms[i][0].length == 1)
+					if (synonym[0].length == 1)
 					{
-						this.abbrevNames.push(this.legend_synonyms[i][0]);
+						this.abbrevNames.push(synonym[0]);
 					}
 				}
-				for (var i = 0; i < this.legend_aggregates.length; i++)
+				for (const aggregate of this.legend_aggregates)
 				{
-					if (this.legend_aggregates[i][0].length == 1)
+					if (aggregate[0].length == 1)
 					{
-						this.abbrevNames.push(this.legend_aggregates[i][0]);
+						this.abbrevNames.push(aggregate[0]);
 					}
 				}
 			}
