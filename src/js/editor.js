@@ -101,7 +101,8 @@ editor.on("beforeChange", function(instance, change) {
 
 
 code.editorreference = editor;
-editor.setOption('theme', 'midnight');
+// editor.setOption('theme', 'midnight');
+editor.setOption('theme', 'midday');
 
 function getParameterByName(name) {
     name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
@@ -183,9 +184,9 @@ editor.on('keyup', function (editor, event) {
 	if (!CodeMirror.ExcludedIntelliSenseTriggerKeys[(event.keyCode || event.which).toString()])
 	{
 		var dosuggest=true;
-		if (editor.doc.sel.ranges.length>0){
-			console.log(editor.getRange(editor.doc.sel.ranges[0].anchor, {line:53,ch:59}));
-		}
+		// if (editor.doc.sel.ranges.length>0){
+		// 	console.log(editor.getRange(editor.doc.sel.ranges[0].anchor, {line:53,ch:59}));
+		// }
 
 		if (dosuggest){
 			CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
