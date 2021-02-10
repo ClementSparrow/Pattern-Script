@@ -106,8 +106,6 @@ function PuzzleScriptParser()
 
 	this.rules = []
 
-	// this.names = [] // a list of all the identifiers defined in the OBJECTS and LEGEND sections, compiled after the SOUNDS section. TODO: replace it with this.identifiers.
-
 	this.winconditions = []
 	this.metadata = [] // A list of 2n entries where even entries are the name of a metadata defined in the preamble and odd entries behind them are the value of the metadata.
 	                   // This structure is only used for the parsing and in compiler.js/generateExtraMembers.
@@ -171,8 +169,6 @@ PuzzleScriptParser.prototype.copy = function()
 	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
 
 	result.rules = this.rules.concat([])
-
-	//result.names = this.names.concat([])
 
 	result.winconditions = this.winconditions.map( i => i.concat([]) )
 
@@ -803,7 +799,6 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (candname!== null)
 	{
 		var m = candname[0].trim();
-		// if (this.names.indexOf(m) >= 0)
 		if (this.identifiers.indexOf(m) >= 0)
 			return 'NAME';
 	}
@@ -977,8 +972,8 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 			stream.match(/\p{Z}*/u, true);
 			return 'DIRECTION';
 		} else {
-			// if (this.names.indexOf(m) >= 0) {
-			if (this.identifiers.indexOf(m) >= 0) {
+			if (this.identifiers.indexOf(m) >= 0)
+			{
 				if (is_start_of_line) {
 					logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
 					return 'ERROR';
@@ -1042,8 +1037,8 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 				return 'LOGICWORD';
 			}
 		}
-		else if (this.tokenIndex === 1 || this.tokenIndex === 3) {
-			// if (this.names.indexOf(candword)===-1) {
+		else if (this.tokenIndex === 1 || this.tokenIndex === 3)
+		{
 			if (this.identifiers.indexOf(candword)===-1) {
 				logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.', this.lineNumber);
 				return 'ERROR';
@@ -1218,25 +1213,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 
 		//	Initialize the parser state for some sections depending on what has been parsed before
 
-			if (this.section === 'sounds')
-			{
-				// //populate names from rules
-				// this.names.push(...this.object_names)
-				// //populate names from legends
-				// for (const synonym of this.legend_synonyms)
-				// {
-				// 	this.names.push( synonym[0] );
-				// }
-				// for (const aggregate of this.legend_aggregates)
-				// {
-				// 	this.names.push( aggregate[0] );
-				// }
-				// for (const property of this.legend_properties)
-				// {
-				// 	this.names.push( property[0] );
-				// }
-			}
-			else if (this.section === 'levels')
+			if (this.section === 'levels')
 			{
 				//populate character abbreviations
 				this.abbrevNames.push(...this.object_names)

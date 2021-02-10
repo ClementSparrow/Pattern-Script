@@ -722,7 +722,6 @@ function processRuleString(rule, state, curRules)
 					} else {
 						rhs = true;
 					}
-				// } else if (state.names.indexOf(token) >= 0) {
 				} else if (state.identifiers.indexOf(token) >= 0) {
 					if (!incellrow) {
 						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
@@ -2529,7 +2528,6 @@ function loadFile(str)
 	formatHomePage(state);
 
 	delete state.commentLevel;
-	// delete state.names;
 	delete state.abbrevNames;
 	delete state.objects_candname;
 	delete state.objects_section;
