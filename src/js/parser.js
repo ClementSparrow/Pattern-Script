@@ -290,7 +290,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 }
 
 
-PuzzleScriptParser.prototype.registerOriginalCaseName = function(candname, mixedCase)
+function findOriginalCaseName(candname, mixedCase)
 {
 	function escapeRegExp(str)
 	{
@@ -301,20 +301,24 @@ PuzzleScriptParser.prototype.registerOriginalCaseName = function(candname, mixed
 	var match = mixedCase.match(nameFinder);
 	if (match != null)
 	{
-		this.original_case_names[candname] = match[0]; // TODO: we need to use a name index instead of candname
+		return match[0]; // TODO: we need to use a name index instead of candname
 	}
+	return null;
 }
 
-PuzzleScriptParser.prototype.registerNewIdentifier = function(candname, mixedCase, type)
+PuzzleScriptParser.prototype.registerNewIdentifier = function(candname, original_case, type)
 {
-	this.registerOriginalCaseName(candname, mixedCase);
+	if (original_case != null)
+	{
+		this.original_case_names[candname] = original_case; // TODO: we need to use a name index instead of candname
+	}
 	this.identifiers.push( candname )
 	this.identifiers_info.push( [type, [this.objects, this.legend_synonyms, this.legend_aggregates, this.legend_properties][type].length] );
 }
 
-PuzzleScriptParser.prototype.registerNewObject = function(candname, mixedCase)
+PuzzleScriptParser.prototype.registerNewObject = function(candname, original_case)
 {
-	this.registerNewIdentifier(candname, mixedCase, 0)
+	this.registerNewIdentifier(candname, original_case, 0)
 	this.objects.push( {
 		name: candname,
 		lineNumber: this.lineNumber,
@@ -324,24 +328,24 @@ PuzzleScriptParser.prototype.registerNewObject = function(candname, mixedCase)
 	this.object_names.push(candname)
 }
 
-PuzzleScriptParser.prototype.registerNewSynonym = function(candname, mixedCase, old_identifier)
+PuzzleScriptParser.prototype.registerNewSynonym = function(candname, original_case, old_identifier)
 {
-	this.registerNewIdentifier(candname, mixedCase, 1)
+	this.registerNewIdentifier(candname, original_case, 1)
 	var synonym = [candname, old_identifier];
 	synonym.lineNumber = this.lineNumber;
 	this.legend_synonyms.push(synonym);
 }
 
-PuzzleScriptParser.prototype.registerNewAggregate = function(newlegend, mixedCase)
+PuzzleScriptParser.prototype.registerNewAggregate = function(newlegend, original_case)
 {
-	this.registerNewIdentifier( newlegend[0], mixedCase, 2)
+	this.registerNewIdentifier( newlegend[0], original_case, 2)
 	newlegend.lineNumber = this.lineNumber;
 	this.legend_aggregates.push(newlegend);
 }
 
-PuzzleScriptParser.prototype.registerNewProperty = function(property, mixedCase)
+PuzzleScriptParser.prototype.registerNewProperty = function(property, original_case)
 {
-	this.registerNewIdentifier( property[0], mixedCase, 3)
+	this.registerNewIdentifier( property[0], original_case, 3)
 	property.lineNumber = this.lineNumber;
 	this.legend_properties.push(property);
 }
@@ -389,10 +393,10 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 	{
 		this.objects_candname = candname;
 		this.objects_candindex = this.objects.length
-		this.registerNewObject(candname, mixedCase)
+		this.registerNewObject(candname, findOriginalCaseName(candname, mixedCase))
 	} else {
 		//set up alias
-		this.registerNewSynonym(candname, mixedCase, this.objects_candname)
+		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects_candname)
 	}
 	this.objects_section = 1;
 	return 'NAME';
@@ -504,7 +508,8 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 
 // BUG: in these functions, the paramater n is modified and should be modified when exiting the function but javascript passes non-object parameters by value
 //      similarly, some of these functions modify the "ok" variable defined in tokenInLegendSection
-PuzzleScriptParser.prototype.substitutor2 = function(n)
+//      In addition, the new version is not recursive, so it may be broken
+PuzzleScriptParser.prototype.substitutor_for_aggregate = function(n)
 {
 	n = n.toLowerCase();
 	const identifier_index = this.identifiers.indexOf(n);
@@ -527,12 +532,12 @@ PuzzleScriptParser.prototype.substitutor2 = function(n)
 	// for (var a of this.legend_synonyms)
 	// {
 	// 	if (a[0]===n)
-	// 		return this.substitutor2(a[1]);
+	// 		return this.substitutor_for_aggregate(a[1]);
 	// }
 	// for (var a of this.legend_aggregates)
 	// {
 	// 	if (a[0]===n)
-	// 		return [].concat.apply([],a.slice(1).map(this.substitutor2));
+	// 		return [].concat.apply([],a.slice(1).map(this.substitutor_for_aggregate));
 	// }
 	// for (var a of this.legend_properties)
 	// {
@@ -546,7 +551,7 @@ PuzzleScriptParser.prototype.substitutor2 = function(n)
 	return [n];
 }
 
-PuzzleScriptParser.prototype.substitutor3 = function(n)
+PuzzleScriptParser.prototype.substitutor_for_property = function(n)
 {
 	n = n.toLowerCase();
 	const identifier_index = this.identifiers.indexOf(n);
@@ -569,7 +574,7 @@ PuzzleScriptParser.prototype.substitutor3 = function(n)
 	// for (var a of this.legend_synonyms)
 	// {
 	// 	if (a[0]===n)
-	// 		return this.substitutor3(a[1]);
+	// 		return this.substitutor_for_property(a[1]);
 	// }
 	// for (var a of this.legend_aggregates)
 	// {
@@ -582,7 +587,7 @@ PuzzleScriptParser.prototype.substitutor3 = function(n)
 	// for (var a of this.legend_properties)
 	// {
 	// 	if (a[0]===n)
-	// 		return [].concat.apply([],a.slice(1).map(this.substitutor3));
+	// 		return [].concat.apply([],a.slice(1).map(this.substitutor_for_property));
 	// }
 	return [n];
 }
@@ -677,7 +682,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 		if (splits.length>0)
 		{
-			var candname = splits[0].toLowerCase();
+			const candname = splits[0].toLowerCase();
 			if (keyword_array.indexOf(candname) >= 0)
 			{
 				logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
@@ -701,13 +706,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			return 'ERROR';
 		} */ else if (splits.length === 3)
 		{
-			this.identifiers.push(splits[0])
-			this.identifiers_info.push( [1, this.legend_synonyms.length])
-			var synonym = [splits[0], splits[2].toLowerCase()];
-			synonym.lineNumber = this.lineNumber;
-
-			this.registerOriginalCaseName(splits[0], mixedCase);
-			this.legend_synonyms.push(synonym);
+			this.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], mixedCase), splits[2].toLowerCase())
 		} else if (splits.length % 2 === 0) {
 			ok = false;
 		} else {
@@ -722,10 +721,11 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				}
 				if (ok) {
 					var newlegend = [splits[0]]
-					for (var i = 2; i < splits.length; i += 2) {
-						newlegend = newlegend.concat(this.substitutor2(splits[i]));
+					for (var i = 2; i < splits.length; i += 2)
+					{
+						newlegend = newlegend.concat(this.substitutor_for_aggregate(splits[i]));
 					}
-					this.registerNewAggregate(newlegend, mixedCase);
+					this.registerNewAggregate(newlegend, findOriginalCaseName(newlegend[0], mixedCase));
 				}
 			} else if (lowertoken === 'or') {
 
@@ -736,11 +736,11 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 					}
 				}
 				if (ok) {
-					var newlegend = [splits[0]].concat(this.substitutor3(splits[2])).concat(this.substitutor3(splits[4]));
+					var newlegend = [splits[0]].concat(this.substitutor_for_property(splits[2])).concat(this.substitutor_for_property(splits[4]));
 					for (var i = 6; i < splits.length; i += 2) {
 						newlegend.push(splits[i].toLowerCase());
 					}
-					this.registerNewProperty(newlegend, mixedCase)
+					this.registerNewProperty(newlegend, findOriginalCaseName(newlegend[0], mixedCase))
 				}
 			} else {
 				ok = false;
@@ -805,7 +805,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 
 
-PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, stream, mixedCase)
+PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
 	{
@@ -840,6 +840,8 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	stream.match(reg_notcommentstart, true);
 	return 'ERROR';
 }
+
+
 
 // recursively replace a name that can be used in a CollisionLayer with the list of object names it can correspond to
 PuzzleScriptParser.prototype.substitutor = function(candname)
@@ -889,70 +891,83 @@ PuzzleScriptParser.prototype.substitutor = function(candname)
 	return [];
 }
 
-PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_of_line, stream, mixedCase)
+// TODO: this is actually a semantic checking function that does not involve parsing
+PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(candname)
 {
-	if (is_start_of_line) {
-		//create new collision layer
-		this.collisionLayers.push([]);
-		this.tokenIndex=0;
+	// we have a name: let's see if it's valid
+
+	if (candname === 'background')
+	{
+		if ( (this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0) )
+		{
+			logError("Background must be in a layer by itself.", this.lineNumber);
+		}
+		this.tokenIndex = 1;
+	} else if (this.tokenIndex !== 0)
+	{
+		logError("Background must be in a layer by itself.", this.lineNumber);
 	}
 
-	var match_name = stream.match(reg_name, true);
-	if (match_name === null) {
+	if (this.collisionLayers.length === 0)
+	{
+		logError("no layers found.", this.lineNumber);
+		return false;
+	}
+	
+	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
+	// TODO: a more efficient way to do that would be to register for each object the layer it is in, and simply check that no member of "ar" has a layer defined to something else than the current layer
+	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
+	var ar = this.substitutor(candname);
+	var foundOthers=[];
+	for (const objname of ar)
+	{
+		for (var [j, clj] of this.collisionLayers.entries())
+		{
+			if ((clj.indexOf(objname) >= 0) && (j != this.collisionLayers.length-1) ) // TODO: why not check the current layer too?
+			{
+				foundOthers.push(j);
+			}
+		}
+	}
+	if (foundOthers.length>0)
+	{
+		logWarning('Object "' + candname.toUpperCase() + '" included in multiple collision layers (layers ' + foundOthers.join(", ") + (this.collisionLayers.length-1) +
+		 	'). You should fix this!', this.lineNumber);                                        
+	}
+
+	this.collisionLayers[this.collisionLayers.length - 1].push(...ar); // TODO: we may want to use a set of object names here
+	return (ar.length > 0); // TODO: we should do this test earlier and move the error message out of the substitutor method.
+}
+
+PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_of_line, stream)
+{
+	if (is_start_of_line)
+	{
+		//create new collision layer
+		this.collisionLayers.push([]);
+		this.tokenIndex = 0;
+	}
+
+	const match_name = stream.match(reg_name, true);
+
+	// ignore spaces and commas in the list
+	if (match_name === null)
+	{
 		//then strip spaces and commas
-		var prepos=stream.pos;
+		const prepos = stream.pos;
 		stream.match(reg_csv_separators, true);
-		if (stream.pos==prepos) {
-			logError("error detected - unexpected character " + stream.peek(),this.lineNumber);
+		if (stream.pos == prepos)
+		{
+			logError("error detected - unexpected character " + stream.peek(), this.lineNumber);
 			stream.next();
 		}
 		return null;
-	} else {
-		//have a name: let's see if it's valid
-		var candname = match_name[0].trim();
-
-		if (candname==='background' )
-		{
-			if ((this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0))
-			{
-				logError("Background must be in a layer by itself.",this.lineNumber);
-			}
-			this.tokenIndex=1;
-		} else if (this.tokenIndex!==0)
-		{
-			logError("Background must be in a layer by itself.",this.lineNumber);
-		}
-
-		var ar = this.substitutor(candname);
-
-		if (this.collisionLayers.length === 0)
-		{
-			logError("no layers found.", this.lineNumber);
-			return 'ERROR';
-		}
-		
-		var foundOthers=[];
-		for (const candname of ar)
-		{
-			for (var [j, clj] of this.collisionLayers.entries())
-			{
-				if ((clj.indexOf(candname) >= 0) && (j != this.collisionLayers.length-1) )
-				{
-					foundOthers.push(j);
-				}
-			}
-		}
-		if (foundOthers.length>0)
-		{
-			logWarning('Object "' + candname.toUpperCase() + '" included in multiple collision layers (layers ' + foundOthers.join(", ") + (this.collisionLayers.length-1) +
-			 	'). You should fix this!', this.lineNumber);                                        
-		}
-
-		this.collisionLayers[this.collisionLayers.length - 1].push(...ar);
-		if (ar.length > 0)
-			return 'NAME';                            
-		return 'ERROR';
 	}
+	
+	if ( ! this.addIdentifierInCurrentCollisionLayer( match_name[0].trim() ) )
+		return 'ERROR'
+	return 'NAME'
+
 }
 
 PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, stream, mixedCase, ch)
@@ -1018,7 +1033,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 }
 
 
-PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_line, stream, mixedCase)
+PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line) {
 		var tokenized = reg_notcommentstart.exec(stream.string);
@@ -1290,16 +1305,16 @@ PuzzleScriptParser.prototype.token = function(stream)
 				return this.tokenInLegendSection(is_start_of_line, stream, mixedCase)
 				break;
 			case 'sounds':
-				return this.tokenInSoundsSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInSoundsSection(is_start_of_line, stream)
 				break;
 			case 'collisionlayers':
-				return this.tokenInCollisionLayersSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInCollisionLayersSection(is_start_of_line, stream)
 				break;
 			case 'rules':
 				return this.tokenInRulesSection(is_start_of_line, stream, mixedCase, ch)
 				break;
 			case 'winconditions':
-				return this.tokenInWinconditionsSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInWinconditionsSection(is_start_of_line, stream)
 				break;
 			case 'levels':
 				return this.tokenInLevelsSection(is_start_of_line, stream, mixedCase, ch)
