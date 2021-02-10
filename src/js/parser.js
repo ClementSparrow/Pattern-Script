@@ -128,18 +128,6 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.lineNumber = this.lineNumber
 
-	// result.objects = {};
-	// for (var i in this.objects) {
-	// 	if (this.objects.hasOwnProperty(i)) {
-	// 		var o = this.objects[i];
-	// 		result.objects[i] = {
-	//		  name: o.name,
-	// 		  colors: o.colors.concat([]),
-	// 		  lineNumber : o.lineNumber,
-	// 		  spritematrix: o.spritematrix.concat([])
-	// 		}
-	// 	}
-	// }
 	result.objects = this.objects.map( (o) => ({
 			colors: o.colors.concat([]),
 			lineNumber : o.lineNumber,
@@ -187,6 +175,26 @@ PuzzleScriptParser.prototype.copy = function()
 }
 
 
+//  ======== LEXER USING CODEMIRROR'S API =========
+
+
+PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
+{
+	const match = stream.match(/[\p{Z}]*[\p{L}\p{N}_]+[\p{Z}]*/u);
+	return (match !== null) ? match[0].trim() : null;
+}
+
+PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
+{
+	return stream.eat(/[.\d]/);
+}
+
+
+
+// ====== OTHERS =======
+
+
+
 PuzzleScriptParser.prototype.blankLine = function()
 {
 	if (state.section === 'levels')
@@ -208,53 +216,52 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 	{
 		this.tokenIndex=0;
 	}
-	if (this.tokenIndex==0)
+	else if (this.tokenIndex != 0)
 	{
-		var match = stream.match(/[\p{Z}]*[\p{L}\p{N}_]+[\p{Z}]*/u);	                    
-		if (match !== null)
-		{
-			const token = match[0].trim();
-			if (is_start_of_line)
-			{
-				if (metadata_with_value.indexOf(token)>=0)
-				{
-					
-					if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
-					{
-						stream.string = mixedCase;
-					}
-					
-					var m2 = stream.match(reg_notcommentstart, false);
-					
-					if(m2 != null)
-					{
-						this.metadata.push(token);
-						this.metadata.push(m2[0].trim());                                            
-					} else {
-						logError('MetaData "'+token+'" needs a value.',this.lineNumber);
-					}
-					this.tokenIndex = 1;
-					return 'METADATA';
-				} else if ( metadata_without_value.indexOf(token)>=0)
-				{
-					this.metadata.push(token);
-					this.metadata.push("true");
-					this.tokenIndex = -1;
-					return 'METADATA';
-				} else  {
-					logError('Unrecognised stuff in the prelude.', this.lineNumber);
-					return 'ERROR';
-				}
-			} else if (this.tokenIndex == -1)
-			{
-				logError('MetaData "'+token+'" has no parameters.',this.lineNumber);
-				return 'ERROR';
-			}
-			return 'METADATA';
-		}       
-	} else {
 		stream.match(reg_notcommentstart, true);
 		return "METADATATEXT";
+	}
+
+	const token = this.parse_keyword_or_identifier(stream)
+	if (token !== null)
+	{
+		if (is_start_of_line)
+		{
+			if (metadata_with_value.indexOf(token)>=0)
+			{
+				
+				if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
+				{
+					stream.string = mixedCase;
+				}
+				
+				var m2 = stream.match(reg_notcommentstart, false);
+				
+				if(m2 != null)
+				{
+					this.metadata.push(token);
+					this.metadata.push(m2[0].trim());                                            
+				} else {
+					logError('MetaData "'+token+'" needs a value.',this.lineNumber);
+				}
+				this.tokenIndex = 1;
+				return 'METADATA';
+			} else if ( metadata_without_value.indexOf(token)>=0)
+			{
+				this.metadata.push(token);
+				this.metadata.push("true");
+				this.tokenIndex = -1;
+				return 'METADATA';
+			} else  {
+				logError('Unrecognised stuff in the prelude.', this.lineNumber);
+				return 'ERROR';
+			}
+		} else if (this.tokenIndex == -1)
+		{
+			logError('MetaData "'+token+'" has no parameters.', this.lineNumber);
+			return 'ERROR';
+		}
+		return 'METADATA';
 	}
 }
 
@@ -322,7 +329,7 @@ PuzzleScriptParser.prototype.registerNewProperty = function(property, original_c
 PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, mixedCase)
 {
 	//LOOK FOR NAME
-	var match_name = is_start_of_line ? stream.match(reg_name, true) : stream.match(/[^\p{Z}\()]+\p{Z}*/u,true);
+	var match_name = is_start_of_line ? stream.match(reg_name, true) : stream.match(/[^\p{Z}\()]+\p{Z}*/u, true);
 	if (match_name == null)
 	{
 		stream.match(reg_notcommentstart, true);
@@ -421,7 +428,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 3: // sprite matrix
 		{
-			var ch = stream.eat(/[.\d]/);
+			const ch = this.parse_sprite_pixel(stream);
 			var spritematrix = this.objects_spritematrix;
 			if (ch === undefined)
 			{
@@ -726,19 +733,18 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 	}
 
 	// the line has been parsed, now we just consume the words, returning the appropriate token type
+	this.tokenIndex++;
 	switch (this.tokenIndex)
 	{
-	case 0:
+	case 1: // the new identifier
 		{
 			stream.match(/[^=]*/, true);
-			this.tokenIndex++;
 			return 'NAME';
 		}
-	case 1:
+	case 2: // =
 		{
 			stream.next();
 			stream.match(/\p{Z}*/u, true);
-			this.tokenIndex++;
 			return 'ASSSIGNMENT';
 		}
 	default:
@@ -748,25 +754,17 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				logError("Something bad's happening in the LEGEND", this.lineNumber);
 				stream.match(reg_notcommentstart, true);
 				return 'ERROR';
-			} else {
-				const candname = match_name[0].trim();
-
-				if (this.tokenIndex % 2 === 0)
-				{
-					if (this.wordExists(candname)===false)
-					{
-						logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.', this.lineNumber);
-						this.tokenIndex++;
-						return 'ERROR';
-					} else {
-						this.tokenIndex++;
-						return 'NAME';
-					}
-				} else {
-					this.tokenIndex++;
-					return 'LOGICWORD';
-				}
 			}
+			const candname = match_name[0].trim();
+
+			if (this.tokenIndex % 2 === 0)
+				return 'LOGICWORD';
+			if (this.wordExists(candname) === false) // TODO: why do we need to test that again?
+			{
+				logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.', this.lineNumber);
+				return 'ERROR';
+			}
+			return 'NAME';
 		}
 	}
 }
@@ -1014,38 +1012,27 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 	}
 	this.tokenIndex++;
 
-	var match = stream.match(/[\p{Z}]*[\p{L}\p{N}_]+[\p{Z}]*/u);
-	if (match === null) {
-			logError('incorrect format of win condition.', this.lineNumber);
-			stream.match(reg_notcommentstart, true);
-			return 'ERROR';
-
-	} else {
-		var candword = match[0].trim();
-		if (this.tokenIndex === 0) {
-			if (reg_winconditionquantifiers.exec(candword)) {
-				return 'LOGICWORD';
-			}
-			else {
-				return 'ERROR';
-			}
-		}
-		else if (this.tokenIndex === 2) {
-			if (candword != 'on') {
-				return 'ERROR';
-			} else {
-				return 'LOGICWORD';
-			}
-		}
-		else if (this.tokenIndex === 1 || this.tokenIndex === 3)
-		{
-			if (this.identifiers.indexOf(candword)===-1) {
+	const candword = this.parse_keyword_or_identifier(stream)
+	if (candword === null)
+	{
+		logError('incorrect format of win condition.', this.lineNumber);
+		stream.match(reg_notcommentstart, true);
+		return 'ERROR';
+	}
+	switch(this.tokenIndex)
+	{
+		case 0: // expect a quantifier word ('all', 'any', 'some', 'no')
+			return (reg_winconditionquantifiers.exec(candword)) ? 'LOGICWORD' : 'ERROR';
+		case 2: // expect a 'on'
+			return (candword != 'on') ? 'ERROR' : 'LOGICWORD';
+		case 1: // expect an identifier
+		case 3:
+			if (this.identifiers.indexOf(candword) === -1)
+			{
 				logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.', this.lineNumber);
 				return 'ERROR';
-			} else {
-				return 'NAME';
 			}
-		}
+			return 'NAME';
 	}
 }
 
