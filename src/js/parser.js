@@ -40,20 +40,20 @@ const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perp
 const logicWords = ['all', 'no', 'on', 'some'];
 const sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
-const reg_commands = /\p{Z}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Z}*/u;
-const reg_name = /[\p{L}\p{N}_]+[\p{Z}]*/u;///\w*[a-uw-zA-UW-Z0-9_]/;
+const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
+const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}]*/u;///\w*[a-uw-zA-UW-Z0-9_]/;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
-const reg_spriterow = /[\.0-9]{5}\p{Z}*/u;
-const reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{L}\p{N}_])[\p{Z}]*/u;
+const reg_spriterow = /[\.0-9]{5}\p{Separator}*/u;
+const reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
-const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\p{Z}+/u;
+const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\p{Separator}+/u;
 const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 const reg_loopmarker = /^(startloop|endloop)$/;
 const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-const reg_sounddirectionindicators = /\p{Z}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Z}*/u;
+const reg_sounddirectionindicators = /\p{Separator}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Separator}*/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)$/;
 const reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
 const keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
@@ -94,6 +94,7 @@ function PuzzleScriptParser()
 	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
+	// TODO: we should not need objects_candname and objects_candindex, because the candidate is always the last entry in objects and object_names.
 	this.objects_candname = '' // The name of the object currently parsed
 	this.objects_candindex = null // The index of the object currently parsed -> should always be the last index of the array?
 	this.objects_section = 0 //whether reading name/color/spritematrix
@@ -179,13 +180,13 @@ PuzzleScriptParser.prototype.copy = function()
 
 PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
 {
-	const match = stream.match(/[\p{Z}]*[\p{L}\p{N}_]+[\p{Z}]*/u);
+	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_]+[\p{Separator}]*/u);
 	return (match !== null) ? match[0].trim() : null;
 }
 
 PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 {
-	return stream.eat(/[.\d]/);
+	return stream.eat(/[.\d]/); // a digit or a dot
 }
 
 
@@ -251,6 +252,28 @@ PuzzleScriptParser.prototype.wordExists = function(n)
 	return (this.identifiers.indexOf(n.toLowerCase()) >= 0);
 }
 
+PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid(candname)
+{
+	// Check if this name is already used
+	const identifier_index = this.identifiers.indexOf(candname);
+	if (identifier_index >= 0)
+	{
+		const [type, pos] = this.identifiers_info[identifier_index]
+		const object_list = [this.objects, this.legend_synonyms, this.legend_aggregates, this.legend_properties][type]
+		const l = object_list[pos].lineNumber
+		logError('Object "' + candname.toUpperCase() + '" already defined ' + ['', 'as synonym ', 'as aggregate ', 'as property '][type] + 'on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
+		if (type == 0)
+			return false;
+	}
+
+	// Warn if the name is a keyword
+	if (keyword_array.indexOf(candname) >= 0)
+	{
+		logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
+	}
+	return true;
+}
+
 
 
 // ====== OTHERS =======
@@ -302,7 +325,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 			{
 				this.registerMetaData(token, m2[0].trim())
 			} else {
-				logError('MetaData "'+token+'" needs a value.',this.lineNumber);
+				logError('MetaData "'+token+'" needs a value.', this.lineNumber);
 			}
 			this.tokenIndex = 1;
 			return 'METADATA';
@@ -341,44 +364,25 @@ function findOriginalCaseName(candname, mixedCase)
 }
 
 
+
 PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, mixedCase)
 {
 	//LOOK FOR NAME
-	var match_name = is_start_of_line ? stream.match(reg_name, true) : stream.match(/[^\p{Z}\()]+\p{Z}*/u, true);
+	var match_name = is_start_of_line ? stream.match(reg_name, true) : stream.match(/[^\p{Separator}\()]+\p{Separator}*/u, true);
 	if (match_name == null)
 	{
 		stream.match(reg_notcommentstart, true);
 		if (stream.pos>0)
 		{
-			logWarning('Unknown junk in object section (possibly: sprites have to be 5 pixels wide and 5 pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).',this.lineNumber);
+			logWarning('Unknown junk in object section (possibly: sprites have to be 5 pixels wide and 5 pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).', this.lineNumber);
 		}
 		return 'ERROR';
 	}
 
 	const candname = match_name[0].trim();
 
-	// Check if this name is already used
-	const identifier_index = this.identifiers.indexOf(candname);
-	if (identifier_index >= 0)
-	{
-		switch (this.identifiers_info[identifier_index][0])
-		{
-			case 0: //... by an object definition
-				{
-					logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
-					return 'ERROR';
-				}
-			case 1: //... as a legend synonym
-				logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber); // TODO: tell were it has been defined already
-			default: // no default? no return ERROR?
-		}
-	}
-
-	// Warn if the name is a keyword
-	if (keyword_array.indexOf(candname) >= 0)
-	{
-		logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
-	}
+	if (! this.checkIfNewIdentifierIsValid(candname))
+		return 'ERROR'
 
 	if (is_start_of_line)
 	{
@@ -409,7 +413,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	switch (this.objects_section)
 	{
 	case 0:
-	case 1: // name of the object
+	case 1: // name of the object or synonym
 		{
 			this.objects_spritematrix = [];
 			return this.tryParseName(is_start_of_line, stream, mixedCase);
@@ -443,11 +447,11 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 3: // sprite matrix
 		{
-			const ch = this.parse_sprite_pixel(stream);
 			var spritematrix = this.objects_spritematrix;
+			const ch = this.parse_sprite_pixel(stream);
 			if (ch === undefined)
 			{
-				if (spritematrix.length === 0)
+				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 					return this.tryParseName(is_start_of_line, stream, mixedCase);
 				logError('Unknown junk in spritematrix for object ' + this.objects_candname.toUpperCase() + '.', this.lineNumber);
 				stream.match(reg_notcommentstart, true);
@@ -479,7 +483,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				var n = parseInt(ch);
 				if (n >= o.colors.length)
 				{
-					logError("Trying to access color number "+n+" from the color palette of sprite " +this.objects_candname.toUpperCase()+", but there are only "+o.colors.length+" defined in it.",this.lineNumber);
+					logError("Trying to access color number "+n+" from the color palette of sprite " +this.objects_candname.toUpperCase()+", but there are only "+o.colors.length+" defined in it.", this.lineNumber);
 					return 'ERROR';
 				}
 				if (isNaN(n))
@@ -583,54 +587,6 @@ PuzzleScriptParser.prototype.substitutor_for_property = function(n)
 }
 
 
-
-PuzzleScriptParser.prototype.checkNameNew = function(candname)
-{
-	const identifier_index = this.identifiers.indexOf(candname);
-	if (identifier_index >= 0)
-	{
-		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
-		switch (identifier_type)
-		{
-			case 0:
-				logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
-				return 'ERROR';
-			case 1:
-			case 2:
-			case 3:
-				logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);
-				break;
-		}
-	}
-
-	// if (this.object_names.indexOf(candname) >= 0)
-	// {
-	// 	logError('Object "' + candname.toUpperCase() + '" defined multiple times.', this.lineNumber);
-	// 	return 'ERROR';
-	// }
-	// for (const entry of this.legend_synonyms)
-	// {
-	// 	if (entry[0]==candname)
-	// 	{
-	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
-	// 	}
-	// }
-	// for (const entry of this.legend_aggregates)
-	// {
-	// 	if (entry[0]==candname)
-	// 	{
-	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
-	// 	}
-	// }
-	// for (const entry of this.legend_properties)
-	// {
-	// 	if (entry[0]==candname)
-	// 	{
-	// 		logError('Name "' + candname.toUpperCase() + '" already in use.', this.lineNumber);                                        
-	// 	}
-	// }
-}
-
 // TODO: when defining an abrevation to use in a level, give the possibility to follow it with a (background) color that will be used in the editor to display the levels
 // Or maybe we want to directly use the object's sprite as a background image?
 // Also, it would be nice in the level editor to have the letter displayed on each tile (especially useful for transparent tiles) and activate it with that key.
@@ -643,7 +599,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		var longer = stream.string.replace('=', ' = ');
 		longer = reg_notcommentstart.exec(longer)[0];
 
-		var splits = longer.split(/\p{Z}/u).filter(function(v) {
+		var splits = longer.split(/\p{Separator}/u).filter(function(v) {
 			return v !== '';
 		});
 		var ok = true;
@@ -651,16 +607,13 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		if (splits.length>0)
 		{
 			const candname = splits[0].toLowerCase();
-			if (keyword_array.indexOf(candname) >= 0)
-			{
-				logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
-			}
 			if (splits.indexOf(candname, 2) >= 2)
 			{
 				logError("You can't define object " + candname.toUpperCase() + " in terms of itself!", this.lineNumber);
 				ok = false;
 			}
-			this.checkNameNew(candname);
+			if (!this.checkIfNewIdentifierIsValid(candname))
+				return 'ERROR';
 		}
 
 		if (!ok) {
@@ -736,7 +689,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 	case 2: // =
 		{
 			stream.next();
-			stream.match(/\p{Z}*/u, true);
+			stream.match(/\p{Separator}*/u, true);
 			return 'ASSIGNMENT';
 		}
 	default:
@@ -769,7 +722,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (is_start_of_line)
 	{
 		var ok = true;
-		var splits = reg_notcommentstart.exec(stream.string)[0].split(/\p{Z}/u).filter(function(v) {return v !== ''});                          
+		var splits = reg_notcommentstart.exec(stream.string)[0].split(/\p{Separator}/u).filter(function(v) {return v !== ''});                          
 		splits.push(this.lineNumber);
 		this.sounds.push(splits);
 	}
@@ -785,7 +738,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 		this.tokenIndex++;
 		return 'SOUND';
 	} 
-	candname = stream.match(/[^\[\|\]\p{Z}]*/u, true);
+	candname = stream.match(/[^\[\|\]\p{Separator}]*/u, true);
 	if (candname!== null)
 	{
 		var m = candname[0].trim();
@@ -942,7 +895,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.skipToEnd();
 		return 'MESSAGE';
 	}
-	if (stream.match(/\p{Z}*->\p{Z}*/u, true)) // TODO: also match the unicode arrow character
+	if (stream.match(/\p{Separator}*->\p{Separator}*/u, true)) // TODO: also match the unicode arrow character
 		return 'ARROW';
 	if (ch === '[' || ch === '|' || ch === ']' || ch==='+')
 	{
@@ -951,21 +904,21 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 			this.tokenIndex = 1;
 		}
 		stream.next();
-		stream.match(/\p{Z}*/u, true);
+		stream.match(/\p{Separator}*/u, true);
 		return 'BRACKET';
 	} else {
-		var m = stream.match(/[^\[\|\]\p{Z}]*/u, true)[0].trim();
+		var m = stream.match(/[^\[\|\]\p{Separator}]*/u, true)[0].trim();
 
 		if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
 			return 'BRACKET';
 		if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
 		{
-			stream.match(/\p{Z}*/u, true);
+			stream.match(/\p{Separator}*/u, true);
 			return 'DIRECTION';
 		}
 		if (this.tokenIndex === 1 && reg_directions.exec(m))
 		{
-			stream.match(/\p{Z}*/u, true);
+			stream.match(/\p{Separator}*/u, true);
 			return 'DIRECTION';
 		}
 		if (this.identifiers.indexOf(m) >= 0)
@@ -975,7 +928,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 				logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
 				return 'ERROR';
 			}
-			stream.match(/\p{Z}*/u, true);
+			stream.match(/\p{Separator}*/u, true);
 			return 'NAME';
 		}
 		if (m === '...')
@@ -1003,7 +956,7 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 	if (is_start_of_line)
 	{
 		var tokenized = reg_notcommentstart.exec(stream.string);
-		var splitted = tokenized[0].split(/\p{Z}/u);
+		var splitted = tokenized[0].split(/\p{Separator}/u);
 		var filtered = splitted.filter(function(v) {return v !== ''});
 		filtered.push(this.lineNumber);
 		
@@ -1041,9 +994,9 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 {
 	if (is_start_of_line)
 	{
-		if (stream.match(/\p{Z}*message\p{Z}*/u, true)) {
+		if (stream.match(/\p{Separator}*message\p{Separator}*/u, true)) {
 			this.tokenIndex = 1;//1/2 = message/level
-			var newdat = ['\n', mixedCase.slice(stream.pos).trim(),this.lineNumber];
+			var newdat = ['\n', mixedCase.slice(stream.pos).trim(), this.lineNumber];
 			if (this.levels[this.levels.length - 1].length == 0) {
 				this.levels.splice(this.levels.length - 1, 0, newdat);
 			} else {
@@ -1055,7 +1008,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			this.tokenIndex = 2;
 			var lastlevel = this.levels[this.levels.length - 1];
 			if (lastlevel[0] == '\n') {
-				this.levels.push([this.lineNumber,line]);
+				this.levels.push([this.lineNumber, line]);
 			} else {
 				if (lastlevel.length==0)
 				{
@@ -1066,7 +1019,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 				if (lastlevel.length>1) 
 				{
 					if (line.length!=lastlevel[1].length) {
-						logWarning("Maps must be rectangular, yo (In a level, the length of each row must be the same).",this.lineNumber);
+						logWarning("Maps must be rectangular, yo (In a level, the length of each row must be the same).", this.lineNumber);
 					}
 				}
 			}

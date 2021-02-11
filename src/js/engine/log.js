@@ -7,13 +7,18 @@ var compiling = false;
 var errorStrings = [];
 var errorCount=0;
 
+function makeLinkToLine(lineNumber, anchor_text)
+{
+	return '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);">' + anchor_text + '</a>';
+}
+
 function logErrorCacheable(str, lineNumber,urgent)
 {
 	if (compiling||urgent)
 	{
 		if (lineNumber === undefined)
 			return logErrorNoLine(str);
-		var errorString = '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);"><span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span></a> : ' + '<span class="errorText">' + str + '</span>';
+		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
 		} else {
@@ -30,7 +35,7 @@ function logError(str, lineNumber,urgent)
 	{
 		if (lineNumber === undefined)
 			return logErrorNoLine(str,urgent);
-		var errorString = '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);"><span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span></a> : ' + '<span class="errorText">' + str + '</span>';
+		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
 		} else {
@@ -47,7 +52,7 @@ function logWarning(str, lineNumber,urgent)
 	{
 		if (lineNumber === undefined)
 			return logErrorNoLine(str);
-		var errorString = '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);"><span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span></a> : ' + '<span class="warningText">' + str + '</span>';
+		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="warningText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
 		} else {
