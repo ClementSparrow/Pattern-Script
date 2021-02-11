@@ -114,15 +114,17 @@ function generateExtraMembers(state)
 	}
 
 	//convert colors to hex
+	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 	for (var o of state.objects)
 	{
 		if (o.colors.length>10) {
-			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", o.lineNumber+1); // TODO: Seriously??? -- ClementSparrow
+			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", o.lineNumber+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
 		}
-		for (var i=0;i<o.colors.length;i++)
+		for (var i=0; i<o.colors.length; i++)
 		{
 			var c = o.colors[i];
-			if (isColor(c)) {
+			if (isColor(c))
+			{
 				c = colorToHex(colorPalette,c);
 				o.colors[i] = c;
 			} else {
@@ -133,18 +135,19 @@ function generateExtraMembers(state)
 	}
 
 	//generate sprite matrix
+	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 	for (var o of state.objects)
 	{
-		if (o.colors.length==0)
+		if (o.colors.length == 0)
 		{
-			logError('color not specified for object "' + o.name +'".',o.lineNumber);
+			logError('color not specified for object "' + o.name +'".', o.lineNumber); // TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
 			o.colors=["#ff00ff"];
 		}
 		if (o.spritematrix.length===0) {
 			o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
 		} else {
 			if ( o.spritematrix.length!==5 || o.spritematrix[0].length!==5 || o.spritematrix[1].length!==5 || o.spritematrix[2].length!==5 || o.spritematrix[3].length!==5 || o.spritematrix[4].length!==5 ){
-				logWarning("Sprite graphics must be 5 wide and 5 high exactly.",o.lineNumber);
+				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", o.lineNumber);
 			}
 			o.spritematrix = generateSpriteMatrix(o.spritematrix);
 		}
@@ -167,8 +170,8 @@ function generateExtraMembers(state)
 		//then, synonyms
 		for (const dat of state.legend_synonyms)
 		{
-			var key = dat[0];
-			var val = dat[1];
+			const key = dat[0];
+			const val = dat[1];
 			if ( ( !(key in glyphDict) || (glyphDict[key]===undefined) ) && (glyphDict[val] !== undefined) )
 			{
 				added = true;
@@ -181,20 +184,13 @@ function generateExtraMembers(state)
 		{
 			var key=dat[0];
 			var vals=dat.slice(1);
-			var allVallsFound=true;
-			for (var j=0;j<vals.length;j++) {
-				var v = vals[j];
-				if (glyphDict[v]===undefined) {
-					allVallsFound=false;
-					break;
-				}
-			}
-			if ((!(key in glyphDict)||(glyphDict[key]===undefined))&&allVallsFound) {            
+			var allVallsFound = vals.every( v => (glyphDict[v] !== undefined) );
+			if ( ( !(key in glyphDict) || (glyphDict[key] === undefined) ) && allVallsFound )
+			{
 				var mask = blankMask.concat([]);
 
-				for (var j = 1; j < dat.length; j++)
+				for (const n of dat)
 				{
-					var n = dat[j];
 					var oi = state.object_names.indexOf(n);
 					if (oi < 0)
 					{
@@ -205,7 +201,7 @@ function generateExtraMembers(state)
 						mask[o.layer] = o.id;
 					} else {
 						if (o.layer===undefined) {
-							logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.',dat.lineNumber);
+							logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.', dat.lineNumber);
 						} else {
 							var n1 = n.toUpperCase();
 							var n2 = state.idDict[mask[o.layer]].toUpperCase();
@@ -219,7 +215,7 @@ function generateExtraMembers(state)
 						}
 					}
 				}
-				added=true;
+				added = true;
 				glyphDict[dat[0]] = mask;
 			}
 		}
@@ -257,46 +253,60 @@ function generateExtraMembers(state)
 	}
 	state.synonymsDict = synonymsDict;
 
-	var modified=true;
-	while(modified){
-		modified=false;
-		for (var n in synonymsDict) {
-			if (synonymsDict.hasOwnProperty(n)) {
+	var modified = true;
+	while(modified)
+	{
+		modified = false;
+		for (var n in synonymsDict)
+		{
+			if (synonymsDict.hasOwnProperty(n))
+			{
 				var value = synonymsDict[n];
-				if (value in propertiesDict) {
+				if (value in propertiesDict)
+				{
 					delete synonymsDict[n];
 					propertiesDict[n]=propertiesDict[value];
-					modified=true;
+					modified = true;
 				}
-				else if (value in aggregatesDict) {
+				else if (value in aggregatesDict)
+				{
 					delete aggregatesDict[n];
 					aggregatesDict[n]=aggregatesDict[value];
-					modified=true;
-				} else if (value in synonymsDict) {
+					modified = true;
+				} else if (value in synonymsDict)
+				{
 					synonymsDict[n]=synonymsDict[value];
 				}
 			}
 		}
 
-		for (var n in propertiesDict) {
-			if (propertiesDict.hasOwnProperty(n)) {
+		for (var n in propertiesDict)
+		{
+			if (propertiesDict.hasOwnProperty(n))
+			{
 				var values = propertiesDict[n];
-				for (var i=0;i<values.length;i++) {
+				for (var i=0;i<values.length;i++)
+				{
 					var value = values[i];
-					if (value in synonymsDict) {
+					if (value in synonymsDict)
+					{
 						values[i]=synonymsDict[value];
-						modified=true;
-					} else if (value in propertiesDict) {
+						modified = true;
+					} else if (value in propertiesDict)
+					{
 						values.splice(i,1);
-						var newvalues=propertiesDict[value];
-						for (var j=0;j<newvalues.length;j++) {
-							var newvalue=newvalues[j];
-							if (values.indexOf(newvalue)===-1) {
+						var newvalues = propertiesDict[value];
+						for (const newvalue of newvalues)
+						{
+							if (values.indexOf(newvalue) === -1)
+							{
 								values.push(newvalue);
 							}
 						}
-						modified=true;
-					} if (value in aggregatesDict) {
+						modified = true;
+					}
+					if (value in aggregatesDict)
+					{
 						logError('Trying to define property "' + n.toUpperCase() +'" in terms of aggregate "'+value.toUpperCase()+'".');
 					}
 				}
@@ -382,25 +392,28 @@ function generateExtraMembers(state)
 	}
 }
 
-Level.prototype.calcBackgroundMask = function(state) {
-	if (state.backgroundlayer===undefined) {
-			logError("you have to have a background layer");
+Level.prototype.calcBackgroundMask = function(state)
+{
+	if (state.backgroundlayer === undefined)
+	{
+		logError("you have to have a background layer");
 	}
 
 	var backgroundMask = state.layerMasks[state.backgroundlayer];
-	for (var i=0;i<this.n_tiles;i++) {
+	for (var i=0; i<this.n_tiles; i++)
+	{
 		var cell=this.getCell(i);
 		cell.iand(backgroundMask);
-		if (!cell.iszero()) {
+		if (!cell.iszero())
 			return cell;
-		}
 	}
 	cell = new BitVec(STRIDE_OBJ);
 	cell.ibitset(state.backgroundid);
 	return cell;
 }
 
-function levelFromString(state,level) {
+function levelFromString(state, level)
+{
 	var backgroundlayer=state.backgroundlayer;
 	var backgroundid=state.backgroundid;
 	var backgroundLayerMask = state.layerMasks[backgroundlayer];
