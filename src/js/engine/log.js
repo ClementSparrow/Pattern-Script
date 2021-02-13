@@ -4,20 +4,20 @@
 // And finally, there should be a standalone version of the engine/parser that do not depend on the editor.
 
 var compiling = false;
-var errorStrings = [];
-var errorCount=0;
+var errorStrings = [];//also stores warning strings
+var errorCount=0;//only counts errors
 
 function makeLinkToLine(lineNumber, anchor_text)
 {
 	return '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);">' + anchor_text + '</a>';
 }
 
-function logErrorCacheable(str, lineNumber,urgent)
+function logErrorCacheable(str, lineNumber, urgent)
 {
 	if (compiling||urgent)
 	{
 		if (lineNumber === undefined)
-			return logErrorNoLine(str);
+			return logErrorNoLine(str, urgent);
 		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
@@ -29,12 +29,12 @@ function logErrorCacheable(str, lineNumber,urgent)
 	}
 }
 
-function logError(str, lineNumber,urgent)
+function logError(str, lineNumber, urgent)
 {
 	if (compiling||urgent)
 	{
 		if (lineNumber === undefined)
-			return logErrorNoLine(str,urgent);
+			return logErrorNoLine(str, urgent);
 		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
@@ -46,12 +46,12 @@ function logError(str, lineNumber,urgent)
 	}
 }
 
-function logWarning(str, lineNumber,urgent)
+function logWarning(str, lineNumber, urgent)
 {
 	if (compiling||urgent)
 	{
 		if (lineNumber === undefined)
-			return logErrorNoLine(str);
+            return logWarningNoLine(str, urgent);
 		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="warningText">' + str + '</span>';
 		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
 			//do nothing, duplicate error
@@ -61,7 +61,22 @@ function logWarning(str, lineNumber,urgent)
 		}
 	}
 }
-function logErrorNoLine(str,urgent)
+
+function logWarningNoLine(str, urgent)
+{
+	if (compiling||urgent) {
+		var errorString = '<span class="warningText">' + str + '</span>';
+		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
+			//do nothing, duplicate error
+		} else {
+			consolePrint(errorString, true);
+			errorStrings.push(errorString);
+		}
+		errorCount++;
+	}
+}
+
+function logErrorNoLine(str, urgent)
 {
 	if (compiling||urgent)
 	{
@@ -77,7 +92,7 @@ function logErrorNoLine(str,urgent)
 }
 
 
-function logBetaMessage(str,urgent)
+function logBetaMessage(str, urgent)
 {
 	if (compiling||urgent)
 	{

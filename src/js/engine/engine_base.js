@@ -77,7 +77,8 @@ function deepClone(item) {
 
 var loadedLevelSeed=0;
 
-function loadLevelFromLevelDat(state,leveldat,randomseed) {	
+function loadLevelFromLevelDat(state, leveldat, randomseed)
+{
 	if (randomseed==null) {
 		randomseed = (Math.random() + Date.now()).toString();
 	}
@@ -123,8 +124,11 @@ function loadLevelFromLevelDat(state,leveldat,randomseed) {
 		restartTarget=backupLevel();
 		keybuffer=[];
 
-		if ('run_rules_on_level_start' in state.metadata) {
+		if ('run_rules_on_level_start' in state.metadata)
+		{
+			runrulesonlevelstart_phase=true;
 			processInput(-1,true);
+			runrulesonlevelstart_phase=false;
 		}
 	} else {
 		tryPlayShowMessageSound();
@@ -555,11 +559,12 @@ function DoRestart(force) {
 	if (restarting===true){
 		return;
 	}
-	restarting=true;
 	if (force!==true && ('norestart' in state.metadata)) {
 		return;
 	}
-	if (force===false) {
+	restarting = true;
+	if (force !== true)
+	{
 		backups.push(backupLevel());
 	}
 
@@ -1095,6 +1100,24 @@ function showTempMessage() {
 	canvasResize();
 }
 
+function processOutputCommands(commands)
+{
+	for (var command of commands)
+	{
+		if (command.charAt(1)==='f') //identifies sfxN
+		{
+			tryPlaySimpleSound(command);
+		}  	
+		if (unitTesting === false)
+		{
+			if (command === 'message')
+			{
+				showTempMessage();
+			}
+		}
+	}
+}
+
 function applyRandomRuleGroup(ruleGroup) {
 	var propagated=false;
 
@@ -1286,7 +1309,8 @@ function calculateRowColMasks() {
 }
 
 /* returns a bool indicating if anything changed */
-function processInput(dir,dontDoWin,dontModify) {
+function processInput(dir, dontDoWin, dontModify)
+{
 	againing = false;
 
 	if (verbose_logging) { 
@@ -1406,6 +1430,7 @@ function processInput(dir,dontDoWin,dontModify) {
 				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('cancel')];
 				consolePrintFromRule('CANCEL command executed, cancelling turn.',r,true);
 			}
+			processOutputCommands(level.commandQueue);
 			backups.push(bak);
 			messagetext = "";
 			DoUndo(true,false);
@@ -1419,16 +1444,13 @@ function processInput(dir,dontDoWin,dontModify) {
 				consolePrintFromRule('RESTART command executed, reverting to restart state.',r);
 				consoleCacheDump();
 			}
+			processOutputCommands(level.commandQueue);
 			backups.push(bak);
 			messagetext = "";
 			DoRestart(true);
 			return true;
 		} 
 
-		if (dontModify && level.commandQueue.indexOf('win')>=0) {
-			return true;
-		}
-		
 		var modified=false;
 		for (var i=0;i<level.objects.length;i++) {
 			if (level.objects[i]!==bak.dat[i]) {
@@ -1448,6 +1470,9 @@ function processInput(dir,dontDoWin,dontModify) {
 				break;
 			}
 		}
+
+		if (dontModify && level.commandQueue.indexOf('win') >= 0)
+			return true;
 
 		if (dontModify) {		
 			if (verbose_logging) {
@@ -1478,19 +1503,7 @@ function processInput(dir,dontDoWin,dontModify) {
 			}
 		}
 
-		for (var i=0;i<level.commandQueue.length;i++) {
-			var command = level.commandQueue[i];
-			if (command.charAt(1)==='f')  {//identifies sfxN
-				tryPlaySimpleSound(command);
-			}  	
-			if (unitTesting===false) {
-				if (command==='message') {
-					showTempMessage();
-				}
-			} else {
-				messagetext = "";
-			}
-		}
+		processOutputCommands(level.commandQueue);
 
 		if (textMode===false) {
 			if (verbose_logging) { 
@@ -1511,8 +1524,11 @@ function processInput(dir,dontDoWin,dontModify) {
 				restartTarget=level4Serialization();
 				hasUsedCheckpoint=true;
 				var backupStr = JSON.stringify(restartTarget);
-				localStorage[document.URL+'_checkpoint']=backupStr;
-				localStorage[document.URL]=curlevel;
+				if ( !!window.localStorage )
+				{
+					localStorage[document.URL+'_checkpoint']=backupStr;
+					localStorage[document.URL]=curlevel;
+				}
 			}	 
 
 			if (level.commandQueue.indexOf('again')>=0 && modified) {
@@ -1560,15 +1576,22 @@ function processInput(dir,dontDoWin,dontModify) {
 	return modified;
 }
 
-function checkWin(dontDoWin) {
-
+function checkWin(dontDoWin)
+{
 	if (levelEditorOpened) {
 		dontDoWin=true;
 	}
 
-	if (level.commandQueue.indexOf('win')>=0) {
-		consolePrint("Win Condition Satisfied");
-		if(!dontDoWin){
+	if (level.commandQueue.indexOf('win')>=0)
+	{
+		if (runrulesonlevelstart_phase)
+		{
+			consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");
+		} else {
+			consolePrint("Win Condition Satisfied");
+		}
+		if( !dontDoWin )
+		{
 			DoWin();
 		}
 		return;
@@ -1632,9 +1655,16 @@ function checkWin(dontDoWin) {
 		won=passed;
 	}
 
-	if (won) {
-		consolePrint("Win Condition Satisfied");
-		if (!dontDoWin){
+	if (won)
+	{
+		if (runrulesonlevelstart_phase)
+		{
+			consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");		
+		} else {
+			consolePrint("Win Condition Satisfied");
+		}
+		if ( !dontDoWin )
+		{
 			DoWin();
 		}
 	}

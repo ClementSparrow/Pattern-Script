@@ -1479,7 +1479,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 						var values;
 						if (isProperty(state, object_name))
 						{
-							values = state.getObjectsAnIdentifierCanBe(object_name).values().map( p => state.objects[p].name );
+							values = [...state.getObjectsAnIdentifierCanBe(object_name).values()].map( p => state.objects[p].name );
 						} else {
 							values = [object_name];
 						}

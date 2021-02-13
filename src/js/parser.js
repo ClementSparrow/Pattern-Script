@@ -345,7 +345,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 	{
 		const obj = this.objects[objpos];
 		const l = obj.layer;
-		if ( (l !== undefined) && (l != this.collisionlayers.length-1) )
+		if ( (l !== undefined) && (l != this.collisionLayers.length-1) )
 		{
 			identifier_added = false;
 			logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!', this.lineNumber);
