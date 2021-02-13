@@ -374,44 +374,34 @@ var simpleRelativeDirections = ['^', 'v', '<', '>'];
 var reg_directions_only = /^(\>|\<|\^|v|up|down|left|right|moving|stationary|no|randomdir|random|horizontal|vertical|orthogonal|perpendicular|parallel|action)$/;
 
 
-function directionalRule(rule) {
-	for (var i=0;i<rule.lhs.length;i++) {
-		var cellRow = rule.lhs[i];
-		if (cellRow.length>1) {
-			return true;
-		}
-		for (var j=0;j<cellRow.length;j++) {
-			var cell = cellRow[j];
-			for (var k=0;k<cell.length;k+=2) {
-				if (relativeDirections.indexOf(cell[k])>=0) {
-					return true;
-				}
+function isCellRowDirectional(cellRow)
+{
+	if (cellRow.length > 1)
+		return true;
+	for (var cell of cellRow)
+	{
+		for (var k=0; k<cell.length; k+=2)
+		{
+			if (relativeDirections.indexOf(cell[k]) >=0)
+			{
+				return true;
 			}
 		}
 	}
-	for (var i=0;i<rule.rhs.length;i++) {
-		var cellRow = rule.rhs[i];
-		if (cellRow.length>1) {
-			return true;
-		}
-		for (var j=0;j<cellRow.length;j++) {
-			var cell = cellRow[j];
-			for (var k=0;k<cell.length;k+=2) {
-				if (relativeDirections.indexOf(cell[k])>=0) {
-					return true;
-				}
-			}
-		}
-	}
-	return false;
 }
 
-function findIndexAfterToken(str,tokens,tokenIndex){
-	str=str.toLowerCase();
-	var curIndex=0;
-	for (var i=0;i<=tokenIndex;i++){
-		var token = tokens[i];
-		curIndex=str.indexOf(token,curIndex)+token.length;
+function directionalRule(rule)
+{
+	return rule.lhs.some( isCellRowDirectional ) || rule.rhs.some( isCellRowDirectional )
+}
+
+function findIndexAfterToken(str, tokens, tokenIndex)
+{
+	str = str.toLowerCase();
+	var curIndex = 0;
+	for (const token of tokens)
+	{
+		curIndex = str.indexOf(token, curIndex) + token.length;
 	}
 	return curIndex;
 }
@@ -505,8 +495,10 @@ function processRuleString(rule, state, curRules)
 		var token = tokens[i];
 		switch (parsestate)
 		{
-			case 0: {
+			case 0: { // scanning for initial directions
 				//read initial directions
+				// syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
+				// (I use the ! here to denote something that is recognized by the parser but wrong)
 				if (token === '+')
 				{
 					if (groupNumber === lineNumber)
@@ -521,7 +513,7 @@ function processRuleString(rule, state, curRules)
 						}						
 						groupNumber = curRules[curRules.length-1].groupNumber;
 					} else {
-						logError('Two "+"s ("append to previous rule group" symbol) applied to the same rule.',lineNumber);
+						logError('Two "+"s ("append to previous rule group" symbol) applied to the same rule.', lineNumber);
 					}
 				} else if (token in directionaggregates) {
 					directions = directions.concat(directionaggregates[token]);						
@@ -537,7 +529,7 @@ function processRuleString(rule, state, curRules)
 					logError('You cannot use relative directions (\"^v<>\") to indicate in which direction(s) a rule applies.  Use absolute directions indicators (Up, Down, Left, Right, Horizontal, or Vertical, for instance), or, if you want the rule to apply in all four directions, do not specify directions', lineNumber);
 				} else if (token == '[') {
 					if (directions.length == 0) {
-						directions = directions.concat(directionaggregates['orthogonal']);
+						directions = directions.concat(directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
 					}
 					parsestate = 1;
 					i--;
@@ -546,13 +538,19 @@ function processRuleString(rule, state, curRules)
 				}
 				break;
 			}
-			case 1: {
-				if (token == '[') {
+			case 1: { // reading cell contents LHS
+				// the syntax is: (cellrow)* "->" (cellrow)* commands
+				// where cellrow is: "[" (cell "|")* cell "]"
+				// and cell is: ( (single_direction_or_action)? identifier )* | "...", but the "..." cannot appear as a first or last cell in a cellrow
+				// and commands is: ( commandword | ("message" everything_to_the_end_of_line) )*
+				// but if any token that is allowed elsewhere in the rule is seen where it should not be, this is reported (with different messages depending on where it it seen)
+				if (token == '[')
+				{
 					bracketbalance++;
 					if(bracketbalance>1){
 						logWarning("Multiple opening brackets without closing brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
 					}
-					if (curcell.length > 0) {
+					if (curcell.length > 0) { // TODO: isn't that dupplicating what the bracketbalance test does?
 						logError('Error, malformed cell rule - encountered a "["" before previous bracket was closed', lineNumber);
 					}
 					incellrow = true;
@@ -626,10 +624,10 @@ function processRuleString(rule, state, curRules)
 					}
 				} else if (commandwords.indexOf(token)>=0) {
 					if (rhs===false) {
-						logError("Commands cannot appear on the left-hand side of the arrow.",lineNumber);
+						logError("Commands cannot appear on the left-hand side of the arrow.", lineNumber);
 					}
 					if (token==='message') {
-						var messageIndex = findIndexAfterToken(origLine,tokens,i);
+						var messageIndex = findIndexAfterToken(origLine, tokens, i);
 						var messageStr = origLine.substring(messageIndex).trim();
 						if (messageStr===""){
 							messageStr=" ";
@@ -681,7 +679,8 @@ function processRuleString(rule, state, curRules)
 		randomRule: randomRule
 	};
 
-	if (directionalRule(rule_line)===false) {
+	if (directionalRule(rule_line) === false)
+	{
 		rule_line.directions=['up'];
 	}
 
@@ -704,7 +703,7 @@ function deepCloneHS(HS)
 
 function deepCloneRule(rule)
 {
-	var clonedRule = {
+	return {
 		direction: rule.direction,
 		lhs: deepCloneHS(rule.lhs),
 		rhs: deepCloneHS(rule.rhs),
@@ -715,14 +714,13 @@ function deepCloneRule(rule)
 		commands:rule.commands,
 		randomRule:rule.randomRule
 	};
-	return clonedRule;
 }
 
 function rulesToArray(state)
 {
 	var oldrules = state.rules;
 	var rules = [];
-	var loops=[];
+	var loops = [];
 	for (const oldrule of oldrules)
 	{
 		var lineNumber = oldrule[1];
@@ -734,25 +732,32 @@ function rulesToArray(state)
 		}
 		rules.push(newrule);
 	}
-	state.loops=loops;
+	state.loops = loops;
 
 	//now expand out rules with multiple directions
 	var rules2 = [];
-	for (var i = 0; i < rules.length; i++)
+	for (var rule of rules)
 	{
-		var rule = rules[i];
-		var ruledirs = rule.directions;
-		for (var j = 0; j < ruledirs.length; j++) {
-			var dir = ruledirs[j];
-			if (dir in directionaggregates && directionalRule(rule)) {
-				var dirs = directionaggregates[dir];
-				for (var k = 0; k < dirs.length; k++) {
-					var modifiedrule = deepCloneRule(rule);
-					modifiedrule.direction = dirs[k];
-					rules2.push(modifiedrule);
-				}
+		for (const dir of rule.directions)
+		{
+			if (dir in directionaggregates && directionalRule(rule))
+			{
+				directionaggregates[dir].forEach(
+					function(dir2)
+					{
+						var modifiedrule = deepCloneRule(rule);
+						modifiedrule.direction = dir2;
+						rules2.push(modifiedrule);
+					}
+				);
+				// var dirs = directionaggregates[dir];
+				// for (var k = 0; k < dirs.length; k++) {
+				// 	var modifiedrule = deepCloneRule(rule);
+				// 	modifiedrule.direction = dirs[k];
+				// 	rules2.push(modifiedrule);
+				// }
 			} else {
-				var modifiedrule = deepCloneRule(rule);
+				var modifiedrule = deepCloneRule(rule); // TODO: do we really need to deepclone it, there?
 				modifiedrule.direction = dir;
 				rules2.push(modifiedrule);
 			}
@@ -765,10 +770,8 @@ function rulesToArray(state)
 		convertRelativeDirsToAbsolute(rule);
 		//optional: replace up/left rules with their down/right equivalents
 		rewriteUpLeftRules(rule);
-		//replace aggregates with what they mean
-		atomizeAggregates(state, rule);
-		//replace synonyms with what they mean
-		rephraseSynonyms(state, rule);
+		//replace aggregates and synonyms with what they mean
+		atomizeAggregatesAndSynonyms(state, rule);
 	}
 
 	var rules3 = [];
@@ -787,45 +790,56 @@ function rulesToArray(state)
 	state.rules = rules4;
 }
 
-function containsEllipsis(rule) {
-	for (var i=0;i<rule.lhs.length;i++) {
-		for (var j=0;j<rule.lhs[i].length;j++) {
-			if (rule.lhs[i][j][1]==='...')
+function containsEllipsis(rule)
+{
+	for (const cellrow of rule.lhs)
+	{
+		for (const cell of cellrow)
+		{
+			if (cell[1] === '...')
 				return true;
 		}
 	}
 	return false;
 }
 
-function rewriteUpLeftRules(rule) {
-	if (containsEllipsis(rule)) {
+function rewriteUpLeftRules(rule)
+{
+	if (containsEllipsis(rule)) // TODO: What's wrong with reversing a rule that contains ellipses?
 		return;
-	}
 
-	if (rule.direction == 'up') {
+	if (rule.direction == 'up')
+	{
 		rule.direction = 'down';
-	} else if (rule.direction == 'left') {
+	}
+	else if (rule.direction == 'left')
+	{
 		rule.direction = 'right';
-	} else {
+	}
+	else
+	{
 		return;
 	}
 
-	for (var i = 0; i < rule.lhs.length; i++) {
+	for (var i = 0; i < rule.lhs.length; i++)
+	{
 		rule.lhs[i].reverse();
-		if (rule.rhs.length>0) {
+		if (rule.rhs.length > 0) // TODO: I guess reversing an empty array works well, so this test should not be necessary
+		{
 			rule.rhs[i].reverse();
 		}
 	}
 }
 
-function getPropertiesFromCell(state,cell ) {
+function getPropertiesFromCell(state, cell)
+{
 	var result = [];
-	for (var j = 0; j < cell.length; j += 2) {
+	for (var j = 0; j < cell.length; j += 2)
+	{
 		var dir = cell[j];
 		var name = cell[j+1];
-		if (dir=="random") {
+		if (dir == "random")
 			continue;
-		}
 		if (isProperty(state, name))
 		{
 			result.push(name);
@@ -835,13 +849,16 @@ function getPropertiesFromCell(state,cell ) {
 }
 
 //returns you a list of object names in that cell that're moving
-function getMovings(state,cell ) {
+function getMovings(state, cell)
+{
 	var result = [];
-	for (var j = 0; j < cell.length; j += 2) {
+	for (var j = 0; j < cell.length; j += 2)
+	{
 		var dir = cell[j];
 		var name = cell[j+1];
-		if (dir in directionaggregates) {
-			result.push([name,dir]);
+		if (dir in directionaggregates)
+		{
+			result.push([name, dir]);
 		}
 	}
 	return result;
@@ -855,9 +872,12 @@ function concretizePropertyInCell(cell ,property, concreteType) {
 	}
 }
 
-function concretizeMovingInCell(cell , ambiguousMovement, nameToMove, concreteDirection) {
-	for (var j = 0; j < cell.length; j += 2) {
-		if (cell[j]===ambiguousMovement && cell[j+1] === nameToMove) {
+function concretizeMovingInCell(cell , ambiguousMovement, nameToMove, concreteDirection)
+{
+	for (var j = 0; j < cell.length; j += 2)
+	{
+		if (cell[j] === ambiguousMovement && cell[j+1] === nameToMove)
+		{
 			cell[j] = concreteDirection;
 		}
 	}
@@ -871,6 +891,7 @@ function concretizeMovingInCellByAmbiguousMovementName(cell ,ambiguousMovement, 
 	}
 }
 
+// TODO: this function does something very similar to what atomizeCellAggregatesAndSynonyms does, so the two functions should be merged
 function expandNoPrefixedProperties(state, cell)
 {
 	var expanded = [];
@@ -896,14 +917,17 @@ function expandNoPrefixedProperties(state, cell)
 	return expanded;
 }
 
+// TODO: this function and concretizeMovingRule have a very similar structure and should probably be merged.
 function concretizePropertyRule(state, rule, lineNumber)
 {	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
-	for (var i = 0; i < rule.lhs.length; i++) {
+	for (var i = 0; i < rule.lhs.length; i++)
+	{
 		var cur_cellrow_l = rule.lhs[i];
-		for (var j=0;j<cur_cellrow_l.length;j++) {
+		for (var j=0;j<cur_cellrow_l.length;j++)
+		{
 			cur_cellrow_l[j] = expandNoPrefixedProperties(state,cur_cellrow_l[j]);
-			if (rule.rhs.length > 0)
+			if (rule.rhs.length > 0) // TODO: there is no reason to make both HS at the same time
 				rule.rhs[i][j] = expandNoPrefixedProperties(state,rule.rhs[i][j]);
 		}
 	}
@@ -915,15 +939,18 @@ function concretizePropertyRule(state, rule, lineNumber)
 	// we can't manage this if they're being used to disambiguate
 	var ambiguousProperties = {};
 
-	for (var j = 0; j < rule.rhs.length; j++) {
+	for (var j = 0; j < rule.rhs.length; j++)
+	{
 		var row_l = rule.lhs[j];
 		var row_r = rule.rhs[j];
-		for (var k = 0; k < row_r.length; k++) {
+		for (var k = 0; k < row_r.length; k++)
+		{
 			var properties_l = getPropertiesFromCell(state, row_l[k]);
 			var properties_r = getPropertiesFromCell(state, row_r[k]);
-			for (var prop_n = 0; prop_n < properties_r.length; prop_n++) {
-				var property = properties_r[prop_n];
-				if (properties_l.indexOf(property) == -1) {
+			for (const property of properties_r)
+			{
+				if (properties_l.indexOf(property) == -1)
+				{
 					ambiguousProperties[property] = true;
 				}
 			}
@@ -932,26 +959,25 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 	var shouldremove;
 	var result = [rule];
-	var modified=true;
-	while (modified) {
+	var modified = true;
+	while (modified)
+	{
 		modified = false;
 		for (var i = 0; i < result.length; i++) {
 			//only need to iterate through lhs
-			var cur_rule = result[i];
+			const cur_rule = result[i];
 			shouldremove = false;
-			for (var j = 0; j < cur_rule.lhs.length&&!shouldremove; j++) {
-				var cur_rulerow = cur_rule.lhs[j];
-				for (var k = 0; k < cur_rulerow.length&&!shouldremove; k++) {
-					var cur_cell = cur_rulerow[k];
-					var properties = getPropertiesFromCell(state, cur_cell);
-					for (var prop_n = 0; prop_n < properties.length; ++prop_n) {
-						var property = properties[prop_n];
-
+			for (var j = 0; j < cur_rule.lhs.length && !shouldremove; j++)
+			{
+				const cur_rulerow = cur_rule.lhs[j];
+				for (var k = 0; k < cur_rulerow.length && !shouldremove; k++)
+				{
+					for (const property of getPropertiesFromCell(state, cur_rulerow[k]))
+					{
 						if ( (state.single_layer_property[state.identifiers.indexOf(property)] >= 0) &&
-							ambiguousProperties[property] !== true) {
+							ambiguousProperties[property] !== true)
 							// we don't need to explode this property
 							continue;
-						}
 
 						var aliases = Array.from(state.getObjectsAnIdentifierCanBe(property)).map( p => state.objects[p].name );
 
@@ -960,26 +986,32 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 						//just do the base property, let future iterations take care of the others
 
-						for (var l = 0; l < aliases.length; l++) {
-							var concreteType = aliases[l];
+						for (const concreteType of aliases)
+						{
 							var newrule = deepCloneRule(cur_rule);
-							newrule.propertyReplacement={};
-							for(var prop in cur_rule.propertyReplacement) {
-								if (cur_rule.propertyReplacement.hasOwnProperty(prop)) {
-									var propDat = cur_rule.propertyReplacement[prop];
+							newrule.propertyReplacement = {};
+							for(var prop in cur_rule.propertyReplacement)
+							{
+								if (cur_rule.propertyReplacement.hasOwnProperty(prop))
+								{
+									const propDat = cur_rule.propertyReplacement[prop];
 									newrule.propertyReplacement[prop] = [propDat[0],propDat[1]];
 								}
 							}
 
 							concretizePropertyInCell(newrule.lhs[j][k], property, concreteType);
-							if (newrule.rhs.length>0) {
+							if (newrule.rhs.length > 0)
+							{
 								concretizePropertyInCell(newrule.rhs[j][k], property, concreteType);//do for the corresponding rhs cell as well
 							}
 							
-							if (newrule.propertyReplacement[property]===undefined) {
-								newrule.propertyReplacement[property]=[concreteType,1];
-							} else {
-								newrule.propertyReplacement[property][1]=newrule.propertyReplacement[property][1]+1;                                
+							if (newrule.propertyReplacement[property] === undefined)
+							{
+								newrule.propertyReplacement[property] = [concreteType, 1];
+							}
+							else
+							{
+								newrule.propertyReplacement[property][1] += 1;
 							}
 
 							result.push(newrule);
@@ -998,25 +1030,27 @@ function concretizePropertyRule(state, rule, lineNumber)
 	}
 
 	
-	for (var i = 0; i < result.length; i++) {
+	for (var cur_rule of result)
+	{
 		//for each rule
-		var cur_rule = result[i];
-		if (cur_rule.propertyReplacement===undefined) {
+		if (cur_rule.propertyReplacement === undefined)
 			continue;
-		}
 		
 		//for each property replacement in that rule
-		for (var property in cur_rule.propertyReplacement) {
-			if (cur_rule.propertyReplacement.hasOwnProperty(property)) {
+		for (var property in cur_rule.propertyReplacement)
+		{
+			if (cur_rule.propertyReplacement.hasOwnProperty(property))
+			{
 				var replacementInfo = cur_rule.propertyReplacement[property];
 				var concreteType = replacementInfo[0];
 				var occurrenceCount = replacementInfo[1];
-				if (occurrenceCount===1) {
+				if (occurrenceCount === 1)
+				{
 					//do the replacement
-					for (var j=0;j<cur_rule.rhs.length;j++) {
-						var cellRow_rhs = cur_rule.rhs[j];
-						for (var k=0;k<cellRow_rhs.length;k++) {
-							var cell=cellRow_rhs[k];
+					for (var cellRow_rhs of cur_rule.rhs)
+					{
+						for (var cell of cellRow_rhs)
+						{
 							concretizePropertyInCell(cell, property, concreteType);
 						}
 					}
@@ -1027,17 +1061,19 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 	//if any properties remain on the RHSes, bleep loudly
 	var rhsPropertyRemains = '';
-	for (var i = 0; i < result.length; i++) {
-		var cur_rule = result[i];
+	for (var cur_rule of result)
+	{
 		delete result.propertyReplacement;
-		for (var j = 0; j < cur_rule.rhs.length; j++) {
-			var cur_rulerow = cur_rule.rhs[j];
-			for (var k = 0; k < cur_rulerow.length; k++) {
-				var cur_cell = cur_rulerow[k];
+		for (var cur_rulerow of cur_rule.rhs)
+		{
+			for (var cur_cell of cur_rulerow)
+			{
 				var properties = getPropertiesFromCell(state, cur_cell);
-				for (var prop_n = 0; prop_n < properties.length; prop_n++) {
-					if (ambiguousProperties.hasOwnProperty(properties[prop_n])) {
-						rhsPropertyRemains = properties[prop_n];
+				for (var prop of properties)
+				{
+					if (ambiguousProperties.hasOwnProperty(prop))
+					{
+						rhsPropertyRemains = prop;
 					}
 				}
 			}
@@ -1045,7 +1081,8 @@ function concretizePropertyRule(state, rule, lineNumber)
 	}
 
 
-	if (rhsPropertyRemains.length > 0) {
+	if (rhsPropertyRemains.length > 0)
+	{
 		logError('This rule has a property on the right-hand side, \"'+ rhsPropertyRemains.toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
 	}
 
@@ -1053,39 +1090,44 @@ function concretizePropertyRule(state, rule, lineNumber)
 }
 
 
-function concretizeMovingRule(state, rule,lineNumber) {	
-
+function concretizeMovingRule(state, rule, lineNumber)
+{
 	var shouldremove;
 	var result = [rule];
-	var modified=true;
-	while (modified) {
+	var modified = true;
+	while (modified)
+	{
 		modified = false;
-		for (var i = 0; i < result.length; i++) {
+		for (var i = 0; i < result.length; i++)
+		{
 			//only need to iterate through lhs
 			var cur_rule = result[i];
 			shouldremove = false;
-			for (var j = 0; j < cur_rule.lhs.length; j++) {
+			for (var j = 0; j < cur_rule.lhs.length; j++)
+			{
 				var cur_rulerow = cur_rule.lhs[j];
-				for (var k = 0; k < cur_rulerow.length; k++) {
+				for (var k = 0; k < cur_rulerow.length; k++)
+				{
 					var cur_cell = cur_rulerow[k];
-					var movings = getMovings(state, cur_cell);
-					if (movings.length > 0) {
+					var movings = getMovings(state, cur_cell); // TODO: this seems very inneficient to find a list of all movings just to change one...
+					if (movings.length > 0)
+					{
 						shouldremove = true;
 						modified = true;
 
 						//just do the base property, let future iterations take care of the others
-						var cand_name = movings[0][0];
-						var ambiguous_dir = movings[0][1];
-						var concreteDirs = directionaggregates[ambiguous_dir];
-						for (var l = 0; l < concreteDirs.length; l++) {
-							var concreteDirection = concreteDirs[l];
+						const [cand_name, ambiguous_dir] = movings[0];
+						for (const concreteDirection of directionaggregates[ambiguous_dir])
+						{
 							var newrule = deepCloneRule(cur_rule);
 
-							newrule.movingReplacement={};
-							for(var moveTerm in cur_rule.movingReplacement) {
-								if (cur_rule.movingReplacement.hasOwnProperty(moveTerm)) {
+							newrule.movingReplacement = {};
+							for (var moveTerm in cur_rule.movingReplacement)
+							{
+								if (cur_rule.movingReplacement.hasOwnProperty(moveTerm))
+								{
 									var moveDat = cur_rule.movingReplacement[moveTerm];
-									newrule.movingReplacement[moveTerm] = [moveDat[0],moveDat[1],moveDat[2]];
+									newrule.movingReplacement[moveTerm] = [moveDat[0], moveDat[1], moveDat[2]];
 								}
 							}
 
@@ -1094,10 +1136,13 @@ function concretizeMovingRule(state, rule,lineNumber) {
 								concretizeMovingInCell(newrule.rhs[j][k], ambiguous_dir, cand_name, concreteDirection);//do for the corresponding rhs cell as well
 							}
 							
-							if (newrule.movingReplacement[cand_name]===undefined) {
-								newrule.movingReplacement[cand_name]=[concreteDirection,1,ambiguous_dir];
-							} else {
-								newrule.movingReplacement[cand_name][1]=newrule.movingReplacement[cand_name][1]+1;                                
+							if (newrule.movingReplacement[cand_name] === undefined)
+							{
+								newrule.movingReplacement[cand_name] = [concreteDirection, 1, ambiguous_dir];
+							}
+							else
+							{
+								newrule.movingReplacement[cand_name][1] += 1;
 							}
 
 							result.push(newrule);
@@ -1114,33 +1159,37 @@ function concretizeMovingRule(state, rule,lineNumber) {
 	}
 
 	
-	for (var i = 0; i < result.length; i++) {
+	for (var cur_rule of result)
+	{
 		//for each rule
-		var cur_rule = result[i];
-		if (cur_rule.movingReplacement===undefined) {
+		if (cur_rule.movingReplacement === undefined)
 			continue;
-		}
-		var ambiguous_movement_dict={};
+
+		var ambiguous_movement_dict = {};
 		//strict first - matches movement direction to objects
 		//for each property replacement in that rule
-		for (var cand_name in cur_rule.movingReplacement) {
-			if (cur_rule.movingReplacement.hasOwnProperty(cand_name)) {
-				var replacementInfo = cur_rule.movingReplacement[cand_name];
-				var concreteMovement = replacementInfo[0];
-				var occurrenceCount = replacementInfo[1];
-				var ambiguousMovement = replacementInfo[2];
-				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1)) {
+		for (var cand_name in cur_rule.movingReplacement)
+		{
+			if (cur_rule.movingReplacement.hasOwnProperty(cand_name))
+			{
+				const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_name];
+
+				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1))
+				{
 					ambiguous_movement_dict[ambiguousMovement] = "INVALID";
-				} else {
+				}
+				else
+				{
 					ambiguous_movement_dict[ambiguousMovement] = concreteMovement
 				}
 
-				if (occurrenceCount===1) {
+				if (occurrenceCount === 1)
+				{
 					//do the replacement
-					for (var j=0;j<cur_rule.rhs.length;j++) {
-						var cellRow_rhs = cur_rule.rhs[j];
-						for (var k=0;k<cellRow_rhs.length;k++) {
-							var cell=cellRow_rhs[k];
+					for (const cellRow_rhs of cur_rule.rhs)
+					{
+						for (var cell of cellRow_rhs)
+						{
 							concretizeMovingInCell(cell, ambiguousMovement, cand_name, concreteMovement);
 						}
 					}
@@ -1149,16 +1198,17 @@ function concretizeMovingRule(state, rule,lineNumber) {
 		}
 
 		//for each ambiguous word, if there's a single ambiguous movement specified in the whole lhs, then replace that wholesale
-		for(var ambiguousMovement in ambiguous_movement_dict) {
-			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID") {
+		for(var ambiguousMovement in ambiguous_movement_dict)
+		{
+			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID")
+			{
 				concreteMovement = ambiguous_movement_dict[ambiguousMovement];
-				if (concreteMovement==="INVALID"){
+				if (concreteMovement==="INVALID")
 					continue;
-				}
-				for (var j=0;j<cur_rule.rhs.length;j++) {
-					var cellRow_rhs = cur_rule.rhs[j];
-					for (var k=0;k<cellRow_rhs.length;k++) {
-						var cell=cellRow_rhs[k];
+				for (var cellRow_rhs of cur_rule.rhs)
+				{
+					for (var cell of cellRow_rhs)
+					{
 						concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, concreteMovement);
 					}
 				}
@@ -1168,75 +1218,52 @@ function concretizeMovingRule(state, rule,lineNumber) {
 
 	//if any properties remain on the RHSes, bleep loudly
 	var rhsAmbiguousMovementsRemain = '';
-	for (var i = 0; i < result.length; i++) {
-		var cur_rule = result[i];
+	for (const cur_rule of result)
+	{
 		delete result.movingReplacement;
-		for (var j = 0; j < cur_rule.rhs.length; j++) {
-			var cur_rulerow = cur_rule.rhs[j];
-			for (var k = 0; k < cur_rulerow.length; k++) {
-				var cur_cell = cur_rulerow[k];
+		for (const cur_rulerow of cur_rule.rhs)
+		{
+			for (var cur_cell of cur_rulerow)
+			{
 				var movings = getMovings(state, cur_cell);
-				if (movings.length > 0) {
-					rhsAmbiguousMovementsRemain = movings[0][1];					
+				if (movings.length > 0)
+				{
+					rhsAmbiguousMovementsRemain = movings[0][1];
 				}
 			}
 		}
 	}
 
 
-	if (rhsAmbiguousMovementsRemain.length > 0) {
+	if (rhsAmbiguousMovementsRemain.length > 0)
+	{
 		logError('This rule has an ambiguous movement on the right-hand side, \"'+ rhsAmbiguousMovementsRemain + "\", that can't be inferred from the left-hand side.  (either for every ambiguous movement associated to an entity on the right there has to be a corresponding one on the left attached to the same entity, OR, if there's a single occurrence of a particular ambiguous movement on the left, all properties of the same movement attached to the same object on the right are assumed to be the same (or something like that)).",lineNumber);
 	}
 
 	return result;
 }
 
-function rephraseSynonyms(state,rule) {
-	for (var i = 0; i < rule.lhs.length; i++) {
-		var cellrow_l = rule.lhs[i];
-		var cellrow_r = rule.rhs[i];
-		for (var j = 0; j < cellrow_l.length; j++) {
-			var cell_l = cellrow_l[j];
-			for (var k = 1; k < cell_l.length; k += 2) {
-				const name = cell_l[k];
-				if (isSynonym(state, name))
-				{
-					cell_l[k] = state.getObjectsAnIdentifierCanBe(name).next().value;
-				}
-			}
-			if (rule.rhs.length>0) {
-				var cell_r = cellrow_r[j];
-				for (var k = 1; k < cell_r.length; k += 2) {
-					const name = cell_r[k];
-					if (isSynonym(state, name))
-					{
-						cell_r[k] = state.getObjectsAnIdentifierCanBe(name).next().value;
-					}
-				}
-			}
-		}
-	}
-}
-
-function atomizeAggregates(state, rule)
+// replaces aggregates and synonyms appearing in a rule by the list of all objects they are aggregates/synonyms of, i.e. objects they must be.
+// each new objects has the same motion/action words than the replaced one.
+// -> a possible generalization could be to use more qualifier words beyond motion/action words, and then replace the aggregate/synonym by a list, propagating the qualifier to the objects of the list that support them.
+function atomizeAggregatesAndSynonyms(state, rule)
 {
-	for (const cellrow of rule.lhs)
+	atomizeHSAggregatesAndSynonyms(state, rule.lhs, rule.lineNumber)
+	atomizeHSAggregatesAndSynonyms(state, rule.rhs, rule.lineNumber)
+}
+
+function atomizeHSAggregatesAndSynonyms(state, hs, lineNumber)
+{
+	for (const cellrow of hs)
 	{
 		for (const cell of cellrow)
 		{
-			atomizeCellAggregates(state, cell, rule.lineNumber);
-		}
-	}
-	for (const cellrow of rule.rhs)
-	{
-		for (const cell of cellrow)
-		{
-			atomizeCellAggregates(state, cell, rule.lineNumber);
+			atomizeCellAggregatesAndSynonyms(state, cell, lineNumber);
 		}
 	}
 }
 
-function atomizeCellAggregates(state, cell, lineNumber)
+function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 2)
 	{
@@ -1248,29 +1275,37 @@ function atomizeCellAggregates(state, cell, lineNumber)
 			{
 				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
 			}
-			var equivs = state.getObjectsAnIdentifierCanBe(c).values().map( p => state.objects[p].name);
-			cell[i+1] = equivs[0];
-			for (var j= 1; j < equivs.length; j++) {
-				cell.push(cell[i]);//push the direction
-				cell.push(equivs[j]);
-			}
+		}
+		else if ( ! isSynonym(state, c) )
+			continue;
+		const equivs = [...state.getObjectsAnIdentifierCanBe(c).values()].map( p => state.objects[p].name );
+		cell[i+1] = equivs[0];
+		for (var j= 1; j < equivs.length; j++) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
+		{
+			cell.push(cell[i]);//push the direction
+			cell.push(equivs[j]);
 		}
 	}
 }
 
-function convertRelativeDirsToAbsolute(rule) {
-	var forward = rule.direction;
-	for (var i = 0; i < rule.lhs.length; i++) {
-		var cellrow = rule.lhs[i];
-		for (var j = 0; j < cellrow.length; j++) {
-			var cell = cellrow[j];
-			absolutifyRuleCell(forward, cell);
-		}
-	}
-	for (var i = 0; i < rule.rhs.length; i++) {
-		var cellrow = rule.rhs[i];
-		for (var j = 0; j < cellrow.length; j++) {
-			var cell = cellrow[j];
+// TODO: that's just applying a direction function and should probably be implemented as such.
+// It means that each entry of relativeDirs should be a direction function, and
+// that "const index = relativeDirs.indexOf(c)" should become "const ruledir_function = ruledir_function_names.indexOf(c)"
+// and "cell[i] = relativeDict[forward][index]" should be replaced with "cell[i] = ruledir_functions[index][forward]"
+// where each ruledir_function is a array giving the result of the function for each rule direction.
+function convertRelativeDirsToAbsolute(rule)
+{
+	const forward = rule.direction;
+	absolutifyRuleHS(rule.lhs, forward);
+	absolutifyRuleHS(rule.rhs, forward);
+}
+
+function absolutifyRuleHS(hs, forward)
+{
+	for (const cellrow of hs)
+	{
+		for (const cell of cellrow)
+		{
 			absolutifyRuleCell(forward, cell);
 		}
 	}
@@ -1284,12 +1319,15 @@ var relativeDict = {
 	'left': ['down', 'up', 'right', 'left','horizontal','vertical']
 };
 
-function absolutifyRuleCell(forward, cell) {
-	for (var i = 0; i < cell.length; i += 2) {
-		var c = cell[i];
-		var index = relativeDirs.indexOf(c);
-		if (index >= 0) {
-			cell[i] = relativeDict[forward][index];		
+function absolutifyRuleCell(forward, cell)
+{
+	for (var i = 0; i < cell.length; i += 2)
+	{
+		const c = cell[i];
+		const index = relativeDirs.indexOf(c);
+		if (index >= 0)
+		{
+			cell[i] = relativeDict[forward][index];
 		}
 	}
 }
