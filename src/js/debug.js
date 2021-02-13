@@ -6,23 +6,29 @@ var compiledText;
 var canOpenEditor=true;
 var IDE=true;
 
-function convertLevelToString() {
+function convertLevelToString()
+{
 	var out = '';
 	var seenCells = {};
 	var i = 0;
-	for (var y = 0; y < level.height; y++) {
-		for (var x = 0; x < level.width; x++) {
-			var bitmask = level.getCell(x + y * level.width);
+	for (var y = 0; y < level.height; y++)
+	{
+		for (var x = 0; x < level.width; x++)
+		{
+			var bitmask = level.getCell(x + y*level.width);
 			var objs = [];
-			for (var bit = 0; bit < 32 * STRIDE_OBJ; ++bit) {
-				if (bitmask.get(bit)) {
-					objs.push(state.idDict[bit])
+			for (var bit = 0; bit < 32 * STRIDE_OBJ; ++bit)
+			{
+				if (bitmask.get(bit))
+				{
+					objs.push(state.objects[idDict[bit]].name)
 				}
 			}
 			objs.sort();
 			objs = objs.join(" ");
 			/* replace repeated object combinations with numbers */
-			if (!seenCells.hasOwnProperty(objs)) {
+			if (!seenCells.hasOwnProperty(objs))
+			{
 				seenCells[objs] = i++;
 				out += objs + ":";
 			}

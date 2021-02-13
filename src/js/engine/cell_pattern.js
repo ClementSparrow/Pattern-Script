@@ -121,8 +121,7 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 			}
 		}
 		var rand = choices[Math.floor(RandomGen.uniform() * choices.length)];
-		var n = state.idDict[rand];
-		var o = state.objects[n];
+		var o = state.objects[rand];
 		objectsSet.ibitset(rand);
 		objectsClear.ior(state.layerMasks[o.layer]);
 		movementsClear.ishiftor(0x1f, 5 * o.layer);

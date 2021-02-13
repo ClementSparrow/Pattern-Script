@@ -74,8 +74,8 @@
             "mastersystem", "gameboycolour", "amiga", "arnecolors", "famicom", "atari", "pastel", "ega", "amstrad", "proteus_mellow", "proteus_rich", "proteus_night", "c64", "whitingjp"
         ]
 
-        function renderHint(elt,data,cur){
-            console.log(elt, data, cur)
+        function renderHint(elt,data,cur)
+        {
             var t1=cur.text;
             var t2=cur.extra;
             var tag=cur.tag;
@@ -109,8 +109,8 @@
             }
         }
 
-        CodeMirror.registerHelper("hint", "anyword", function(editor, options) {
-
+        CodeMirror.registerHelper("hint", "anyword", function(editor, options)
+        {
             var word = options && options.word || WORD;
             var range = options && options.range || RANGE;
             var cur = editor.getCursor(),
@@ -128,7 +128,8 @@
             var state = tok.state;
 
             // ignore empty word
-            if (!curWord || state.commentLevel>0) {
+            if (!curWord || state.commentLevel>0)
+            {
                 // if ( 
                 //         ( state.section=="" && curLine.trim()=="")  
                 //         // || ( state.section=="objects" && state.objects_section==2 ) 
@@ -229,41 +230,38 @@
             //first, add objects if needed
             if (addObjects)
             {
-                for (var [object_index,w] of state.object_names.entries())
+                for (const [object_index, o] of state.objects.entries())
                 {
-                // var obs = state.objects;
-                // for (var key in obs) {
-                //     if (obs.hasOwnProperty(key)) {
-                //         var w = key;
-                        var matchWord = w.toLowerCase();
+                    const w = o.name;
+                    var matchWord = w.toLowerCase();
+                    if (matchWord === curWord) continue;
+                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
+                        seen[matchWord] = true;
+                        var hint = state.original_case_names[object_index];
+                        list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
+                    }
+                }
+
+                var legendbits_types = [ identifier_type_synonym ];
+                if ( !excludeProperties )
+                {
+                    legendbits_types.push(identifier_type_property);
+                }
+                if ( !excludeAggregates )
+                {
+                    legendbits_types.push(identifier_type_aggregate);
+                }
+
+                //go through all derived objects
+                for (const [identifier_index, w] of state.identifiers)
+                {
+                    if (legendbits_types.includes(state.identifiers_deftype[identifier_index]))
+                    {
+                        const matchWord = w.toLowerCase();
                         if (matchWord === curWord) continue;
                         if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
                             seen[matchWord] = true;
-                            // var hint = state.original_case_names[w];
-                            var hint = state.original_case_names[object_index];
-                            list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
-                        }
-                //    }
-                }
-
-                var legendbits = [state.legend_synonyms];
-                if (!excludeProperties){
-                    legendbits.push(state.legend_properties);
-                }
-                if (!excludeAggregates){
-                    legendbits.push(state.legend_aggregates);
-                }
-
-                //go throuhg all derived objects
-                for (var i=0;i<legendbits.length;i++){
-                    var lr = legendbits[i];
-                    for (var j=0;j<lr.length;j++){
-                        var w = lr[j][0];
-                        var matchWord = w.toLowerCase();
-                        if (matchWord === curWord) continue;
-                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
-                            seen[matchWord] = true;
-                            var hint = state.original_case_names[w]; 
+                            const hint = state.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
                     }
@@ -301,12 +299,6 @@
                 }
             }
             
-
-            //state.legend_aggregates
-            //state.legend_synonyms
-            //state.legend_properties
-            //state.objects
-
             return {
                 list: list,
                 from: CodeMirror.Pos(cur.line, start),

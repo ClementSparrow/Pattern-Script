@@ -1,5 +1,18 @@
 'use strict';
 
+/* TODO REFACTORING
+- idDict is likely not needed, unless the fact it's sorted by layers is important.
+   -> it is used in debug.js where it is not important because the identifiers are then sorted by name)
+      That appart, it is only used in engine_base.js/getLayersOfMask where it is used to get the object matching a given bit in the mask returned by Level.getCell,
+      which is the same use as in debug.js. Indeed, level cells are created in levelFromString here, using the order of bits defined in glyphDict.
+      -> for now, changed to contain identifier_indexes rather than names.
+- The following lists are indexed by identifiers and we want to index them instead by identifier_indexes:
+   - state.glyphDict -> also, why do we have that thing contain a different kind of mask than bitvec?
+                        also, we want the bits in these masks to be in the order of objects in state.objects rather than in the order of idDict?
+                     -> it is now only used in graphics.js/generateGlyphImages & glyphCount (just to know what sprites should be created, and the ordering of bits does not matter),
+                        and in inputoutput.js/printLevel and levelEditorClick (where it is used to generate a mask with the same method as state.objectMasks)
+   - state.objectMasks
+*/
 
 function isColor(str)
 {
@@ -44,6 +57,49 @@ function generateSpriteMatrix(dat) {
 var debugMode;
 var colorPalette;
 
+function makeMaskFromObjectSet(state, objects)
+{
+	var mask = new BitVec(STRIDE_OBJ);
+	for (const object_pos of objects)
+	{
+		mask.ibitset(state.objects[object_pos].id);
+	}
+	return mask;
+}
+
+function getMaskFromName(state, name)
+{
+	return makeMaskFromObjectSet(state, state.getObjectsAnIdentifierCanBe(name));
+}
+
+
+PuzzleScriptParser.prototype.getObjectByName = function (name)
+{
+	const identifier_index = this.identifiers.indexOf(name);
+	return (identifier_index < 0) ? null : this.objects[ this.identifiers_comptype[identifier_index] ];
+}
+
+
+function isSynonym(state, name)
+{
+	const index = state.identifiers.indexOf(name);
+	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_synonym) );
+}
+
+function isAggregate(state, name)
+{
+	const index = state.identifiers.indexOf(name);
+	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_aggregate) );
+}
+
+function isProperty(state, name)
+{
+	const index = state.identifiers.indexOf(name);
+	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_property) );
+}
+
+
+
 function generateExtraMembers(state)
 {
 
@@ -55,19 +111,14 @@ function generateExtraMembers(state)
 	//annotate objects with layers
 	//assign ids at the same time
 	// TODO: This could be done directly in the parser -- ClementSparrow
-	state.idDict = []; // TODO: this is a bad name, since it actually contains names, not ids, and is a non-associative array...
+	state.idDict = []; // TODO: this is a bad name...
 	for (var [layerIndex, layer] of state.collisionLayers.entries())
 	{
-		for (var n of layer)
+		for (const object_index of layer)
 		{
-			const i = state.object_names.indexOf(n)
-			if (i >= 0)
-			{
-				var o = state.objects[i];
-				o.layer = layerIndex;
-				o.id = state.idDict.length;
-				state.idDict.push(n);
-			}
+			var o = state.objects[object_index];
+			o.id = state.idDict.length;
+			state.idDict.push(object_index);
 		}
 	}
 
@@ -140,13 +191,18 @@ function generateExtraMembers(state)
 	{
 		if (o.colors.length == 0)
 		{
-			logError('color not specified for object "' + o.name +'".', o.lineNumber); // TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
+			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
+			logError('color not specified for object "' + o.name +'".', o.lineNumber);
 			o.colors=["#ff00ff"];
 		}
-		if (o.spritematrix.length===0) {
+		if (o.spritematrix.length === 0)
+		{
 			o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
-		} else {
-			if ( o.spritematrix.length!==5 || o.spritematrix[0].length!==5 || o.spritematrix[1].length!==5 || o.spritematrix[2].length!==5 || o.spritematrix[3].length!==5 || o.spritematrix[4].length!==5 ){
+		}
+		else
+		{
+			if ( o.spritematrix.length !==5 || o.spritematrix.some( line => (line.length !== 5) ) )
+			{
 				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", o.lineNumber);
 			}
 			o.spritematrix = generateSpriteMatrix(o.spritematrix);
@@ -156,241 +212,40 @@ function generateExtraMembers(state)
 
 	//calculate glyph dictionary
 	var glyphDict = {};
-	for (var o of state.objects)
+	for (const [identifier_index, identifier] of state.identifiers.entries())
 	{
 		var mask = blankMask.concat([]);
-		mask[o.layer] = o.id;
-		glyphDict[o.name] = mask;
-	}
-	var added=true;
-	while (added)
-	{
-		added=false;
-		
-		//then, synonyms
-		for (const dat of state.legend_synonyms)
+		for (const object_pos of state.getObjectsForIdentifier(identifier_index))
 		{
-			const key = dat[0];
-			const val = dat[1];
-			if ( ( !(key in glyphDict) || (glyphDict[key]===undefined) ) && (glyphDict[val] !== undefined) )
-			{
-				added = true;
-				glyphDict[key] = glyphDict[val];
-			}
+			const o = state.objects[object_pos];
+			mask[o.layer] = o.id;
 		}
-	
-		//then, aggregates
-		for (var dat of state.legend_aggregates)
-		{
-			var key=dat[0];
-			var vals=dat.slice(1);
-			var allVallsFound = vals.every( v => (glyphDict[v] !== undefined) );
-			if ( ( !(key in glyphDict) || (glyphDict[key] === undefined) ) && allVallsFound )
-			{
-				var mask = blankMask.concat([]);
-
-				for (const n of dat)
-				{
-					var oi = state.object_names.indexOf(n);
-					if (oi < 0)
-					{
-						logError('Object not found with name '+ n, state.lineNumber);
-					}
-					var o = state.objects[oi]; // TODO: we should store directly the index rather than the name
-					if (mask[o.layer] == -1) {
-						mask[o.layer] = o.id;
-					} else {
-						if (o.layer===undefined) {
-							logError('Object "' + n.toUpperCase() + '" has been defined, but not assigned to a layer.', dat.lineNumber);
-						} else {
-							var n1 = n.toUpperCase();
-							var n2 = state.idDict[mask[o.layer]].toUpperCase();
-							if (n1!==n2){
-								logError(
-									'Trying to create an aggregate object (defined in the legend) with both "'
-									+ n1 + '" and "' + n2 + '", which are on the same layer and therefore can\'t coexist.',
-									dat.lineNumber
-									);
-							}
-						}
-					}
-				}
-				added = true;
-				glyphDict[dat[0]] = mask;
-			}
-		}
+		glyphDict[identifier] = mask;
 	}
 	state.glyphDict = glyphDict;
 
-	var aggregatesDict = {};
-	for (const entry of state.legend_aggregates)
-	{
-		aggregatesDict[entry[0]] = entry.slice(1);
-	}
-	state.aggregatesDict = aggregatesDict;
-
-	var propertiesDict = {};
-	for (const entry of state.legend_properties)
-	{
-		propertiesDict[entry[0]] = entry.slice(1);
-	}
-	state.propertiesDict = propertiesDict;
-
-	//calculate lookup dictionaries
-	var synonymsDict = {};
-	for (const entry of state.legend_synonyms)
-	{
-		var key = entry[0];
-		var value=entry[1];
-		if (value in aggregatesDict) {
-			aggregatesDict[key]=aggregatesDict[value];
-		}
-		else if (value in propertiesDict) {
-			propertiesDict[key]=propertiesDict[value];
-		} else if (key!==value) {
-			synonymsDict[key] = value;		
-		}
-	}
-	state.synonymsDict = synonymsDict;
-
-	var modified = true;
-	while(modified)
-	{
-		modified = false;
-		for (var n in synonymsDict)
-		{
-			if (synonymsDict.hasOwnProperty(n))
-			{
-				var value = synonymsDict[n];
-				if (value in propertiesDict)
-				{
-					delete synonymsDict[n];
-					propertiesDict[n]=propertiesDict[value];
-					modified = true;
-				}
-				else if (value in aggregatesDict)
-				{
-					delete aggregatesDict[n];
-					aggregatesDict[n]=aggregatesDict[value];
-					modified = true;
-				} else if (value in synonymsDict)
-				{
-					synonymsDict[n]=synonymsDict[value];
-				}
-			}
-		}
-
-		for (var n in propertiesDict)
-		{
-			if (propertiesDict.hasOwnProperty(n))
-			{
-				var values = propertiesDict[n];
-				for (var i=0;i<values.length;i++)
-				{
-					var value = values[i];
-					if (value in synonymsDict)
-					{
-						values[i]=synonymsDict[value];
-						modified = true;
-					} else if (value in propertiesDict)
-					{
-						values.splice(i,1);
-						var newvalues = propertiesDict[value];
-						for (const newvalue of newvalues)
-						{
-							if (values.indexOf(newvalue) === -1)
-							{
-								values.push(newvalue);
-							}
-						}
-						modified = true;
-					}
-					if (value in aggregatesDict)
-					{
-						logError('Trying to define property "' + n.toUpperCase() +'" in terms of aggregate "'+value.toUpperCase()+'".');
-					}
-				}
-			}
-		}
-
-
-		for (var n in aggregatesDict) {
-			if (aggregatesDict.hasOwnProperty(n)) {
-				var values = aggregatesDict[n];
-				for (var i=0;i<values.length;i++) {
-					var value = values[i];
-					if (value in synonymsDict) {
-						values[i]=synonymsDict[value];
-						modified=true;
-					} else if (value in aggregatesDict) {
-						values.splice(i,1);
-						var newvalues=aggregatesDict[value];
-						for (var j=0;j<newvalues.length;j++) {
-							var newvalue=newvalues[j];
-							if (values.indexOf(newvalue)===-1) {
-								values.push(newvalue);
-							}
-						}
-						modified=true;
-					} if (value in propertiesDict) {
-						logError('Trying to define aggregate "' + n.toUpperCase() +'" in terms of property "'+value.toUpperCase()+'".');
-					}
-				}
-			}
-		}
-	}
-
 	/* determine which properties specify objects all on one layer */
-	state.propertiesSingleLayer = {};
-	for (var key in propertiesDict) {
-		if (propertiesDict.hasOwnProperty(key)) {
-			var values = propertiesDict[key];
-			var sameLayer = true;
-			for (var i = 1; i < values.length; i++) {
-				if ((state.objects[state.object_names.indexOf(values[i-1])].layer !== state.objects[state.object_names.indexOf(values[i])].layer)) { // TODO: we should store directly the indexes of objects rather than their names
-					sameLayer = false;
-					break;
-				}
-			}
-			if (sameLayer) {
-				state.propertiesSingleLayer[key] = state.objects[states.object_names.indexOf(values[0])].layer;
-			}
+	state.single_layer_property = [...state.identifiers_comptype.entries()].map(
+		function (i, comptype)
+		{
+			if (comptype != identifier_type_property)
+				return -1
+			const layers = new Set( [...state.getObjectsForIdentifier(i).map( j => state.objects[j].layer )] );
+			return (layers.size == 1) ? layers.next().value : -1;
 		}
-	}
+	)
 
-	if (state.idDict[0]===undefined && state.collisionLayers.length>0) {
+	if ( (state.idDict[0] === undefined) && (state.collisionLayers.length > 0))
+	{
 		logError('You need to have some objects defined');
 	}
 
 	//set default background object
-	if (state.object_names.indexOf('background')<0)
-	{
-		if ('background' in state.synonymsDict) {
-			var n = state.synonymsDict['background'];
-			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
-			state.backgroundid = o.id;
-			state.backgroundlayer = o.layer;
-		} else if ('background' in state.propertiesDict) {
-			var n = state.propertiesDict['background'][0];
-			var o = state.objects[states.object_names.indexOf(n)]; // TODO: we should store directly the object index in synonymsDict
-			state.backgroundid = o.id;
-			state.backgroundlayer = o.layer;
-		} else if ('background' in state.aggregatesDict) {
-			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
-			state.backgroundid = o.id;
-			state.backgroundlayer = o.layer;
-			logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
-		} else {
-			var o=state.objects[state.object_names.indexOf(state.idDict[0])]; // TODO: we should store directly the object index in idDict
-			state.backgroundid = o.id;
-			state.backgroundlayer = o.layer;
-			logError("you have to define something to be the background");
-		}
-	} else {
-		state.backgroundid = state.objects[state.object_names.indexOf('background')].id;
-		state.backgroundlayer = state.objects[state.object_names.indexOf('background')].layer;
-	}
+	state.background_index = state.getObjectsAnIdentifierCanBe('background').values().next().value;
+	state.backgroundid = state.objects[state.background_index].id
+	state.backgroundlayer = state.objects[state.background_index].layer
 }
+
 
 Level.prototype.calcBackgroundMask = function(state)
 {
@@ -414,34 +269,43 @@ Level.prototype.calcBackgroundMask = function(state)
 
 function levelFromString(state, level)
 {
-	var backgroundlayer=state.backgroundlayer;
-	var backgroundid=state.backgroundid;
-	var backgroundLayerMask = state.layerMasks[backgroundlayer];
+	const backgroundlayer = state.backgroundlayer;
+	const backgroundid = state.backgroundid;
+	const backgroundLayerMask = state.layerMasks[backgroundlayer];
 	var o = new Level(level[0], level[1].length, level.length-1, state.collisionLayers.length, null);
 	o.objects = new Int32Array(o.width * o.height * STRIDE_OBJ);
 
-	for (var i = 0; i < o.width; i++) {
-		for (var j = 0; j < o.height; j++) {
+	for (var i = 0; i < o.width; i++)
+	{
+		for (var j = 0; j < o.height; j++)
+		{
 			var ch = level[j+1].charAt(i);
-			if (ch.length==0) {
-				ch=level[j+1].charAt(level[j+1].length-1);
+			if (ch.length == 0) // TODO: why is it possible to have that from the parser?
+			{
+				ch = level[j+1].charAt(level[j+1].length-1);
 			}
 			var mask = state.glyphDict[ch];
 
-			if (mask == undefined) {
-				if (state.propertiesDict[ch]===undefined) {
+			if (mask == undefined) // TODO: this should be checked in the parser
+			{
+				if (!isProperty(state, ch))
+				{
 					logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
-				} else {
+				}
+				else
+				{
 					logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);							
 				}
 
 			}
 
 			var maskint = new BitVec(STRIDE_OBJ);
-			mask = mask.concat([]);					
-			for (var z = 0; z < o.layerCount; z++) {
-				if (mask[z]>=0) {
-					maskint.ibitset(mask[z]);
+			mask = mask.concat([]);
+			for (const obj_id of mask)
+			{
+				if (obj_id >= 0)
+				{
+					maskint.ibitset(obj_id);
 				}
 			}
 			for (var w = 0; w < STRIDE_OBJ; ++w) {
@@ -461,34 +325,37 @@ function levelFromString(state, level)
 	}
 	return o;
 }
+
 //also assigns glyphDict
-function levelsToArray(state) {
+function levelsToArray(state)
+{
 	var levels = state.levels;
 	var processedLevels = [];
 
-	for (var levelIndex = 0; levelIndex < levels.length; levelIndex++) {
-		var level = levels[levelIndex];
-		if (level.length == 0) {
+	for (var level of levels)
+	{
+		if (level.length == 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
 			continue;
-		}
-		if (level[0] == '\n') {
 
+		if (level[0] == '\n')
+		{
 			var o = {
 				message: level[1]
 			};
-			splitMessage = wordwrap(o.message,intro_template[0].length);
-			if (splitMessage.length>12){
+			splitMessage = wordwrap(o.message, intro_template[0].length);
+			if (splitMessage.length > 12)
+			{
 				logWarning('Message too long to fit on screen.', level[2]);
 			}
-
 			processedLevels.push(o);
-		} else {
-			var o = levelFromString(state,level);
+		}
+		else
+		{
+			var o = levelFromString(state, level);
 			processedLevels.push(o);
 		}
 
 	}
-
 	state.levels = processedLevels;
 }
 
@@ -550,6 +417,7 @@ function findIndexAfterToken(str,tokens,tokenIndex){
 	return curIndex;
 }
 
+// TODO: it actually parses the rule line, so it should be in the parser.
 function processRuleString(rule, state, curRules) 
 {
 /*
@@ -565,19 +433,19 @@ function processRuleString(rule, state, curRules)
 		pre : CellMask[]
 		post : CellMask[]
 */
-	var line = rule[0];
-	var lineNumber = rule[1];
-	var origLine = rule[2];
+	var [line, lineNumber, origLine] = rule;
 
-// STEP ONE, TOKENIZE
+//	STEP ONE, TOKENIZE
 	line = line.replace(/\[/g, ' [ ').replace(/\]/g, ' ] ').replace(/\|/g, ' | ').replace(/\-\>/g, ' -> ');
-	line=line.trim();
-	if (line[0]==='+'){
-		line = line.substring(0,1)+" "+line.substring(1,line.length);
+	line = line.trim();
+	if (line[0] === '+')
+	{
+		line = line.substring(0,1) + " " + line.substring(1,line.length);
 	}
 	var tokens = line.split(/\s/).filter(function(v) {return v !== ''});
 
-	if (tokens.length == 0) {
+	if (tokens.length == 0)
+	{
 		logError('Spooky error!  Empty line passed to rule function.', lineNumber);
 	}
 
@@ -604,17 +472,21 @@ function processRuleString(rule, state, curRules)
 	var rhs_cells = [];
 	var late = false;
 	var rigid = false;
-	var groupNumber=lineNumber;
-	var commands=[];
-	var randomRule=false;
+	var groupNumber = lineNumber;
+	var commands = [];
+	var randomRule = false;
 
-	if (tokens.length===1) {
-		if (tokens[0]==="startloop" ) {
+	if (tokens.length === 1)
+	{
+		if (tokens[0] === "startloop" )
+		{
 			rule_line = {
 				bracket: 1
 			}
 			return rule_line;
-		} else if (tokens[0]==="endloop" ) {
+		}
+		else if (tokens[0] === "endloop" )
+		{
 			rule_line = {
 				bracket: -1
 			}
@@ -622,24 +494,30 @@ function processRuleString(rule, state, curRules)
 		}
 	}
 
-	if (tokens.indexOf('->') == -1) {
+	if (tokens.indexOf('->') == -1)
+	{
 		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
 	}
 
-	var curcell=[];
-	var bracketbalance=0;
+	var curcell = [];
+	var bracketbalance = 0;
 	for (var i = 0; i < tokens.length; i++)
 	{
 		var token = tokens[i];
-		switch (parsestate) {
+		switch (parsestate)
+		{
 			case 0: {
 				//read initial directions
-				if (token==='+') {					
-					if (groupNumber===lineNumber) {
-						if (curRules.length==0) {
+				if (token === '+')
+				{
+					if (groupNumber === lineNumber)
+					{
+						if (curRules.length == 0)
+						{
 							logError('The "+" symbol, for joining a rule with the group of the previous rule, needs a previous rule to be applied to.');							
 						}
-						if (i!==0) {
+						if (i !== 0)
+						{
 							logError('The "+" symbol, for joining a rule with the group of the previous rule, must be the first symbol on the line ');
 						}						
 						groupNumber = curRules[curRules.length-1].groupNumber;
@@ -826,12 +704,20 @@ function processRuleString(rule, state, curRules)
 	return rule_line;
 }
 
-function deepCloneHS(HS) {
-	var cloneHS = HS.map(function(arr) {return arr.map(function(deepArr) {return deepArr.slice();});});
-	return cloneHS;
+function deepCloneCellRow(cellrow)
+{
+	return cellrow.map(
+		deepArr =>  deepArr.map( i => i )
+	);
 }
 
-function deepCloneRule(rule) {
+function deepCloneHS(HS)
+{
+	return HS.map( deepCloneCellRow );
+}
+
+function deepCloneRule(rule)
+{
 	var clonedRule = {
 		direction: rule.direction,
 		lhs: deepCloneHS(rule.lhs),
@@ -846,15 +732,18 @@ function deepCloneRule(rule) {
 	return clonedRule;
 }
 
-function rulesToArray(state) {
+function rulesToArray(state)
+{
 	var oldrules = state.rules;
 	var rules = [];
 	var loops=[];
-	for (var i = 0; i < oldrules.length; i++) {
-		var lineNumber = oldrules[i][1];
-		var newrule = processRuleString(oldrules[i], state, rules);
-		if (newrule.bracket!==undefined) {
-			loops.push([lineNumber,newrule.bracket]);
+	for (const oldrule of oldrules)
+	{
+		var lineNumber = oldrule[1];
+		var newrule = processRuleString(oldrule, state, rules);
+		if (newrule.bracket !== undefined)
+		{
+			loops.push( [lineNumber, newrule.bracket] );
 			continue;
 		}
 		rules.push(newrule);
@@ -863,7 +752,8 @@ function rulesToArray(state) {
 
 	//now expand out rules with multiple directions
 	var rules2 = [];
-	for (var i = 0; i < rules.length; i++) {
+	for (var i = 0; i < rules.length; i++)
+	{
 		var rule = rules[i];
 		var ruledirs = rule.directions;
 		for (var j = 0; j < ruledirs.length; j++) {
@@ -883,8 +773,8 @@ function rulesToArray(state) {
 		}
 	}
 
-	for (var i = 0; i < rules2.length; i++) {
-		var rule = rules2[i];
+	for (const rule of rules2)
+	{
 		//remove relative directions
 		convertRelativeDirsToAbsolute(rule);
 		//optional: replace up/left rules with their down/right equivalents
@@ -897,16 +787,15 @@ function rulesToArray(state) {
 
 	var rules3 = [];
 	//expand property rules
-	for (var i = 0; i < rules2.length; i++) {
-		var rule = rules2[i];
-		rules3 = rules3.concat(concretizeMovingRule(state, rule,rule.lineNumber));
+	for (const rule of rules2)
+	{
+		rules3 = rules3.concat(concretizeMovingRule(state, rule, rule.lineNumber));
 	}
 
 	var rules4 = [];
-	for (var i=0;i<rules3.length;i++) {
-		var rule=rules3[i];
-		rules4 = rules4.concat(concretizePropertyRule(state, rule,rule.lineNumber));
-
+	for (const rule of rules3)
+	{
+		rules4 = rules4.concat(concretizePropertyRule(state, rule, rule.lineNumber));
 	}
 
 	state.rules = rules4;
@@ -951,7 +840,8 @@ function getPropertiesFromCell(state,cell ) {
 		if (dir=="random") {
 			continue;
 		}
-		if (name in state.propertiesDict) {
+		if (isProperty(state, name))
+		{
 			result.push(name);
 		}
 	}
@@ -995,20 +885,24 @@ function concretizeMovingInCellByAmbiguousMovementName(cell ,ambiguousMovement, 
 	}
 }
 
-function expandNoPrefixedProperties(state, cell) {
+function expandNoPrefixedProperties(state, cell)
+{
 	var expanded = [];
-	for (var i=0;i<cell.length;i+=2)  {
+	for (var i=0; i<cell.length; i+=2)
+	{
 		var dir = cell[i];
 		var name = cell[i+1];
 
-		if ( dir ==='no' && (name in state.propertiesDict)) {
-			var aliases = state.propertiesDict[name];
-			for (var j=0;j<aliases.length;j++) {
-				var alias = aliases[j];
+		if (dir === 'no' && isProperty(state, name))
+		{
+			for (const alias of state.getObjectsAnIdentifierCanBe(name))
+			{
 				expanded.push(dir);
-				expanded.push(alias);
+				expanded.push(state.objects[alias].name);
 			}
-		} else {
+		}
+		else
+		{
 			expanded.push(dir);
 			expanded.push(name);
 		} 
@@ -1016,8 +910,8 @@ function expandNoPrefixedProperties(state, cell) {
 	return expanded;
 }
 
-function concretizePropertyRule(state, rule,lineNumber) {	
-
+function concretizePropertyRule(state, rule, lineNumber)
+{	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
 	for (var i = 0; i < rule.lhs.length; i++) {
 		var cur_cellrow_l = rule.lhs[i];
@@ -1067,13 +961,13 @@ function concretizePropertyRule(state, rule,lineNumber) {
 					for (var prop_n = 0; prop_n < properties.length; ++prop_n) {
 						var property = properties[prop_n];
 
-						if (state.propertiesSingleLayer.hasOwnProperty(property) &&
+						if ( (state.single_layer_property[state.identifiers.indexOf(property)] >= 0) &&
 							ambiguousProperties[property] !== true) {
 							// we don't need to explode this property
 							continue;
 						}
 
-						var aliases = state.propertiesDict[property];
+						var aliases = Array.from(state.getObjectsAnIdentifierCanBe(property)).map( p => state.objects[p].name );
 
 						shouldremove = true;
 						modified = true;
@@ -1318,17 +1212,19 @@ function rephraseSynonyms(state,rule) {
 		for (var j = 0; j < cellrow_l.length; j++) {
 			var cell_l = cellrow_l[j];
 			for (var k = 1; k < cell_l.length; k += 2) {
-				var name = cell_l[k];
-				if (name in state.synonymsDict) {
-					cell_l[k] = state.synonymsDict[cell_l[k]];
+				const name = cell_l[k];
+				if (isSynonym(state, name))
+				{
+					cell_l[k] = state.getObjectsAnIdentifierCanBe(name).next().value;
 				}
 			}
 			if (rule.rhs.length>0) {
 				var cell_r = cellrow_r[j];
 				for (var k = 1; k < cell_r.length; k += 2) {
-					var name = cell_r[k];
-					if (name in state.synonymsDict) {
-						cell_r[k] = state.synonymsDict[cell_r[k]];
+					const name = cell_r[k];
+					if (isSynonym(state, name))
+					{
+						cell_r[k] = state.getObjectsAnIdentifierCanBe(name).next().value;
 					}
 				}
 			}
@@ -1336,32 +1232,37 @@ function rephraseSynonyms(state,rule) {
 	}
 }
 
-function atomizeAggregates(state, rule) {
-	for (var i = 0; i < rule.lhs.length; i++) {
-		var cellrow = rule.lhs[i];
-		for (var j = 0; j < cellrow.length; j++) {
-			var cell = cellrow[j];
-			atomizeCellAggregates(state, cell,rule.lineNumber);
+function atomizeAggregates(state, rule)
+{
+	for (const cellrow of rule.lhs)
+	{
+		for (const cell of cellrow)
+		{
+			atomizeCellAggregates(state, cell, rule.lineNumber);
 		}
 	}
-	for (var i = 0; i < rule.rhs.length; i++) {
-		var cellrow = rule.rhs[i];
-		for (var j = 0; j < cellrow.length; j++) {
-			var cell = cellrow[j];
-			atomizeCellAggregates(state, cell,rule.lineNumber);
+	for (const cellrow of rule.rhs)
+	{
+		for (const cell of cellrow)
+		{
+			atomizeCellAggregates(state, cell, rule.lineNumber);
 		}
 	}
 }
 
-function atomizeCellAggregates(state, cell, lineNumber) {
-	for (var i = 0; i < cell.length; i += 2) {
-		var dir =cell[i];
+function atomizeCellAggregates(state, cell, lineNumber)
+{
+	for (var i = 0; i < cell.length; i += 2)
+	{
+		var dir = cell[i];
 		var c = cell[i+1];
-		if (c in state.aggregatesDict) {
-			if (dir==='no') {
-				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.",lineNumber);
+		if (isAggregate(state, c))
+		{
+			if (dir === 'no')
+			{
+				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
 			}
-			var equivs = state.aggregatesDict[c];
+			var equivs = state.getObjectsAnIdentifierCanBe(c).values().map( p => state.objects[p].name);
 			cell[i+1] = equivs[0];
 			for (var j= 1; j < equivs.length; j++) {
 				cell.push(cell[i]);//push the direction
@@ -1429,241 +1330,301 @@ var dirMasks = {
 	'' : parseInt('00000',2)
 };
 
-function rulesToMask(state) {
-	/*
 
-	*/
-	var layerCount = state.collisionLayers.length;
-	var layerTemplate = [];
-	for (var i = 0; i < layerCount; i++) {
-		layerTemplate.push(null);
-	}
+function ruleToMask(state, rule, layerTemplate, layerCount)
+{
+	for (var j = 0; j < rule.lhs.length; j++)
+	{
+		var cellrow_l = rule.lhs[j];
+		var cellrow_r = rule.rhs[j];
+		for (var k = 0; k < cellrow_l.length; k++)
+		{
+			var cell_l = cellrow_l[k];
+			var layersUsed_l = layerTemplate.concat([]);
+			var objectsPresent = new BitVec(STRIDE_OBJ);
+			var objectsMissing = new BitVec(STRIDE_OBJ);
+			var anyObjectsPresent = [];
+			var movementsPresent = new BitVec(STRIDE_MOV);
+			var movementsMissing = new BitVec(STRIDE_MOV);
 
-	for (var i = 0; i < state.rules.length; i++) {
-		var rule = state.rules[i];
-		for (var j = 0; j < rule.lhs.length; j++) {
-			var cellrow_l = rule.lhs[j];
-			var cellrow_r = rule.rhs[j];
-			for (var k = 0; k < cellrow_l.length; k++) {
-				var cell_l = cellrow_l[k];
-				var layersUsed_l = layerTemplate.concat([]);
-				var objectsPresent = new BitVec(STRIDE_OBJ);
-				var objectsMissing = new BitVec(STRIDE_OBJ);
-				var anyObjectsPresent = [];
-				var movementsPresent = new BitVec(STRIDE_MOV);
-				var movementsMissing = new BitVec(STRIDE_MOV);
-
-				var objectlayers_l = new BitVec(STRIDE_MOV);
-				for (var l = 0; l < cell_l.length; l += 2) {
-					var object_dir = cell_l[l];
-					if (object_dir==='...') {
-						objectsPresent = ellipsisPattern;
-						if (cell_l.length!==2) {
-							logError("You can't have anything in with an ellipsis. Sorry.",rule.lineNumber);
-						} else if ((k===0)||(k===cellrow_l.length-1)) {
-							logError("There's no point in putting an ellipsis at the very start or the end of a rule",rule.lineNumber);
-						} else if (rule.rhs.length>0) {
-							var rhscell=cellrow_r[k];
-							if (rhscell.length!==2 || rhscell[0]!=='...') {
-								logError("An ellipsis on the left must be matched by one in the corresponding place on the right.",rule.lineNumber);								
-							}
-						} 
-						break;
-					}  else if (object_dir==='random') {
-						logError("'random' cannot be matched on the left-hand side, it can only appear on the right",rule.lineNumber);
-						continue;
+			var objectlayers_l = new BitVec(STRIDE_MOV);
+			for (var l = 0; l < cell_l.length; l += 2)
+			{
+				var object_dir = cell_l[l];
+				if (object_dir === '...')
+				{
+					objectsPresent = ellipsisPattern;
+					if (cell_l.length !== 2)
+					{
+						logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
 					}
-
-					var object_name = cell_l[l + 1];
-					var object = state.objects[state.object_names.indexOf(object_name)]; // TODO: we should store directly the object index in cell_l
-					var objectMask = state.objectMasks[object_name];
-					if (object) {
-						var layerIndex = object.layer|0;
-					} else {
-						var layerIndex = state.propertiesSingleLayer[object_name];
+					else if ( (k === 0) || (k === cellrow_l.length-1) )
+					{
+						logError("There's no point in putting an ellipsis at the very start or the end of a rule", rule.lineNumber);
 					}
-
-					if (typeof(layerIndex)==="undefined"){
-						logError("Oops!  " +object_name.toUpperCase()+" not assigned to a layer.",rule.lineNumber);
-					}
-
-					if (object_dir==='no') {
-						objectsMissing.ior(objectMask);
-					} else {
-						var existingname = layersUsed_l[layerIndex];
-						if (existingname !== null) {
-							rule.discard=[object_name.toUpperCase(),existingname.toUpperCase()];
+					else if (rule.rhs.length > 0)
+					{
+						var rhscell = cellrow_r[k];
+						if (rhscell.length !==2 || rhscell[0] !== '...')
+						{
+							logError("An ellipsis on the left must be matched by one in the corresponding place on the right.", rule.lineNumber);								
 						}
-
-						layersUsed_l[layerIndex] = object_name;
-
-						if (object) {
-							objectsPresent.ior(objectMask);
-							objectlayers_l.ishiftor(0x1f, 5*layerIndex);
-						} else {
-							anyObjectsPresent.push(objectMask);
-						}
-
-						if (object_dir==='stationary') {
-							movementsMissing.ishiftor(0x1f, 5*layerIndex);
-						} else {
-							movementsPresent.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-						}
-					}
+					} 
+					break;
 				}
-
-				if (rule.rhs.length>0) {
-					var rhscell = cellrow_r[k];
-					var lhscell = cellrow_l[k];
-					if (rhscell[0]==='...' && lhscell[0]!=='...' ) {
-						logError("An ellipsis on the right must be matched by one in the corresponding place on the left.",rule.lineNumber);								
-					}
-					for (var l=0;l<rhscell.length;l+=2) {
-						var content=rhscell[l];
-						if (content==='...') {
-							if (rhscell.length!==2) {
-								logError("You can't have anything in with an ellipsis. Sorry.",rule.lineNumber);							
-							}
-						}
-					}
-				}
-
-				if (objectsPresent === ellipsisPattern) {
-					cellrow_l[k] = ellipsisPattern;
-					continue;
-				} else {
-					cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing, null]);
-				}
-
-				if (rule.rhs.length===0) {
+				else if (object_dir === 'random')
+				{
+					logError("'random' cannot be matched on the left-hand side, it can only appear on the right", rule.lineNumber);
 					continue;
 				}
 
-				var cell_r = cellrow_r[k];
-				var layersUsed_r = layerTemplate.concat([]);
-				var layersUsedRand_r = layerTemplate.concat([]);
-
-				var objectsClear = new BitVec(STRIDE_OBJ);
-				var objectsSet = new BitVec(STRIDE_OBJ);
-				var movementsClear = new BitVec(STRIDE_MOV);
-				var movementsSet = new BitVec(STRIDE_MOV);
-
-				var objectlayers_r = new BitVec(STRIDE_MOV);
-				var randomMask_r = new BitVec(STRIDE_OBJ);
-				var postMovementsLayerMask_r = new BitVec(STRIDE_MOV);
-				var randomDirMask_r = new BitVec(STRIDE_MOV);
-				for (var l = 0; l < cell_r.length; l += 2) {
-					var object_dir = cell_r[l];
-					var object_name = cell_r[l + 1];
-
-					if (object_dir==='...') {
-						//logError("spooky ellipsis found! (should never hit this)");
-						break;
-					} else if (object_dir==='random') {
-						if (object_name in state.objectMasks) {
-							var mask = state.objectMasks[object_name];
-							randomMask_r.ior(mask);
-							var values;
-							if (state.propertiesDict.hasOwnProperty(object_name)) {
-								values = state.propertiesDict[object_name];
-							} else {
-								values = [object_name];
-							}
-							for (var m = 0; m < values.length; m++) {
-								var subobject = values[m];
-								var layerIndex = state.objects[state.object_names.indexOf(subobject)].layer|0; // TODO: we should store...
-								var existingname = layersUsed_r[layerIndex];
-								if (existingname !== null) {
-									var o1 = subobject.toUpperCase();
-									var o2 = existingname.toUpperCase();
-									if (o1!==o2) {
-										logWarning("This rule may try to spawn a "+o1+" with random, but also requires a "+o2+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
-									}
-								}
- 
-								layersUsedRand_r[layerIndex] = subobject;
-							}                      
-
-						} else {
-							logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
-						}
-						continue;
-					}
-
-					var object = state.objects[state.object_names.indexOf(object_name)];
-					var objectMask = state.objectMasks[object_name];
-					if (object) {
-						var layerIndex = object.layer|0;
-					} else {
-						var layerIndex = state.propertiesSingleLayer[object_name];
-					}
-
-					
-					if (object_dir=='no') {
-						objectsClear.ior(objectMask);
-					} else {
-						var existingname = layersUsed_r[layerIndex];
-						if (existingname === null) {
-							existingname = layersUsedRand_r[layerIndex];
-						}
-
-						if (existingname !== null) {
-							if (rule.hasOwnProperty('discard')){
-
-							} else {
-								logError('Rule matches object types that can\'t overlap: "' + object_name.toUpperCase() + '" and "' + existingname.toUpperCase() + '".',rule.lineNumber);
-							}
-						}
-
-						layersUsed_r[layerIndex] = object_name;
-
-						if (object_dir.length>0) {
-							postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex);
-						}
-
-						var layerMask = state.layerMasks[layerIndex];
-
-						if (object) {
-							objectsSet.ibitset(object.id);
-							objectsClear.ior(layerMask);
-							objectlayers_r.ishiftor(0x1f, 5*layerIndex);
-						} else {
-							// shouldn't need to do anything here...
-						}
-						if (object_dir==='stationary') {
-							movementsClear.ishiftor(0x1f, 5*layerIndex);
-						} if (object_dir==='randomdir') {
-							randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-						} else {						
-							movementsSet.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-						};
-					}
+				var object_name = cell_l[l + 1];
+				var object = state.getObjectByName(object_name); // TODO: we should store directly the object index in cell_l
+				var objectMask = state.objectMasks[object_name];
+				if (object)
+				{
+					var layerIndex = object.layer|0;
+				}
+				else
+				{
+					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object_name)];
 				}
 
-				if (!(objectsPresent.bitsSetInArray(objectsSet.data))) {
-					objectsClear.ior(objectsPresent); // clear out old objects
-				}
-				if (!(movementsPresent.bitsSetInArray(movementsSet.data))) {
-					movementsClear.ior(movementsPresent); // ... and movements
+				if (layerIndex < 0)
+				{
+					logError("Oops!  " +object_name.toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 
-				for (var l = 0; l < layerCount; l++) {
-					if (layersUsed_l[l] !== null && layersUsed_r[l] === null) {
-						// a layer matched on the lhs, but not on the rhs
-						objectsClear.ior(state.layerMasks[l]);
-						postMovementsLayerMask_r.ishiftor(0x1f, 5*l);
+				if (object_dir === 'no')
+				{
+					objectsMissing.ior(objectMask);
+				}
+				else
+				{
+					var existingname = layersUsed_l[layerIndex];
+					if (existingname !== null)
+					{
+						rule.discard = [object_name.toUpperCase(), existingname.toUpperCase()];
 					}
-				}
 
-				objectlayers_l.iclear(objectlayers_r);
+					layersUsed_l[layerIndex] = object_name;
 
-				postMovementsLayerMask_r.ior(objectlayers_l);
-				if (objectsClear || objectsSet || movementsClear || movementsSet || postMovementsLayerMask_r) {
-					// only set a replacement if something would change
-					cellrow_l[k].replacement = new CellReplacement([objectsClear, objectsSet, movementsClear, movementsSet, postMovementsLayerMask_r, randomMask_r, randomDirMask_r]);
+					if (object)
+					{
+						objectsPresent.ior(objectMask);
+						objectlayers_l.ishiftor(0x1f, 5*layerIndex);
+					}
+					else
+					{
+						anyObjectsPresent.push(objectMask);
+					}
+
+					if (object_dir === 'stationary')
+					{
+						movementsMissing.ishiftor(0x1f, 5*layerIndex);
+					}
+					else
+					{
+						movementsPresent.ishiftor(dirMasks[object_dir], 5 * layerIndex);
+					}
 				}
 			}
+
+			if (rule.rhs.length > 0)
+			{
+				var rhscell = cellrow_r[k];
+				var lhscell = cellrow_l[k];
+				if (rhscell[0] === '...' && lhscell[0] !== '...' )
+				{
+					logError("An ellipsis on the right must be matched by one in the corresponding place on the left.", rule.lineNumber);
+				}
+				for (var l=0; l<rhscell.length; l+=2)
+				{
+					var content = rhscell[l];
+					if (content === '...')
+					{
+						if (rhscell.length !== 2)
+						{
+							logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
+						}
+					}
+				}
+			}
+
+			if (objectsPresent === ellipsisPattern)
+			{
+				cellrow_l[k] = ellipsisPattern;
+				continue;
+			}
+			cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing, null]);
+
+			if (rule.rhs.length === 0)
+				continue;
+
+			var cell_r = cellrow_r[k];
+			var layersUsed_r = layerTemplate.concat([]);
+			var layersUsedRand_r = layerTemplate.concat([]);
+
+			var objectsClear = new BitVec(STRIDE_OBJ);
+			var objectsSet = new BitVec(STRIDE_OBJ);
+			var movementsClear = new BitVec(STRIDE_MOV);
+			var movementsSet = new BitVec(STRIDE_MOV);
+
+			var objectlayers_r = new BitVec(STRIDE_MOV);
+			var randomMask_r = new BitVec(STRIDE_OBJ);
+			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV);
+			var randomDirMask_r = new BitVec(STRIDE_MOV);
+			for (var l = 0; l < cell_r.length; l += 2)
+			{
+				var object_dir = cell_r[l];
+				var object_name = cell_r[l + 1];
+
+				if (object_dir === '...')
+				{
+					//logError("spooky ellipsis found! (should never hit this)");
+					break;
+				}
+				else if (object_dir === 'random')
+				{
+					if (object_name in state.objectMasks)
+					{
+						var mask = state.objectMasks[object_name];
+						randomMask_r.ior(mask);
+						var values;
+						if (isProperty(state, object_name))
+						{
+							values = state.getObjectsAnIdentifierCanBe(object_name).values().map( p => state.objects[p].name );
+						} else {
+							values = [object_name];
+						}
+						for (const subobject of values)
+						{
+							var layerIndex = state.getObjectByName(subobject).layer|0; // TODO: we should store...
+							var existingname = layersUsed_r[layerIndex];
+							if (existingname !== null)
+							{
+								var o1 = subobject.toUpperCase();
+								var o2 = existingname.toUpperCase();
+								if (o1 !== o2)
+								{
+									logWarning("This rule may try to spawn a "+o1+" with random, but also requires a "+o2+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
+								}
+							}
+
+							layersUsedRand_r[layerIndex] = subobject;
+						}                      
+					}
+					else
+					{
+						logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
+					}
+					continue;
+				}
+
+				var object = state.getObjectByName(object_name);
+				var objectMask = state.objectMasks[object_name];
+				if (object)
+				{
+					var layerIndex = object.layer|0;
+				}
+				else
+				{
+					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object_name)]
+				}
+				
+				if (object_dir == 'no')
+				{
+					objectsClear.ior(objectMask);
+				}
+				else
+				{
+					var existingname = layersUsed_r[layerIndex];
+					if (existingname === null)
+					{
+						existingname = layersUsedRand_r[layerIndex];
+					}
+
+					if (existingname !== null)
+					{
+						if ( ! rule.hasOwnProperty('discard') )
+						{
+							logError('Rule matches object types that can\'t overlap: "' + object_name.toUpperCase() + '" and "' + existingname.toUpperCase() + '".',rule.lineNumber);
+						}
+					}
+
+					layersUsed_r[layerIndex] = object_name;
+
+					if (object_dir.length > 0)
+					{
+						postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex);
+					}
+
+					var layerMask = state.layerMasks[layerIndex];
+
+					if (object)
+					{
+						objectsSet.ibitset(object.id);
+						objectsClear.ior(layerMask);
+						objectlayers_r.ishiftor(0x1f, 5*layerIndex);
+					}
+					else
+					{
+						// shouldn't need to do anything here...
+					}
+					if (object_dir === 'stationary')
+					{
+						movementsClear.ishiftor(0x1f, 5*layerIndex);
+					}
+					if (object_dir==='randomdir')
+					{
+						randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
+					}
+					else
+					{						
+						movementsSet.ishiftor(dirMasks[object_dir], 5 * layerIndex);
+					}
+				}
+			}
+
+			if ( ! objectsPresent.bitsSetInArray(objectsSet.data) )
+			{
+				objectsClear.ior(objectsPresent); // clear out old objects
+			}
+			if ( ! movementsPresent.bitsSetInArray(movementsSet.data) )
+			{
+				movementsClear.ior(movementsPresent); // ... and movements
+			}
+
+			for (var l = 0; l < layerCount; l++)
+			{
+				if (layersUsed_l[l] !== null && layersUsed_r[l] === null)
+				{
+					// a layer matched on the lhs, but not on the rhs
+					objectsClear.ior(state.layerMasks[l]);
+					postMovementsLayerMask_r.ishiftor(0x1f, 5*l);
+				}
+			}
+
+			objectlayers_l.iclear(objectlayers_r);
+
+			postMovementsLayerMask_r.ior(objectlayers_l);
+			if (objectsClear || objectsSet || movementsClear || movementsSet || postMovementsLayerMask_r)
+			{
+				// only set a replacement if something would change
+				cellrow_l[k].replacement = new CellReplacement([objectsClear, objectsSet, movementsClear, movementsSet, postMovementsLayerMask_r, randomMask_r, randomDirMask_r]);
+			}
 		}
+	}
+}
+
+function rulesToMask(state)
+{
+	var layerCount = state.collisionLayers.length;
+	var layerTemplate = Array(layerCount).fill(null);
+
+	for (const rule of state.rules)
+	{
+		ruleToMask(state, rule, layerTemplate, layerCount);
 	}
 }
 
@@ -1864,63 +1825,22 @@ function generateRigidGroupList(state) {
 	state.groupIndex_to_RigidGroupIndex=groupIndex_to_RigidGroupIndex;
 }
 
-function getMaskFromName(state,name) {
-	var objectMask=new BitVec(STRIDE_OBJ);
-	if (state.object_names.indexOf(name) >= 0)
+
+/* Computes new attributes for the state: playerMask, layerMasks, objectMask. */
+function generateMasks(state)
+{
+	state.playerMask = getMaskFromName(state, 'player');
+	if (state.playerMask.iszero())
 	{
-		var o=state.objects[state.object_names.indexOf(name)]; // TODO: we should store...
-		objectMask.ibitset(o.id);
-	}
-
-	if (name in state.aggregatesDict) {
-		var objectnames = state.aggregatesDict[name];
-		for(var i=0;i<objectnames.length;i++) {
-			var n=objectnames[i];
-			var o = state.objects[state.object_names.indexOf(n)]; // TODO...
-			objectMask.ibitset(o.id);
-		}
-	}
-
-	if (name in state.propertiesDict) {
-		var objectnames = state.propertiesDict[name];
-		for(var i=0;i<objectnames.length;i++) {
-			var n = objectnames[i];
-			var o = state.objects[state.object_names.indexOf(n)]; // TODO
-			objectMask.ibitset(o.id);
-		}
-	}
-
-	if (name in state.synonymsDict) {
-		var n = state.synonymsDict[name];
-		var o = state.objects[state.object_names.indexOf(n)]; // TODO
-		objectMask.ibitset(o.id);
-	}
-
-	if (objectMask.iszero()) {
 		logErrorNoLine("error, didn't find any object called player, either in the objects section, or the legends section. there must be a player!");
 	}
-	return objectMask;
-}
 
-function generateMasks(state) {
-	state.playerMask=getMaskFromName(state,'player');
+	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
 
-	var layerMasks=[];
-	var layerCount = state.collisionLayers.length;
-	for (var layer=0;layer<layerCount;layer++){
-		var layerMask=new BitVec(STRIDE_OBJ);
-		for (var j=0;j<state.objectCount;j++) {
-			var n=state.idDict[j];
-			var o = state.objects[state.object_names.indexOf(n)]; // TODO
-			if (o.layer==layer) {
-				layerMask.ibitset(o.id);
-			}
-		}
-		layerMasks.push(layerMask);
-	}
-	state.layerMasks=layerMasks;
+//	Compute state.objectMasks
+	// TODO: replace it with a list of masks for each identifier (and let the code using it check that its not an aggregate)
 
-	var objectMask={};
+	var objectMask = {};
 	for(var o of state.objects)
 	{
 		objectMask[o.name] = new BitVec(STRIDE_OBJ);
@@ -1930,31 +1850,17 @@ function generateMasks(state) {
 	// Synonyms can depend on properties, and properties can depend on synonyms.
 	// Process them in order by combining & sorting by linenumber.
 
-	var synonyms_and_properties = state.legend_synonyms.concat(state.legend_properties);
-	synonyms_and_properties.sort(function(a, b) {
-		return a.lineNumber - b.lineNumber;
-	});
-
-	for (const synprop of synonyms_and_properties)
+	var synonyms_and_properties = Array.from(state.identifiers.keys()).filter( i => [identifier_type_synonym, identifier_type_property].includes(state.identifiers_deftype[i]) );
+	synonyms_and_properties.sort( (a,b) => state.identifiers_lineNumbers[a] - state.identifiers_lineNumbers[b] );
+	for (const identifier_index of synonyms_and_properties)
 	{
-		if (synprop.length == 2) {
-			// synonym (a = b)
-			objectMask[synprop[0]]=objectMask[synprop[1]];
-		} else {
-			// property (a = b or c)
-			var val = new BitVec(STRIDE_OBJ);
-			for (var j=1;j<synprop.length;j++) {
-				var n = synprop[j];
-				val.ior(objectMask[n]);
-			}
-			objectMask[synprop[0]]=val;
-		}
+		objectMask[state.identifiers[identifier_index]] = makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
 	}
 
 	//use \n as a delimeter for internal-only objects
 	var all_obj = new BitVec(STRIDE_OBJ);
 	all_obj.inot();
-	objectMask["\nall\n"]=all_obj;
+	objectMask["\nall\n"] = all_obj;
 
 	state.objectMasks = objectMask;
 }
@@ -1963,22 +1869,9 @@ function checkObjectsAreLayered(state)
 {
 	for (var o of state.objects)
 	{
-		var found=false;
-		for (var i=0;i<state.collisionLayers.length;i++) {
-			var layer = state.collisionLayers[i];
-			for (var j=0;j<layer.length;j++) {
-				// if (layer[j]===n) {
-				if (layer[j]===o.name) {
-					found=true;
-					break;
-				}
-			}
-			if (found) {
-				break;
-			}
-		}
-		if (found===false) {
-			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.',o.lineNumber);
+		if (o.layer === undefined)
+		{
+			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', o.lineNumber);
 		}
 	}
 }
@@ -2044,28 +1937,40 @@ function processWinConditions(state) {
 	state.winconditions=newconditions;
 }
 
-function printCellRow(cellRow) {
-	var result ="[ ";
-	for (var i=0;i<cellRow.length;i++) {
-		if (i>0) {
+function printCell(cell)
+{
+	var result = '';
+	for (var j=0; j<cell.length; j+=2)
+	{
+		var direction = cell[j];
+		var object = cell[j+1];
+		if (direction === "...")
+		{
+			result += direction+" ";
+		} else {
+			result += direction+" "+object+" ";
+		}
+	}
+	return result;
+}
+
+function printCellRow(cellRow)
+{
+	var result = "[ ";
+	for (var i=0; i<cellRow.length; i++)
+	{
+		if (i > 0)
+		{
 			result += "| ";
 		}
-		var cell = cellRow[i];
-		for (var j=0;j<cell.length;j+=2) {
-			var direction = cell[j];
-			var object = cell[j+1]
-			if (direction==="...") {
-				result += direction+" ";
-			} else {
-				result += direction+" "+object+" ";
-			}
-		}		
+		result += printCell(cellRow[i])
 	}
 	result +="] ";
 	return result;
 }
 
-function printRule(rule) {
+function cacheRuleStringRep(rule)
+{
 	var result="(<a onclick=\"jumpToLine('"+ rule.lineNumber.toString() + "');\"  href=\"javascript:void(0);\">"+rule.lineNumber+"</a>) "+ rule.direction.toString().toUpperCase()+" ";
 	if (rule.rigid) {
 		result = "RIGID "+result+" ";
@@ -2094,12 +1999,22 @@ function printRule(rule) {
 		}
 	}
 	//print commands next
-	return result;
+	rule.stringRep = result;
 }
+
+function cacheAllRuleNames(state)
+{
+	for (const rule of state.rules)
+	{
+		cacheRuleStringRep(rule);
+	}
+}
+
 function printRules(state) {
-	var output = "<br>Rule Assembly : ("+ state.rules.length +" rules )<br>===========<br>";
+	var output = "";
 	var loopIndex = 0;
 	var loopEnd = -1;
+	var discardcount = 0;
 	for (var i=0;i<state.rules.length;i++) {
 		var rule = state.rules[i];
 		if (loopIndex < state.loops.length) {
@@ -2116,39 +2031,47 @@ function printRules(state) {
 			output += "ENDLOOP<br>";
 			loopEnd = -1;
 		}
-		if (rule.hasOwnProperty('discard')){
-
+		if (rule.hasOwnProperty('discard'))
+		{
+			discardcount++;
 		} else {
-			output += printRule(rule) +"<br>";
-		}
+			output += rule.stringRep +"<br>";
+ 		}
 	}
 	if (loopEnd !== -1) {	// no more rules after loop end
 		output += "ENDLOOP<br>";
 	}
 	output+="===========<br>";
+	output= "<br>Rule Assembly : ("+ (state.rules.length-discardcount) +" rules)<br>===========<br>"+output;
 	consolePrint(output);
 }
 
-function removeDuplicateRules(state) {
+function removeDuplicateRules(state)
+{
 	var record = {};
-	var newrules=[];
-	var lastgroupnumber=-1;
-	for (var i=state.rules.length-1;i>=0;i--) {
+	var newrules = [];
+	var lastgroupnumber = -1;
+	for (var i=state.rules.length-1; i>=0; i--)
+	{
 		var r = state.rules[i];
 		var groupnumber = r.groupNumber;
-		if (groupnumber!==lastgroupnumber) {
-			record={};
+		if (groupnumber !== lastgroupnumber)
+		{
+			record = {};
 		}
-		var r_string=printRule(r);
-		if (record.hasOwnProperty(r_string)) {
+		var r_string = r.stringRep;
+		if (record.hasOwnProperty(r_string))
+		{
 			state.rules.splice(i,1);
 		} else {
-			record[r_string]=true;
+			record[r_string] = true;
 		}
 		lastgroupnumber=groupnumber;
 	}
 }
-function generateLoopPoints(state) {
+
+function generateLoopPoints(state)
+{
 	var loopPoint={};
 	var loopPointIndex=0;
 	var outside=true;
@@ -2315,7 +2238,8 @@ function generateSoundData(state) {
 			}
 			var seed = sound[sound.length-2];
 
-			if (target in state.aggregatesDict) {
+			if (isAggregate(state, target))
+			{
 				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").',lineNumber);
 			}
 			else if (target in state.objectMasks) {
@@ -2345,12 +2269,15 @@ function generateSoundData(state) {
 				modified=false;
 				for (var k=0;k<targets.length;k++) {
 					var t = targets[k];
-					if (t in state.synonymsDict) {
-						targets[k]=state.synonymsDict[t];
+					if (isSynonym(state, t))
+					{
+						targets[k] = state.getObjectsAnIdentifierCanBe(t).values().map( p => state.objects[p].name );
 						modified=true;
-					} else if (t in state.propertiesDict) {
+					}
+					else if (isProperty(state, t))
+					{
 						modified=true;
-						var props = state.propertiesDict[t];
+						var props = Array.from(state.getObjectsAnIdentifierCanBe(t)).map( p => state.objects[p].name );
 						targets.splice(k,1);
 						k--;
 						for (var l=0;l<props.length;l++) {
@@ -2363,7 +2290,7 @@ function generateSoundData(state) {
 			if (verb==='move' || verb==='cantmove') {
 				for (var j=0;j<targets.length;j++) {
 					var targetName = targets[j];
-					var targetDat = state.objects[state.object_names.indexOf(targetName)]; // TODO
+					var targetDat = state.getObjectByName(targetName); // TODO
 					var targetLayer = targetDat.layer;
 					var shiftedDirectionMask = new BitVec(STRIDE_MOV);
 					shiftedDirectionMask.ishiftor(directionMask, 5*targetLayer);
@@ -2503,12 +2430,15 @@ function loadFile(str)
 	levelsToArray(state);
 	rulesToArray(state);
 
+	cacheAllRuleNames(state);
+
 	removeDuplicateRules(state);
 
 	rulesToMask(state);
 
 	
-	if (debugMode) {
+	if (debugMode)
+	{
 		printRules(state);
 	}
 

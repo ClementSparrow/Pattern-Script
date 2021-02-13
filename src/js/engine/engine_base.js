@@ -632,9 +632,7 @@ function getLayersOfMask(cellMask) {
 	var layers=[];
 	for (var i=0;i<state.objectCount;i++) {
 		if (cellMask.get(i)) {
-			var n = state.idDict[i];
-			var o = state.objects[state.object_names.indexOf(n)]; // TODO ...
-			layers.push(o.layer)
+			layers.push( state.objects[ state.idDict[i] ].layer )
 		}
 	}
 	return layers;

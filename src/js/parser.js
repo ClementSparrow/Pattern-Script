@@ -14,7 +14,7 @@ colors used
 color values for named colours from arne, mostly (and a couple from a 32-colour palette attributed to him)
 http://androidarts.com/palette/16pal.htm
 
-the editor is a slight modification of codemirro (codemirror.net), which is crazy awesome.
+the editor is a slight modification of codemirror (codemirror.net), which is crazy awesome.
 
 for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 
@@ -58,7 +58,10 @@ const reg_winconditionquantifiers = /^(all|any|no|some)$/;
 const reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
 const keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
-//  var keywordRegex = new RegExp("\\b(("+cons.join(")|(")+"))$", 'i');
+const identifier_type_object = 0 // actually, anything >= 0
+const identifier_type_synonym = -1
+const identifier_type_aggregate = -2
+const identifier_type_property = -3
 
 
 // NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
@@ -68,13 +71,14 @@ function PuzzleScriptParser()
 		permanently useful
 	*/
 	this.objects = []
-	this.object_names = []
 
-	this.identifiers = [] // an array of all the identifiers defined in the game, giving for each:
-	this.identifiers_info = [] // for each identifier in the previous entry, gives:
-						  // its type (0=object, 1=synonym, 2=aggregate, 3=property), and its index in the list of entities of that type
-						  // TODO: add original_case_name and lineNumber in this structure too?
-	this.original_case_names = [] // retain the original case of a name so that the editor can suggest it as autocompletion.
+	// struct of array rather than array of struct
+	this.identifiers = [] // all the identifiers defined in the game.
+	this.identifiers_deftype = [] // their type when defined
+	this.identifiers_comptype = [] // their type in the end (synonyms have identifier_type_synonym for deftype but the comptype of the thing they are synonym of)
+	this.identifiers_objects = [] // the objects that the identifier can represent, as a set of indexes in this.objects
+	this.identifiers_lineNumbers = [] // the number of the line in which the identifier is first defined
+	this.original_case_names = [] // retains the original case of an identifier so that the editor can suggest it as autocompletion.
 
 	/*
 		for parsing
@@ -100,18 +104,16 @@ function PuzzleScriptParser()
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
 
-	// data for the LEGEND section. Only used in this file, compiler.js (generateExtraMembers and generateExtraMasks) and codemirror/anyword-hints.js (CodeMirror.registerHelper)
+	// data for the LEGEND section.
 	// Aggregates are "obj1 and obj2" that can appear in the definition of a legend character.
 	// Properties are "obj1 or obj2".
 	// Synonyms are "new_obj = old_obj" and can therefore be used either as Properties or Aggregates.
-	this.legend_synonyms = []
-	this.legend_aggregates = []
-	this.legend_properties = []
-	this.abbrevNames = []
+	this.abbrevNames = [] // TODO: This is only used in this file to parse levels, and is deleted in compiler.js, which is not very smart as it gets recomputed there.
+	                      // Plus, we don't need it, as we only check if a single character is in the array, which could also be done (slightly slower) using this.identifiers.
 
 	this.sounds = []
 
-	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a list of the names of the objects belonging to that layer
+	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a Set of the indexes of the objects belonging to that layer
 
 	this.rules = []
 
@@ -127,32 +129,36 @@ PuzzleScriptParser.prototype.copy = function()
 	result.lineNumber = this.lineNumber
 
 	result.objects = this.objects.map( (o) => ({
+			name: o.name,
 			colors: o.colors.concat([]),
-			lineNumber : o.lineNumber,
-			spritematrix: o.spritematrix.concat([])
+			// lineNumber : o.lineNumber,
+			spritematrix: o.spritematrix.concat([]),
+			layer: o.layer
 		}))
-	result.object_names = Array.from(this.object_names) // we can use Array.from because it will copy the strings (they are passed by value)
 
 	result.identifiers = Array.from(this.identifiers)
-	result.identifiers_info = this.identifiers_info.map( ([type,pos]) => [type, pos])
+	result.identifiers_deftype = Array.from(this.identifiers_deftype)
+	result.identifiers_comptype = Array.from(this.identifiers_comptype)
+	result.identifiers_objects = this.identifiers_objects.map( objects => Array.from(objects) )
+	result.identifiers_lineNumbers = Array.from(this.identifiers_lineNumbers)
 
 	result.commentLevel = this.commentLevel
 	result.section = this.section
 	result.visitedSections = this.visitedSections.concat([])
+
+	result.tokenIndex = this.tokenIndex
+
+	result.metadata_keys   = this.metadata_keys.concat([])
+	result.metadata_values = this.metadata_values.concat([])
 
 	result.objects_candname = this.objects_candname
 	result.objects_candindex = this.objects_candindex
 	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
 
-	result.tokenIndex = this.tokenIndex
-	result.legend_synonyms = this.legend_synonyms.map( i => i.concat([]) )
-	result.legend_aggregates = this.legend_aggregates.map( i => i.concat([]) )
-	result.legend_properties = this.legend_properties.map( i => i.concat([]) )
-
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
-	result.collisionLayers = this.collisionLayers.map( i => i.concat([]) )
+	result.collisionLayers = this.collisionLayers.map( s => new Array(...s) )
 
 	result.rules = this.rules.concat([])
 
@@ -161,10 +167,6 @@ PuzzleScriptParser.prototype.copy = function()
 	result.original_case_names = this.original_case_names.concat([])
 
 	result.abbrevNames = this.abbrevNames.concat([])
-
-	// result.metadata = this.metadata.concat([])
-	result.metadata_keys   = this.metadata_keys.concat([])
-	result.metadata_values = this.metadata_values.concat([])
 
 	result.levels = this.levels.map( i => i.concat([]) )
 
@@ -194,57 +196,93 @@ PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 
 //  ======= PARSING LOGIC DISCONNECTED FROM CODEMIRROR'S API =========
 
+const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
+
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
 	this.metadata_keys.push(key)
 	this.metadata_values.push(value)
 }
 
-const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
-
-PuzzleScriptParser.prototype.registerNewIdentifier = function(candname, original_case, type)
+PuzzleScriptParser.prototype.getObjectsForIdentifier = function(identifier_index)
 {
-	if (original_case != null)
-	{
-		this.original_case_names[candname] = original_case; // TODO: we need to use a name index instead of candname
-	}
-	this.identifiers.push( candname )
-	this.identifiers_info.push( [type, [this.objects, this.legend_synonyms, this.legend_aggregates, this.legend_properties][type].length] );
+	return this.identifiers_objects[identifier_index];
 }
 
-PuzzleScriptParser.prototype.registerNewObject = function(candname, original_case)
+PuzzleScriptParser.prototype.getObjectsAnIdentifierCanBe = function(identifier)
 {
-	this.registerNewIdentifier(candname, original_case, 0)
+	const identifier_index = this.identifiers.indexOf(identifier);
+	return this.getObjectsForIdentifier(identifier_index);
+}
+
+PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects)
+{
+	this.original_case_names.push( original_case );
+	this.identifiers.push( identifier )
+	this.identifiers_deftype.push( deftype )
+	this.identifiers_comptype.push( comptype)
+	this.identifiers_objects.push( objects )
+	this.identifiers_lineNumbers.push( this.lineNumber )
+}
+
+PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_case)
+{
+	const object_id = this.objects.length
+	this.registerNewIdentifier(identifier, original_case, object_id, object_id, new Set([object_id]))
 	this.objects.push( {
-		name: candname,
-		lineNumber: this.lineNumber,
+		name: identifier,
 		colors: [],
 		spritematrix: []
 	});
-	this.object_names.push(candname)
 }
 
-PuzzleScriptParser.prototype.registerNewSynonym = function(candname, original_case, old_identifier)
+PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index)
 {
-	this.registerNewIdentifier(candname, original_case, 1)
-	var synonym = [candname, old_identifier];
-	synonym.lineNumber = this.lineNumber;
-	this.legend_synonyms.push(synonym);
+	this.registerNewIdentifier(
+		identifier,
+		original_case,
+		identifier_type_synonym,
+		this.identifiers_comptype[old_identifier_index],
+		this.identifiers_objects[old_identifier_index]
+	)
 }
 
-PuzzleScriptParser.prototype.registerNewAggregate = function(newlegend, original_case)
+PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, compound_name, compound_type)
 {
-	this.registerNewIdentifier( newlegend[0], original_case, 2)
-	newlegend.lineNumber = this.lineNumber;
-	this.legend_aggregates.push(newlegend);
+	var ok = true;
+	var objects = new Set()
+	const forbidden_type = ({identifier_type_aggregate: identifier_type_property, identifier_type_property: identifier_type_aggregate})[compound_type];
+	for (const identifier of identifiers)
+	{
+		const identifier_index = this.identifiers.indexOf(identifier);
+		if (identifier_index < 0)
+		{
+			ok = false;
+			logError('Unknown identifier "' + identifier.toUpperCase() + '" in definition of ' + ['aggregate ', 'property '][compound_type-2] + compound_name.toUpperCase() + ', ignoring it.', this.lineNumber);
+		}
+		else
+		{
+			if (this.identifiers_comptype[identifier_index] == forbidden_type)
+			{
+				if (compound_type == identifier_type_aggregate)
+					logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
+				else
+					logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
+				ok = false;
+			}
+			else
+			{
+				this.getObjectsAnIdentifierCanBe(identifier).forEach( o => objects.add(o) )
+			}
+		}
+	}
+	return [ok, objects];
 }
 
-PuzzleScriptParser.prototype.registerNewProperty = function(property, original_case)
+PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, original_case, objects, type) // type should be 2 for aggregates and 3 for properties
 {
-	this.registerNewIdentifier( property[0], original_case, 3)
-	property.lineNumber = this.lineNumber;
-	this.legend_properties.push(property);
+	this.registerNewIdentifier(new_identifier, original_case, type, type, objects);
 }
 
 PuzzleScriptParser.prototype.wordExists = function(n)
@@ -252,17 +290,17 @@ PuzzleScriptParser.prototype.wordExists = function(n)
 	return (this.identifiers.indexOf(n.toLowerCase()) >= 0);
 }
 
-PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid(candname)
+PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname)
 {
 	// Check if this name is already used
 	const identifier_index = this.identifiers.indexOf(candname);
 	if (identifier_index >= 0)
 	{
-		const [type, pos] = this.identifiers_info[identifier_index]
-		const object_list = [this.objects, this.legend_synonyms, this.legend_aggregates, this.legend_properties][type]
-		const l = object_list[pos].lineNumber
-		logError('Object "' + candname.toUpperCase() + '" already defined ' + ['', 'as synonym ', 'as aggregate ', 'as property '][type] + 'on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
-		if (type == 0)
+		const type = this.identifiers_deftype[identifier_index]
+		const l = this.identifiers_lineNumbers[identifier_index];
+		const definition_string = (type>=0) ? '' :  ({identifier_type_synonym:'as synonym ', identifier_type_aggregate:'as aggregate ', identifier_type_property:'as property '})[type]
+		logError('Object "' + candname.toUpperCase() + '" already defined ' + definition_string + 'on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
+		if (type >= 0)
 			return false;
 	}
 
@@ -274,6 +312,52 @@ PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid(candname)
 	return true;
 }
 
+// TODO: add a syntax to name collision_layers and use their name as a property?
+// -> Actually, we should check that the identifiers given in a layer form a valid property definition.
+//    or simply we check that a name given in a collision layer is not the name of an aggregate.
+PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(candname)
+{
+	// we have a name: let's see if it's valid
+
+	if (candname === 'background')
+	{
+		if ( (this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0) )
+		{
+			logError("Background must be in a layer by itself.", this.lineNumber);
+		}
+		this.tokenIndex = 1;
+	} else if (this.tokenIndex !== 0)
+	{
+		logError("Background must be in a layer by itself.", this.lineNumber);
+	}
+
+	if (this.collisionLayers.length === 0)
+	{
+		logError("no layers found.", this.lineNumber);
+		return false;
+	}
+	
+	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
+	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
+	const ar = this.getObjectsAnIdentifierCanBe(candname);
+	var identifier_added = true;
+	for (const objpos of ar)
+	{
+		const obj = this.objects[objpos];
+		const l = obj.layer;
+		if ( (l !== undefined) && (l != this.collisionlayers.length-1) )
+		{
+			identifier_added = false;
+			logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!', this.lineNumber);
+		}
+		else
+		{
+			this.objects[objpos].layer = this.collisionLayers.length - 1;
+			this.collisionLayers[this.collisionLayers.length - 1].add(objpos);
+		}
+	}
+	return identifier_added;
+}
 
 
 // ====== OTHERS =======
@@ -391,7 +475,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 		this.registerNewObject(candname, findOriginalCaseName(candname, mixedCase))
 	} else {
 		//set up alias
-		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects_candname)
+		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects_candindex)
 	}
 	this.objects_section = 1;
 	return 'NAME';
@@ -501,91 +585,6 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 }
 
 
-// BUG: some of these functions modify the "ok" variable defined in tokenInLegendSection
-//      In addition, the new version is not recursive, so it may be broken
-PuzzleScriptParser.prototype.substitutor_for_aggregate = function(n)
-{
-	n = n.toLowerCase();
-	const identifier_index = this.identifiers.indexOf(n);
-	if (identifier_index >= 0)
-	{
-		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
-		switch (identifier_type)
-		{
-			case 0: return [n];
-			case 1: return this.legend_synonyms[index_for_type][1];
-			case 2: return this.aggregates[index_for_type];
-			case 3: 
-				logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
-				ok=false;
-		}
-	}
-	// if (this.object_names.indexOf(n) >= 0)
-	// 	return [n];
-
-	// for (var a of this.legend_synonyms)
-	// {
-	// 	if (a[0]===n)
-	// 		return this.substitutor_for_aggregate(a[1]);
-	// }
-	// for (var a of this.legend_aggregates)
-	// {
-	// 	if (a[0]===n)
-	// 		return [].concat.apply([],a.slice(1).map(this.substitutor_for_aggregate));
-	// }
-	// for (var a of this.legend_properties)
-	// {
-	// 	if (a[0]===n)
-	// 	{
-	// 		logError("Cannot define an aggregate (using 'and') in terms of properties (something that uses 'or').", this.lineNumber);
-	// 		ok=false;
-	// 		return [n];
-	// 	}
-	// }
-	return [n];
-}
-
-PuzzleScriptParser.prototype.substitutor_for_property = function(n)
-{
-	n = n.toLowerCase();
-	const identifier_index = this.identifiers.indexOf(n);
-	if (identifier_index >= 0)
-	{
-		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
-		switch (identifier_type)
-		{
-			case 0: return [n];
-			case 1: return this.legend_synonyms[index_for_type][1];
-			case 3: return this.properties[index_for_type];
-			case 2: 
-				logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
-				ok=false;
-		}
-	}
-	// if (this.object_names.indexOf(n) >= 0)
-	// 	return [n];
-
-	// for (var a of this.legend_synonyms)
-	// {
-	// 	if (a[0]===n)
-	// 		return this.substitutor_for_property(a[1]);
-	// }
-	// for (var a of this.legend_aggregates)
-	// {
-	// 	if (a[0]===n)
-	// 	{
-	// 		logError("Cannot define a property (using 'or') in terms of aggregates (something that uses 'and').", this.lineNumber);
-	// 		ok=false;
-	// 	}
-	// }
-	// for (var a of this.legend_properties)
-	// {
-	// 	if (a[0]===n)
-	// 		return [].concat.apply([],a.slice(1).map(this.substitutor_for_property));
-	// }
-	return [n];
-}
-
 
 // TODO: when defining an abrevation to use in a level, give the possibility to follow it with a (background) color that will be used in the editor to display the levels
 // Or maybe we want to directly use the object's sprite as a background image?
@@ -627,48 +626,51 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			return 'ERROR';
 		} */ else if (splits.length === 3)
 		{
-			this.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], mixedCase), splits[2].toLowerCase())
+			const old_identifier_index = this.identifiers.indexOf(splits[2].toLowerCase());
+			if (old_identifier_index < 0)
+			{
+				// TODO: log error.
+			}
+			else
+			{
+				this.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], mixedCase), old_identifier_index)
+			}
 		} else if (splits.length % 2 === 0) {
 			ok = false;
 		} else {
-			var lowertoken = splits[3].toLowerCase();
-			if (lowertoken === 'and') {
-
-				for (var i = 5; i < splits.length; i += 2) {
-					if (splits[i].toLowerCase() !== 'and') {
-						ok = false;
-						break;
-					}
+			const lowertoken = splits[3].toLowerCase();
+			for (var i = 5; i < splits.length; i += 2)
+			{
+				if (splits[i].toLowerCase() !== lowertoken)
+				{
+					ok = false;
+					break;
 				}
-				if (ok) {
-					var newlegend = [splits[0]]
-					for (var i = 2; i < splits.length; i += 2)
-					{
-						newlegend = newlegend.concat(this.substitutor_for_aggregate(splits[i]));
-					}
-					this.registerNewAggregate(newlegend, findOriginalCaseName(newlegend[0], mixedCase));
+			}
+			if (ok)
+			{
+				const new_identifier = splits[0];
+				var new_definition = []
+				for (var i = 2; i < splits.length; i += 2)
+				{
+					new_definition.push(splits[i]);
 				}
-			} else if (lowertoken === 'or') {
-
-				for (var i = 5; i < splits.length; i += 2) {
-					if (splits[i].toLowerCase() !== 'or') {
-						ok = false;
-						break;
-					}
+				const compound_type = ({ and:identifier_type_aggregate, or: identifier_type_property})[lowertoken];
+				if (compound_type === undefined)
+				{
+					ok = false;
 				}
-				if (ok) {
-					var newlegend = [splits[0]].concat(this.substitutor_for_property(splits[2])).concat(this.substitutor_for_property(splits[4]));
-					for (var i = 6; i < splits.length; i += 2) {
-						newlegend.push(splits[i].toLowerCase());
-					}
-					this.registerNewProperty(newlegend, findOriginalCaseName(newlegend[0], mixedCase))
-				}
-			} else {
-				ok = false;
+				else
+				{
+					var objects_in_compound;
+					[ok, objects_in_compound] = this.checkCompoundDefinition(new_definition, new_identifier, compound_type)
+					this.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, mixedCase), objects_in_compound, compound_type);
+				} 
 			}
 		}
 
-		if (ok === false) {
+		if (ok === false)
+		{
 			logError('incorrect format of legend - should be one of A = B, A = B or C ( or D ...), A = B and C (and D ...)', this.lineNumber);
 			stream.match(reg_notcommentstart, true);
 			return 'ERROR';
@@ -754,108 +756,12 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 
 
 
-// recursively replace a name that can be used in a CollisionLayer with the list of object names it can correspond to
-PuzzleScriptParser.prototype.substitutor = function(candname)
-{
-	n = candname.toLowerCase();
-	const identifier_index = this.identifiers.indexOf(n);
-	if (identifier_index >= 0)
-	{
-		const [identifier_type, index_for_type] = this.identifiers_info[identifier_index];
-		switch (identifier_type)
-		{
-			case 0: return [n];
-			case 1: return this.synonyms[index_for_type];
-			case 3: return this.properties[index_for_type];
-			case 2:
-				logError('"'+n+'" is an aggregate (defined using "and"), and cannot be added to a single layer because its constituent objects must be able to coexist.', this.lineNumber);
-				return [];
-		}
-	}
-
-	// if (this.object_names.indexOf(n) >= 0)
-	// 	return [n];
-
-	// for (var a of this.legend_synonyms)
-	// {
-	// 	if (a[0]===n)
-	// 		return this.substitutor(a[1]);
-	// }
-
-	// for (var a of this.legend_aggregates)
-	// {
-	// 	if (a[0]===n)
-	// 	{
-	// 		logError('"'+n+'" is an aggregate (defined using "and"), and cannot be added to a single layer because its constituent objects must be able to coexist.', this.lineNumber);
-	// 		return [];
-	// 	}
-	// }
-	// for (var a of this.legend_properties)
-	// {
-	// 	if (a[0]===n)
-	// 	{
-	// 		var result = [].concat.apply([],a.slice(1).map(this.substitutor)); // concatenate all the arrays obtained by calling substitutor recursivelly
-	// 		return result;
-	// 	}
-	// }
-	logError('Cannot add "' + candname.toUpperCase() + '" to a collision layer; it has not been declared.', this.lineNumber);                                
-	return [];
-}
-
-// TODO: this is actually a semantic checking function that does not involve parsing
-PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(candname)
-{
-	// we have a name: let's see if it's valid
-
-	if (candname === 'background')
-	{
-		if ( (this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0) )
-		{
-			logError("Background must be in a layer by itself.", this.lineNumber);
-		}
-		this.tokenIndex = 1;
-	} else if (this.tokenIndex !== 0)
-	{
-		logError("Background must be in a layer by itself.", this.lineNumber);
-	}
-
-	if (this.collisionLayers.length === 0)
-	{
-		logError("no layers found.", this.lineNumber);
-		return false;
-	}
-	
-	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
-	// TODO: a more efficient way to do that would be to register for each object the layer it is in, and simply check that no member of "ar" has a layer defined to something else than the current layer
-	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
-	var ar = this.substitutor(candname);
-	var foundOthers=[];
-	for (const objname of ar)
-	{
-		for (var [j, clj] of this.collisionLayers.entries())
-		{
-			if ((clj.indexOf(objname) >= 0) && (j != this.collisionLayers.length-1) ) // TODO: why not check the current layer too?
-			{
-				foundOthers.push(j);
-			}
-		}
-	}
-	if (foundOthers.length>0)
-	{
-		logWarning('Object "' + candname.toUpperCase() + '" included in multiple collision layers (layers ' + foundOthers.join(", ") + (this.collisionLayers.length-1) +
-		 	'). You should fix this!', this.lineNumber);                                        
-	}
-
-	this.collisionLayers[this.collisionLayers.length - 1].push(...ar); // TODO: we may want to use a set of object names here
-	return (ar.length > 0); // TODO: we should do this test earlier and move the error message out of the substitutor method.
-}
-
 PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
 	{
 		//create new collision layer
-		this.collisionLayers.push([]);
+		this.collisionLayers.push(new Set());
 		this.tokenIndex = 0;
 	}
 
@@ -906,48 +812,48 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.next();
 		stream.match(/\p{Separator}*/u, true);
 		return 'BRACKET';
-	} else {
-		var m = stream.match(/[^\[\|\]\p{Separator}]*/u, true)[0].trim();
-
-		if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
-			return 'BRACKET';
-		if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
-		{
-			stream.match(/\p{Separator}*/u, true);
-			return 'DIRECTION';
-		}
-		if (this.tokenIndex === 1 && reg_directions.exec(m))
-		{
-			stream.match(/\p{Separator}*/u, true);
-			return 'DIRECTION';
-		}
-		if (this.identifiers.indexOf(m) >= 0)
-		{
-			if (is_start_of_line)
-			{
-				logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
-				return 'ERROR';
-			}
-			stream.match(/\p{Separator}*/u, true);
-			return 'NAME';
-		}
-		if (m === '...')
-			return 'DIRECTION';
-		if (m === 'rigid')
-			return 'DIRECTION';
-		if (m === 'random')
-			return 'DIRECTION';
-		if (commandwords.indexOf(m) >= 0)
-		{
-			if (m === 'message')
-			{
-				this.tokenIndex=-4;
-			}                                	
-			return 'COMMAND';
-		}
-		logError('Name "' + m + '", referred to in a rule, does not exist.', this.lineNumber);
-		return 'ERROR';
 	}
+
+	const m = stream.match(/[^\[\|\]\p{Separator}]*/u, true)[0].trim();
+
+	if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
+		return 'BRACKET';
+	if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
+	{
+		stream.match(/\p{Separator}*/u, true);
+		return 'DIRECTION';
+	}
+	if (this.tokenIndex === 1 && reg_directions.exec(m))
+	{
+		stream.match(/\p{Separator}*/u, true);
+		return 'DIRECTION';
+	}
+	if (this.identifiers.indexOf(m) >= 0)
+	{
+		if (is_start_of_line)
+		{
+			logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
+			return 'ERROR';
+		}
+		stream.match(/\p{Separator}*/u, true);
+		return 'NAME';
+	}
+	if (m === '...')
+		return 'DIRECTION';
+	if (m === 'rigid')
+		return 'DIRECTION';
+	if (m === 'random')
+		return 'DIRECTION';
+	if (commandwords.indexOf(m) >= 0)
+	{
+		if (m === 'message')
+		{
+			this.tokenIndex=-4;
+		}                                	
+		return 'COMMAND';
+	}
+	logError('Name "' + m + '", referred to in a rule, does not exist.', this.lineNumber);
+	return 'ERROR';
 }
 
 
@@ -1156,20 +1062,11 @@ PuzzleScriptParser.prototype.token = function(stream)
 			if (this.section === 'levels')
 			{
 				//populate character abbreviations
-				this.abbrevNames.push(...this.object_names)
-
-				for (const synonym of this.legend_synonyms)
+				for (const [i, identifier] of this.identifiers.entries())
 				{
-					if (synonym[0].length == 1)
+					if ((identifier.length == 1) && (this.identifiers_deftype[i] != identifier_type_property) )
 					{
-						this.abbrevNames.push(synonym[0]);
-					}
-				}
-				for (const aggregate of this.legend_aggregates)
-				{
-					if (aggregate[0].length == 1)
-					{
-						this.abbrevNames.push(aggregate[0]);
+						this.abbrevNames.push(identifier);
 					}
 				}
 			}
