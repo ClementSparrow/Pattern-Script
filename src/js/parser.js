@@ -1,7 +1,7 @@
 /*
 credits
 
-brunt of the work by stephen lavelle (www.increpare.com)
+brunt of the work by increpare (www.increpare.com)
 
 all open source mit license blah blah
 
@@ -900,7 +900,8 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 {
 	if (is_start_of_line)
 	{
-		if (stream.match(/\p{Separator}*message\p{Separator}*/u, true)) {
+		if (stream.match(/\p{Separator}*message\b\p{Separator}*/u, true))
+		{
 			this.tokenIndex = 1;//1/2 = message/level
 			var newdat = ['\n', mixedCase.slice(stream.pos).trim(), this.lineNumber];
 			if (this.levels[this.levels.length - 1].length == 0) {
@@ -1028,7 +1029,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 			return 'EQUALSBIT';
 
 		//MATCH SECTION NAME
-		if (stream.match(reg_sectionNames, true))
+		if (is_start_of_line && stream.match(reg_sectionNames, true))
 		{
 			this.section = stream.string.slice(0, stream.pos).trim();
 

@@ -17,12 +17,12 @@ function createSprite(name,spritegrid, colors, padding) {
         pixh=Math.ceil(ch/2);
     }
     spritectx.fillStyle = state.fgcolor;
-    for (var j = 0; j < w; j++) {
-        for (var k = 0; k < h; k++) {
+    for (var j = 0; j < h; j++) {
+        for (var k = 0; k < w; k++) {
             var val = spritegrid[j][k];
             if (val >= 0) {
-                var cy = (j * cw)|0;
-                var cx = (k * ch)|0;
+                var cy = (j * ch)|0;
+                var cx = (k * cw)|0;
                 spritectx.fillStyle = colors[val];
                 spritectx.fillRect(cx, cy, cw, pixh);
             }
@@ -41,13 +41,16 @@ function regenText(spritecanvas,spritectx) {
 		}
 	}
 }
+
+var editor_s_grille=[[0,1,1,1,0],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0]];
+
 var spriteimages;
 function regenSpriteImages() {
 	if (textMode) {
 		regenText();
 		return;
 	} else if (levelEditorOpened) {
-        textImages['s'] = createSprite('chars',font['s'],undefined);
+        textImages['editor_s'] = createSprite('chars',editor_s_grille,undefined);
     }
     
     if (state.levels.length===0) {
@@ -129,7 +132,7 @@ function generateGlyphImages() {
 	}
 
 	{
-		glyphPrintButton = textImages['s'];
+		glyphPrintButton = textImages['editor_s'];
 	}
 	{
 		//make highlight thingy
@@ -374,23 +377,24 @@ function canvasResize() {
 
 
     if (textMode) {
-        w=6;
-        h=6;
+        w=font['X'][0].length + 1;
+        h=font['X'].length + 1;
     }
 
-    cellwidth = w * ~~(cellwidth / w);
-    cellheight = h * ~~(cellheight / h);
+
+    cellwidth =w * Math.max( ~~(cellwidth / w),1);
+    cellheight = h * Math.max(~~(cellheight / h),1);
 
     xoffset = 0;
     yoffset = 0;
 
-    if (cellwidth > cellheight) {
-        cellwidth = cellheight;
+    if (cellwidth / w > cellheight / h) {
+        cellwidth = cellheight * w / h;
         xoffset = (canvas.width - cellwidth * screenwidth) / 2;
         yoffset = (canvas.height - cellheight * screenheight) / 2;
     }
     else { //if (cellheight > cellwidth) {
-        cellheight = cellwidth;
+        cellheight = cellwidth * h / w;
         yoffset = (canvas.height - cellheight * screenheight) / 2;
         xoffset = (canvas.width - cellwidth * screenwidth) / 2;
     }

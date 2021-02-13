@@ -32,17 +32,23 @@ var editor = window.CodeMirror.fromTextArea(code, {
 //	viewportMargin: Infinity,
 	lineWrapping: true,
 	lineNumbers: true,
-      styleActiveLine: true
+	styleActiveLine: true,
+	extraKeys: {
+		"Ctrl-/": "toggleComment",
+		"Cmd-/": "toggleComment",
+		"Esc":CodeMirror.commands.clearSearch
+		}
 	});
-
+	
 editor.on('mousedown', function(cm, event) {
   if (event.target.className == 'cm-SOUND') {
     var seed = parseInt(event.target.innerHTML);
     playSound(seed);
   } else if (event.target.className == 'cm-LEVEL') {
     if (event.ctrlKey||event.metaKey) {
-      document.activeElement.blur();  // unfocus code panel
-      event.preventDefault();         // prevent refocus
+	  document.activeElement.blur();  // unfocus code panel
+	  editor.display.input.blur();
+      prevent(event);         // prevent refocus
       compile(["levelline",cm.posFromMouse(event).line]);
     }
   }

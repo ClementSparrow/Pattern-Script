@@ -53,6 +53,10 @@
             "DIRECTION",//tag
             "up", "down", "left", "right", "random", "horizontal", "vertical","late","rigid"]
 
+        var LOOP_WORDS = [
+            "BRACKET",//tag
+            "startloop","endloop"]
+            
         var PATTERN_DIRECTION_WORDS = [
             "DIRECTION",
             "up", "down", "left", "right", "moving", "stationary", "no", "randomdir", "random", "horizontal", "vertical", "orthogonal", "perpendicular", "parallel", "action"]
@@ -157,9 +161,12 @@
                 case 'legend':
                     {
                         if (lineToCursor.indexOf('=')>=0){
-                            addObjects=true;  
-                            candlists.push(LEGEND_LOGICWORDS);                      
-                        } //no hins before equals
+                            if ((lineToCursor.trim().split(/\s+/ ).length%2)===1){
+                                addObjects=true;
+                            } else {
+                                candlists.push(LEGEND_LOGICWORDS);                      
+                            }
+                        } //no hints before equals
                         break;
                     }
                 case 'sounds':
@@ -180,6 +187,7 @@
                         //if inside of roles,can use some extra directions
                         if (lineToCursor.indexOf("[")==-1) {
                             candlists.push(RULE_DIRECTION_WORDS);
+                            candlists.push(LOOP_WORDS);
                         } else {
                             candlists.push(PATTERN_DIRECTION_WORDS);                            
                         }
@@ -191,13 +199,15 @@
                     }
                 case 'winconditions':
                     {
-                        addObjects=true;
+                        if ((lineToCursor.trim().split(/\s+/ ).length%2)===0){
+                            addObjects=true;
+                        }
                         candlists.push(WINCONDITION_WORDS);
                         break;
                     }
                 case 'levels':
                     {
-                        if (lineToCursor.trim().split(/\s+/ ).length<2) {
+                        if ("message".indexOf(lineToCursor.trim())===0) {
                             candlists.push(["MESSAGE_VERB","message"]);
                         }
                         break;
@@ -234,7 +244,7 @@
                 {
                     const w = o.name;
                     var matchWord = w.toLowerCase();
-                    if (matchWord === curWord) continue;
+                    // if (matchWord === curWord) continue;
                     if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
                         seen[matchWord] = true;
                         var hint = state.original_case_names[object_index];
@@ -258,7 +268,7 @@
                     if (legendbits_types.includes(state.identifiers_deftype[identifier_index]))
                     {
                         const matchWord = w.toLowerCase();
-                        if (matchWord === curWord) continue;
+                        // if (matchWord === curWord) continue;
                         if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
                             seen[matchWord] = true;
                             const hint = state.original_case_names[identifier_index];
@@ -285,7 +295,7 @@
                     }
                     var matchWord=m;
                     var matchWord = matchWord.toLowerCase();
-                    if (matchWord === curWord) continue;
+                    // if (matchWord === curWord) continue;
                     if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
                         seen[matchWord] = true;
 

@@ -374,7 +374,6 @@ var simpleRelativeDirections = ['^', 'v', '<', '>'];
 var reg_directions_only = /^(\>|\<|\^|v|up|down|left|right|moving|stationary|no|randomdir|random|horizontal|vertical|orthogonal|perpendicular|parallel|action)$/;
 
 
-
 function directionalRule(rule) {
 	for (var i=0;i<rule.lhs.length;i++) {
 		var cellRow = rule.lhs[i];
@@ -567,7 +566,9 @@ function processRuleString(rule, state, curRules)
 						curcell.push(token);
 					}
 				} else if (token == '|') {
-					if (curcell.length % 2 == 1) {
+					if (!incellrow) {
+						logWarning('Janky syntax.  "|" should only be used inside cell rows (the square brackety bits).',lineNumber);
+					} else if (curcell.length % 2 == 1) {
 						logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
 					} else {
 						curcellrow.push(curcell);
@@ -599,11 +600,11 @@ function processRuleString(rule, state, curRules)
 					curcellrow = [];
 					incellrow = false;
 				} else if (token === '->') {
-					if (rhs) {
-						logError('Error, you can only use "->" once in a rule; it\'s used to separate before and after states.', lineNumber);
-					} if (curcellrow.length > 0) {
+					if (incellrow) {
 						logError('Encountered an unexpected "->" inside square brackets.  It\'s used to separate states, it has no place inside them >:| .', lineNumber);
-					} else {
+					} else if (rhs) {
+						logError('Error, you can only use "->" once in a rule; it\'s used to separate before and after states.', lineNumber);
+					}  else {
 						rhs = true;
 					}
 				} else if (state.identifiers.indexOf(token) >= 0) {
@@ -682,21 +683,6 @@ function processRuleString(rule, state, curRules)
 
 	if (directionalRule(rule_line)===false) {
 		rule_line.directions=['up'];
-	}
-
-	/* reset must appear by itself */
-
-	for (var i=0;i<commands.length;i++) {
-		var cmd = commands[i][0];
-		if (cmd==='restart') {
-			if (commands.length>1 || rhs_cells.length>0) {
-				logError('The RESTART command can only appear by itself on the right hand side of the arrow.', lineNumber);
-			}
-		} else if (cmd==='cancel') {
-			if (commands.length>1 || rhs_cells.length>0) {
-				logError('The CANCEL command can only appear by itself on the right hand side of the arrow.', lineNumber);
-			}
-		}
 	}
 
 	//next up - replace relative directions with absolute direction
@@ -2358,10 +2344,12 @@ function formatHomePage(state)
 	}
 	
 	if (isColor(state.fgcolor)===false ){
-		logError("text_color in incorrect format - found "+state.fgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
+		logError("text_color in incorrect format - found "+state.fgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to white.")
+		state.fgcolor="#FFFFFF";
 	}
 	if (isColor(state.bgcolor)===false ){
-		logError("background_color in incorrect format - found "+state.bgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').")
+		logError("background_color in incorrect format - found "+state.bgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to black.")
+		state.bgcolor="#000000";
 	}
 
 	if (canSetHTMLColors) {
@@ -2527,7 +2515,7 @@ function compile(command,text,randomseed) {
 	}*/
 
 	if (errorCount>0) {
-		consoleError('<span class="systemMessage">Errors detected during compilation, the game may not work correctly.</span>');
+		consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>');
 	}
 	else {
 		var ruleCount=0;

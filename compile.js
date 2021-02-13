@@ -6,8 +6,7 @@ creates a highly compressed release build in bin of the contents of src
 
 packages used:
 
-npm i tar  html-minifier-terser ycssmin  google-closure-compiler concat  pngcrush-bin inliner ncp rimraf gifsicle
-
+npm i tar  html-minifier-terser ycssmin  google-closure-compiler concat  pngcrush-bin inliner ncp rimraf gifsicle terser gzipper  
 */
 
 var fs = require("fs");
@@ -120,13 +119,11 @@ new Inliner('./src/standalone.html', function (error, html) {
             var min = cssmin(css);
             fs.writeFileSync("./bin/Documentation/css/bootstrap.css",min,encoding="utf8");
 
-            console.log("running google closure compiler");
+            console.log("running js minification");
 
+            const { minify } = require("terser");
 
-            const ClosureCompiler = require('google-closure-compiler').compiler;
-
-            const closureCompiler = new ClosureCompiler({
-                js: [  
+            var files = [  
                     "./src/js/Blob.js",
                     "./src/js/FileSaver.js",
                     "./src/js/jsgif/LZWEncoder.js",
@@ -146,6 +143,7 @@ new Inliner('./src/standalone.html', function (error, html) {
                     "./src/js/codemirror/match-highlighter.js",
                     "./src/js/codemirror/show-hint.js",
                     "./src/js/codemirror/anyword-hint.js",
+                    "./src/js/codemirror/comment.js",
                     "./src/js/colors.js",
                     "./src/js/graphics.js",
                     "./src/js/inputoutput.js",
@@ -167,72 +165,117 @@ new Inliner('./src/standalone.html', function (error, html) {
                     "./src/js/layout.js",
                     "./src/js/addlisteners.js",
                     "./src/js/addlisteners_editor.js",
-                    "./src/js/makegif.js"],
-                js_output_file:'./bin/js/scripts_compiled.js',
-                compilation_level: 'SIMPLE'
-            });
-            const compilerProcess = closureCompiler.run((exitCode, stdOut, stdErr) => {
-                
+                    "./src/js/makegif.js"];
 
-                          
-                const closureCompiler2 = new ClosureCompiler({
-                    js: [  
-                        "./src/js/globalVariables.js",
-                        "./src/js/debug_off.js",
-                        "./src/js/font.js",
-                        "./src/js/rng.js",
-                        "./src/js/riffwave.js",
-                        "./src/js/sfxr.js",
-                        "./src/js/codemirror/codemirror.js",
-                        "./src/js/colors.js",
-                        "./src/js/graphics.js",
-                        "./src/js/engine/log.js",
-                        "./src/js/engine/message_screen.js",
-                        "./src/js/engine/level.js",
-                        "./src/js/engine/bitvec.js",
-                        "./src/js/engine/rule.js",
-                        "./src/js/engine/cell_pattern.js",
-                        "./src/js/engine/engine_base.js",
-                        "./src/js/parser.js",
-                        "./src/js/compiler.js",
-                        "./src/js/inputoutput.js",
-                        "./src/js/mobile.js"],
-                    js_output_file:'./bin/js/scripts_play_compiled.js',
-                    compilation_level: 'SIMPLE'
+            var corpus={};
+            for (var i=0;i<files.length;i++){
+                var fpath=files[i];
+                corpus["source/"+fpath.slice(9)]=fs.readFileSync(fpath,encoding='utf-8');
+            }
+            var result = await minify(
+                corpus, 
+                {
+                    sourceMap: {
+                    filename: "scripts_compiled.js",
+                    url: "scripts_compiled.js.map"
+                    }
                 });
-                const compilerProcess2 = closureCompiler2.run((exitCode, stdOut, stdErr) => {
-                    console.log("compilation done");
+            fs.writeFileSync('./bin/js/scripts_compiled.js',result.code);
+            fs.writeFileSync('./bin/js/scripts_compiled.js.map',result.map);
 
-                    var editor = fs.readFileSync("./bin/editor.html", encoding='utf8');
-                    editor = editor.replace(/<script src="js\/[A-Za-z0-9_\/-]*\.js"><\/script>/g, "");
-                    editor = editor.replace(/<!--TOREPLACE-->/g, '<script src="js\/scripts_compiled.js"><\/script>');
-                    editor = editor.replace(/<link rel="stylesheet" href="[A-Za-z0-9_\/-]*\.css">/g, '');
-                    editor = editor.replace(/<!--CSSREPLACE-->/g, '<link rel="stylesheet" href="css\/combined.css">');
-                    editor = editor.replace(/<!--BUILDNUMBER-->/g,'(build '+buildnum.toString()+')');
-                    fs.writeFileSync("./bin/editor.html",editor, encoding='utf8');
 
-                    var player = fs.readFileSync("./bin/play.html", encoding='utf8');
-                    player = player.replace(/<script src="js\/[A-Za-z0-9_\/-]*\.js"><\/script>/g, "");
-                    player = player.replace(/<!--TOREPLACE-->/g, '<script src="js\/scripts_play_compiled.js"><\/script>');
-                    fs.writeFileSync("./bin/play.html",player, encoding='utf8');
+            files = [  
+                "./src/js/globalVariables.js",
+                "./src/js/debug_off.js",
+                "./src/js/font.js",
+                "./src/js/rng.js",
+                "./src/js/riffwave.js",
+                "./src/js/sfxr.js",
+                "./src/js/codemirror/codemirror.js",
+                "./src/js/colors.js",
+                "./src/js/graphics.js",
+                "./src/js/engine/log.js",
+                "./src/js/engine/message_screen.js",
+                "./src/js/engine/level.js",
+                "./src/js/engine/bitvec.js",
+                "./src/js/engine/rule.js",
+                "./src/js/engine/cell_pattern.js",
+                "./src/js/engine/engine_base.js",
+                "./src/js/parser.js",
+                "./src/js/compiler.js",
+                "./src/js/inputoutput.js",
+                "./src/js/mobile.js"];
 
-                    console.log("compressing html");
+            
+            corpus={};
+            for (var i=0;i<files.length;i++){
+                var fpath=files[i];
+                corpus["source/"+fpath.slice(9)]=fs.readFileSync(fpath,encoding='utf-8');
+            }
+            
+            var result = await minify(
+                corpus, 
+                {
+                    sourceMap: {
+                    filename: "scripts_play_compiled.js",
+                    url: "scripts_play_compiled.js.map"
+                    }
+                });
+            fs.writeFileSync('./bin/js/scripts_play_compiled.js',result.code);
+            fs.writeFileSync('./bin/js/scripts_play_compiled.js.map',result.map);
                     
-                    var minify = require('html-minifier-terser').minify;
-                    
-                    glob("./bin/*.html", {}, async function (er, files) {
-                        for (filename of files){
-                           var lines=fs.readFileSync(filename, encoding='utf8');
-                           var result = minify(lines);
-                           fs.writeFileSync(filename,result);
-                        }
-                    });
+            await ncp("./src/js", "./bin/js/source", function (err) {
+                if (err) {
+                return console.error(err);
+            }});
 
-                })
+            console.log("compilation done");
 
-              });
+            var editor = fs.readFileSync("./bin/editor.html", encoding='utf8');
+            editor = editor.replace(/<script src="js\/[A-Za-z0-9_\/-]*\.js"><\/script>/g, "");
+            editor = editor.replace(/<!--TOREPLACE-->/g, '<script src="js\/scripts_compiled.js"><\/script>');
+            editor = editor.replace(/<link rel="stylesheet" href="[A-Za-z0-9_\/-]*\.css">/g, '');
+            editor = editor.replace(/<!--CSSREPLACE-->/g, '<link rel="stylesheet" href="css\/combined.css">');
+            editor = editor.replace(/<!--BUILDNUMBER-->/g,'(build '+buildnum.toString()+')');
+            fs.writeFileSync("./bin/editor.html",editor, encoding='utf8');
 
-          })
+            var player = fs.readFileSync("./bin/play.html", encoding='utf8');
+            player = player.replace(/<script src="js\/[A-Za-z0-9_\/-]*\.js"><\/script>/g, "");
+            player = player.replace(/<!--TOREPLACE-->/g, '<script src="js\/scripts_play_compiled.js"><\/script>');
+            fs.writeFileSync("./bin/play.html",player, encoding='utf8');
+
+            console.log("compressing html");
+            
+            var htmlminify = require('html-minifier-terser').minify;
+            
+            glob("./bin/*.html", {}, async function (er, files) {
+                for (filename of files){
+                    var lines=fs.readFileSync(filename, encoding='utf8');
+                    var result = htmlminify(lines);
+                    fs.writeFileSync(filename,result);
+                }
+            });
+
+            
+            (async function a() {
+                const { Compress } = require('gzipper');
+            
+                var glob = require("glob")
+            
+                files = glob.sync("./bin/**/*.js");
+                files = files.concat(glob.sync("./bin/**/*.html"));
+                files = files.concat(glob.sync("./bin/**/*.css"));
+                files = files.concat(glob.sync("./bin/**/*.txt"));
+            
+                var compressionTasks = files.map( fn=>new Compress(fn));
+                var compressed = await Promise.all(compressionTasks.map(gzip=>gzip.run()));
+            
+                console.log("Files compressed. All good!");
+
+            
+            })();
+
+          });
 
 
     })();

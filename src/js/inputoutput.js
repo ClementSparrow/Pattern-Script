@@ -209,7 +209,6 @@ function printLevel() {
 	selectableint++;
 	var tag = 'selectable'+selectableint;
 	var output="Printing level contents:<br><br><span id=\""+tag+"\" onclick=\"selectText('"+tag+"',event)\">";
-	cache_console_messages = false;
 	for (var j=0;j<level.height;j++) {
 		for (var i=0;i<level.width;i++) {
 			var cellIndex = j+i*level.height;
@@ -330,6 +329,8 @@ function onMouseDown(event) {
 		return;
 	}
 
+	ULBS();
+	
 	var lmb = event.button===0;
 	var rmb = event.button===2 ;
 	if (event.type=="touchstart"){
@@ -386,11 +387,16 @@ function onMouseUp(event) {
 
 function onKeyDown(event) {
 
+	ULBS();
+	
     event = event || window.event;
 
 	// Prevent arrows/space from scrolling page
 	if ((!IDE) && ([32, 37, 38, 39, 40].indexOf(event.keyCode) > -1)) {
-		prevent(event);
+		if (event&&(event.ctrlKey || event.metaKey)){
+		} else {
+			prevent(event);
+		}
 	}
 
 	if ((!IDE) && event.keyCode===77){//m
@@ -404,9 +410,12 @@ function onKeyDown(event) {
 
     if(lastDownTarget === canvas || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) ){
     	if (keybuffer.indexOf(event.keyCode)===-1) {
-    		keybuffer.splice(keyRepeatIndex,0,event.keyCode);
-	    	keyRepeatTimer=0;
-	    	checkKey(event,true);
+    		if (event&&(event.ctrlKey || event.metaKey)){
+		    } else {
+    		    keybuffer.splice(keyRepeatIndex,0,event.keyCode);
+	    	    keyRepeatTimer=0;
+	    	    checkKey(event,true);
+		    }
 		}
 	}
 
@@ -421,8 +430,13 @@ function onKeyDown(event) {
         }  else if (event.keyCode===83 && (event.ctrlKey||event.metaKey)) {//ctrl+s
             saveClick();
             prevent(event);
-        } 
-    }
+        } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
+			canvas.focus();
+			editor.display.input.blur();
+            rebuildClick();
+            prevent(event);
+		}
+	}
 }
 
 function relMouseCoords(event){
@@ -532,7 +546,8 @@ function prevent(e) {
 }
 
 function checkKey(e,justPressed) {
-
+	ULBS();
+	
     if (winning) {
     	return;
 	}
@@ -671,6 +686,28 @@ function checkKey(e,justPressed) {
         	}	
         	break;	
         }
+		case 189://-
+		{
+        	if (levelEditorOpened&&justPressed) {
+				if (glyphSelectedIndex>0) {
+					glyphSelectedIndex--;
+					canvasResize();
+					return prevent(e);
+				} 
+        	}	
+        	break;	
+		}
+		case 187://+
+		{
+        	if (levelEditorOpened&&justPressed) {
+				if (glyphSelectedIndex+1<glyphImages.length) {
+					glyphSelectedIndex++;
+					canvasResize();
+					return prevent(e);
+				} 
+        	}	
+        	break;	
+		}
     }
     if (throttle_movement && inputdir>=0&&inputdir<=3) {
     	if (lastinput==inputdir && input_throttle_timer<repeatinterval) {
