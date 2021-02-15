@@ -20,21 +20,6 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 
 */
 
-function blankLineHandle(state)
-{
-	if (state.section === 'levels')
-	{
-		if (state.levels[state.levels.length - 1].length > 0)
-		{
-			state.levels.push([]);
-		}
-	} else if (state.section === 'objects')
-	{
-		state.objects_section = 0;
-	}
-}
-
-
 const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
@@ -177,33 +162,10 @@ PuzzleScriptParser.prototype.copy = function()
 }
 
 
-//  ======== LEXER USING CODEMIRROR'S API =========
 
+//  ======= ACCESS THE DATA PARSED =========
 
-PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
-{
-	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_]+[\p{Separator}]*/u);
-	return (match !== null) ? match[0].trim() : null;
-}
-
-PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
-{
-	return stream.eat(/[.\d]/); // a digit or a dot
-}
-
-
-
-
-//  ======= PARSING LOGIC DISCONNECTED FROM CODEMIRROR'S API =========
-
-const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
-
-PuzzleScriptParser.prototype.registerMetaData = function(key, value)
-{
-	this.metadata_keys.push(key)
-	this.metadata_values.push(value)
-}
+// The functions in this section can be used in other files. They do not rely on CodeMirror's API.
 
 PuzzleScriptParser.prototype.getObjectsForIdentifier = function(identifier_index)
 {
@@ -214,6 +176,22 @@ PuzzleScriptParser.prototype.getObjectsAnIdentifierCanBe = function(identifier)
 {
 	const identifier_index = this.identifiers.indexOf(identifier);
 	return this.getObjectsForIdentifier(identifier_index);
+}
+
+
+
+
+//  ======= RECORD & CHECK IDENTIFIERS AND METADATA =========
+
+// The functions in this section do not rely on CodeMirror's API
+
+const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
+
+PuzzleScriptParser.prototype.registerMetaData = function(key, value)
+{
+	this.metadata_keys.push(key)
+	this.metadata_values.push(value)
 }
 
 PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects)
@@ -285,7 +263,7 @@ PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, origin
 	this.registerNewIdentifier(new_identifier, original_case, type, type, objects);
 }
 
-PuzzleScriptParser.prototype.wordExists = function(n)
+PuzzleScriptParser.prototype.identifierExists = function(n)
 {
 	return (this.identifiers.indexOf(n.toLowerCase()) >= 0);
 }
@@ -360,9 +338,40 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 }
 
 
-// ====== OTHERS =======
 
 
+//  ======== LEXER USING CODEMIRROR'S API =========
+
+
+PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
+{
+	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_]+[\p{Separator}]*/u);
+	return (match !== null) ? match[0].trim() : null;
+}
+
+PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
+{
+	return stream.eat(/[.\d]/); // a digit or a dot
+}
+
+
+
+
+
+
+// ====== PARSING TOKENS IN THE DIFFERENT SECTIONS OF THE FILE =======
+
+function blankLineHandle(state)
+{
+	if (state.section === 'objects')
+	{
+		state.objects_section = 0;
+	}
+	else
+	{
+		state.blankLine()
+	}
+}
 
 PuzzleScriptParser.prototype.blankLine = function()
 {
@@ -380,30 +389,29 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 {
 	if (is_start_of_line)
 	{
-		this.tokenIndex=0;
+		this.tokenIndex = 0;
 	}
 	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessiraly in the metadata value's text
 	{
-		stream.match(reg_notcommentstart, true);
+		stream.match(reg_notcommentstart, true); // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
 		return "METADATATEXT";
 	}
 
 //	Get the metadata key
 	const token = this.parse_keyword_or_identifier(stream)
 	if (token === null)
-		return null; // TODO: we should probably log an error, here?
+		return null; // TODO: we should probably log an error, here? It implies that if a line starts with an invalid character, it will be silently ignored...
 
 	if (is_start_of_line)
 	{
-		if (metadata_with_value.indexOf(token)>=0)
+		if (metadata_with_value.indexOf(token) >= 0)
 		{
-			
 			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
 			{
 				stream.string = mixedCase;
 			}
 			
-			var m2 = stream.match(reg_notcommentstart, false);
+			var m2 = stream.match(reg_notcommentstart, false); // TODO: to end of line, not comment (see above)
 			
 			if(m2 != null)
 			{
@@ -413,16 +421,17 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 			}
 			this.tokenIndex = 1;
 			return 'METADATA';
-		} else if ( metadata_without_value.indexOf(token)>=0)
+		}
+		if ( metadata_without_value.indexOf(token) >= 0)
 		{
 			this.registerMetaData(token, "true") // TODO: return the value instead of a string?
 			this.tokenIndex = -1;
 			return 'METADATA';
-		} else  {
-			logError('Unrecognised stuff in the prelude.', this.lineNumber);
-			return 'ERROR';
 		}
-	} else if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
+		logError('Unrecognised stuff in the prelude.', this.lineNumber);
+		return 'ERROR';
+	}
+	if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
 	{
 		logError('MetaData "'+token+'" has no parameters.', this.lineNumber);
 		return 'ERROR';
@@ -706,7 +715,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 			if (this.tokenIndex % 2 === 0)
 				return 'LOGICWORD';
-			if (this.wordExists(candname) === false) // TODO: why do we need to test that again?
+			if (this.identifierExists(candname) === false) // TODO: why do we need to test that again?
 			{
 				logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.', this.lineNumber);
 				return 'ERROR';
@@ -982,7 +991,8 @@ PuzzleScriptParser.prototype.token = function(stream)
 	{
 		stream.next();
 		this.commentLevel++;
-	} else if (ch === ')')
+	}
+	else if (ch === ')') // NOTE: this case should normally only happen when commentLevel>0 and would then be dealt with in the loop below, but it is treated here so that we can have unmatched )'s in the text to ease the commenting of full sections.
 	{
 		stream.next();
 		if (this.commentLevel > 0)
