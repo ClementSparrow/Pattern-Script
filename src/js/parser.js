@@ -317,7 +317,14 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 	
 	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
 	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
-	const ar = this.getObjectsAnIdentifierCanBe(candname);
+	const cand_index = this.identifiers.indexOf(candname);
+	if (cand_index < 0)
+	{
+		logWarning('You are trying to add an object named '+candname.toUpperCase()+' in a collision layer, but no object with that name has been defined.', this.lineNumber);
+		return false;
+	}
+
+	const ar = this.getObjectsForIdentifier(cand_index);
 	var identifier_added = true;
 	for (const objpos of ar)
 	{
@@ -375,11 +382,11 @@ function blankLineHandle(state)
 
 PuzzleScriptParser.prototype.blankLine = function()
 {
-	if (state.section === 'levels')
+	if (this.section === 'levels')
 	{
-		if (state.levels[state.levels.length - 1].length > 0)
+		if (this.levels[this.levels.length - 1].length > 0)
 		{
-			state.levels.push([]);
+			this.levels.push([]);
 		}
 	}
 }
