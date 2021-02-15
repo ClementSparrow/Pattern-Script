@@ -406,11 +406,68 @@ function findIndexAfterToken(str, tokens, tokenIndex)
 	return curIndex;
 }
 
-// TODO: it actually parses the rule line, so it should be in the parser.
-function processRuleString(rule, state, curRules) 
+
+//read initial directions
+// syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
+// (I use the ! here to denote something that is recognized by the parser but wrong)
+function parseRuleDirections(tokens, lineNumber)
+{
+	var directions = [];
+	var late = false;
+	var rigid = false;
+	var randomRule = false;
+	var has_plus = false;
+
+	for (var i = 0; i < tokens.length; i++)
+	{
+		const token = tokens[i];
+		if (token === '+')
+		{
+			if (i !== 0)
+			{
+				if (has_plus) {
+					logError('Two "+"s ("append to previous rule group" symbol) applied to the same rule.', lineNumber);
+				} else {
+					logError('The "+" symbol, for joining a rule with the group of the previous rule, must be the first symbol on the line ');
+				}
+			}
+			has_plus = true;
+		}
+		else if (token in directionaggregates) {
+			directions.push(...directionaggregates[token]);
+		} else if (token === 'late') {
+			late = true;
+		} else if (token === 'rigid') {
+			rigid = true;
+		} else if (token === 'random') {
+			randomRule = true;
+		} else if (simpleAbsoluteDirections.indexOf(token) >= 0) {
+			directions.push(token);
+		} else if (simpleRelativeDirections.indexOf(token) >= 0) {
+			logError('You cannot use relative directions (\"^v<>\") to indicate in which direction(s) a rule applies.  Use absolute directions indicators (Up, Down, Left, Right, Horizontal, or Vertical, for instance), or, if you want the rule to apply in all four directions, do not specify directions', lineNumber);
+		}
+		else if (token == '[')
+		{
+			if (directions.length == 0) {
+				directions = directions.concat(directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
+			}
+			return [ directions, late, rigid, randomRule, has_plus, i ];
+
+		} else {
+			logError("The start of a rule must consist of some number of directions (possibly 0), before the first bracket, specifying in what directions to look (with no direction specified, it applies in all four directions).  It seems you've just entered \"" + token.toUpperCase() + '\".', lineNumber);
+		}
+	}
+
+	// We would get there by reading the whole line without encountering a [, but we probably don't need to deal with it
+	return [ directions, late, rigid, randomRule, has_plus, tokens.length ];
+
+}
+
+
+// TODO: it should be in parser.js?
+function parseRuleString(rule, state, curRules) 
 {
 /*
-
 	intermediate structure
 		dirs: Directions[]
 		pre : CellMask[]
@@ -440,46 +497,15 @@ function processRuleString(rule, state, curRules)
 
 
 // STEP TWO, READ DIRECTIONS
-/*
-	STATE
-	0 - scanning for initial directions
-	LHS
-	1 - reading cell contents LHS
-	2 - reading cell contents RHS
-*/
-	var parsestate = 0;
-	var directions = [];
-
-	var curcell = null; // [up, cat, down mouse]
-	var curcellrow = []; // [  [up, cat]  [ down, mouse ] ]
-
-	var incellrow = false;
-
-	var appendGroup=false;
-	var rhs = false;
-	var lhs_cells = [];
-	var rhs_cells = [];
-	var late = false;
-	var rigid = false;
-	var groupNumber = lineNumber;
-	var commands = [];
-	var randomRule = false;
 
 	if (tokens.length === 1)
 	{
-		if (tokens[0] === "startloop" )
+		const bracket = ({startloop: 1, endloop: -1})[tokens[0]];
+		if ( bracket !== undefined )
 		{
-			rule_line = {
-				bracket: 1
+			return {
+				bracket: bracket
 			}
-			return rule_line;
-		}
-		else if (tokens[0] === "endloop" )
-		{
-			rule_line = {
-				bracket: -1
-			}
-			return rule_line;
 		}
 	}
 
@@ -488,58 +514,49 @@ function processRuleString(rule, state, curRules)
 		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
 	}
 
-	var curcell = [];
-	var bracketbalance = 0;
-	for (var i = 0; i < tokens.length; i++)
+	const [ directions, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(tokens, lineNumber);
+
+	var groupNumber = lineNumber;
+	if (has_plus)
 	{
-		var token = tokens[i];
+		if (curRules.length == 0)
+		{
+			logError('The "+" symbol, for joining a rule with the group of the previous rule, needs a previous rule to be applied to.');							
+		}
+		groupNumber = curRules[curRules.length-1].groupNumber; // TODO: curRules is only provided to this function for that, it would be beter to provide directly the last groupNumber.
+	}
+
+/*
+	STATE
+	1 - reading cell contents LHS
+	2 - reading cell contents RHS
+*/
+	var parsestate = 1;
+
+	var curcellrow = []; // [  [up, cat]  [ down, mouse ] ] -> a cell row is everything betwen [ and ], it is an array of cells
+	var curcell = null; // [up, cat, down mouse] -> a cell is everything between [or| and |or], it is '...' or an array of object conditions.
+	var curobjcond = null; // -> an object condition is a sequence "direction? identifier", it is a pair [ direction or null, identifier_index ]
+
+	var incellrow = false;
+
+	var appendGroup=false;
+	var rhs = false;
+	var lhs_cells = [];
+	var rhs_cells = [];
+	var commands = [];
+
+	var curcell = [];
+	var curobjcond = [];
+	var bracketbalance = 0;
+	for (var i = nb_tokens_in_rule_directions; i < tokens.length; i++)
+	{
+		const token = tokens[i];
 		switch (parsestate)
 		{
-			case 0: { // scanning for initial directions
-				//read initial directions
-				// syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
-				// (I use the ! here to denote something that is recognized by the parser but wrong)
-				if (token === '+')
-				{
-					if (groupNumber === lineNumber)
-					{
-						if (curRules.length == 0)
-						{
-							logError('The "+" symbol, for joining a rule with the group of the previous rule, needs a previous rule to be applied to.');							
-						}
-						if (i !== 0)
-						{
-							logError('The "+" symbol, for joining a rule with the group of the previous rule, must be the first symbol on the line ');
-						}						
-						groupNumber = curRules[curRules.length-1].groupNumber;
-					} else {
-						logError('Two "+"s ("append to previous rule group" symbol) applied to the same rule.', lineNumber);
-					}
-				} else if (token in directionaggregates) {
-					directions = directions.concat(directionaggregates[token]);						
-				} else if (token==='late') {
-						late=true;
-				} else if (token==='rigid') {
-					rigid=true;
-				} else if (token==='random') {
-					randomRule=true;
-				} else if (simpleAbsoluteDirections.indexOf(token) >= 0) {
-					directions.push(token);
-				} else if (simpleRelativeDirections.indexOf(token) >= 0) {
-					logError('You cannot use relative directions (\"^v<>\") to indicate in which direction(s) a rule applies.  Use absolute directions indicators (Up, Down, Left, Right, Horizontal, or Vertical, for instance), or, if you want the rule to apply in all four directions, do not specify directions', lineNumber);
-				} else if (token == '[') {
-					if (directions.length == 0) {
-						directions = directions.concat(directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
-					}
-					parsestate = 1;
-					i--;
-				} else {
-					logError("The start of a rule must consist of some number of directions (possibly 0), before the first bracket, specifying in what directions to look (with no direction specified, it applies in all four directions).  It seems you've just entered \"" + token.toUpperCase() + '\".', lineNumber);
-				}
-				break;
-			}
-			case 1: { // reading cell contents LHS
-				// the syntax is: (cellrow)* "->" (cellrow)* commands
+			case 1:
+			{
+				// reading cell contents LHS
+				// the syntax for the rule is: rule_directions (cellrow)+ "->" (cellrow)* commands
 				// where cellrow is: "[" (cell "|")* cell "]"
 				// and cell is: ( (single_direction_or_action)? identifier )* | "...", but the "..." cannot appear as a first or last cell in a cellrow
 				// and commands is: ( commandword | ("message" everything_to_the_end_of_line) )*
@@ -547,7 +564,7 @@ function processRuleString(rule, state, curRules)
 				if (token == '[')
 				{
 					bracketbalance++;
-					if(bracketbalance>1){
+					if (bracketbalance > 1) {
 						logWarning("Multiple opening brackets without closing brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
 					}
 					if (curcell.length > 0) { // TODO: isn't that dupplicating what the bracketbalance test does?
@@ -556,17 +573,23 @@ function processRuleString(rule, state, curRules)
 					incellrow = true;
 					curcell = [];
 				} else if (reg_directions_only.exec(token)) {
-					if (curcell.length % 2 == 1) {
+					if (curobjcond.length == 1) {
+						// TODO: fix bug https://github.com/increpare/PuzzleScript/issues/395
+						//       Basically, we need to replace directions words with 'direction' flags (including 'no' and 'random' that are not directions) and check
+						//       there is no more than one direction? (relative directions should not yet be resolved, however)
+						//       the idea behind the error message is that the direction words would be and-ed, which is certainly coherent with the idea that they define
+						//       additional constraints on the matching but is also incompatible with the use of some words like 'parallel' that present an alternative (< or >).
+						//       And we clearly want the ability to have alternatives, but it's just a shortcut to avoid making multiple rules instead.
 						logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
 					} else if (!incellrow) {
 						logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
 					} else {
-						curcell.push(token);
+						curobjcond.push(token);
 					}
 				} else if (token == '|') {
 					if (!incellrow) {
 						logWarning('Janky syntax.  "|" should only be used inside cell rows (the square brackety bits).',lineNumber);
-					} else if (curcell.length % 2 == 1) {
+					} else if (curobjcond.length == 1) {
 						logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
 					} else {
 						curcellrow.push(curcell);
@@ -579,23 +602,24 @@ function processRuleString(rule, state, curRules)
 						logWarning("Multiple closing brackets without corresponding opening brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
 					}
 
-					if (curcell.length % 2 == 1) {
-						if (curcell[0]==='...') {
+					// close the current cell
+					if (curobjcond.length == 1)
+					{
+						if (curcell[0] === '...') {
 							logError('Cannot end a rule with ellipses.', lineNumber);
 						} else {
 							logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
 						}
-					} else {
+					}
+					else
+					{
 						curcellrow.push(curcell);
 						curcell = [];
 					}
 
-					if (rhs) {
-						rhs_cells.push(curcellrow);
-					} else {
-						lhs_cells.push(curcellrow);
-					}
+					(rhs ? rhs_cells : lhs_cells).push(curcellrow);
 					curcellrow = [];
+					curcell = [];
 					incellrow = false;
 				} else if (token === '->') {
 					if (incellrow) {
@@ -609,24 +633,24 @@ function processRuleString(rule, state, curRules)
 					if (!incellrow) {
 						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 					}
-					else if (curcell.length % 2 == 0) {
-						curcell.push('');
-						curcell.push(token);
-					} else if (curcell.length % 2 == 1) {
-						curcell.push(token);
+					else if (curobjcond.length == 0) {
+						curobjcond.push('');
 					}
+					curobjcond.push(state.identifiers.indexOf(token)); // TODO: we should not search it twice...
+					curcell.push(curobjcond)
+					curobjcond = []
 				} else if (token==='...') {
 					if (!incellrow) {
 						logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
 					} else {
-						curcell.push(token);
-						curcell.push(token);
+						curcell.push([token, token]);
 					}
-				} else if (commandwords.indexOf(token)>=0) {
-					if (rhs===false) {
+				} else if (commandwords.indexOf(token) >= 0) {
+					if (rhs === false) {
 						logError("Commands cannot appear on the left-hand side of the arrow.", lineNumber);
 					}
-					if (token==='message') {
+					if (token === 'message')
+					{
 						var messageIndex = findIndexAfterToken(origLine, tokens, i);
 						var messageStr = origLine.substring(messageIndex).trim();
 						if (messageStr===""){
@@ -646,8 +670,9 @@ function processRuleString(rule, state, curRules)
 		}
 	}
 
+	// Check the coherence between LHS and RHS
 	if (lhs_cells.length != rhs_cells.length) {
-		if (commands.length>0&&rhs_cells.length==0) {
+		if (commands.length > 0 && rhs_cells.length == 0) {
 			//ok
 		} else {
 			logError('Error, when specifying a rule, the number of matches (square bracketed bits) on the left hand side of the arrow must equal the number on the right', lineNumber);
@@ -668,31 +693,31 @@ function processRuleString(rule, state, curRules)
 	}
 
 	var rule_line = {
-		directions: directions,
-		lhs: lhs_cells,
-		rhs: rhs_cells,
 		lineNumber: lineNumber,
+		groupNumber: groupNumber,
+		directions: directions,
 		late: late,
 		rigid: rigid,
-		groupNumber: groupNumber,
-		commands: commands,
-		randomRule: randomRule
+		randomRule: randomRule,
+		lhs: lhs_cells,
+		rhs: rhs_cells,
+		commands: commands
 	};
 
-	if (directionalRule(rule_line) === false)
+	rule_line.is_directional = directionalRule(rule_line)
+	if (rule_line.is_directional === false)
 	{
-		rule_line.directions=['up'];
+		rule_line.directions = ['up'];
 	}
 
 	//next up - replace relative directions with absolute direction
-
 	return rule_line;
 }
 
 function deepCloneCellRow(cellrow)
 {
 	return cellrow.map(
-		deepArr =>  deepArr.map( i => i )
+		cell =>  cell.map( ([dir, object_index]) => [dir, object_index] )
 	);
 }
 
@@ -704,15 +729,16 @@ function deepCloneHS(HS)
 function deepCloneRule(rule)
 {
 	return {
-		direction: rule.direction,
-		lhs: deepCloneHS(rule.lhs),
-		rhs: deepCloneHS(rule.rhs),
 		lineNumber: rule.lineNumber,
+		groupNumber: rule.groupNumber,
+		direction: rule.direction,
 		late: rule.late,
 		rigid: rule.rigid,
-		groupNumber: rule.groupNumber,
-		commands:rule.commands,
-		randomRule:rule.randomRule
+		randomRule:rule.randomRule,
+		lhs: deepCloneHS(rule.lhs),
+		rhs: deepCloneHS(rule.rhs),
+		commands: rule.commands, // should be deepCloned too?
+		is_directional: rule.is_directional
 	};
 }
 
@@ -724,7 +750,7 @@ function rulesToArray(state)
 	for (const oldrule of oldrules)
 	{
 		var lineNumber = oldrule[1];
-		var newrule = processRuleString(oldrule, state, rules);
+		var newrule = parseRuleString(oldrule, state, rules);
 		if (newrule.bracket !== undefined)
 		{
 			loops.push( [lineNumber, newrule.bracket] );
@@ -736,11 +762,13 @@ function rulesToArray(state)
 
 	//now expand out rules with multiple directions
 	var rules2 = [];
-	for (var rule of rules)
+	for (const rule of rules)
 	{
-		for (const dir of rule.directions)
+		for (const dir of rule.directions) // we have rule.directions (plural) before this loop, but rule.direction (singular) after the loop.
 		{
-			if (dir in directionaggregates && directionalRule(rule))
+			// TODO: if we have a rule starting with "horizontal right", we will generate two rules for "right" - hence the need to remove duplicate rules later.
+			// A better method would be to first determinate the set of absolute directions corresponding to rule.directions and then run the forEach loop on those.
+			if (dir in directionaggregates && rule.is_directional)
 			{
 				directionaggregates[dir].forEach(
 					function(dir2)
@@ -750,12 +778,6 @@ function rulesToArray(state)
 						rules2.push(modifiedrule);
 					}
 				);
-				// var dirs = directionaggregates[dir];
-				// for (var k = 0; k < dirs.length; k++) {
-				// 	var modifiedrule = deepCloneRule(rule);
-				// 	modifiedrule.direction = dirs[k];
-				// 	rules2.push(modifiedrule);
-				// }
 			} else {
 				var modifiedrule = deepCloneRule(rule); // TODO: do we really need to deepclone it, there?
 				modifiedrule.direction = dir;
@@ -792,15 +814,7 @@ function rulesToArray(state)
 
 function containsEllipsis(rule)
 {
-	for (const cellrow of rule.lhs)
-	{
-		for (const cell of cellrow)
-		{
-			if (cell[1] === '...')
-				return true;
-		}
-	}
-	return false;
+	return rule.lhs.some( cellrow => cellrow.some( cell => cell[1] === '...' ) );
 }
 
 function rewriteUpLeftRules(rule)
@@ -821,72 +835,77 @@ function rewriteUpLeftRules(rule)
 		return;
 	}
 
-	for (var i = 0; i < rule.lhs.length; i++)
+	for (var cellrow of rule.lhs)
 	{
-		rule.lhs[i].reverse();
-		if (rule.rhs.length > 0) // TODO: I guess reversing an empty array works well, so this test should not be necessary
-		{
-			rule.rhs[i].reverse();
-		}
+		cellrow.reverse();
+	}
+	if (rule.rhs.length === 0) // TODO: I guess reversing an empty array works well, so this test should not be necessary
+		return
+	for (var cellrow of rule.rhs)
+	{
+		cellrow.reverse();
 	}
 }
 
 function getPropertiesFromCell(state, cell)
 {
 	var result = [];
-	for (var j = 0; j < cell.length; j += 2)
+	for (const [dir, identifier_index] of cell)
 	{
-		var dir = cell[j];
-		var name = cell[j+1];
 		if (dir == "random")
 			continue;
-		if (isProperty(state, name))
+		if (state.identifiers_comptype[identifier_index] === identifier_type_property)
 		{
-			result.push(name);
+			result.push(identifier_index);
 		}
 	}
 	return result;
 }
 
-//returns you a list of object names in that cell that're moving
-function getMovings(state, cell)
+//returns you a list of object names in that cell that're moving -> actually, it only returns those moving with a directionaggregate...
+function getMovings(cell)
 {
-	var result = [];
-	for (var j = 0; j < cell.length; j += 2)
-	{
-		var dir = cell[j];
-		var name = cell[j+1];
-		if (dir in directionaggregates)
-		{
-			result.push([name, dir]);
-		}
-	}
-	return result;
+	return cell.filter( ([dir, identifier_index]) => (dir in directionaggregates) );
+	// var result = [];
+	// for (const [dir, identifier_index] of cell)
+	// {
+	// 	if (dir in directionaggregates)
+	// 	{
+	// 		result.push([identifier_index, dir]); // TODO: if we did not reverse the order here, we could simply use a filter function.
+	// 	}
+	// }
+	// return result;
 }
 
-function concretizePropertyInCell(cell ,property, concreteType) {
-	for (var j = 0; j < cell.length; j += 2) {
-		if (cell[j+1] === property && cell[j]!=="random") {
-			cell[j+1] = concreteType;
-		}
-	}
-}
-
-function concretizeMovingInCell(cell , ambiguousMovement, nameToMove, concreteDirection)
+function concretizePropertyInCell(cell, property, concreteType)
 {
-	for (var j = 0; j < cell.length; j += 2)
+	for (var objcond of cell)
 	{
-		if (cell[j] === ambiguousMovement && cell[j+1] === nameToMove)
+		if (objcond[1] === property && objcond[0]!=="random")
 		{
-			cell[j] = concreteDirection;
+			objcond[1] = concreteType;
 		}
 	}
 }
 
-function concretizeMovingInCellByAmbiguousMovementName(cell ,ambiguousMovement, concreteDirection) {
-	for (var j = 0; j < cell.length; j += 2) {
-		if (cell[j] === ambiguousMovement) {
-			cell[j] = concreteDirection;
+function concretizeMovingInCell(cell, ambiguousMovement, idToMove, concreteDirection)
+{
+	for (var objcond of cell)
+	{
+		if (objcond[0] === ambiguousMovement && objcond[1] === idToMove)
+		{
+			objcond[0] = concreteDirection;
+		}
+	}
+}
+
+function concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, concreteDirection)
+{
+	for (var objcond of cell)
+	{
+		if (objcond[0] === ambiguousMovement)
+		{
+			objcond[0] = concreteDirection;
 		}
 	}
 }
@@ -895,23 +914,18 @@ function concretizeMovingInCellByAmbiguousMovementName(cell ,ambiguousMovement, 
 function expandNoPrefixedProperties(state, cell)
 {
 	var expanded = [];
-	for (var i=0; i<cell.length; i+=2)
+	for (const [dir, identifier_index] of cell)
 	{
-		var dir = cell[i];
-		var name = cell[i+1];
-
-		if (dir === 'no' && isProperty(state, name))
+		if ( (dir === 'no') && (state.identifiers_comptype[identifier_index] === identifier_type_property) )
 		{
-			for (const alias of state.getObjectsAnIdentifierCanBe(name))
+			for (const alias of state.getObjectsForIdentifier(identifier_index))
 			{
-				expanded.push(dir);
-				expanded.push(state.objects[alias].name);
+				expanded.push( [dir, alias] );
 			}
 		}
 		else
 		{
-			expanded.push(dir);
-			expanded.push(name);
+			expanded.push( [dir, identifier_index] );
 		} 
 	}
 	return expanded;
@@ -921,14 +935,13 @@ function expandNoPrefixedProperties(state, cell)
 function concretizePropertyRule(state, rule, lineNumber)
 {	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
-	for (var i = 0; i < rule.lhs.length; i++)
+	for (const [i, cur_cellrow_l] of rule.lhs.entries())
 	{
-		var cur_cellrow_l = rule.lhs[i];
 		for (var j=0;j<cur_cellrow_l.length;j++)
 		{
-			cur_cellrow_l[j] = expandNoPrefixedProperties(state,cur_cellrow_l[j]);
+			cur_cellrow_l[j] = expandNoPrefixedProperties(state, cur_cellrow_l[j]);
 			if (rule.rhs.length > 0) // TODO: there is no reason to make both HS at the same time
-				rule.rhs[i][j] = expandNoPrefixedProperties(state,rule.rhs[i][j]);
+				rule.rhs[i][j] = expandNoPrefixedProperties(state, rule.rhs[i][j]);
 		}
 	}
 
@@ -945,8 +958,8 @@ function concretizePropertyRule(state, rule, lineNumber)
 		var row_r = rule.rhs[j];
 		for (var k = 0; k < row_r.length; k++)
 		{
-			var properties_l = getPropertiesFromCell(state, row_l[k]);
-			var properties_r = getPropertiesFromCell(state, row_r[k]);
+			const properties_l = getPropertiesFromCell(state, row_l[k]);
+			const properties_r = getPropertiesFromCell(state, row_r[k]);
 			for (const property of properties_r)
 			{
 				if (properties_l.indexOf(property) == -1)
@@ -963,7 +976,8 @@ function concretizePropertyRule(state, rule, lineNumber)
 	while (modified)
 	{
 		modified = false;
-		for (var i = 0; i < result.length; i++) {
+		for (var i = 0; i < result.length; i++)
+		{
 			//only need to iterate through lhs
 			const cur_rule = result[i];
 			shouldremove = false;
@@ -974,12 +988,11 @@ function concretizePropertyRule(state, rule, lineNumber)
 				{
 					for (const property of getPropertiesFromCell(state, cur_rulerow[k]))
 					{
-						if ( (state.single_layer_property[state.identifiers.indexOf(property)] >= 0) &&
-							ambiguousProperties[property] !== true)
-							// we don't need to explode this property
-							continue;
+						if ( (state.single_layer_property[property] >= 0) && (ambiguousProperties[property] !== true) )
+							continue; // we don't need to explode this property
 
-						var aliases = Array.from(state.getObjectsAnIdentifierCanBe(property)).map( p => state.objects[p].name );
+						// const aliases = Array.from(state.getObjectsForIdentifier(property)).map( p => state.objects[p].name );
+						const aliases = state.getObjectsForIdentifier(property);
 
 						shouldremove = true;
 						modified = true;
@@ -1041,9 +1054,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 		{
 			if (cur_rule.propertyReplacement.hasOwnProperty(property))
 			{
-				var replacementInfo = cur_rule.propertyReplacement[property];
-				var concreteType = replacementInfo[0];
-				var occurrenceCount = replacementInfo[1];
+				const replacementInfo = cur_rule.propertyReplacement[property];
+				const concreteType = replacementInfo[0];
+				const occurrenceCount = replacementInfo[1];
 				if (occurrenceCount === 1)
 				{
 					//do the replacement
@@ -1083,17 +1096,25 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 	if (rhsPropertyRemains.length > 0)
 	{
-		logError('This rule has a property on the right-hand side, \"'+ rhsPropertyRemains.toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
+		logError('This rule has a property on the right-hand side, \"'+ state.identifiers[rhsPropertyRemains].toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
 	}
 
 	return result;
 }
 
 
-function concretizeMovingRule(state, rule, lineNumber)
+function concretizeMovingRule(state, rule, lineNumber) // a better name for this function would be concretizeDirectionAggregatesInRule?
 {
-	var shouldremove;
 	var result = [rule];
+
+//	Generate rules in which "directionaggregate identifier" instances are replaced with concrete directions for all occurences of the same directionaggregate and identifier
+	
+	// Note that 'parallel' and 'perpendicular' have already been replaced by 'horizontal'/'vertical' in convertRelativeDirsToAbsolute,
+	// so the directionaggregates here can only be 'horizontal', 'vertical', 'moving', or 'orthogonal'.
+	// Similarly, identifiers that are aggregates or synonyms have already been replaced with objects in atomizeAggregatesAndSynonyms,
+	// so the identifiers here can only be objects or properties.
+	
+	var shouldremove;
 	var modified = true;
 	while (modified)
 	{
@@ -1109,18 +1130,19 @@ function concretizeMovingRule(state, rule, lineNumber)
 				for (var k = 0; k < cur_rulerow.length; k++)
 				{
 					var cur_cell = cur_rulerow[k];
-					var movings = getMovings(state, cur_cell); // TODO: this seems very inneficient to find a list of all movings just to change one...
+					var movings = getMovings(cur_cell); // TODO: this seems an inneficient way to find a list of all movings just to change one...
 					if (movings.length > 0)
 					{
 						shouldremove = true;
 						modified = true;
 
 						//just do the base property, let future iterations take care of the others
-						const [cand_name, ambiguous_dir] = movings[0];
+						const [ambiguous_dir, identifier_index] = movings[0];
 						for (const concreteDirection of directionaggregates[ambiguous_dir])
 						{
 							var newrule = deepCloneRule(cur_rule);
 
+							// also clone the movingReplacements of the rule
 							newrule.movingReplacement = {};
 							for (var moveTerm in cur_rule.movingReplacement)
 							{
@@ -1131,18 +1153,18 @@ function concretizeMovingRule(state, rule, lineNumber)
 								}
 							}
 
-							concretizeMovingInCell(newrule.lhs[j][k], ambiguous_dir, cand_name, concreteDirection);
+							concretizeMovingInCell(newrule.lhs[j][k], ambiguous_dir, identifier_index, concreteDirection);
 							if (newrule.rhs.length>0) {
-								concretizeMovingInCell(newrule.rhs[j][k], ambiguous_dir, cand_name, concreteDirection);//do for the corresponding rhs cell as well
+								concretizeMovingInCell(newrule.rhs[j][k], ambiguous_dir, identifier_index, concreteDirection);//do for the corresponding rhs cell as well
 							}
 							
-							if (newrule.movingReplacement[cand_name] === undefined)
+							if (newrule.movingReplacement[identifier_index] === undefined)
 							{
-								newrule.movingReplacement[cand_name] = [concreteDirection, 1, ambiguous_dir];
+								newrule.movingReplacement[identifier_index] = [concreteDirection, 1, ambiguous_dir];
 							}
 							else
 							{
-								newrule.movingReplacement[cand_name][1] += 1;
+								newrule.movingReplacement[identifier_index][1] += 1; // counts how man different ambiguous_dir are used for this identifier in the rule
 							}
 
 							result.push(newrule);
@@ -1158,7 +1180,7 @@ function concretizeMovingRule(state, rule, lineNumber)
 		}
 	}
 
-	
+	// identify conficts (an identifier is used with multiple different directionaggregates in the LHS of the rule, or a directionaggregate is used with multiple identifiers)
 	for (var cur_rule of result)
 	{
 		//for each rule
@@ -1168,12 +1190,15 @@ function concretizeMovingRule(state, rule, lineNumber)
 		var ambiguous_movement_dict = {};
 		//strict first - matches movement direction to objects
 		//for each property replacement in that rule
-		for (var cand_name in cur_rule.movingReplacement)
+		for (var cand_index in cur_rule.movingReplacement)
 		{
-			if (cur_rule.movingReplacement.hasOwnProperty(cand_name))
+			if (cur_rule.movingReplacement.hasOwnProperty(cand_index))
 			{
-				const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_name];
+				const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_index];
 
+				// ambiguous movements used with multiple different identifiers, and identifiers used with multiple different ambiguous movements
+				// both cause the ambiguous movement to be invalid
+				// TODO: shouldn't we try to identify the common subset of directionaggregates instead of marking it as invalid? eventually raising a warning?
 				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1))
 				{
 					ambiguous_movement_dict[ambiguousMovement] = "INVALID";
@@ -1185,24 +1210,25 @@ function concretizeMovingRule(state, rule, lineNumber)
 
 				if (occurrenceCount === 1)
 				{
-					//do the replacement
+					//do the replacement in the RHS (it has already been done in the LHS)
 					for (const cellRow_rhs of cur_rule.rhs)
 					{
 						for (var cell of cellRow_rhs)
 						{
-							concretizeMovingInCell(cell, ambiguousMovement, cand_name, concreteMovement);
+							concretizeMovingInCell(cell, ambiguousMovement, cand_index, concreteMovement);
 						}
 					}
 				}
 			}
 		}
+		delete result.movingReplacement; // not used anymore
 
-		//for each ambiguous word, if there's a single ambiguous movement specified in the whole lhs, then replace that wholesale
+		//for each ambiguous word, if there was a single ambiguous movement specified in the whole lhs, then replace it also in the RHS (for the other identifiers)
 		for(var ambiguousMovement in ambiguous_movement_dict)
 		{
-			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID")
+			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID") // TODO: ambiguousMovement cannot be INVALID?
 			{
-				concreteMovement = ambiguous_movement_dict[ambiguousMovement];
+				const concreteMovement = ambiguous_movement_dict[ambiguousMovement];
 				if (concreteMovement==="INVALID")
 					continue;
 				for (var cellRow_rhs of cur_rule.rhs)
@@ -1217,24 +1243,22 @@ function concretizeMovingRule(state, rule, lineNumber)
 	}
 
 	//if any properties remain on the RHSes, bleep loudly
+	// TODO: why only log the last one found and not all of them?
 	var rhsAmbiguousMovementsRemain = '';
 	for (const cur_rule of result)
 	{
-		delete result.movingReplacement;
 		for (const cur_rulerow of cur_rule.rhs)
 		{
 			for (var cur_cell of cur_rulerow)
 			{
-				var movings = getMovings(state, cur_cell);
+				var movings = getMovings(cur_cell);
 				if (movings.length > 0)
 				{
-					rhsAmbiguousMovementsRemain = movings[0][1];
+					rhsAmbiguousMovementsRemain = movings[0][0];
 				}
 			}
 		}
 	}
-
-
 	if (rhsAmbiguousMovementsRemain.length > 0)
 	{
 		logError('This rule has an ambiguous movement on the right-hand side, \"'+ rhsAmbiguousMovementsRemain + "\", that can't be inferred from the left-hand side.  (either for every ambiguous movement associated to an entity on the right there has to be a corresponding one on the left attached to the same entity, OR, if there's a single occurrence of a particular ambiguous movement on the left, all properties of the same movement attached to the same object on the right are assumed to be the same (or something like that)).",lineNumber);
@@ -1265,26 +1289,27 @@ function atomizeHSAggregatesAndSynonyms(state, hs, lineNumber)
 
 function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 {
-	for (var i = 0; i < cell.length; i += 2)
+	for (var i = 0; i < cell.length; i += 1)
 	{
-		var dir = cell[i];
-		var c = cell[i+1];
-		if (isAggregate(state, c))
+		var [dir, c] = cell[i];
+		switch (state.identifiers_comptype[c])
 		{
-			if (dir === 'no')
+		case identifier_type_aggregate:
 			{
-				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
+				if (dir === 'no')
+				{
+					logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
+				}
 			}
-		}
-		else if ( ! isSynonym(state, c) )
+		case identifier_type_synonym:
+			break;
+		default:
 			continue;
-		const equivs = [...state.getObjectsAnIdentifierCanBe(c).values()].map( p => state.objects[p].name );
-		cell[i+1] = equivs[0];
-		for (var j= 1; j < equivs.length; j++) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
-		{
-			cell.push(cell[i]);//push the direction
-			cell.push(equivs[j]);
 		}
+		const equivs = [...state.getObjectsForIdentifier(c).values()].map( p => [dir, state.objects[p].name] );
+		cell.splice(i, 1, ...equivs);
+		// cell[i] = equivs[0];
+		// cell.push(...equivs.slice(1)) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
 	}
 }
 
@@ -1321,13 +1346,12 @@ var relativeDict = {
 
 function absolutifyRuleCell(forward, cell)
 {
-	for (var i = 0; i < cell.length; i += 2)
+	for (var objcond of cell)
 	{
-		const c = cell[i];
-		const index = relativeDirs.indexOf(c);
+		const index = relativeDirs.indexOf(objcond[0]);
 		if (index >= 0)
 		{
-			cell[i] = relativeDict[forward][index];
+			objcond[0] = relativeDict[forward][index];
 		}
 	}
 }
@@ -1372,13 +1396,14 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var movementsMissing = new BitVec(STRIDE_MOV);
 
 			var objectlayers_l = new BitVec(STRIDE_MOV);
-			for (var l = 0; l < cell_l.length; l += 2)
+			// for (var l = 0; l < cell_l.length; l += 2)
+			for (const [object_dir, object_index] of cell_l)
 			{
-				var object_dir = cell_l[l];
+				// var object_dir = cell_l[l];
 				if (object_dir === '...')
 				{
 					objectsPresent = ellipsisPattern;
-					if (cell_l.length !== 2)
+					if (cell_l.length !== 1)
 					{
 						logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
 					}
@@ -1402,21 +1427,24 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					continue;
 				}
 
-				var object_name = cell_l[l + 1];
-				var object = state.getObjectByName(object_name); // TODO: we should store directly the object index in cell_l
-				var objectMask = state.objectMasks[object_name];
+				// var object_name = cell_l[l + 1];
+				// var object = state.getObjectByName(object_name); // TODO: we should store directly the object index in cell_l
+				// const object = state.objects[object_index];
+				const object = state.objects[state.identifiers_objects[object_index].values().next().value];
+				console.assert(state.identifiers_objects[object_index].size == 1, state.identifiers_objects[object_index], state.identifiers[object_index])
+				var objectMask = state.objectMasks[object.name]; // TODO: we should store directly the object indexes in state.objectMasks
 				if (object)
 				{
 					var layerIndex = object.layer|0;
 				}
 				else
 				{
-					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object_name)];
+					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object.name)];
 				}
 
 				if (layerIndex < 0)
 				{
-					logError("Oops!  " +object_name.toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +object.name.toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 
 				if (object_dir === 'no')
@@ -1428,10 +1456,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					var existingname = layersUsed_l[layerIndex];
 					if (existingname !== null)
 					{
-						rule.discard = [object_name.toUpperCase(), existingname.toUpperCase()];
+						rule.discard = [object.name.toUpperCase(), existingname.toUpperCase()];
 					}
 
-					layersUsed_l[layerIndex] = object_name;
+					layersUsed_l[layerIndex] = object.name;
 
 					if (object)
 					{
@@ -1462,16 +1490,9 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					logError("An ellipsis on the right must be matched by one in the corresponding place on the left.", rule.lineNumber);
 				}
-				for (var l=0; l<rhscell.length; l+=2)
+				if ( (rhscell.length !== 1) && rhscell.some( objcond => (objcond[0] === '...') ) )
 				{
-					var content = rhscell[l];
-					if (content === '...')
-					{
-						if (rhscell.length !== 2)
-						{
-							logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
-						}
-					}
+					logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
 				}
 			}
 
@@ -1498,10 +1519,14 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var randomMask_r = new BitVec(STRIDE_OBJ);
 			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV);
 			var randomDirMask_r = new BitVec(STRIDE_MOV);
-			for (var l = 0; l < cell_r.length; l += 2)
+			// for (var l = 0; l < cell_r.length; l += 2)
+			for (const [object_dir, object_index] of cell_r)
 			{
-				var object_dir = cell_r[l];
-				var object_name = cell_r[l + 1];
+				// var object_dir = cell_r[l];
+				// var object_name = cell_r[l + 1];
+				// const object = state.objects[object_index];
+				const object = state.objects[state.identifiers_objects[object_index].values().next().value];
+				console.assert(state.identifiers_objects[object_index].size == 1, state.identifiers_objects[object_index], state.identifiers[object_index])
 
 				if (object_dir === '...')
 				{
@@ -1510,16 +1535,16 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if (object_dir === 'random')
 				{
-					if (object_name in state.objectMasks)
+					if (object.name in state.objectMasks)
 					{
-						var mask = state.objectMasks[object_name];
+						var mask = state.objectMasks[object.name];
 						randomMask_r.ior(mask);
 						var values;
-						if (isProperty(state, object_name))
+						if (isProperty(state, object.name))
 						{
-							values = [...state.getObjectsAnIdentifierCanBe(object_name).values()].map( p => state.objects[p].name );
+							values = [...state.getObjectsForIdentifier(object_index).values()].map( p => state.objects[p].name );
 						} else {
-							values = [object_name];
+							values = [object.name];
 						}
 						for (const subobject of values)
 						{
@@ -1540,20 +1565,20 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					}
 					else
 					{
-						logError('You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
+						logError('You want to spawn a random "'+object.name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
 					}
 					continue;
 				}
 
-				var object = state.getObjectByName(object_name);
-				var objectMask = state.objectMasks[object_name];
+				// var object = state.getObjectByName(object.name);
+				var objectMask = state.objectMasks[object.name];
 				if (object)
 				{
 					var layerIndex = object.layer|0;
 				}
 				else
 				{
-					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object_name)]
+					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object.name)]
 				}
 				
 				if (object_dir == 'no')
@@ -1572,11 +1597,11 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					{
 						if ( ! rule.hasOwnProperty('discard') )
 						{
-							logError('Rule matches object types that can\'t overlap: "' + object_name.toUpperCase() + '" and "' + existingname.toUpperCase() + '".',rule.lineNumber);
+							logError('Rule matches object types that can\'t overlap: "' + object.name.toUpperCase() + '" and "' + existingname.toUpperCase() + '".',rule.lineNumber);
 						}
 					}
 
-					layersUsed_r[layerIndex] = object_name;
+					layersUsed_r[layerIndex] = object.name;
 
 					if (object_dir.length > 0)
 					{
@@ -1668,26 +1693,30 @@ function cellRowMasks(rule) {
 	return ruleMasks;
 }
 
-function collapseRules(groups) {
-	for (var gn = 0; gn < groups.length; gn++) {
+function collapseRules(groups)
+{
+	for (var gn = 0; gn < groups.length; gn++)
+	{
 		var rules = groups[gn];
-		for (var i = 0; i < rules.length; i++) {
-			var oldrule = rules[i];
-			var newrule = [0,[],oldrule.rhs.length>0,oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
-			var ellipses = [];
-			for (var j=0;j<oldrule.lhs.length;j++) {
-				ellipses.push(false);
-			}
+		for (var i = 0; i < rules.length; i++)
+		{
+			const oldrule = rules[i];
+			var newrule = [0, [], oldrule.rhs.length>0, oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
+			var ellipses = Array(oldrule.lhs.length).fill(false);
 
-			newrule[0]=dirMasks[oldrule.direction];
-			for (var j = 0; j < oldrule.lhs.length; j++) {
+			newrule[0] = dirMasks[oldrule.direction];
+			for (var j=0; j<oldrule.lhs.length; j++)
+			{
 				var cellrow_l = oldrule.lhs[j];
-				for (var k = 0; k < cellrow_l.length; k++) {
-					if (cellrow_l[k] === ellipsisPattern) {
-						if (ellipses[j]) {
+				for (const cell of cellrow_l)
+				{
+					if (cell === ellipsisPattern)
+					{
+						if (ellipses[j])
+						{
 							logError("You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :) ", oldrule.lineNumber);
 						} 
-						ellipses[j]=true;
+						ellipses[j] = true;
 					}
 				}
 				newrule[1][j] = cellrow_l;
@@ -1704,106 +1733,120 @@ function collapseRules(groups) {
 	matchCache = {}; // clear match cache so we don't slowly leak memory
 }
 
-function ruleGroupRandomnessTest(ruleGroup) {
-	if (ruleGroup.length === 0)
-		return;
-	var firstLineNumber = ruleGroup[0].lineNumber;
-	for (var i=1;i<ruleGroup.length;i++) {
+// test that in a rule group the only random rules are the ones defined by the first rule of the group
+// TODO: this is a syntaxic issue that should/could be dealt with much sooner?
+function ruleGroupRandomnessTest(ruleGroup)
+{
+	// if (ruleGroup.length === 0) // TODO: as long as ruleGroupRandomnessTest is only called by arrangeRulesByGroupNumber{Aux}, this test cannot fail
+	// 	return;
+	const firstLineNumber = ruleGroup[0].lineNumber;
+	for (var i=1;i<ruleGroup.length;i++)
+	{
 		var rule=ruleGroup[i];
 		if (rule.lineNumber === firstLineNumber) // random [A | B] gets turned into 4 rules, skip
 			continue;
-		if (rule.randomRule) {
+		if (rule.randomRule)
+		{
 			logError("A rule-group can only be marked random by the first rule", rule.lineNumber);
 		}
 	}
 }
 
-function ruleGroupDiscardOverlappingTest(ruleGroup){
-	if (ruleGroup.length === 0)
-		return;
+function ruleGroupDiscardOverlappingTest(ruleGroup)
+{
+	// if (ruleGroup.length === 0) // TODO: as long as ruleGroupDiscardOverlappingTest is only called by arrangeRulesByGroupNumber{Aux}, this test cannot fail
+	// 	return;
 	var firstLineNumber = ruleGroup[0].lineNumber;
-	var allbad=true;
-	var example=null;
-	for (var i=0;i<ruleGroup.length;i++){
-		var rule=ruleGroup[i];
-		if (rule.hasOwnProperty('discard')){
-			example=rule['discard'];
+	var allbad = true;
+	var example = null;
+	for (var i=0; i<ruleGroup.length; i++)
+	{
+		var rule = ruleGroup[i];
+		if (rule.hasOwnProperty('discard'))
+		{
+			example = rule['discard'];
 			ruleGroup.splice(i,1);
 			i--;
 		} else {
-			allbad=false;
+			allbad = false;
 		}
 	}
-	if (allbad){
+	if (allbad)
+	{
 		logError(example[0] +' and '+example[1]+' can never overlap, but this rule requires that to happen.', firstLineNumber);
 	}
 }
 
-function arrangeRulesByGroupNumber(state) {
-	var aggregates = {};
-	var aggregates_late = {};
-	for (var i=0;i<state.rules.length;i++) {
-		var rule = state.rules[i];
-		var targetArray = aggregates;
-		if (rule.late) {
-			targetArray=aggregates_late;
-		}
-
-		if (targetArray[rule.groupNumber]==undefined) {
-			targetArray[rule.groupNumber]=[];
-		}
-		targetArray[rule.groupNumber].push(rule);
-	}
-
-	var result=[];
-	for (var groupNumber in aggregates) {
-		if (aggregates.hasOwnProperty(groupNumber)) {
-			var ruleGroup = aggregates[groupNumber];
+function arrangeRulesByGroupNumberAux(target)
+{
+	var result = [];
+	for (const groupNumber in target)
+	{
+		if (target.hasOwnProperty(groupNumber))
+		{
+			var ruleGroup = target[groupNumber];
 			ruleGroupRandomnessTest(ruleGroup);
 			ruleGroupDiscardOverlappingTest(ruleGroup);
 			result.push(ruleGroup);
 		}
 	}
-	var result_late=[];
-	for (var groupNumber in aggregates_late) {
-		if (aggregates_late.hasOwnProperty(groupNumber)) {
-			var ruleGroup = aggregates_late[groupNumber];
-			ruleGroupRandomnessTest(ruleGroup);
-			ruleGroupDiscardOverlappingTest(ruleGroup);
-			result_late.push(ruleGroup);
+	return result;
+}
+
+function arrangeRulesByGroupNumber(state)
+{
+	var aggregates = {};
+	var aggregates_late = {};
+	for (const rule of state.rules)
+	{
+		var targetArray = rule.late ? aggregates_late : aggregates;
+
+		if (targetArray[rule.groupNumber] == undefined)
+		{
+			targetArray[rule.groupNumber] = [];
 		}
+		targetArray[rule.groupNumber].push(rule);
 	}
-	state.rules=result;
+
+	const result = arrangeRulesByGroupNumberAux(aggregates);
+	const result_late = arrangeRulesByGroupNumberAux(aggregates_late);
+
+	state.rules = result;
 
 	//check that there're no late movements with direction requirements on the lhs
-	state.lateRules=result_late;
+	state.lateRules = result_late;
 }
 
 
-function checkNoLateRulesHaveMoves(state){
-	for (var ruleGroupIndex=0;ruleGroupIndex<state.lateRules.length;ruleGroupIndex++) {
-		var lateGroup = state.lateRules[ruleGroupIndex];
-		for (var ruleIndex=0;ruleIndex<lateGroup.length;ruleIndex++) {
-			var rule = lateGroup[ruleIndex];
-			for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
-				var cellRow_l = rule.patterns[cellRowIndex];
-				for (var cellIndex=0;cellIndex<cellRow_l.length;cellIndex++) {
-					var cellPattern = cellRow_l[cellIndex];
-					if (cellPattern === ellipsisPattern) {
+// TODO: can't this been checked much earlier? Also it would be better to list all the rules that have the issue...
+function checkNoLateRulesHaveMoves(state)
+{
+	for (const lateGroup of state.lateRules)
+	{
+		for (const rule of lateGroup)
+		{
+			for (const cellRow_l of rule.patterns)
+			{
+				for (const cellPattern of cellRow_l)
+				{
+					if (cellPattern === ellipsisPattern)
 						continue;
-					}
+
 					var moveMissing = cellPattern.movementsMissing;
 					var movePresent = cellPattern.movementsPresent;
-					if (!moveMissing.iszero() || !movePresent.iszero()) {
-						logError("Movements cannot appear in late rules.",rule.lineNumber);
+					if (!moveMissing.iszero() || !movePresent.iszero())
+					{
+						logError("Movements cannot appear in late rules.", rule.lineNumber);
 						return;
 					}
 
-					if (cellPattern.replacement!=null) {
+					if (cellPattern.replacement != null)
+					{
 						var movementsClear = cellPattern.replacement.movementsClear;
 						var movementsSet = cellPattern.replacement.movementsSet;
 
-						if (!movementsClear.iszero() || !movementsSet.iszero()) {
+						if (!movementsClear.iszero() || !movementsSet.iszero())
+						{
 							logError("Movements cannot appear in late rules.",rule.lineNumber);
 							return;
 						}
@@ -1814,39 +1857,37 @@ function checkNoLateRulesHaveMoves(state){
 	}
 }
 
-function generateRigidGroupList(state) {
-	var rigidGroupIndex_to_GroupIndex=[];
-	var groupIndex_to_RigidGroupIndex=[];
-	var groupNumber_to_GroupIndex=[];
-	var groupNumber_to_RigidGroupIndex=[];
-	var rigidGroups=[];
-	for (var i=0;i<state.rules.length;i++) {
-		var ruleset=state.rules[i];
-		var rigidFound=false;
-		for (var j=0;j<ruleset.length;j++) {
-			var rule=ruleset[j];
-			if (rule.isRigid) {
-				rigidFound=true;
-			}
-		}
-		rigidGroups[i]=rigidFound;
-		if (rigidFound) {
-			var groupNumber=ruleset[0].groupNumber;
-			groupNumber_to_GroupIndex[groupNumber]=i;
+function generateRigidGroupList(state)
+{
+	var rigidGroupIndex_to_GroupIndex = [];
+	var groupIndex_to_RigidGroupIndex = [];
+	var groupNumber_to_GroupIndex = [];
+	var groupNumber_to_RigidGroupIndex = [];
+	var rigidGroups = [];
+	for (var i=0; i<state.rules.length; i++)
+	{
+		const ruleset = state.rules[i];
+		const rigidFound = ruleset.some( rule => rule.isRigid );
+		rigidGroups[i] = rigidFound;
+		if (rigidFound)
+		{
+			var groupNumber = ruleset[0].groupNumber;
+			groupNumber_to_GroupIndex[groupNumber] = i;
 			var rigid_group_index = rigidGroupIndex_to_GroupIndex.length;
-			groupIndex_to_RigidGroupIndex[i]=rigid_group_index;
-			groupNumber_to_RigidGroupIndex[groupNumber]=rigid_group_index;
+			groupIndex_to_RigidGroupIndex[i] = rigid_group_index;
+			groupNumber_to_RigidGroupIndex[groupNumber] = rigid_group_index;
 			rigidGroupIndex_to_GroupIndex.push(i);
 		}
 	}
-	if (rigidGroupIndex_to_GroupIndex.length>30) {
-		logError("There can't be more than 30 rigid groups (rule groups containing rigid members).",rules[0][0][3]);
+	if (rigidGroupIndex_to_GroupIndex.length>30)
+	{
+		logError("There can't be more than 30 rigid groups (rule groups containing rigid members).", rules[0][0][3]);
 	}
 
-	state.rigidGroups=rigidGroups;
-	state.rigidGroupIndex_to_GroupIndex=rigidGroupIndex_to_GroupIndex;
-	state.groupNumber_to_RigidGroupIndex=groupNumber_to_RigidGroupIndex;
-	state.groupIndex_to_RigidGroupIndex=groupIndex_to_RigidGroupIndex;
+	state.rigidGroups = rigidGroups;
+	state.rigidGroupIndex_to_GroupIndex = rigidGroupIndex_to_GroupIndex;
+	state.groupNumber_to_RigidGroupIndex = groupNumber_to_RigidGroupIndex;
+	state.groupIndex_to_RigidGroupIndex = groupIndex_to_RigidGroupIndex;
 }
 
 
@@ -1961,41 +2002,39 @@ function processWinConditions(state) {
 	state.winconditions=newconditions;
 }
 
-function printCell(cell)
+function printCell(state, cell)
 {
 	var result = '';
-	for (var j=0; j<cell.length; j+=2)
+	for (const [direction, identifier_index] of cell)
 	{
-		var direction = cell[j];
-		var object = cell[j+1];
-		if (direction === "...")
+		result += direction + " ";
+		if (direction !== "...")
 		{
-			result += direction+" ";
-		} else {
-			result += direction+" "+object+" ";
+			result += state.identifiers[identifier_index]+" ";
 		}
 	}
 	return result;
 }
 
-function printCellRow(cellRow)
+function printCellRow(state, cellRow)
 {
-	var result = "[ ";
-	for (var i=0; i<cellRow.length; i++)
-	{
-		if (i > 0)
-		{
-			result += "| ";
-		}
-		result += printCell(cellRow[i])
-	}
-	result +="] ";
-	return result;
+	return '[ ' + cellRow.map(c => printCell(state,c)).join('| ') + '] ';
+	// var result = "[ ";
+	// for (const [i, cell] of cellRow.entries())
+	// {
+	// 	if (i > 0)
+	// 	{
+	// 		result += "| ";
+	// 	}
+	// 	result += printCell(cellRow[i])
+	// }
+	// result +="] ";
+	// return result;
 }
 
-function cacheRuleStringRep(rule)
+function cacheRuleStringRep(state, rule)
 {
-	var result="(<a onclick=\"jumpToLine('"+ rule.lineNumber.toString() + "');\"  href=\"javascript:void(0);\">"+rule.lineNumber+"</a>) "+ rule.direction.toString().toUpperCase()+" ";
+	var result='('+makeLinkToLine(rule.lineNumber, rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
 	if (rule.rigid) {
 		result = "RIGID "+result+" ";
 	}
@@ -2005,19 +2044,17 @@ function cacheRuleStringRep(rule)
 	if (rule.late) {
 		result = "LATE "+result+" ";
 	}
-	for (var i=0;i<rule.lhs.length;i++) {
-		var cellRow = rule.lhs[i];
-		result = result + printCellRow(cellRow);
+	for (const cellRow of rule.lhs) {
+		result = result + printCellRow(state, cellRow);
 	}
 	result = result + "-> ";
-	for (var i=0;i<rule.rhs.length;i++) {
-		var cellRow = rule.rhs[i];
-		result = result + printCellRow(cellRow);
+	for (const cellRow of rule.rhs) {
+		result = result + printCellRow(state, cellRow);
 	}
-	for (var i=0;i<rule.commands.length;i++) {
-		var command = rule.commands[i];
+	for (const command of rule.commands)
+	{
 		if (command.length===1) {
-			result = result +command[0].toString();
+			result = result + command[0].toString();
 		} else {
 			result = result + '('+command[0].toString()+", "+command[1].toString()+') ';			
 		}
@@ -2030,7 +2067,7 @@ function cacheAllRuleNames(state)
 {
 	for (const rule of state.rules)
 	{
-		cacheRuleStringRep(rule);
+		cacheRuleStringRep(state, rule);
 	}
 }
 
@@ -2096,94 +2133,79 @@ function removeDuplicateRules(state)
 
 function generateLoopPoints(state)
 {
-	var loopPoint={};
-	var loopPointIndex=0;
-	var outside=true;
-	var source=0;
-	var target=0;
-	if (state.loops.length%2===1) {
+	if (state.loops.length % 2 === 1)
+	{
 		logErrorNoLine("have to have matching number of  'startLoop' and 'endLoop' loop points.");
 	}
 
-	for (var j=0;j<state.loops.length;j++) {
-		var loop = state.loops[j];
-		for (var i=0;i<state.rules.length;i++) {
-			var ruleGroup = state.rules[i];
+	var loopPointIndex = 0;
+	var source = 0;
+	var target = 0;
 
-			var firstRule = ruleGroup[0];			
-			var lastRule = ruleGroup[ruleGroup.length-1];
+	// TODO: we're doing this twice -> make an auxillary function.
+	var loopPoint = {};
+	var outside = true;
+	for (const loop of state.loops)
+	{
+		for (const [i, ruleGroup] of state.rules.entries())
+		{
+			if (ruleGroup[0].lineNumber < loop[0])
+				continue;
 
-			var firstRuleLine = firstRule.lineNumber;
-			var lastRuleLine = lastRule.lineNumber;
-
-			if (outside) {
-				if (firstRuleLine>=loop[0]) {
-					target=i;
-					outside=false;
-					if (loop[1]===-1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
-					}
-					break;
-				}
-			} else {
-				if (firstRuleLine>=loop[0]) {
-					source = i-1;		
-					loopPoint[source]=target;
-					outside=true;
-					if (loop[1]===1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
-					}
-					break;
-				}
+			if (outside)
+			{
+				target = i;
 			}
+			else
+			{
+				source = i-1;
+				loopPoint[source] = target;
+			}
+			if (loop[1] === (outside ? -1 : 1) )
+			{
+				logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
+			}
+			outside = ! outside;
+			break;
 		}
 	}
-	if (outside===false) {
+	if (outside === false)
+	{
 		var source = state.rules.length;
-		loopPoint[source]=target;
-	} else {
+		loopPoint[source] = target;
 	}
-	state.loopPoint=loopPoint;
+	state.loopPoint = loopPoint;
 
-	loopPoint={};
-	outside=true;
-	for (var j=0;j<state.loops.length;j++) {
-		var loop = state.loops[j];
-		for (var i=0;i<state.lateRules.length;i++) {
-			var ruleGroup = state.lateRules[i];
+	loopPoint = {};
+	outside = true;
+	for (const loop of state.loops)
+	{
+		for (const [i, ruleGroup] of state.lateRules.entries())
+		{
+			if (ruleGroup[0].lineNumber < loop[0])
+				continue;
 
-			var firstRule = ruleGroup[0];			
-			var lastRule = ruleGroup[ruleGroup.length-1];
-
-			var firstRuleLine = firstRule.lineNumber;
-			var lastRuleLine = lastRule.lineNumber;
-
-			if (outside) {
-				if (firstRuleLine>=loop[0]) {
-					target=i;
-					outside=false;
-					if (loop[1]===-1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
-					}
-					break;
-				}
-			} else {
-				if (firstRuleLine>=loop[0]) {
-					source = i-1;		
-					loopPoint[source]=target;
-					outside=true;
-					if (loop[1]===1) {
-						logErrorNoLine("Need have to have matching number of  'startLoop' and 'endLoop' loop points.");						
-					}
-					break;
-				}
+			if (outside)
+			{
+				target = i;
 			}
+			else
+			{
+				source = i-1;
+				loopPoint[source] = target;
+			}
+			if (loop[1] === (outside ? -1 : 1) )
+			{
+				logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
+			}
+			outside = ! outside;
+			break;
 		}
 	}
-	if (outside===false) {
+	if (outside === false)
+	{
 		var source = state.lateRules.length;
-		loopPoint[source]=target;
-	} else {
+		loopPoint[source] = target;
 	}
 	state.lateLoopPoint=loopPoint;
 }
