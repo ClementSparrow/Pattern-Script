@@ -48,6 +48,10 @@ const identifier_type_synonym = -1
 const identifier_type_aggregate = -2
 const identifier_type_property = -3
 
+function getIdentifierTypeAsText(type)
+{
+	return (type < 0) ? ({identifier_type_synonym:'an object synonym', identifier_type_aggregate:'an aggregate', identifier_type_property:'a property'})[type] : 'an object';
+}
 
 // NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
 function PuzzleScriptParser()
@@ -115,6 +119,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.objects = this.objects.map( (o) => ({
 			name: o.name,
+			// identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
 			// lineNumber : o.lineNumber,
 			spritematrix: o.spritematrix.concat([]),
@@ -207,12 +212,13 @@ PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, origin
 PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_case)
 {
 	const object_id = this.objects.length
-	this.registerNewIdentifier(identifier, original_case, object_id, object_id, new Set([object_id]))
 	this.objects.push( {
 		name: identifier,
+		// identifier_index: this.identifiers.length,
 		colors: [],
 		spritematrix: []
 	});
+	this.registerNewIdentifier(identifier, original_case, object_id, object_id, new Set([object_id]))
 }
 
 PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index)

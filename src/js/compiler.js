@@ -11,7 +11,6 @@
                         also, we want the bits in these masks to be in the order of objects in state.objects rather than in the order of idDict?
                      -> it is now only used in graphics.js/generateGlyphImages & glyphCount (just to know what sprites should be created, and the ordering of bits does not matter),
                         and in inputoutput.js/printLevel and levelEditorClick (where it is used to generate a mask with the same method as state.objectMasks)
-   - state.objectMasks
 */
 
 function isColor(str)
@@ -678,11 +677,12 @@ function parseRuleString(rule, state, curRules)
 			logError('Error, when specifying a rule, the number of matches (square bracketed bits) on the left hand side of the arrow must equal the number on the right', lineNumber);
 		}
 	} else {
-		for (var i = 0; i < lhs_cells.length; i++) {
-			if (lhs_cells[i].length != rhs_cells[i].length) {
+		for (const [i, lhs_cell] of lhs_cells.entries())
+		{
+			if (lhs_cell.length != rhs_cells[i].length) {
 				logError('In a rule, each pattern to match on the left must have a corresponding pattern on the right of equal length (number of cells).', lineNumber);
 			}
-			if (lhs_cells[i].length == 0) {
+			if (lhs_cell.length == 0) {
 				logError("You have an totally empty pattern on the left-hand side.  This will match *everything*.  You certainly don't want this.");
 			}
 		}
@@ -866,15 +866,6 @@ function getPropertiesFromCell(state, cell)
 function getMovings(cell)
 {
 	return cell.filter( ([dir, identifier_index]) => (dir in directionaggregates) );
-	// var result = [];
-	// for (const [dir, identifier_index] of cell)
-	// {
-	// 	if (dir in directionaggregates)
-	// 	{
-	// 		result.push([identifier_index, dir]); // TODO: if we did not reverse the order here, we could simply use a filter function.
-	// 	}
-	// }
-	// return result;
 }
 
 function concretizePropertyInCell(cell, property, concreteType)
@@ -932,6 +923,18 @@ function expandNoPrefixedProperties(state, cell)
 }
 
 // TODO: this function and concretizeMovingRule have a very similar structure and should probably be merged.
+/* Expands the properties on the LHS of a rule and disambiguates those on the RHS.
+ * The rules for the expansion on the LHS are:
+ * - properties prefixed by "no" are replaced by the set of objects they can be, all prefixed by "no".
+ *   (De Morgan's law: no (A or B or C) = (no A) and (no B) and (no C).)
+ * - new rules are created for every possible object each property can be.
+ *   (i.e., the cartesian product of the sets of objects for each occurance of a property).
+ * The disambiguation rules are:
+ * - if the property has a single occurence in the LHS, its concrete remplacement will be used for all the
+ *   occurences of this property in the RHS.
+ * - if a property appearing in a cell of the RHS appears also in the same cell of the LHS, then the concrete
+ *   replacement of the latter will be used for the former.
+ */
 function concretizePropertyRule(state, rule, lineNumber)
 {	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
@@ -950,7 +953,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 	// 		doesn't need to be split up (assuming single-layer player/block aggregates)
 
 	// we can't manage this if they're being used to disambiguate
-	var ambiguousProperties = {};
+	var ambiguousProperties = {}; // properties that appear in the RHS but not in the same cell of the LHS.
 
 	for (var j = 0; j < rule.rhs.length; j++)
 	{
@@ -970,8 +973,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 		}
 	}
 
-	var shouldremove;
 	var result = [rule];
+
+	var shouldremove;
 	var modified = true;
 	while (modified)
 	{
@@ -988,20 +992,22 @@ function concretizePropertyRule(state, rule, lineNumber)
 				{
 					for (const property of getPropertiesFromCell(state, cur_rulerow[k]))
 					{
+						// ambiguousProperties[property] !== true means that either the property does not appear on the RHS
+						// or it will be disambiguated because whenever it appears in the RHS it also appears in the matching
+						// cell of the RHS.
 						if ( (state.single_layer_property[property] >= 0) && (ambiguousProperties[property] !== true) )
 							continue; // we don't need to explode this property
-
-						// const aliases = Array.from(state.getObjectsForIdentifier(property)).map( p => state.objects[p].name );
-						const aliases = state.getObjectsForIdentifier(property);
 
 						shouldremove = true;
 						modified = true;
 
 						//just do the base property, let future iterations take care of the others
-
+						const aliases = Array.from(state.getObjectsForIdentifier(property).values());
 						for (const concreteType of aliases)
 						{
 							var newrule = deepCloneRule(cur_rule);
+
+							// also clone the propertyReplacements of the rule
 							newrule.propertyReplacement = {};
 							for(var prop in cur_rule.propertyReplacement)
 							{
@@ -1015,8 +1021,10 @@ function concretizePropertyRule(state, rule, lineNumber)
 							concretizePropertyInCell(newrule.lhs[j][k], property, concreteType);
 							if (newrule.rhs.length > 0)
 							{
+								// this disambiguates the property appearing in the same cell of the RHS, if any
 								concretizePropertyInCell(newrule.rhs[j][k], property, concreteType);//do for the corresponding rhs cell as well
 							}
+							// note that after that, the property and the concreteType can still appear in other cells
 							
 							if (newrule.propertyReplacement[property] === undefined)
 							{
@@ -1054,10 +1062,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 		{
 			if (cur_rule.propertyReplacement.hasOwnProperty(property))
 			{
-				const replacementInfo = cur_rule.propertyReplacement[property];
-				const concreteType = replacementInfo[0];
-				const occurrenceCount = replacementInfo[1];
-				if (occurrenceCount === 1)
+				const [concreteType, occurrenceCount] = cur_rule.propertyReplacement[property];
+
+				if (occurrenceCount === 1) // the property appears only once on the LHS, so it can be used to disambiguate all the occurences of the property on the RHS.
 				{
 					//do the replacement
 					for (var cellRow_rhs of cur_rule.rhs)
@@ -1067,22 +1074,25 @@ function concretizePropertyRule(state, rule, lineNumber)
 							concretizePropertyInCell(cell, property, concreteType);
 						}
 					}
+					// TODO: we could also remove the property from ambiguousProperties now, since it has
+					// just been disambiguated. It would allow to just test that ambiguousProperties is
+					// empty instead of doing the loop below.
 				}
 			}
 		}
+		delete cur_rule.propertyReplacement; // not used anymore
 	}
 
-	//if any properties remain on the RHSes, bleep loudly
+	// if any properties remain on the RHSes, bleep loudly
+	// TODO: why only log the last one found and not all of them?
 	var rhsPropertyRemains = '';
-	for (var cur_rule of result)
+	for (const cur_rule of result)
 	{
-		delete result.propertyReplacement;
-		for (var cur_rulerow of cur_rule.rhs)
+		for (const cur_rulerow of cur_rule.rhs)
 		{
-			for (var cur_cell of cur_rulerow)
+			for (const cur_cell of cur_rulerow)
 			{
-				var properties = getPropertiesFromCell(state, cur_cell);
-				for (var prop of properties)
+				for (const prop of getPropertiesFromCell(state, cur_cell))
 				{
 					if (ambiguousProperties.hasOwnProperty(prop))
 					{
@@ -1126,17 +1136,17 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 			shouldremove = false;
 			for (var j = 0; j < cur_rule.lhs.length; j++)
 			{
-				var cur_rulerow = cur_rule.lhs[j];
+				const cur_rulerow = cur_rule.lhs[j];
 				for (var k = 0; k < cur_rulerow.length; k++)
 				{
-					var cur_cell = cur_rulerow[k];
-					var movings = getMovings(cur_cell); // TODO: this seems an inneficient way to find a list of all movings just to change one...
+					var movings = getMovings(cur_rulerow[k]); // TODO: this seems an inneficient way to find a list of all movings just to change one...
 					if (movings.length > 0)
 					{
 						shouldremove = true;
 						modified = true;
 
-						//just do the base property, let future iterations take care of the others
+						//just do the base directionaggregate, let future iterations take care of the others
+						//(since all occurences of the base directionaggregate will be replaced by atomic directions, it will not reappear here)
 						const [ambiguous_dir, identifier_index] = movings[0];
 						for (const concreteDirection of directionaggregates[ambiguous_dir])
 						{
@@ -1154,7 +1164,9 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 							}
 
 							concretizeMovingInCell(newrule.lhs[j][k], ambiguous_dir, identifier_index, concreteDirection);
-							if (newrule.rhs.length>0) {
+							if (newrule.rhs.length > 0) // desambiguate a directionaggregate in the RHS if it also appears on the same identifier in the same LHS cell.
+							{
+								// note that there is no guaranty that the same [ambiguous_dir, identifier] appears in the same cell of the RHS...
 								concretizeMovingInCell(newrule.rhs[j][k], ambiguous_dir, identifier_index, concreteDirection);//do for the corresponding rhs cell as well
 							}
 							
@@ -1180,7 +1192,6 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 		}
 	}
 
-	// identify conficts (an identifier is used with multiple different directionaggregates in the LHS of the rule, or a directionaggregate is used with multiple identifiers)
 	for (var cur_rule of result)
 	{
 		//for each rule
@@ -1196,9 +1207,6 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 			{
 				const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_index];
 
-				// ambiguous movements used with multiple different identifiers, and identifiers used with multiple different ambiguous movements
-				// both cause the ambiguous movement to be invalid
-				// TODO: shouldn't we try to identify the common subset of directionaggregates instead of marking it as invalid? eventually raising a warning?
 				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1))
 				{
 					ambiguous_movement_dict[ambiguousMovement] = "INVALID";
@@ -1210,7 +1218,8 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 
 				if (occurrenceCount === 1)
 				{
-					//do the replacement in the RHS (it has already been done in the LHS)
+					//do the replacement in the RHS
+					// all the direction aggregates of the RHS with this identifier gets disambiguated.
 					for (const cellRow_rhs of cur_rule.rhs)
 					{
 						for (var cell of cellRow_rhs)
@@ -1221,16 +1230,17 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 				}
 			}
 		}
-		delete result.movingReplacement; // not used anymore
+		delete cur_rule.movingReplacement; // not used anymore
 
 		//for each ambiguous word, if there was a single ambiguous movement specified in the whole lhs, then replace it also in the RHS (for the other identifiers)
 		for(var ambiguousMovement in ambiguous_movement_dict)
 		{
-			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID") // TODO: ambiguousMovement cannot be INVALID?
+			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID")
 			{
 				const concreteMovement = ambiguous_movement_dict[ambiguousMovement];
-				if (concreteMovement==="INVALID")
+				if (concreteMovement === "INVALID")
 					continue;
+				// the direction aggregate has been seen exactly once in the LHS
 				for (var cellRow_rhs of cur_rule.rhs)
 				{
 					for (var cell of cellRow_rhs)
@@ -1242,16 +1252,16 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 		}
 	}
 
-	//if any properties remain on the RHSes, bleep loudly
+	// if any direction aggregate remain on the RHSes, bleep loudly
 	// TODO: why only log the last one found and not all of them?
 	var rhsAmbiguousMovementsRemain = '';
 	for (const cur_rule of result)
 	{
 		for (const cur_rulerow of cur_rule.rhs)
 		{
-			for (var cur_cell of cur_rulerow)
+			for (const cur_cell of cur_rulerow)
 			{
-				var movings = getMovings(cur_cell);
+				const movings = getMovings(cur_cell);
 				if (movings.length > 0)
 				{
 					rhsAmbiguousMovementsRemain = movings[0][0];
@@ -1385,10 +1395,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 	{
 		var cellrow_l = rule.lhs[j];
 		var cellrow_r = rule.rhs[j];
-		for (var k = 0; k < cellrow_l.length; k++)
+
+		for (const [k, cell_l] of cellrow_l.entries())
 		{
-			var cell_l = cellrow_l[k];
-			var layersUsed_l = layerTemplate.concat([]);
+			var layersUsed_l = Array.from(layerTemplate);
 			var objectsPresent = new BitVec(STRIDE_OBJ);
 			var objectsMissing = new BitVec(STRIDE_OBJ);
 			var anyObjectsPresent = [];
@@ -1396,13 +1406,13 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var movementsMissing = new BitVec(STRIDE_MOV);
 
 			var objectlayers_l = new BitVec(STRIDE_MOV);
-			// for (var l = 0; l < cell_l.length; l += 2)
-			for (const [object_dir, object_index] of cell_l)
+
+			for (const [object_dir, identifier_index] of cell_l)
 			{
-				// var object_dir = cell_l[l];
 				if (object_dir === '...')
 				{
 					objectsPresent = ellipsisPattern;
+					// TODO: these tests and error messages should be moved to parseRuleString.
 					if (cell_l.length !== 1)
 					{
 						logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
@@ -1427,12 +1437,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					continue;
 				}
 
-				// var object_name = cell_l[l + 1];
-				// var object = state.getObjectByName(object_name); // TODO: we should store directly the object index in cell_l
-				// const object = state.objects[object_index];
-				const object = state.objects[state.identifiers_objects[object_index].values().next().value];
-				console.assert(state.identifiers_objects[object_index].size == 1, state.identifiers_objects[object_index], state.identifiers[object_index])
-				var objectMask = state.objectMasks[object.name]; // TODO: we should store directly the object indexes in state.objectMasks
+				const object_index = state.identifiers_objects[identifier_index].values().next().value;
+				const object = state.objects[object_index];
+				console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
+				const objectMask = state.objectMasks[object_index];
 				if (object)
 				{
 					var layerIndex = object.layer|0;
@@ -1519,14 +1527,11 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var randomMask_r = new BitVec(STRIDE_OBJ);
 			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV);
 			var randomDirMask_r = new BitVec(STRIDE_MOV);
-			// for (var l = 0; l < cell_r.length; l += 2)
-			for (const [object_dir, object_index] of cell_r)
+			for (const [object_dir, identifier_index] of cell_r)
 			{
-				// var object_dir = cell_r[l];
-				// var object_name = cell_r[l + 1];
-				// const object = state.objects[object_index];
-				const object = state.objects[state.identifiers_objects[object_index].values().next().value];
-				console.assert(state.identifiers_objects[object_index].size == 1, state.identifiers_objects[object_index], state.identifiers[object_index])
+				const object_index = state.identifiers_objects[identifier_index].values().next().value;
+				const object = state.objects[object_index];
+				console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
 
 				if (object_dir === '...')
 				{
@@ -1535,14 +1540,14 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if (object_dir === 'random')
 				{
-					if (object.name in state.objectMasks)
-					{
-						var mask = state.objectMasks[object.name];
+					// if (object.name in state.objectMasks)
+					// {
+						var mask = state.objectMasks[object_index];
 						randomMask_r.ior(mask);
 						var values;
 						if (isProperty(state, object.name))
 						{
-							values = [...state.getObjectsForIdentifier(object_index).values()].map( p => state.objects[p].name );
+							values = [...state.getObjectsForIdentifier(identifier_index).values()].map( p => state.objects[p].name );
 						} else {
 							values = [object.name];
 						}
@@ -1562,16 +1567,15 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 							layersUsedRand_r[layerIndex] = subobject;
 						}                      
-					}
-					else
-					{
-						logError('You want to spawn a random "'+object.name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
-					}
+					// }
+					// else
+					// {
+					// 	logError('You want to spawn a random "'+object.name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
+					// }
 					continue;
 				}
 
-				// var object = state.getObjectByName(object.name);
-				var objectMask = state.objectMasks[object.name];
+				var objectMask = state.objectMasks[object_index];
 				if (object)
 				{
 					var layerIndex = object.layer|0;
@@ -1903,29 +1907,33 @@ function generateMasks(state)
 	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
 
 //	Compute state.objectMasks
-	// TODO: replace it with a list of masks for each identifier (and let the code using it check that its not an aggregate)
 
-	var objectMask = {};
-	for(var o of state.objects)
-	{
-		objectMask[o.name] = new BitVec(STRIDE_OBJ);
-		objectMask[o.name].ibitset(o.id);
-	}
+	var objectMask = state.identifiers_comptype.map(
+		(type, identifier_index) => (type == identifier_type_aggregate) ? null : makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
+	);
 
-	// Synonyms can depend on properties, and properties can depend on synonyms.
-	// Process them in order by combining & sorting by linenumber.
+	// // TODO: replace it with a list of masks for each identifier (and let the code using it check that its not an aggregate)
+	// var objectMask = {};
+	// for(var o of state.objects)
+	// {
+	// 	objectMask[o.name] = new BitVec(STRIDE_OBJ);
+	// 	objectMask[o.name].ibitset(o.id);
+	// }
 
-	var synonyms_and_properties = Array.from(state.identifiers.keys()).filter( i => [identifier_type_synonym, identifier_type_property].includes(state.identifiers_deftype[i]) );
-	synonyms_and_properties.sort( (a,b) => state.identifiers_lineNumbers[a] - state.identifiers_lineNumbers[b] );
-	for (const identifier_index of synonyms_and_properties)
-	{
-		objectMask[state.identifiers[identifier_index]] = makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
-	}
+	// // Synonyms can depend on properties, and properties can depend on synonyms.
+	// // Process them in order by combining & sorting by linenumber.
 
-	//use \n as a delimeter for internal-only objects
+	// var synonyms_and_properties = Array.from(state.identifiers.keys()).filter( i => [identifier_type_synonym, identifier_type_property].includes(state.identifiers_deftype[i]) );
+	// synonyms_and_properties.sort( (a,b) => state.identifiers_lineNumbers[a] - state.identifiers_lineNumbers[b] );
+	// for (const identifier_index of synonyms_and_properties)
+	// {
+	// 	objectMask[state.identifiers[identifier_index]] = makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
+	// }
+
 	var all_obj = new BitVec(STRIDE_OBJ);
 	all_obj.inot();
-	objectMask["\nall\n"] = all_obj;
+	objectMask.all = all_obj;
+	// objectMask["\nall\n"] = all_obj; // use \n as a delimeter for internal-only objects
 
 	state.objectMasks = objectMask;
 }
@@ -1960,46 +1968,43 @@ function twiddleMetaData(state)
 	state.metadata = newmetadata;	
 }
 
-function processWinConditions(state) {
-//	[-1/0/1 (no,some,all),ob1,ob2] (ob2 is background by default)
-	var newconditions=[]; 
-	for (var i=0;i<state.winconditions.length;i++)  {
-		var wincondition=state.winconditions[i];
-		if (wincondition.length==0) {
-			return;
-		}
-		var num=0;
-		switch(wincondition[0]) {
-			case 'no':{num=-1;break;}
-			case 'all':{num=1;break;}
-		}
 
-		var lineNumber=wincondition[wincondition.length-1];
-
-		var n1 = wincondition[1];
-		var n2;
-		if (wincondition.length==5) {
-			n2 = wincondition[3];
-		} else {
-			n2 = '\nall\n';
-		}
-
-		var mask1=0;
-		var mask2=0;
-		if (n1 in state.objectMasks) {
-			mask1=state.objectMasks[n1];
-		} else {
-			logError('unwelcome term "' + n1 +'" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
-		}
-		if (n2 in state.objectMasks) {
-			mask2=state.objectMasks[n2];
-		} else {
-			logError('unwelcome term "' + n2+ '" found in win condition. Win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
-		}
-		var newcondition = [num,mask1,mask2,lineNumber];
-		newconditions.push(newcondition);
+function tokenizeWinConditionIdentifier(state, n, lineNumber)
+{
+	const identifier_index = state.identifiers.indexOf(n);
+	if (identifier_index < 0)
+	{
+		logError('Unknown object name "' + n +'" found in win condition.', lineNumber);
+		return null;
 	}
-	state.winconditions=newconditions;
+	const identifier_comptype = state.identifiers_comptype[identifier_index];
+	if ( (identifier_comptype != identifier_type_property) && (identifier_comptype < 0) ) // not a property, not an object
+	{
+		logError('Invalid object name found in win condition: ' + n + 'is ' + getIdentifierTypeAsText(identifier_comptype) + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
+		return null;
+	}
+	return state.objectMasks[identifier_comptype];
+}
+
+function processWinConditions(state)
+{
+//	[-1/0/1 (no,some,all),ob1,ob2] (ob2 is background by default)
+	var newconditions = []; 
+	for (const wincondition of state.winconditions)
+	{
+		if (wincondition.length == 0)
+			return;
+
+		const num = ({some:0, no:-1, all:1})[wincondition[0]]; // TODO: this tokenisation should be done in the parser, not here.
+
+		const lineNumber = wincondition[wincondition.length-1];
+
+		const mask1 = tokenizeWinConditionIdentifier( state, wincondition[1], lineNumber)
+		const mask2 = (wincondition.length == 5) ? tokenizeWinConditionIdentifier( state, wincondition[3], lineNumber) : state.objectMasks.all;
+
+		newconditions.push( [num, mask1, mask2, lineNumber] );
+	}
+	state.winconditions = newconditions;
 }
 
 function printCell(state, cell)
@@ -2234,114 +2239,125 @@ var soundDirectionIndicatorMasks = {
 var soundDirectionIndicators = ["up","down","left","right","horizontal","vertical","orthogonal","___action____"];
 
 
-function generateSoundData(state) {
-	var sfx_Events={};
-	var sfx_CreationMasks=[];
-	var sfx_DestructionMasks=[];
-	var sfx_MovementMasks=[];
-	var sfx_MovementFailureMasks=[];
+function generateSoundData(state)
+{
+	var sfx_Events = {};
+	var sfx_CreationMasks = [];
+	var sfx_DestructionMasks = [];
+	var sfx_MovementMasks = [];
+	var sfx_MovementFailureMasks = [];
 
-	for (var i=0;i<state.sounds.length;i++) {
-		var sound=state.sounds[i];
-		if (sound.length<=1) {
+	for (var sound of state.sounds)
+	{
+		if (sound.length <= 1)
+			continue;
+
+		var lineNumber = sound[sound.length-1];
+
+		if (sound.length === 2)
+		{
+			logError('incorrect sound declaration.', lineNumber);
 			continue;
 		}
-		var lineNumber=sound[sound.length-1];
 
-		if (sound.length===2){			
-			logError('incorrect sound declaration.',lineNumber);
-			continue;
-		}
-
-		if (soundEvents.indexOf(sound[0])>=0) {
-			if (sound.length>4) {
-				logError("too much stuff to define a sound event.",lineNumber);
+		if (soundEvents.indexOf(sound[0]) >= 0)
+		{
+			if (sound.length > 4)
+			{
+				logError("too much stuff to define a sound event.", lineNumber);
 			}
 			var seed = sound[1];
-			if (validSeed(seed)) {
-				if (sfx_Events[sound[0]]!==undefined){
-					logWarning(sound[0].toUpperCase()+" already declared.",lineNumber);				
+			if (validSeed(seed))
+			{
+				if (sfx_Events[sound[0]] !== undefined) {
+					logWarning(sound[0].toUpperCase()+" already declared.", lineNumber);
 				} 
-				sfx_Events[sound[0]]=sound[1];
+				sfx_Events[sound[0]] = sound[1];
 			} else {
-				logError("Expecting sfx data, instead found \""+sound[1]+"\".",lineNumber);				
+				logError("Expecting sfx data, instead found \""+sound[1]+"\".", lineNumber);
 			}
-		} else {
+		}
+		else
+		{
 			var target = sound[0].trim();
 			var verb = sound[1].trim();
-			var directions = sound.slice(2,sound.length-2);
-			if (directions.length>0&&(verb!=='move'&&verb!=='cantmove')) {
-				logError('incorrect sound declaration.',lineNumber);
+			var directions = sound.slice(2, sound.length-2);
+			if (directions.length > 0 && (verb !== 'move' && verb !== 'cantmove'))
+			{
+				logError('incorrect sound declaration.', lineNumber);
 			}
 
-			if (verb==='action') {
-				verb='move';
-				directions=['___action____'];
+			if (verb === 'action')
+			{
+				verb = 'move';
+				directions = ['___action____'];
 			}
 
-			if (directions.length==0) {
-				directions=["orthogonal"];
+			if (directions.length == 0)
+			{
+				directions = ["orthogonal"];
 			}
 			var seed = sound[sound.length-2];
 
-			if (isAggregate(state, target))
+			const target_index = state.identifiers.indexOf(target); // we have already checked in the parser that it is a known identifier
+			if (state.identifier_comptype[target_index] == identifier_type_aggregate)
 			{
-				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").',lineNumber);
+				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
 			}
-			else if (target in state.objectMasks) {
+			// else {
+			// 	logError('Object "'+ target+'" not found.', lineNumber);
+			// }
 
-			} else {
-				logError('Object "'+ target+'" not found.',lineNumber);
-			}
+			var objectMask = state.objectMasks[target_index];
 
-			var objectMask = state.objectMasks[target];
-
-			var directionMask=0;
-			for (var j=0;j<directions.length;j++) {
-				directions[j]=directions[j].trim();
-				var direction=directions[j];
-				if (soundDirectionIndicators.indexOf(direction)===-1) {
-					logError('Was expecting a direction, instead found "'+direction+'".',lineNumber);
+			var directionMask = 0;
+			for (var j=0; j<directions.length; j++)
+			{
+				directions[j] = directions[j].trim();
+				var direction = directions[j];
+				if (soundDirectionIndicators.indexOf(direction) === -1) {
+					logError('Was expecting a direction, instead found "'+direction+'".', lineNumber);
 				} else {
 					var soundDirectionMask = soundDirectionIndicatorMasks[direction];
 					directionMask |= soundDirectionMask;
 				}
 			}
 
+			// // TODO: that does not seem useful, since it does exactly the same thing that what is done to compute propertyDict and synonymDict
+			// var targets = [target_index];
+			// var modified = true;
+			// while (modified)
+			// {
+			// 	modified = false;
+			// 	for (var k=0; k<targets.length; k++)
+			// 	{
+			// 		var t = targets[k];
+			// 		if (state.identifier_comptype[t] == identifier_type_synonym)
+			// 		{
+			// 			targets[k] = state.getObjectsForIdentifier(t).values().map( p => state.objects[p].identifier_index );
+			// 			modified = true;
+			// 		}
+			// 		else if (state.identifier_comptype[t] == identifier_type_property)
+			// 		{
+			// 			modified = true;
+			// 			var props = Array.from(state.getObjectsForIdentifier(t)).map( p => state.objects[p].identifier_index );
+			// 			targets.splice(k, 1);
+			// 			k--;
+			// 			targets.push(...props);
+			// 		}
+			// 	}
+			// }
+			const targets = state.getObjectsForIdentifier(target_index);
 
-			var targets=[target];
-			var modified=true;
-			while(modified) {
-				modified=false;
-				for (var k=0;k<targets.length;k++) {
-					var t = targets[k];
-					if (isSynonym(state, t))
-					{
-						targets[k] = state.getObjectsAnIdentifierCanBe(t).values().map( p => state.objects[p].name );
-						modified=true;
-					}
-					else if (isProperty(state, t))
-					{
-						modified=true;
-						var props = Array.from(state.getObjectsAnIdentifierCanBe(t)).map( p => state.objects[p].name );
-						targets.splice(k,1);
-						k--;
-						for (var l=0;l<props.length;l++) {
-							targets.push(props[l]);
-						}
-					}
-				}
-			}
-
-			if (verb==='move' || verb==='cantmove') {
-				for (var j=0;j<targets.length;j++) {
-					var targetName = targets[j];
-					var targetDat = state.getObjectByName(targetName); // TODO
-					var targetLayer = targetDat.layer;
-					var shiftedDirectionMask = new BitVec(STRIDE_MOV);
+			if (verb === 'move' || verb === 'cantmove')
+			{
+				for (var targetDat of targets)
+				{
+					const targetLayer = targetDat.layer;
+					const shiftedDirectionMask = new BitVec(STRIDE_MOV);
 					shiftedDirectionMask.ishiftor(directionMask, 5*targetLayer);
 
-					var o = {
+					const o = {
 						objectMask: objectMask,
 						directionMask: shiftedDirectionMask,
 						seed: seed
@@ -2360,22 +2376,20 @@ function generateSoundData(state) {
 				logError("Expecting sfx data, instead found \""+seed+"\".",lineNumber);	
 			}
 
-			var targetArray;
-			switch(verb) {
+			switch (verb)
+			{
 				case "create": {
-					var o = {
+					sfx_CreationMasks.push({
 						objectMask: objectMask,
 						seed: seed
-					}
-					sfx_CreationMasks.push(o);
+					});
 					break;
 				}
 				case "destroy": {
-					var o = {
+					sfx_DestructionMasks.push({
 						objectMask: objectMask,
 						seed: seed
-					}
-					sfx_DestructionMasks.push(o);
+					});
 					break;
 				}
 			}
