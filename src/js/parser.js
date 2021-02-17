@@ -47,10 +47,14 @@ const identifier_type_object = 0 // actually, anything >= 0
 const identifier_type_synonym = -1
 const identifier_type_aggregate = -2
 const identifier_type_property = -3
+var identifier_type_as_text = {};
+identifier_type_as_text[identifier_type_synonym] = 'an object synonym';
+identifier_type_as_text[identifier_type_aggregate] = 'an aggregate';
+identifier_type_as_text[identifier_type_property] = 'a property';
 
 function getIdentifierTypeAsText(type)
 {
-	return (type < 0) ? ({identifier_type_synonym:'an object synonym', identifier_type_aggregate:'an aggregate', identifier_type_property:'a property'})[type] : 'an object';
+	return (type < 0) ? identifier_type_as_text[type] : 'an object';
 }
 
 // NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
@@ -119,7 +123,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.objects = this.objects.map( (o) => ({
 			name: o.name,
-			// identifier_index: o.identifier_index,
+			identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
 			// lineNumber : o.lineNumber,
 			spritematrix: o.spritematrix.concat([]),
@@ -228,7 +232,7 @@ PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_
 		original_case,
 		identifier_type_synonym,
 		this.identifiers_comptype[old_identifier_index],
-		this.identifiers_objects[old_identifier_index]
+		new Set(this.identifiers_objects[old_identifier_index])
 	)
 }
 
@@ -282,9 +286,9 @@ PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname)
 	{
 		const type = this.identifiers_deftype[identifier_index]
 		const l = this.identifiers_lineNumbers[identifier_index];
-		const definition_string = (type>=0) ? '' :  ({identifier_type_synonym:'as synonym ', identifier_type_aggregate:'as aggregate ', identifier_type_property:'as property '})[type]
-		logError('Object "' + candname.toUpperCase() + '" already defined ' + definition_string + 'on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
-		if (type >= 0)
+		const definition_string = (type < 0) ? ' as ' + identifier_type_as_text[type] : '';
+		logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
+		// if (type >= 0)
 			return false;
 	}
 
@@ -487,7 +491,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 
 	const candname = match_name[0].trim();
 
-	if (! this.checkIfNewIdentifierIsValid(candname))
+	if ( ! this.checkIfNewIdentifierIsValid(candname) )
 		return 'ERROR'
 
 	if (is_start_of_line)
@@ -625,7 +629,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		});
 		var ok = true;
 
-		if (splits.length>0)
+		if (splits.length > 0)
 		{
 			const candname = splits[0].toLowerCase();
 			if (splits.indexOf(candname, 2) >= 2)
@@ -633,8 +637,11 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				logError("You can't define object " + candname.toUpperCase() + " in terms of itself!", this.lineNumber);
 				ok = false;
 			}
-			if (!this.checkIfNewIdentifierIsValid(candname))
+			if ( ! this.checkIfNewIdentifierIsValid(candname) )
+			{
+				stream.match(reg_notcommentstart, true);
 				return 'ERROR';
+			}
 		}
 
 		if (!ok) {
@@ -642,11 +649,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			ok = false;
 		} else if (splits[1] !== '=') {
 			ok = false;
-		} /*else if (splits[0].charAt(splits[0].length - 1) == 'v') {
-			logError('names cannot end with the letter "v", because it\'s is used as a direction.', this.lineNumber);
-			stream.match(reg_notcommentstart, true);
-			return 'ERROR';
-		} */ else if (splits.length === 3)
+		} else if (splits.length === 3)
 		{
 			const old_identifier_index = this.identifiers.indexOf(splits[2].toLowerCase());
 			if (old_identifier_index < 0)
