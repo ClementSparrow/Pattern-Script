@@ -339,7 +339,7 @@ late [ CrateInfectionTemp ] -> [ CrateInfectionSeed ]
   ========= )
 
 (hitting the X key when in the normal game activates the edit mode)
-[ EditModeDrop Space ] UP [ ACTION NonCursorPlayer | ... | EditModeDrop ] -> [ EditModeDrop Space ] [ ACTION NonCursorPlayer | ... | EditModeDrop EditModeCursor ] SFX1
+UP [ EditModeDrop Space ] [ ACTION NonCursorPlayer | ... | EditModeDrop ] -> [ EditModeDrop Space ] [ ACTION NonCursorPlayer | ... | EditModeDrop EditModeCursor ] SFX1
 [ EditModeDrop Space ] [ ACTION NonCursorPlayer ] -> [ EditModeDrop EditModeArrow ] [ ACTION NonCursorPlayer ]
 [ EditModeDrop EditModeArrow ] [ ACTION PlayerLeft ] -> [ EditModeDrop EditModeArrow ] [ PlayerLeftDisabled ]
 [ EditModeDrop EditModeArrow ] [ ACTION PlayerRight ] -> [ EditModeDrop EditModeArrow ] [ PlayerRightDisabled ]

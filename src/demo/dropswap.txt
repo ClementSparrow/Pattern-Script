@@ -218,7 +218,7 @@ LEGEND
 
 . = Background
 @ = Player
-p = DeadPlayer
+(p = DeadPlayer)
 # = BaseWall
 a = APill
 b = BPill
