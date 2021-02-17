@@ -203,26 +203,26 @@ RULES
 [ > Wizard ] -> [ Wizard > Temp]
 [ > Temp | no Moveable no Static] -> [ | > Temp]
 [ > Temp | Static] [Wizard] -> [ | Static ] [> Wizard]
-[ > Temp | Moveable ] [Wizard] -> [ | Wizard Sfx0] [Moveable]
+[ > Temp | Moveable ] [Wizard] -> [ | Wizard ] [Moveable] Sfx0
 
 Late [Temp] -> []
 
-[ Action Fighter] [SThief] -> [SFighter] [Thief Sfx1]
-[ Action Thief] [SWizard] -> [SThief] [Wizard Sfx1]
-[ Action Wizard] [SFighter] -> [SWizard] [Fighter Sfx1]
-[ Action Fighter] [no SThief] [SWizard] -> [SFighter] [no SThief] [Wizard Sfx1]
-[ Action Thief] [no Swizard] [SFighter] -> [SThief] [no SWizard] [Fighter Sfx1]
-[ Action Wizard] [no SFighter] [SThief] -> [SWizard] [no SFighter] [Thief Sfx1]
+[ Action Fighter] [SThief] -> [SFighter] [Thief] Sfx1
+[ Action Thief] [SWizard] -> [SThief] [Wizard] Sfx1
+[ Action Wizard] [SFighter] -> [SWizard] [Fighter] Sfx1
+[ Action Fighter] [no SThief] [SWizard] -> [SFighter] [no SThief] [Wizard] Sfx1
+[ Action Thief] [no Swizard] [SFighter] -> [SThief] [no SWizard] [Fighter] Sfx1
+[ Action Wizard] [no SFighter] [SThief] -> [SWizard] [no SFighter] [Thief] Sfx1
 
 late [Weighing  YellowSwitch] [YellowDoor] -> [Weighing  YellowSwitch] [ShadowDoor]
-late [YellowSwitch no Weighing] [YellowOpen] -> [YellowSwitch] [YellowDoor sfx2]
+late [YellowSwitch no Weighing] [YellowOpen] -> [YellowSwitch] [YellowDoor] sfx2
 late [YellowSwitch no Weighing] [ShadowDoor] -> [YellowSwitch] [YellowDoor]
-late [ShadowDoor] -> [YellowOpen sfx3]
+late [ShadowDoor] -> [YellowOpen] sfx3
 
 late [Weighing PurpleSwitch] [PurpleDoor] -> [Weighing PurpleSwitch] [ShadowDoor]
-late [PurpleSwitch no Weighing] [PurpleOpen] -> [PurpleSwitch] [PurpleDoor sfx2]
+late [PurpleSwitch no Weighing] [PurpleOpen] -> [PurpleSwitch] [PurpleDoor] sfx2
 late [PurpleSwitch no Weighing] [ShadowDoor] -> [PurpleSwitch] [PurpleDoor]
-late [ShadowDoor] -> [PurpleOpen sfx3]
+late [ShadowDoor] -> [PurpleOpen] sfx3
 
 ==============
 WINCONDITIONS

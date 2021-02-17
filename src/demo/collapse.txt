@@ -175,7 +175,7 @@ ObstacleExMine = Wall or SolidWall or Door
 . = OutdoorBackground
 , = IndoorBackground
 # = Wall
-P = Player
+(P = Player)
 k = Key and IndoorBackground
 
 =======
