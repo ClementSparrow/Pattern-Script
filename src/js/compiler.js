@@ -234,7 +234,7 @@ function generateExtraMembers(state)
 		{
 			if (comptype != identifier_type_property)
 				return -1
-			const layers = new Set( [...state.getObjectsForIdentifier(i)].map( j => state.objects[j].layer ) );
+			const layers = new Set( Array.from( state.getObjectsForIdentifier(i), j => state.objects[j].layer ) );
 			return (layers.size == 1) ? layers.values().next().value : -1;
 		}
 	);
@@ -1018,7 +1018,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 						// TODO: we currently replace a property by all the objects it can be, but if instead we replaced it by the properties/objects appearing in its
 						// definition, it would allow to stop the replacements when one of the replacement is a single-layer property, creating less rules.
 						// an alternative would be to split each property into its single-layer subsets, but that could introduce new bugs easily. -- ClementSparrow
-						const aliases = Array.from(state.getObjectsForIdentifier(property).values());
+						const aliases = Array.from(state.getObjectsForIdentifier(property), object_index => state.objects[object_index].identifier_index );
 						for (const concreteType of aliases)
 						{
 							var newrule = deepCloneRule(cur_rule);
@@ -1068,10 +1068,8 @@ function concretizePropertyRule(state, rule, lineNumber)
 		//for each property replacement in that rule
 		for (const [property, propDat] of cur_rule.propertyReplacement.entries())
 		{
-			// if (cur_rule.propertyReplacement.hasOwnProperty(property))
 			if (propDat !== undefined)
 			{
-				// const [concreteType, occurrenceCount] = cur_rule.propertyReplacement[property];
 				const [concreteType, occurrenceCount] = propDat;
 
 				if (occurrenceCount === 1) // the property appears only once on the LHS, so it can be used to disambiguate all the occurences of the property on the RHS.
@@ -1163,15 +1161,7 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 							var newrule = deepCloneRule(cur_rule);
 
 							// also clone the movingReplacements of the rule
-							newrule.movingReplacement = {};
-							for (var moveTerm in cur_rule.movingReplacement)
-							{
-								if (cur_rule.movingReplacement.hasOwnProperty(moveTerm))
-								{
-									var moveDat = cur_rule.movingReplacement[moveTerm];
-									newrule.movingReplacement[moveTerm] = [moveDat[0], moveDat[1], moveDat[2]];
-								}
-							}
+							newrule.movingReplacement = (cur_rule.movingReplacement === undefined) ? [] : cur_rule.movingReplacement.map( x => Array.from(x) );
 
 							concretizeMovingInCell(newrule.lhs[j][k], ambiguous_dir, identifier_index, concreteDirection);
 							if (newrule.rhs.length > 0) // desambiguate a directionaggregate in the RHS if it also appears on the same identifier in the same LHS cell.
@@ -1211,20 +1201,16 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 		var ambiguous_movement_dict = {};
 		//strict first - matches movement direction to objects
 		//for each property replacement in that rule
-		for (var cand_index in cur_rule.movingReplacement)
+		// for (var cand_index in cur_rule.movingReplacement)
+		for (const [cand_index, movingDat] of cur_rule.movingReplacement.entries())
 		{
-			if (cur_rule.movingReplacement.hasOwnProperty(cand_index))
+			// if (cur_rule.movingReplacement.hasOwnProperty(cand_index))
+			if (movingDat !== undefined)
 			{
-				const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_index];
+				// const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_index];
+				const [concreteMovement, occurrenceCount, ambiguousMovement] = movingDat;
 
-				if ((ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount!==1))
-				{
-					ambiguous_movement_dict[ambiguousMovement] = "INVALID";
-				}
-				else
-				{
-					ambiguous_movement_dict[ambiguousMovement] = concreteMovement
-				}
+				ambiguous_movement_dict[ambiguousMovement] = ( (ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount !== 1) ) ? "INVALID" : concreteMovement;
 
 				if (occurrenceCount === 1)
 				{
@@ -1326,7 +1312,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 		default:
 			continue;
 		}
-		const equivs = [...state.getObjectsForIdentifier(c).values()].map( p => [dir, state.objects[p].identifier_index] );
+		const equivs = Array.from( state.getObjectsForIdentifier(c), p => [dir, state.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
 		// cell[i] = equivs[0];
 		// cell.push(...equivs.slice(1)) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
@@ -1422,16 +1408,6 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				if (object_dir === '...')
 				{
 					objectsPresent = ellipsisPattern;
-					// TODO: these tests and error messages should be moved to parseRuleString.
-					// if (cell_l.length !== 1)
-					// {
-					// 	logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
-					// }
-					// else if ( (k === 0) || (k === cellrow_l.length-1) )
-					// {
-					// 	logError("There's no point in putting an ellipsis at the very start or the end of a bracket.", rule.lineNumber);
-					// }
-					// else 
 					if (rule.rhs.length > 0)
 					{
 						var rhscell = cellrow_r[k];
@@ -1451,7 +1427,6 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
 				const object = (state.identifiers_objects[identifier_index].size > 1) ? null : state.objects[state.identifiers_objects[identifier_index].values().next().value];
 
-				// console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
 				const objectMask = state.objectMasks[identifier_index];
 				var layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
 
@@ -1503,10 +1478,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					logError("An ellipsis on the right must be matched by one in the corresponding place on the left.", rule.lineNumber);
 				}
-				if ( (rhscell.length !== 1) && rhscell.some( objcond => (objcond[0] === '...') ) )
-				{
-					logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
-				}
+				// if ( (rhscell.length !== 1) && rhscell.some( objcond => (objcond[0] === '...') ) )
+				// {
+				// 	logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
+				// }
 			}
 
 			if (objectsPresent === ellipsisPattern)
@@ -1535,10 +1510,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			for (const [object_dir, identifier_index] of cell_r)
 			{
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
-				// console.log(object_dir, identifier_index, state.getObjectsForIdentifier(identifier_index), rule.stringRep);
 				const object = state.getObjectsForIdentifier(identifier_index).size > 1 ? null : state.objects[state.getObjectsForIdentifier(identifier_index).values().next().value];
-				// console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
-				// console.log(object_dir, identifier_index, object);
 
 				if (object_dir === '...')
 				{
@@ -1548,34 +1520,32 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				else if (object_dir === 'random')
 				{
 					// if (object.name in state.objectMasks)
-					// {
+					if (state.identifiers_comptype[identifier_index] !== identifier_type_aggregate)
+					{
 						var mask = state.objectMasks[identifier_index];
 						randomMask_r.ior(mask);
-						var values = [...state.getObjectsForIdentifier(identifier_index).values()].map( p => [p, state.objects[p]] );
+						const values = Array.from( state.getObjectsForIdentifier(identifier_index), p => [p, state.objects[p]] );
 						for (const [subobject_index, subobject] of values)
 						{
-							var layerIndex = subobject.layer|0; // TODO: we should store...
-							var existingname = layersUsed_r[layerIndex];
-							if (existingname !== null)
+							const subobj_layerIndex = subobject.layer|0; // TODO: we should store...
+							const existing_index = layersUsed_r[subobj_layerIndex];
+							if ( (existing_index !== null) && (subobject_index !== existing_index) )
 							{
-								if (subobject_index !== existingname)
-								{
-									logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.objects[existingname].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
-								}
+								logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
 							}
 
-							layersUsedRand_r[layerIndex] = subobject_index;
+							layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
 						}                      
-					// }
-					// else
-					// {
-					// 	logError('You want to spawn a random "'+object.name.toUpperCase()+'", but I don\'t know how to do that',rule.lineNumber);
-					// }
+					}
+					else
+					{
+						logError('You want to spawn a random "'+state.identifiers[identifier_index].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
+					}
 					continue;
 				}
 
 				const objectMask = state.objectMasks[identifier_index];
-				var layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
+				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
 				
 				if (object_dir == 'no')
 				{
@@ -1583,17 +1553,17 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else
 				{
-					var existingname = layersUsed_r[layerIndex];
-					if (existingname === null)
+					var existing_index = (layerIndex < 0) ? null : layersUsed_r[layerIndex];
+					if (existing_index === null)
 					{
-						existingname = layersUsedRand_r[layerIndex];
+						existing_index = layersUsedRand_r[layerIndex];
 					}
 
-					if (existingname !== null)
+					if (existing_index !== null)
 					{
 						if ( ! rule.hasOwnProperty('discard') )
 						{
-							logError('Rule matches object types that can\'t overlap: "' + state.identifiers[identifier_index].toUpperCase() + '" and "' + state.identifiers[existingname].toUpperCase() + '".',rule.lineNumber);
+							logError('Rule matches object types that can\'t overlap: "' + state.identifiers[identifier_index].toUpperCase() + '" and "' + state.identifiers[existing_index].toUpperCase() + '".',rule.lineNumber);
 						}
 					}
 
@@ -1620,7 +1590,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					{
 						movementsClear.ishiftor(0x1f, 5*layerIndex);
 					}
-					if (object_dir==='randomdir')
+					if (object_dir === 'randomdir')
 					{
 						randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
 					}
@@ -2339,7 +2309,7 @@ function generateSoundData(state)
 			// 		}
 			// 	}
 			// }
-			const targets = state.getObjectsForIdentifier(target_index);
+			const targets = Array.from( state.getObjectsForIdentifier(target_index), object_index => state.objects[object_index] );
 
 			if (verb === 'move' || verb === 'cantmove')
 			{
