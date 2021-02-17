@@ -91,8 +91,7 @@ function PuzzleScriptParser()
 	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
-	// TODO: we should not need objects_candname and objects_candindex, because the candidate is always the last entry in objects and object_names.
-	this.objects_candname = '' // The name of the object currently parsed
+	// TODO: we should not need objects_candindex, because the candidate is always the last entry in objects and object_names.
 	this.objects_candindex = null // The index of the object currently parsed -> should always be the last index of the array?
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
@@ -145,7 +144,6 @@ PuzzleScriptParser.prototype.copy = function()
 	result.metadata_keys   = this.metadata_keys.concat([])
 	result.metadata_values = this.metadata_values.concat([])
 
-	result.objects_candname = this.objects_candname
 	result.objects_candindex = this.objects_candindex
 	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
@@ -218,7 +216,7 @@ PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_c
 	const object_id = this.objects.length
 	this.objects.push( {
 		name: identifier,
-		// identifier_index: this.identifiers.length,
+		identifier_index: this.identifiers.length,
 		colors: [],
 		spritematrix: []
 	});
@@ -417,7 +415,10 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 //	Get the metadata key
 	const token = this.parse_keyword_or_identifier(stream)
 	if (token === null)
-		return null; // TODO: we should probably log an error, here? It implies that if a line starts with an invalid character, it will be silently ignored...
+	{
+		stream.match(reg_notcommentstart, true);
+		return 'ERROR'; // TODO: we should probably log an error, here? It implies that if a line starts with an invalid character, it will be silently ignored...
+	}
 
 	if (is_start_of_line)
 	{
@@ -496,12 +497,11 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 
 	if (is_start_of_line)
 	{
-		this.objects_candname = candname;
 		this.objects_candindex = this.objects.length
 		this.registerNewObject(candname, findOriginalCaseName(candname, mixedCase))
 	} else {
 		//set up alias
-		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects_candindex)
+		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects[this.objects_candindex].identifier_index)
 	}
 	this.objects_section = 1;
 	return 'NAME';
@@ -537,7 +537,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			if (match_color == null)
 			{
 				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true);
-				logError('Was looking for color for object ' + this.objects_candname.toUpperCase() + ', got "' + str + '" instead.', this.lineNumber);
+				logError('Was looking for color for object ' + this.objects[this.objects_candindex].name.toUpperCase() + ', got "' + str + '" instead.', this.lineNumber);
 				return null;
 			}
 
@@ -563,7 +563,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 					return this.tryParseName(is_start_of_line, stream, mixedCase);
-				logError('Unknown junk in spritematrix for object ' + this.objects_candname.toUpperCase() + '.', this.lineNumber);
+				logError('Unknown junk in spritematrix for object ' + this.objects[this.objects_candindex].name.toUpperCase() + '.', this.lineNumber);
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
@@ -593,12 +593,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				var n = parseInt(ch);
 				if (n >= o.colors.length)
 				{
-					logError("Trying to access color number "+n+" from the color palette of sprite " +this.objects_candname.toUpperCase()+", but there are only "+o.colors.length+" defined in it.", this.lineNumber);
+					logError("Trying to access color number "+n+" from the color palette of sprite " +this.objects[this.objects_candindex].name.toUpperCase()+", but there are only "+o.colors.length+" defined in it.", this.lineNumber);
 					return 'ERROR';
 				}
 				if (isNaN(n))
 				{
-					logError('Invalid character "' + ch + '" in sprite for ' + this.objects_candname.toUpperCase(), this.lineNumber);
+					logError('Invalid character "' + ch + '" in sprite for ' + this.objects[this.objects_candindex].name.toUpperCase(), this.lineNumber);
 					return 'ERROR';
 				}
 				return 'COLOR BOLDCOLOR COLOR-' + o.colors[n].toUpperCase();
@@ -624,9 +624,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		var longer = stream.string.replace('=', ' = ');
 		longer = reg_notcommentstart.exec(longer)[0];
 
-		var splits = longer.split(/\p{Separator}/u).filter(function(v) {
-			return v !== '';
-		});
+		var splits = longer.split(/\p{Separator}/u).filter( v => (v !== '') );
 		var ok = true;
 
 		if (splits.length > 0)
@@ -749,7 +747,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (is_start_of_line)
 	{
 		var ok = true;
-		var splits = reg_notcommentstart.exec(stream.string)[0].split(/\p{Separator}/u).filter(function(v) {return v !== ''});                          
+		var splits = reg_notcommentstart.exec(stream.string)[0].split(/\p{Separator}/u).filter( v => (v !== '') );
 		splits.push(this.lineNumber);
 		this.sounds.push(splits);
 	}
@@ -842,7 +840,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 	const m = stream.match(/[^\[\|\]\p{Separator}]*/u, true)[0].trim();
 
 	if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
-		return 'BRACKET';
+		return 'BRACKET'; // styled as a bracket but actually a keyword
 	if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
 	{
 		stream.match(/\p{Separator}*/u, true);
@@ -888,7 +886,7 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 	{
 		var tokenized = reg_notcommentstart.exec(stream.string);
 		var splitted = tokenized[0].split(/\p{Separator}/u);
-		var filtered = splitted.filter(function(v) {return v !== ''});
+		var filtered = splitted.filter( v => (v !== '') );
 		filtered.push(this.lineNumber);
 		
 		this.winconditions.push(filtered);
@@ -942,29 +940,33 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			if (lastlevel[0] == '\n') {
 				this.levels.push([this.lineNumber, line]);
 			} else {
-				if (lastlevel.length==0)
+				if (lastlevel.length == 0)
 				{
 					lastlevel.push(this.lineNumber);
 				}
 				lastlevel.push(line);  
 
-				if (lastlevel.length>1) 
+				if (lastlevel.length > 1) 
 				{
-					if (line.length!=lastlevel[1].length) {
+					if (line.length != lastlevel[1].length) {
 						logWarning("Maps must be rectangular, yo (In a level, the length of each row must be the same).", this.lineNumber);
 					}
 				}
 			}
 			
 		}
-	} else {
-		if (this.tokenIndex == 1) {
+	}
+	else
+	{
+		if (this.tokenIndex == 1)
+		{
 			stream.skipToEnd();
 			return 'MESSAGE';
 		}
 	}
 
-	if (this.tokenIndex === 2 && !stream.eol()) {
+	if (this.tokenIndex === 2 && !stream.eol())
+	{
 		var ch = stream.peek();
 		stream.next();
 		if (this.abbrevNames.indexOf(ch) >= 0) {
@@ -981,7 +983,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 PuzzleScriptParser.prototype.token = function(stream)
 {
 	var mixedCase = stream.string;
-	var is_start_of_line = stream.sol();
+	const is_start_of_line = stream.sol();
 	if (is_start_of_line)
 	{
 		stream.string = stream.string.toLowerCase();

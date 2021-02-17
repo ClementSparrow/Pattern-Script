@@ -289,8 +289,8 @@ function levelFromString(state, level)
 				ch = level[j+1].charAt(level[j+1].length-1);
 			}
 
-			const identifier_index = state.identifiers.indexOf(ch);
-			if (identifier_index<0) // TODO: this should be checked in the parser
+			const identifier_index = state.identifiers.indexOf(ch); // TODO: this should be done in the parser
+			if (identifier_index < 0)
 			{
 				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
 			}
@@ -308,10 +308,11 @@ function levelFromString(state, level)
 	}
 
 	var levelBackgroundMask = o.calcBackgroundMask(state);
-	for (var i=0;i<o.n_tiles;i++)
+	for (var i=0; i<o.n_tiles; i++)
 	{
 		var cell = o.getCell(i);
-		if (!backgroundLayerMask.anyBitsInCommon(cell)) {
+		if ( ! backgroundLayerMask.anyBitsInCommon(cell) )
+		{
 			cell.ior(levelBackgroundMask);
 			o.setCell(i, cell);
 		}
@@ -924,10 +925,7 @@ function expandNoPrefixedProperties(state, cell)
 	{
 		if ( (dir === 'no') && (state.identifiers_comptype[identifier_index] === identifier_type_property) )
 		{
-			for (const alias of state.getObjectsForIdentifier(identifier_index))
-			{
-				expanded.push( [dir, alias] );
-			}
+			expanded.push(...Array.from(state.getObjectsForIdentifier(identifier_index), object_index => [dir, state.objects[object_index].identifier_index] ) );
 		}
 		else
 		{
@@ -2517,7 +2515,7 @@ function loadFile(str)
 
 	delete state.commentLevel;
 	delete state.abbrevNames;
-	delete state.objects_candname;
+	delete state.objects_candindex;
 	delete state.objects_section;
 	delete state.objects_spritematrix;
 	delete state.section;
