@@ -263,7 +263,7 @@
                 }
 
                 //go through all derived objects
-                for (const [identifier_index, w] of state.identifiers)
+                for (const [identifier_index, w] of state.identifiers.entries())
                 {
                     if (legendbits_types.includes(state.identifiers_deftype[identifier_index]))
                     {
