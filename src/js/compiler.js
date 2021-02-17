@@ -6,11 +6,8 @@
       That appart, it is only used in engine_base.js/getLayersOfMask where it is used to get the object matching a given bit in the mask returned by Level.getCell,
       which is the same use as in debug.js. Indeed, level cells are created in levelFromString here, using the order of bits defined in glyphDict.
       -> for now, changed to contain identifier_indexes rather than names.
-- The following lists are indexed by identifiers and we want to index them instead by identifier_indexes:
-   - state.glyphDict -> also, why do we have that thing contain a different kind of mask than bitvec?
-                        also, we want the bits in these masks to be in the order of objects in state.objects rather than in the order of idDict?
-                     -> it is now only used in graphics.js/generateGlyphImages & glyphCount (just to know what sprites should be created, and the ordering of bits does not matter),
-                        and in inputoutput.js/printLevel and levelEditorClick (where it is used to generate a mask with the same method as state.objectMasks)
+- state.glyphDict -> also, why do we have that thing contain a different kind of mask than bitvec?
+                     also, we want the bits in these masks to be in the order of objects in state.objects rather than in the order of idDict?
 */
 
 function isColor(str)
@@ -56,14 +53,22 @@ function generateSpriteMatrix(dat) {
 var debugMode;
 var colorPalette;
 
+function makeMaskFromGlyph(glyph)
+{
+	var glyphmask = new BitVec(STRIDE_OBJ);
+	for (const id of glyph)
+	{
+		if (id >= 0)
+		{
+			glyphmask.ibitset(id);
+		}			
+	}
+	return glyphmask;
+}
+
 function makeMaskFromObjectSet(state, objects)
 {
-	var mask = new BitVec(STRIDE_OBJ);
-	for (const object_pos of objects)
-	{
-		mask.ibitset(state.objects[object_pos].id);
-	}
-	return mask;
+	return makeMaskFromGlyph([...objects.values()].map( object_pos => state.objects[object_pos].id))
 }
 
 function getMaskFromName(state, name)
@@ -210,29 +215,29 @@ function generateExtraMembers(state)
 
 
 	//calculate glyph dictionary
-	var glyphDict = {};
-	for (const [identifier_index, identifier] of state.identifiers.entries())
-	{
-		var mask = blankMask.concat([]);
-		for (const object_pos of state.getObjectsForIdentifier(identifier_index))
+	state.glyphDict = state.identifiers.map(
+		function(identifier, identifier_index)
 		{
-			const o = state.objects[object_pos];
-			mask[o.layer] = o.id;
+			var mask = blankMask.concat([]);
+			for (const object_pos of state.getObjectsForIdentifier(identifier_index))
+			{
+				const o = state.objects[object_pos];
+				mask[o.layer] = o.id;
+			}
+			return mask;
 		}
-		glyphDict[identifier] = mask;
-	}
-	state.glyphDict = glyphDict;
+	);
 
 	/* determine which properties specify objects all on one layer */
-	state.single_layer_property = [...state.identifiers_comptype.entries()].map(
-		function (i, comptype)
+	state.single_layer_property = state.identifiers_comptype.map(
+		function (comptype, i)
 		{
 			if (comptype != identifier_type_property)
 				return -1
-			const layers = new Set( [...state.getObjectsForIdentifier(i).map( j => state.objects[j].layer )] );
-			return (layers.size == 1) ? layers.next().value : -1;
+			const layers = new Set( [...state.getObjectsForIdentifier(i)].map( j => state.objects[j].layer ) );
+			return (layers.size == 1) ? layers.values().next().value : -1;
 		}
-	)
+	);
 
 	if ( (state.idDict[0] === undefined) && (state.collisionLayers.length > 0))
 	{
@@ -283,31 +288,20 @@ function levelFromString(state, level)
 			{
 				ch = level[j+1].charAt(level[j+1].length-1);
 			}
-			var mask = state.glyphDict[ch];
 
-			if (mask == undefined) // TODO: this should be checked in the parser
+			const identifier_index = state.identifiers.indexOf(ch);
+			if (identifier_index<0) // TODO: this should be checked in the parser
 			{
-				if (!isProperty(state, ch))
-				{
-					logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
-				}
-				else
-				{
-					logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);							
-				}
-
+				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
+			}
+			else if (state.identifiers_comptype[identifier_index] == identifier_type_property)
+			{
+				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);							
 			}
 
-			var maskint = new BitVec(STRIDE_OBJ);
-			mask = mask.concat([]);
-			for (const obj_id of mask)
+			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
+			for (var w = 0; w < STRIDE_OBJ; ++w)
 			{
-				if (obj_id >= 0)
-				{
-					maskint.ibitset(obj_id);
-				}
-			}
-			for (var w = 0; w < STRIDE_OBJ; ++w) {
 				o.objects[STRIDE_OBJ * (i * o.height + j) + w] = maskint.data[w];
 			}
 		}
@@ -379,14 +373,15 @@ function isCellRowDirectional(cellRow)
 		return true;
 	for (var cell of cellRow)
 	{
-		for (var k=0; k<cell.length; k+=2)
+		for (const [dir, identifier_index] of cell)
 		{
-			if (relativeDirections.indexOf(cell[k]) >=0)
+			if (relativeDirections.indexOf(dir) >= 0)
 			{
 				return true;
 			}
 		}
 	}
+	return false;
 }
 
 function directionalRule(rule)
@@ -398,8 +393,9 @@ function findIndexAfterToken(str, tokens, tokenIndex)
 {
 	str = str.toLowerCase();
 	var curIndex = 0;
-	for (const token of tokens)
+	for (var i=0; i<=tokenIndex; i++)
 	{
+		const token = tokens[i];
 		curIndex = str.indexOf(token, curIndex) + token.length;
 	}
 	return curIndex;
@@ -525,20 +521,16 @@ function parseRuleString(rule, state, curRules)
 		groupNumber = curRules[curRules.length-1].groupNumber; // TODO: curRules is only provided to this function for that, it would be beter to provide directly the last groupNumber.
 	}
 
-/*
-	STATE
-	1 - reading cell contents LHS
-	2 - reading cell contents RHS
-*/
-	var parsestate = 1;
-
 	var curcellrow = []; // [  [up, cat]  [ down, mouse ] ] -> a cell row is everything betwen [ and ], it is an array of cells
 	var curcell = null; // [up, cat, down mouse] -> a cell is everything between [or| and |or], it is '...' or an array of object conditions.
 	var curobjcond = null; // -> an object condition is a sequence "direction? identifier", it is a pair [ direction or null, identifier_index ]
+	var should_close_cellrow = false;
+	var should_close_cell = false;
+	var should_close_objcond = false;
+	var cell_contains_ellipses = false;
 
 	var incellrow = false;
 
-	var appendGroup=false;
 	var rhs = false;
 	var lhs_cells = [];
 	var rhs_cells = [];
@@ -550,122 +542,148 @@ function parseRuleString(rule, state, curRules)
 	for (var i = nb_tokens_in_rule_directions; i < tokens.length; i++)
 	{
 		const token = tokens[i];
-		switch (parsestate)
+
+		// reading cell contents LHS
+		// the syntax for the rule is: rule_directions (cellrow)+ "->" (cellrow)* commands
+		// where cellrow is: "[" (cell "|")* cell "]"
+		// and cell is: ( (single_direction_or_action)? identifier )* | "...", but the "..." cannot appear as a first or last cell in a cellrow
+		// and commands is: ( commandword | ("message" everything_to_the_end_of_line) )*
+		// but if any token that is allowed elsewhere in the rule is seen where it should not be, this is reported (with different messages depending on where it it seen)
+		if (token == '[')
 		{
-			case 1:
-			{
-				// reading cell contents LHS
-				// the syntax for the rule is: rule_directions (cellrow)+ "->" (cellrow)* commands
-				// where cellrow is: "[" (cell "|")* cell "]"
-				// and cell is: ( (single_direction_or_action)? identifier )* | "...", but the "..." cannot appear as a first or last cell in a cellrow
-				// and commands is: ( commandword | ("message" everything_to_the_end_of_line) )*
-				// but if any token that is allowed elsewhere in the rule is seen where it should not be, this is reported (with different messages depending on where it it seen)
-				if (token == '[')
-				{
-					bracketbalance++;
-					if (bracketbalance > 1) {
-						logWarning("Multiple opening brackets without closing brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
-					}
-					if (curcell.length > 0) { // TODO: isn't that dupplicating what the bracketbalance test does?
-						logError('Error, malformed cell rule - encountered a "["" before previous bracket was closed', lineNumber);
-					}
-					incellrow = true;
-					curcell = [];
-				} else if (reg_directions_only.exec(token)) {
-					if (curobjcond.length == 1) {
-						// TODO: fix bug https://github.com/increpare/PuzzleScript/issues/395
-						//       Basically, we need to replace directions words with 'direction' flags (including 'no' and 'random' that are not directions) and check
-						//       there is no more than one direction? (relative directions should not yet be resolved, however)
-						//       the idea behind the error message is that the direction words would be and-ed, which is certainly coherent with the idea that they define
-						//       additional constraints on the matching but is also incompatible with the use of some words like 'parallel' that present an alternative (< or >).
-						//       And we clearly want the ability to have alternatives, but it's just a shortcut to avoid making multiple rules instead.
-						logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
-					} else if (!incellrow) {
-						logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
-					} else {
-						curobjcond.push(token);
-					}
-				} else if (token == '|') {
-					if (!incellrow) {
-						logWarning('Janky syntax.  "|" should only be used inside cell rows (the square brackety bits).',lineNumber);
-					} else if (curobjcond.length == 1) {
-						logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
-					} else {
-						curcellrow.push(curcell);
-						curcell = [];
-					}
-				} else if (token === ']') {
-					
-					bracketbalance--;
-					if(bracketbalance<0){
-						logWarning("Multiple closing brackets without corresponding opening brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
-					}
-
-					// close the current cell
-					if (curobjcond.length == 1)
-					{
-						if (curcell[0] === '...') {
-							logError('Cannot end a rule with ellipses.', lineNumber);
-						} else {
-							logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
-						}
-					}
-					else
-					{
-						curcellrow.push(curcell);
-						curcell = [];
-					}
-
-					(rhs ? rhs_cells : lhs_cells).push(curcellrow);
-					curcellrow = [];
-					curcell = [];
-					incellrow = false;
-				} else if (token === '->') {
-					if (incellrow) {
-						logError('Encountered an unexpected "->" inside square brackets.  It\'s used to separate states, it has no place inside them >:| .', lineNumber);
-					} else if (rhs) {
-						logError('Error, you can only use "->" once in a rule; it\'s used to separate before and after states.', lineNumber);
-					}  else {
-						rhs = true;
-					}
-				} else if (state.identifiers.indexOf(token) >= 0) {
-					if (!incellrow) {
-						logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
-					}
-					else if (curobjcond.length == 0) {
-						curobjcond.push('');
-					}
-					curobjcond.push(state.identifiers.indexOf(token)); // TODO: we should not search it twice...
-					curcell.push(curobjcond)
-					curobjcond = []
-				} else if (token==='...') {
-					if (!incellrow) {
-						logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
-					} else {
-						curcell.push([token, token]);
-					}
-				} else if (commandwords.indexOf(token) >= 0) {
-					if (rhs === false) {
-						logError("Commands cannot appear on the left-hand side of the arrow.", lineNumber);
-					}
-					if (token === 'message')
-					{
-						var messageIndex = findIndexAfterToken(origLine, tokens, i);
-						var messageStr = origLine.substring(messageIndex).trim();
-						if (messageStr===""){
-							messageStr=" ";
-							//needs to be nonempty or the system gets confused and thinks it's a whole level message rather than an interstitial.
-						}
-						commands.push([token, messageStr]);
-						i=tokens.length;
-					} else {
-						commands.push([token]);
-					}
-				} else {
-					logError('Error, malformed cell rule - was looking for cell contents, but found "' + token + '".  What am I supposed to do with this, eh, please tell me that.', lineNumber);
-				}
+			bracketbalance++;
+			if (bracketbalance > 1) {
+				logWarning("Multiple opening brackets without closing brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
 			}
+			if (curcell.length > 0) { // TODO: isn't that dupplicating what the bracketbalance test does?
+				logError('Error, malformed cell rule - encountered a "["" before previous bracket was closed', lineNumber);
+			}
+			incellrow = true;
+			curcell = [];
+		} else if (reg_directions_only.exec(token)) {
+			if (curobjcond.length == 1) {
+				// TODO: fix bug https://github.com/increpare/PuzzleScript/issues/395
+				//       Basically, we need to replace directions words with 'direction' flags (including 'no' and 'random' that are not directions) and check
+				//       there is no more than one direction? (relative directions should not yet be resolved, however)
+				//       the idea behind the error message is that the direction words would be and-ed, which is certainly coherent with the idea that they define
+				//       additional constraints on the matching but is also incompatible with the use of some words like 'parallel' that present an alternative (< or >).
+				//       And we clearly want the ability to have alternatives, but it's just a shortcut to avoid making multiple rules instead.
+				logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
+			} else if (!incellrow) {
+				logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
+			} else {
+				curobjcond.push(token);
+			}
+		} else if (token == '|') {
+			if (!incellrow) {
+				logWarning('Janky syntax.  "|" should only be used inside cell rows (the square brackety bits).', lineNumber);
+			} else {
+				should_close_cell = true;
+			}
+		} else if (token === ']') {
+			bracketbalance--;
+			if (bracketbalance < 0) {
+				logWarning("Multiple closing brackets without corresponding opening brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
+			}
+			should_close_cellrow = true; // TODO: should it be "should_close_cellrow = (bracketbalance == 0)"?
+		} else if (token === '->') {
+			if (incellrow) {
+				logError('Encountered an unexpected "->" inside square brackets.  It\'s used to separate states, it has no place inside them >:| .', lineNumber);
+			} else if (rhs) {
+				logError('Error, you can only use "->" once in a rule; it\'s used to separate before and after states.', lineNumber);
+			} else {
+				rhs = true;
+			}
+		} else if (state.identifiers.indexOf(token) >= 0) {
+			if (!incellrow) {
+				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
+			}
+			else if (curobjcond.length == 0) {
+				curobjcond.push('');
+			}
+			curobjcond.push(state.identifiers.indexOf(token)); // TODO: we should not search it twice...
+			should_close_objcond = true;
+		} else if (token === '...') {
+			if (!incellrow) {
+				logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
+			}
+			else if ( (curobjcond.length != 0) || (curcell.length != 0) )
+			{
+				logError('Ellipses shoud be alone in their own cell, like that: |...|', lineNumber);
+			}
+			else if (curcellrow.length == 0)
+			{
+				logError('You cannot start a cell row (the square brackety things) with ellipses.', lineNumber);
+			}
+			else
+			{
+				curcell.push([token, token]);
+			}
+		} else if (commandwords.indexOf(token) >= 0) {
+			if (rhs === false) {
+				logError("Commands cannot appear on the left-hand side of the arrow.", lineNumber);
+			}
+			if (incellrow)
+			{
+				logError('Commands must appear at the end of the rule, outside the cell rows (square brackety things).', lineNumber);
+			}
+			if (token === 'message')
+			{
+				var messageIndex = findIndexAfterToken(origLine, tokens, i);
+				var messageStr = origLine.substring(messageIndex).trim();
+				if (messageStr === '')
+				{
+					messageStr = ' ';
+					//needs to be nonempty or the system gets confused and thinks it's a whole level message rather than an interstitial.
+				}
+				commands.push([token, messageStr]);
+				i=tokens.length;
+			} else {
+				commands.push([token]);
+			}
+		} else {
+			logError('Error, malformed cell rule - was looking for cell contents, but found "' + token + '".  What am I supposed to do with this, eh, please tell me that.', lineNumber);
+		}
 
+		if (should_close_objcond || should_close_cell || should_close_cellrow)
+		{
+			// close the current object condition / ellipsis
+			if (curobjcond.length == 1)
+			{
+				logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
+			}
+			else if (curobjcond.length == 2)
+			{
+				curcell.push(curobjcond)
+			}
+			curobjcond = [];
+			should_close_objcond = false;
+		}
+
+		if (should_close_cell || should_close_cellrow)
+		{
+			// close the current cell
+			curcellrow.push(curcell);
+			curcell = [];
+			should_close_cell = false;
+		}
+
+		if (should_close_cellrow)
+		{
+			if ( (curcellrow.length == 0) && (!rhs) )
+			{
+				logError("You have an totally empty pattern on the left-hand side.  This will match *everything*.  You certainly don't want this.");
+			}
+			if ( (curcellrow.length > 0) && (curcellrow[curcellrow.length - 1][0] == '...')) {
+				logError('You cannot end a bracket with ellipses.', lineNumber);
+			}
+			else 
+			{
+				(rhs ? rhs_cells : lhs_cells).push(curcellrow);
+				curcellrow = [];
+			}
+			incellrow = false;
+			should_close_cellrow = false;
 		}
 	}
 
@@ -682,15 +700,12 @@ function parseRuleString(rule, state, curRules)
 			if (lhs_cell.length != rhs_cells[i].length) {
 				logError('In a rule, each pattern to match on the left must have a corresponding pattern on the right of equal length (number of cells).', lineNumber);
 			}
-			if (lhs_cell.length == 0) {
-				logError("You have an totally empty pattern on the left-hand side.  This will match *everything*.  You certainly don't want this.");
-			}
 		}
 	}
 
-	if (lhs_cells.length == 0) {
-		logError('This rule refers to nothing.  What the heck? :O', lineNumber);
-	}
+	// if (lhs_cells.length == 0) {
+	// 	logError('This rule refers to nothing.  What the heck? :O', lineNumber);
+	// }
 
 	var rule_line = {
 		lineNumber: lineNumber,
@@ -940,9 +955,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
 	for (const [i, cur_cellrow_l] of rule.lhs.entries())
 	{
-		for (var j=0;j<cur_cellrow_l.length;j++)
+		for (const [j, cur_cell_l] of cur_cellrow_l.entries())
 		{
-			cur_cellrow_l[j] = expandNoPrefixedProperties(state, cur_cellrow_l[j]);
+			cur_cellrow_l[j] = expandNoPrefixedProperties(state, cur_cell_l);
 			if (rule.rhs.length > 0) // TODO: there is no reason to make both HS at the same time
 				rule.rhs[i][j] = expandNoPrefixedProperties(state, rule.rhs[i][j]);
 		}
@@ -1002,21 +1017,16 @@ function concretizePropertyRule(state, rule, lineNumber)
 						modified = true;
 
 						//just do the base property, let future iterations take care of the others
+						// TODO: we currently replace a property by all the objects it can be, but if instead we replaced it by the properties/objects appearing in its
+						// definition, it would allow to stop the replacements when one of the replacement is a single-layer property, creating less rules.
+						// an alternative would be to split each property into its single-layer subsets, but that could introduce new bugs easily. -- ClementSparrow
 						const aliases = Array.from(state.getObjectsForIdentifier(property).values());
 						for (const concreteType of aliases)
 						{
 							var newrule = deepCloneRule(cur_rule);
 
 							// also clone the propertyReplacements of the rule
-							newrule.propertyReplacement = {};
-							for(var prop in cur_rule.propertyReplacement)
-							{
-								if (cur_rule.propertyReplacement.hasOwnProperty(prop))
-								{
-									const propDat = cur_rule.propertyReplacement[prop];
-									newrule.propertyReplacement[prop] = [propDat[0],propDat[1]];
-								}
-							}
+							newrule.propertyReplacement = (cur_rule.propertyReplacement === undefined) ? [] : cur_rule.propertyReplacement.map( x => Array.from(x) );
 
 							concretizePropertyInCell(newrule.lhs[j][k], property, concreteType);
 							if (newrule.rhs.length > 0)
@@ -1058,11 +1068,13 @@ function concretizePropertyRule(state, rule, lineNumber)
 			continue;
 		
 		//for each property replacement in that rule
-		for (var property in cur_rule.propertyReplacement)
+		for (const [property, propDat] of cur_rule.propertyReplacement.entries())
 		{
-			if (cur_rule.propertyReplacement.hasOwnProperty(property))
+			// if (cur_rule.propertyReplacement.hasOwnProperty(property))
+			if (propDat !== undefined)
 			{
-				const [concreteType, occurrenceCount] = cur_rule.propertyReplacement[property];
+				// const [concreteType, occurrenceCount] = cur_rule.propertyReplacement[property];
+				const [concreteType, occurrenceCount] = propDat;
 
 				if (occurrenceCount === 1) // the property appears only once on the LHS, so it can be used to disambiguate all the occurences of the property on the RHS.
 				{
@@ -1316,7 +1328,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 		default:
 			continue;
 		}
-		const equivs = [...state.getObjectsForIdentifier(c).values()].map( p => [dir, state.objects[p].name] );
+		const equivs = [...state.getObjectsForIdentifier(c).values()].map( p => [dir, state.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
 		// cell[i] = equivs[0];
 		// cell.push(...equivs.slice(1)) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
@@ -1413,18 +1425,19 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					objectsPresent = ellipsisPattern;
 					// TODO: these tests and error messages should be moved to parseRuleString.
-					if (cell_l.length !== 1)
-					{
-						logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
-					}
-					else if ( (k === 0) || (k === cellrow_l.length-1) )
-					{
-						logError("There's no point in putting an ellipsis at the very start or the end of a rule", rule.lineNumber);
-					}
-					else if (rule.rhs.length > 0)
+					// if (cell_l.length !== 1)
+					// {
+					// 	logError("You can't have anything in with an ellipsis. Sorry.", rule.lineNumber);
+					// }
+					// else if ( (k === 0) || (k === cellrow_l.length-1) )
+					// {
+					// 	logError("There's no point in putting an ellipsis at the very start or the end of a bracket.", rule.lineNumber);
+					// }
+					// else 
+					if (rule.rhs.length > 0)
 					{
 						var rhscell = cellrow_r[k];
-						if (rhscell.length !==2 || rhscell[0] !== '...')
+						if (rhscell.length !==1 || rhscell[0][0] !== '...')
 						{
 							logError("An ellipsis on the left must be matched by one in the corresponding place on the right.", rule.lineNumber);								
 						}
@@ -1437,22 +1450,16 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					continue;
 				}
 
-				const object_index = state.identifiers_objects[identifier_index].values().next().value;
-				const object = state.objects[object_index];
-				console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
-				const objectMask = state.objectMasks[object_index];
-				if (object)
-				{
-					var layerIndex = object.layer|0;
-				}
-				else
-				{
-					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object.name)];
-				}
+				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
+				const object = (state.identifiers_objects[identifier_index].size > 1) ? null : state.objects[state.identifiers_objects[identifier_index].values().next().value];
+
+				// console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
+				const objectMask = state.objectMasks[identifier_index];
+				var layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
 
 				if (layerIndex < 0)
 				{
-					logError("Oops!  " +object.name.toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 
 				if (object_dir === 'no')
@@ -1461,13 +1468,13 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else
 				{
-					var existingname = layersUsed_l[layerIndex];
-					if (existingname !== null)
+					const existing_idindex = layersUsed_l[layerIndex];
+					if (existing_idindex !== null)
 					{
-						rule.discard = [object.name.toUpperCase(), existingname.toUpperCase()];
+						rule.discard = [state.identifiers[identifier_index].toUpperCase(), state.identifiers[existing_idindex].toUpperCase()];
 					}
 
-					layersUsed_l[layerIndex] = object.name;
+					layersUsed_l[layerIndex] = identifier_index;
 
 					if (object)
 					{
@@ -1529,9 +1536,11 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var randomDirMask_r = new BitVec(STRIDE_MOV);
 			for (const [object_dir, identifier_index] of cell_r)
 			{
-				const object_index = state.identifiers_objects[identifier_index].values().next().value;
-				const object = state.objects[object_index];
-				console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
+				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
+				// console.log(object_dir, identifier_index, state.getObjectsForIdentifier(identifier_index), rule.stringRep);
+				const object = state.getObjectsForIdentifier(identifier_index).size > 1 ? null : state.objects[state.getObjectsForIdentifier(identifier_index).values().next().value];
+				// console.assert(state.identifiers_objects[identifier_index].size == 1, state.identifiers_objects[identifier_index], state.identifiers[identifier_index])
+				// console.log(object_dir, identifier_index, object);
 
 				if (object_dir === '...')
 				{
@@ -1542,30 +1551,22 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					// if (object.name in state.objectMasks)
 					// {
-						var mask = state.objectMasks[object_index];
+						var mask = state.objectMasks[identifier_index];
 						randomMask_r.ior(mask);
-						var values;
-						if (isProperty(state, object.name))
+						var values = [...state.getObjectsForIdentifier(identifier_index).values()].map( p => [p, state.objects[p]] );
+						for (const [subobject_index, subobject] of values)
 						{
-							values = [...state.getObjectsForIdentifier(identifier_index).values()].map( p => state.objects[p].name );
-						} else {
-							values = [object.name];
-						}
-						for (const subobject of values)
-						{
-							var layerIndex = state.getObjectByName(subobject).layer|0; // TODO: we should store...
+							var layerIndex = subobject.layer|0; // TODO: we should store...
 							var existingname = layersUsed_r[layerIndex];
 							if (existingname !== null)
 							{
-								var o1 = subobject.toUpperCase();
-								var o2 = existingname.toUpperCase();
-								if (o1 !== o2)
+								if (subobject_index !== existingname)
 								{
-									logWarning("This rule may try to spawn a "+o1+" with random, but also requires a "+o2+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
+									logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.objects[existingname].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
 								}
 							}
 
-							layersUsedRand_r[layerIndex] = subobject;
+							layersUsedRand_r[layerIndex] = subobject_index;
 						}                      
 					// }
 					// else
@@ -1575,15 +1576,8 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					continue;
 				}
 
-				var objectMask = state.objectMasks[object_index];
-				if (object)
-				{
-					var layerIndex = object.layer|0;
-				}
-				else
-				{
-					var layerIndex = state.single_layer_property[state.identifiers.indexOf(object.name)]
-				}
+				const objectMask = state.objectMasks[identifier_index];
+				var layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
 				
 				if (object_dir == 'no')
 				{
@@ -1601,11 +1595,11 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					{
 						if ( ! rule.hasOwnProperty('discard') )
 						{
-							logError('Rule matches object types that can\'t overlap: "' + object.name.toUpperCase() + '" and "' + existingname.toUpperCase() + '".',rule.lineNumber);
+							logError('Rule matches object types that can\'t overlap: "' + state.identifiers[identifier_index].toUpperCase() + '" and "' + state.identifiers[existingname].toUpperCase() + '".',rule.lineNumber);
 						}
 					}
 
-					layersUsed_r[layerIndex] = object.name;
+					layersUsed_r[layerIndex] = identifier_index;
 
 					if (object_dir.length > 0)
 					{
@@ -1983,7 +1977,7 @@ function tokenizeWinConditionIdentifier(state, n, lineNumber)
 		logError('Invalid object name found in win condition: ' + n + 'is ' + getIdentifierTypeAsText(identifier_comptype) + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
 		return null;
 	}
-	return state.objectMasks[identifier_comptype];
+	return state.objectMasks[identifier_index];
 }
 
 function processWinConditions(state)
@@ -2300,7 +2294,7 @@ function generateSoundData(state)
 			var seed = sound[sound.length-2];
 
 			const target_index = state.identifiers.indexOf(target); // we have already checked in the parser that it is a known identifier
-			if (state.identifier_comptype[target_index] == identifier_type_aggregate)
+			if (state.identifiers_comptype[target_index] == identifier_type_aggregate)
 			{
 				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
 			}

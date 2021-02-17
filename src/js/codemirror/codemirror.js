@@ -4281,7 +4281,7 @@
   option("undoDepth", 200, function(cm, val){cm.doc.history.undoDepth = val;});
   option("historyEventDelay", 1250);
   option("viewportMargin", 10, function(cm){cm.refresh();}, true);
-  option("maxHighlightLength", 10000, resetModeState, true);
+  option("maxHighlightLength", 100000, resetModeState, true);
   option("moveInputWithCursor", true, function(cm, val) {
     if (!val) cm.display.inputDiv.style.top = cm.display.inputDiv.style.left = 0;
   });

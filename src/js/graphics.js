@@ -94,28 +94,31 @@ function makeSpriteCanvas(name) {
 }
 
 
-function generateGlyphImages() {
-    if (cellwidth===0||cellheight===0) {
+function generateGlyphImages()
+{
+    if (cellwidth === 0 || cellheight === 0)
         return;
-    }
-	glyphImagesCorrespondance=[];
-	glyphImages=[];
+
+	glyphImagesCorrespondance = [];
+	glyphImages = [];
 	
-	for (var n in state.glyphDict) {
-		if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {
-			var g=state.glyphDict[n];
-			var sprite = makeSpriteCanvas("C"+n)
-			var spritectx = sprite.getContext('2d');
-			glyphImagesCorrespondance.push(n);
-			for (var i=0;i<g.length;i++){
-				var id = g[i];
-				if (id===-1) {
-					continue;
-				}
-				spritectx.drawImage(spriteimages[id], 0, 0);
-			}
-			glyphImages.push(sprite);
-		}
+	for (const [identifier_index, g] of state.glyphDict.entries())
+    {
+        const n = state.identifiers[identifier_index];
+        
+        if (n.length > 1)
+            continue;
+
+        var sprite = makeSpriteCanvas("C"+n)
+        var spritectx = sprite.getContext('2d');
+        glyphImagesCorrespondance.push(identifier_index);
+        for (const id of g)
+        {
+            if (id === -1)
+                continue;
+            spritectx.drawImage(spriteimages[id], 0, 0);
+        }
+        glyphImages.push(sprite);
 	}
 
 	{
@@ -181,14 +184,16 @@ ctx = canvas.getContext('2d');
 x = 0;
 y = 0;
 
-function glyphCount(){
-    var count=0;
-    for (var n in state.glyphDict) {
-        if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {
-            count++;
-        }
-    }    
-    return count;
+function glyphCount()
+{
+    return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers[identifier_index].length == 1) ).length;
+    // var count=0;
+    // for (var n in state.glyphDict) {
+    //     if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {
+    //         count++;
+    //     }
+    // }    
+    // return count;
 }
 
 function redraw() {

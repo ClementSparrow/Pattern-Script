@@ -186,19 +186,18 @@ var htmlEntityMap = {
 
 var selectableint  = 0;
 
-function printLevel() {
+function printLevel()
+{
 	var glyphMasks = [];
-	for (var glyphName in state.glyphDict) {
-		if (state.glyphDict.hasOwnProperty(glyphName)&&glyphName.length===1) {
-			var glyph = state.glyphDict[glyphName];
-			var glyphmask=new BitVec(STRIDE_OBJ);
-			for (var i=0;i<glyph.length;i++)
-			{
-				var id = glyph[i];
-				if (id>=0) {
-					glyphmask.ibitset(id);
-				}
-			}
+	// for (var glyphName in state.glyphDict)
+	for (const [identifier_index, glyph] of state.glyphDict.entries())
+	{
+		const glyphName = state.identifiers[identifier_index];
+		// if (state.glyphDict.hasOwnProperty(glyphName)&&glyphName.length===1)
+		if (glyphName.length === 1)
+		{
+			// var glyph = state.glyphDict[glyphName];
+			var glyphmask = makeMaskFromGlyph(glyph);
 			var glyphbits = glyphmask.clone();
 			//register the same - backgroundmask with the same name
 			var bgMask = state.layerMasks[state.backgroundlayer];
@@ -227,28 +226,23 @@ function printLevel() {
 	consolePrint(output,true);
 }
 
-function levelEditorClick(event,click) {
-	if (mouseCoordY<=-2) {
-		var ypos = editorRowCount-(-mouseCoordY-2)-1;
-		var newindex=mouseCoordX+(screenwidth-1)*ypos;
-		if (mouseCoordX===-1) {
+function levelEditorClick(event, click)
+{
+	if (mouseCoordY <= -2)
+	{
+		var ypos = editorRowCount - (-mouseCoordY-2) - 1;
+		var newindex = mouseCoordX + (screenwidth-1)*ypos;
+		if (mouseCoordX === -1) {
 			printLevel();
-		} else if (mouseCoordX>=0&&newindex<glyphImages.length) {
-			glyphSelectedIndex=newindex;
+		} else if (mouseCoordX >=0 && newindex < glyphImages.length) {
+			glyphSelectedIndex = newindex;
 			redraw();
 		}
 
-	} else if (mouseCoordX>-1&&mouseCoordY>-1&&mouseCoordX<screenwidth-2&&mouseCoordY<screenheight-2-editorRowCount	) {
-		var glyphname = glyphImagesCorrespondance[glyphSelectedIndex];
-		var glyph = state.glyphDict[glyphname];
-		var glyphmask = new BitVec(STRIDE_OBJ);
-		for (var i=0;i<glyph.length;i++)
-		{
-			var id = glyph[i];
-			if (id>=0) {
-				glyphmask.ibitset(id);
-			}			
-		}
+	}
+	else if (mouseCoordX > -1 && mouseCoordY > -1 && mouseCoordX < screenwidth-2 && mouseCoordY < screenheight-2-editorRowCount )
+	{
+		var glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[glyphSelectedIndex] ] );
 
 		var backgroundMask = state.layerMasks[state.backgroundlayer];
 		if (glyphmask.bitsClearInArray(backgroundMask.data)) {
