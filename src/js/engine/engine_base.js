@@ -1187,7 +1187,8 @@ function applyRules(rules, loopPoint, startRuleGroupindex, bannedGroup){
 	//when we're going back in, let's loop, to be sure to be sure
 	var loopPropagated = startRuleGroupindex>0;
 	var loopCount = 0;
-	for (var ruleGroupIndex=startRuleGroupindex;ruleGroupIndex<rules.length;) {
+	for (var ruleGroupIndex = startRuleGroupindex; ruleGroupIndex < rules.length ;)
+	{
 		if (bannedGroup && bannedGroup[ruleGroupIndex]) {
 			//do nothing
 		} else {

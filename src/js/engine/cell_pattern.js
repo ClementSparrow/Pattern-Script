@@ -27,16 +27,19 @@ var matchCache = {};
 
 
 
-CellPattern.prototype.generateMatchString = function() {
+CellPattern.prototype.generateMatchString = function()
+{
 	var fn = "(true";
-	for (var i = 0; i < Math.max(STRIDE_OBJ, STRIDE_MOV); ++i) {
+	for (var i = 0; i < Math.max(STRIDE_OBJ, STRIDE_MOV); ++i)
+	{
 		var co = 'cellObjects' + i;
 		var cm = 'cellMovements' + i;
 		var op = this.objectsPresent.data[i];
 		var om = this.objectsMissing.data[i];
 		var mp = this.movementsPresent.data[i];
 		var mm = this.movementsMissing.data[i];
-		if (op) {
+		if (op)
+		{
 			if (op&(op-1))
 				fn += '\t\t&& ((' + co + '&' + op + ')===' + op + ')\n';
 			else
@@ -53,10 +56,11 @@ CellPattern.prototype.generateMatchString = function() {
 		if (mm)
 			fn += '\t\t&& !(' + cm + '&' + mm + ')\n';
 	}
-	for (var j = 0; j < this.anyObjectsPresent.length; j++) {
+	for (const anyObjectPresent of this.anyObjectsPresent)
+	{
 		fn += "\t\t&& (0";
 		for (var i = 0; i < STRIDE_OBJ; ++i) {
-			var aop = this.anyObjectsPresent[j].data[i];
+			var aop = anyObjectPresent.data[i];
 			if (aop)
 				fn += "|(cellObjects" + i + "&" + aop + ")";
 		}
@@ -81,7 +85,7 @@ CellPattern.prototype.generateMatchFunction = function() {
 	if (fn in matchCache) {
 		return matchCache[fn];
 	}
-	//console.log(fn.replace(/\s+/g, ' '));
+	// console.log(fn.replace(/\s+/g, ' '));
 	return matchCache[fn] = new Function("i",fn);
 }
 
@@ -103,8 +107,8 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 		return false;
 	}
 
-	var replace_RandomEntityMask = replace.randomEntityMask;
-	var replace_RandomDirMask = replace.randomDirMask;
+	const replace_RandomEntityMask = replace.randomEntityMask;
+	const replace_RandomDirMask = replace.randomDirMask;
 
 	var objectsSet = replace.objectsSet.cloneInto(_o1);
 	var objectsClear = replace.objectsClear.cloneInto(_o2);
@@ -120,11 +124,11 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 				choices.push(i);
 			}
 		}
-		var rand = choices[Math.floor(RandomGen.uniform() * choices.length)];
-		var o = state.objects[rand];
+		const rand = choices[Math.floor(RandomGen.uniform() * choices.length)];
+		const layer = state.objects[state.idDict[rand]].layer;
 		objectsSet.ibitset(rand);
-		objectsClear.ior(state.layerMasks[o.layer]);
-		movementsClear.ishiftor(0x1f, 5 * o.layer);
+		objectsClear.ior(state.layerMasks[layer]);
+		movementsClear.ishiftor(0x1f, 5 * layer);
 	}
 	if (!replace_RandomDirMask.iszero()) {
 		for (var layerIndex=0;layerIndex<level.layerCount;layerIndex++){

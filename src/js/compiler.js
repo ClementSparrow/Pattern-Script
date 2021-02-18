@@ -1429,16 +1429,15 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				const object = (state.identifiers_objects[identifier_index].size > 1) ? null : state.objects[state.identifiers_objects[identifier_index].values().next().value];
 
 				const objectMask = state.objectMasks[identifier_index];
-				var layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
-
-				if (layerIndex < 0)
-				{
-					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
-				}
+				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
 
 				if (object_dir === 'no')
 				{
 					objectsMissing.ior(objectMask);
+				}
+				else if ((layerIndex === undefined) || (layerIndex < 0))
+				{
+					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
@@ -1551,6 +1550,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				if (object_dir == 'no')
 				{
 					objectsClear.ior(objectMask);
+				}
+				else if ((layerIndex === undefined) || (layerIndex < 0))
+				{
+					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
