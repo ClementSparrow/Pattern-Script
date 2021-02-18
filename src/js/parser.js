@@ -342,6 +342,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 		{
 			identifier_added = false;
 			logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!', this.lineNumber);
+			// TODO: I changed default PuzzleScript behavior, here, which was to change the layer of the object. -- ClementSparrow.
 		}
 		else
 		{

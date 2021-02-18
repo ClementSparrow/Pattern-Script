@@ -1297,25 +1297,26 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 1)
 	{
-		var [dir, c] = cell[i];
-		switch (state.identifiers_comptype[c])
-		{
-		case identifier_type_aggregate:
-			{
-				if (dir === 'no')
-				{
-					logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
-				}
-			}
-		case identifier_type_synonym:
-			break;
-		default:
+		const [dir, c] = cell[i];
+
+		if (dir === '...')
 			continue;
+
+		const identifier_comptype = state.identifiers_comptype[c];
+		if (identifier_comptype < 0) // not an object nor the synonym of an object
+		{
+			if (identifier_comptype != identifier_type_aggregate) // not an aggregate or the synonym of an aggregate
+				continue;
+			// aggregate or synonym of an aggregate
+			if (dir === 'no')
+			{
+				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
+			}
 		}
+
 		const equivs = Array.from( state.getObjectsForIdentifier(c), p => [dir, state.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
-		// cell[i] = equivs[0];
-		// cell.push(...equivs.slice(1)) // TODO: not very elegant, as pushing to the end of the cell changes the order of cell elements and causes a recomputation of their aggregates
+		i += equivs.length-1;
 	}
 }
 
