@@ -169,7 +169,7 @@ P12
 2bb
 
 message level 2 - it is what it is
-P#1###
+P##1##
 ##113#
 ##311#
 3.bbb.
@@ -192,14 +192,14 @@ P#######1####
 #######111###
 ######14141##
 #####8111118#
-###8.bbbbbbb.
+###7.bbbbbbb.
 ##11.b.....b.
 #131.b.bbb.b.
 1111.b.b.b.b.
 #131.b.bbb.b.
 1111.b.b.b.b.
 ##11.b.....b.
-###8.bbbbbbb.
+###7.bbbbbbb.
 ####.........
 
 message congratulations!

@@ -164,7 +164,7 @@ COLLISIONLAYERS
 Background
 Laser
 Exit
-ProtectorSolo, Heart, Wall
+Heart(, ProtectorSolo, Wall)
 Player, Wall, PlayerDead, LaserGV, LaserGH, Protector, victimSolo, pushBlock
 
 ======

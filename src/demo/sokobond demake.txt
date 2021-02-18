@@ -326,7 +326,7 @@ Up [Temps UBond | no Temps] -> [Temps Ubond | Temps]
 
 [ > Atom AtomStuff] -> [ > Atom > AtomStuff]
 
-Late Right [Orbital no Temps no RBond|Orbital no Temps no LBond] -> [Orbital Temp1|Orbital Temp2 Sfx1] (Bond horizontally.)
+Late Right [Orbital no Temps no RBond|Orbital no Temps no LBond] -> [Orbital Temp1|Orbital Temp2] Sfx1 (Bond horizontally.)
 + Late [Temp1 no Bond] -> [Temp3 BondR]
 + Late [Temp1 BondU] -> [Temp3 BondUR]
 + Late [Temp1 BondL] -> [Temp3 BondLR]
@@ -348,7 +348,7 @@ Late Right [Orbital no Temps no RBond|Orbital no Temps no LBond] -> [Orbital Tem
 + Late [Temp3 3Electron] -> [2Electron]
 + Late [Temp3 4Electron] -> [3Electron]
 
-Late Down [Orbital no Temps no DBond|Orbital no Temps no UBond] -> [Orbital Temp1|Orbital Temp2 Sfx1] (Bond vertically.)
+Late Down [Orbital no Temps no DBond|Orbital no Temps no UBond] -> [Orbital Temp1|Orbital Temp2] Sfx1 (Bond vertically.)
 + Late [Temp1 no Bond] -> [Temp3 BondD]
 + Late [Temp1 BondU] -> [Temp3 BondUD]
 + Late [Temp1 BondL] -> [Temp3 BondLD]

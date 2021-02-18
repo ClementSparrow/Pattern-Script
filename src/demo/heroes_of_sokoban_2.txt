@@ -310,23 +310,23 @@ RULES
 [ > Wizard ] -> [ Wizard > Warpball]
 [ > Warpball | no Moveable no Static] -> [ | > Warpball]
 [ > Warpball | Static] [Wizard] -> [ | Static ] [> Wizard]
-[ > Warpball | Moveable ] [Wizard] -> [ | Wizard Sfx0] [Moveable] (Wizards telexport. What they really do is shoot a "warpball", which causes them to move normally if it hits a wall and warp if it hits something they can warp with.)
+[ > Warpball | Moveable ] [Wizard] -> [ | Wizard] [Moveable] Sfx0 (Wizards telexport. What they really do is shoot a "warpball", which causes them to move normally if it hits a wall and warp if it hits something they can warp with.)
 
 (The following mess is for changing characters.)
-[ Action Fighter] [SThief] -> [SFighter] [Thief Sfx1]
-[ Action Thief] [SWizard] -> [SThief] [Wizard Sfx1]
-[ Action Wizard] [SPriest] -> [SWizard] [Priest Sfx1]
-[ Action Priest] [SFighter] -> [SPriest] [Fighter Sfx1]
+[ Action Fighter] [SThief] -> [SFighter] [Thief] Sfx1
+[ Action Thief] [SWizard] -> [SThief] [Wizard] Sfx1
+[ Action Wizard] [SPriest] -> [SWizard] [Priest] Sfx1
+[ Action Priest] [SFighter] -> [SPriest] [Fighter] Sfx1
 
-[ Action Fighter] [no SThief] [SWizard] -> [SFighter] [no SThief] [Wizard Sfx1]
-[ Action Thief] [no Swizard] [SPriest] -> [SThief] [no SWizard] [Priest Sfx1]
-[ Action Wizard] [no SPriest] [SFighter] -> [SWizard] [no SPriest] [Fighter Sfx1]
-[ Action Priest] [no SFighter] [SThief] -> [SPriest] [no SFighter] [Thief Sfx1]
+[ Action Fighter] [no SThief] [SWizard] -> [SFighter] [no SThief] [Wizard] Sfx1
+[ Action Thief] [no Swizard] [SPriest] -> [SThief] [no SWizard] [Priest] Sfx1
+[ Action Wizard] [no SPriest] [SFighter] -> [SWizard] [no SPriest] [Fighter] Sfx1
+[ Action Priest] [no SFighter] [SThief] -> [SPriest] [no SFighter] [Thief] Sfx1
 
-[ Action Fighter] [no SThief] [no SWizard] [SPriest] -> [SFighter] [no SThief] [no SWizard] [Priest Sfx1]
-[ Action Thief] [no SWizard] [no SPriest] [SFighter] -> [SThief] [no SWizard] [no SPriest] [Fighter Sfx1]
-[ Action Wizard] [no SPriest] [no SFighter] [SThief] -> [SWizard] [no SPriest] [no SFighter] [Thief Sfx1]
-[ Action Priest] [no SFighter] [no SThief] [SWizard] -> [SPriest] [no SFighter] [no SThief] [Wizard Sfx1]
+[ Action Fighter] [no SThief] [no SWizard] [SPriest] -> [SFighter] [no SThief] [no SWizard] [Priest] Sfx1
+[ Action Thief] [no SWizard] [no SPriest] [SFighter] -> [SThief] [no SWizard] [no SPriest] [Fighter] Sfx1
+[ Action Wizard] [no SPriest] [no SFighter] [SThief] -> [SWizard] [no SPriest] [no SFighter] [Thief] Sfx1
+[ Action Priest] [no SFighter] [no SThief] [SWizard] -> [SPriest] [no SFighter] [no SThief] [Wizard] Sfx1
 
 (Cancels the move if the player is in the same place that they started. Notice that switching characters negates this. Only matters in levels where one dragon has multiple targets.)
 
@@ -351,29 +351,29 @@ Late [Goblin | Vulnerable] -> [Goblin | Dying Vulnerable]
 
 Late [Dying Healer] -> [Saved Healer]
 Late [Healer | Dying Hero] -> [Healer | Saved Hero]
-Late [Dying Monster] -> [Sfx5]
-Late [Dying Hero] -> [Corpse Sfx6]
+Late [Dying Monster] -> [] Sfx5
+Late [Dying Hero] -> [Corpse] Sfx6
 
 (Doors opening.)
 
 late [Weighing  YellowSwitch] [YellowDoor] -> [Weighing  YellowSwitch] [ShadowDoor]
-late [YellowSwitch no Weighing] [YellowOpen] -> [YellowSwitch] [YellowDoor sfx2]
+late [YellowSwitch no Weighing] [YellowOpen] -> [YellowSwitch] [YellowDoor] sfx2
 late [YellowSwitch no Weighing] [ShadowDoor] -> [YellowSwitch] [YellowDoor]
-late [ShadowDoor] -> [YellowOpen sfx3]
+late [ShadowDoor] -> [YellowOpen] sfx3
 
 late [Weighing PurpleSwitch] [PurpleDoor] -> [Weighing PurpleSwitch] [ShadowDoor]
-late [PurpleSwitch no Weighing] [PurpleOpen] -> [PurpleSwitch] [PurpleDoor sfx2]
+late [PurpleSwitch no Weighing] [PurpleOpen] -> [PurpleSwitch] [PurpleDoor] sfx2
 late [PurpleSwitch no Weighing] [ShadowDoor] -> [PurpleSwitch] [PurpleDoor]
-late [ShadowDoor] -> [PurpleOpen sfx3]
+late [ShadowDoor] -> [PurpleOpen] sfx3
 
 late [MonsterDoor] -> [ShadowDoor]
 late [ShadowDoor] [Monster] -> [MonsterDoor] [Monster]
-late [ShadowDoor] -> [sfx3]
+late [ShadowDoor] -> [] sfx3
 
 (Looks for a HasSaved on a wall and moves it to the Priest. Then, if someone was saved this turn, plays the sound only if the Priest doesn't have the HasSaved note. Finally, cleans that up.)
 
 late [Wall HasSaved] [Healer] -> [Wall] [Healer HasSaved]
-late [Saved] [Healer no HasSaved] -> [Saved sfx4] [Healer]
+late [Saved] [Healer no HasSaved] -> [Saved] [Healer] sfx4
 late [HasSaved] -> []
 
 ==============
