@@ -545,6 +545,7 @@ function parseRuleString(rule, state, curRules)
 	var should_close_cell = false;
 	var should_close_objcond = false;
 	var cell_contains_ellipses = false;
+	var should_add_ellipses = false;
 
 	var incellrow = false;
 
@@ -624,17 +625,13 @@ function parseRuleString(rule, state, curRules)
 			if (!incellrow) {
 				logWarning("Invalid syntax, ellipses should only be used within cells (square brackets).", lineNumber);
 			}
-			else if ( (curobjcond.length != 0) || (curcell.length != 0) )
-			{
-				logError('Ellipses shoud be alone in their own cell, like that: |...|', lineNumber);
-			}
 			else if (curcellrow.length == 0)
 			{
 				logError('You cannot start a cell row (the square brackety things) with ellipses.', lineNumber);
 			}
 			else
 			{
-				curcell.push([token, token]);
+				should_add_ellipses = true;
 			}
 		} else if (commandwords.indexOf(token) >= 0) {
 			if (rhs === false) {
@@ -662,7 +659,7 @@ function parseRuleString(rule, state, curRules)
 			logError('Error, malformed cell rule - was looking for cell contents, but found "' + token + '".  What am I supposed to do with this, eh, please tell me that.', lineNumber);
 		}
 
-		if (should_close_objcond || should_close_cell || should_close_cellrow)
+		if (should_close_objcond || should_add_ellipses || should_close_cell || should_close_cellrow)
 		{
 			// close the current object condition / ellipsis
 			if (curobjcond.length == 1)
@@ -677,12 +674,24 @@ function parseRuleString(rule, state, curRules)
 			should_close_objcond = false;
 		}
 
+		if (should_add_ellipses)
+		{
+			curcell.push([token, token]);
+			cell_contains_ellipses = true;
+			should_add_ellipses = false;
+		}
+
 		if (should_close_cell || should_close_cellrow)
 		{
 			// close the current cell
+			if ( cell_contains_ellipses && (curcell.length > 1) )
+			{
+				logError('Ellipses shoud be alone in their own cell, like that: |...|', lineNumber);
+			}
 			curcellrow.push(curcell);
 			curcell = [];
 			should_close_cell = false;
+			cell_contains_ellipses = false;
 		}
 
 		if (should_close_cellrow)
@@ -716,6 +725,7 @@ function parseRuleString(rule, state, curRules)
 		{
 			if (lhs_cell.length != rhs_cells[i].length) {
 				logError('In a rule, each pattern to match on the left must have a corresponding pattern on the right of equal length (number of cells).', lineNumber);
+				return null; // ignoring the rule because it would cause bugs later in the code.
 			}
 		}
 	}
@@ -783,6 +793,8 @@ function rulesToArray(state)
 	{
 		var lineNumber = oldrule[1];
 		var newrule = parseRuleString(oldrule, state, rules);
+		if (newrule === null)
+			continue;
 		if (newrule.bracket !== undefined)
 		{
 			loops.push( [lineNumber, newrule.bracket] );
@@ -951,6 +963,14 @@ function expandNoPrefixedProperties(state, cell)
 	return expanded;
 }
 
+function expandNoPrefixedPropertiesForCellRow(state, cellrows)
+{
+	for (const [i, cur_cellrow] of cellrows.entries())
+	{
+		cellrows[i] = cur_cellrow.map( cur_cell => expandNoPrefixedProperties(state, cur_cell) )
+	}
+}
+
 // TODO: this function and concretizeMovingRule have a very similar structure and should probably be merged.
 /* Expands the properties on the LHS of a rule and disambiguates those on the RHS.
  * The rules for the expansion on the LHS are:
@@ -967,15 +987,8 @@ function expandNoPrefixedProperties(state, cell)
 function concretizePropertyRule(state, rule, lineNumber)
 {	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
-	for (const [i, cur_cellrow_l] of rule.lhs.entries())
-	{
-		for (const [j, cur_cell_l] of cur_cellrow_l.entries())
-		{
-			cur_cellrow_l[j] = expandNoPrefixedProperties(state, cur_cell_l);
-			if (rule.rhs.length > 0) // TODO: there is no reason to make both HS at the same time
-				rule.rhs[i][j] = expandNoPrefixedProperties(state, rule.rhs[i][j]);
-		}
-	}
+	expandNoPrefixedPropertiesForCellRow(state, rule.lhs);
+	expandNoPrefixedPropertiesForCellRow(state, rule.rhs);
 
 	//are there any properties we could avoid processing?
 	// e.g. [> player | movable] -> [> player | > movable],
