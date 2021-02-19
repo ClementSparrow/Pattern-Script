@@ -169,7 +169,8 @@ late [ LeftB Dude ] [ RightB Rabbit ] [ RightB Fox ] -> [ LeftB Dude ] [ RightB 
 late [ LeftB Dude ] [ RightB Carrot ] [ RightB Rabbit ] -> [ LeftB Dude ] [ RightB ] [ RightB Rabbit ] sfx1 message Rabbit eats carrot! Chomp!
 
 ( Animate the water )
-[ Water ] -> [ random Water ]
+[ Water ] -> [ action Water ] (action is considered as a movement)
+[ action Water ] -> [ random Water ] (random creates an object stationnary)
 
 ( Row across the river with an object )
 [ action Player Dude | EmptyBoat Object | ... | | Dock ] -> [ | | ... | EmptyBoat Object | Player Dude Dock ] sfx3

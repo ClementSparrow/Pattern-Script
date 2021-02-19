@@ -229,7 +229,7 @@ COLLISIONLAYERS
 Background
 StairsNorth, FirePit
 WallFacade
-Crate, IceCube, MovingIce, LowPlayer, MeltingIce, BurntCrate
+Crate, IceCube, LowPlayer, MeltingIce, BurntCrate
 Pillar, HighPlayer, HighCrate, Coin
 IceCubeShadow
 
@@ -239,7 +239,8 @@ RULES
 
 (Make stuff pretty)
 [ LowFloorRaw ] -> [ random LowFloor ]
-[ FirePit ] -> [ random FirePit ]
+[ FirePit ] -> [ action Firepit ]
+[ action FirePit ] -> [ random FirePit ] (random creates an object without action)
 
 (Pushing stuff)
 [ > LowPlayer | Pushable ] -> [ > LowPlayer | > Pushable ]
@@ -400,3 +401,4 @@ $"!...!...!"$
 !...........!
 
 message Well done!
+
