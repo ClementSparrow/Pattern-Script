@@ -68,7 +68,7 @@ function makeMaskFromGlyph(glyph)
 
 function makeMaskFromObjectSet(state, objects)
 {
-	return makeMaskFromGlyph([...objects.values()].map( object_pos => state.objects[object_pos].id))
+	return makeMaskFromGlyph( Array.from( objects, object_pos => state.objects[object_pos].id ) );
 }
 
 function getMaskFromName(state, name)
@@ -151,7 +151,7 @@ function generateExtraMembers(state)
 	// TODO: move that in the parser so that it can display the exact colors
 	if ('color_palette' in state.metadata)
 	{
-		const val = state.metadata.color_palette
+		var val = state.metadata.color_palette
 		if (val in colorPalettesAliases)
 		{
 			val = colorPalettesAliases[val];
@@ -245,7 +245,21 @@ function generateExtraMembers(state)
 	}
 
 	//set default background object
-	state.background_index = state.getObjectsAnIdentifierCanBe('background').values().next().value;
+	const background_identifier_index = state.identifiers.indexOf('background');
+	if (background_identifier_index < 0)
+	{
+		logError("you have to define something to be the background");
+		state.background_index = state.idDict[0];
+	}
+	else if (state.identifiers_comptype[background_identifier_index] == identifier_type_aggregate)
+	{
+		logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
+		state.background_index = state.idDict[0];
+	}
+	else
+	{
+		state.background_index = state.getObjectsAnIdentifierCanBe('background').values().next().value;
+	}
 	state.backgroundid = state.objects[state.background_index].id
 	state.backgroundlayer = state.objects[state.background_index].layer
 }
@@ -293,10 +307,12 @@ function levelFromString(state, level)
 			if (identifier_index < 0)
 			{
 				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
+				continue;
 			}
 			else if (state.identifiers_comptype[identifier_index] == identifier_type_property)
 			{
-				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);							
+				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);
+				continue;
 			}
 
 			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
@@ -1864,10 +1880,14 @@ function generateRigidGroupList(state)
 /* Computes new attributes for the state: playerMask, layerMasks, objectMask. */
 function generateMasks(state)
 {
-	state.playerMask = getMaskFromName(state, 'player');
-	if (state.playerMask.iszero())
+	if (state.identifiers.indexOf('player') < 0)
 	{
 		logErrorNoLine("error, didn't find any object called player, either in the objects section, or the legends section. there must be a player!");
+		state.playerMask = new BitVec(STRIDE_OBJ);
+	}
+	else
+	{
+		state.playerMask = getMaskFromName(state, 'player');
 	}
 
 	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
@@ -1878,28 +1898,9 @@ function generateMasks(state)
 		(type, identifier_index) => (type == identifier_type_aggregate) ? null : makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
 	);
 
-	// // TODO: replace it with a list of masks for each identifier (and let the code using it check that its not an aggregate)
-	// var objectMask = {};
-	// for(var o of state.objects)
-	// {
-	// 	objectMask[o.name] = new BitVec(STRIDE_OBJ);
-	// 	objectMask[o.name].ibitset(o.id);
-	// }
-
-	// // Synonyms can depend on properties, and properties can depend on synonyms.
-	// // Process them in order by combining & sorting by linenumber.
-
-	// var synonyms_and_properties = Array.from(state.identifiers.keys()).filter( i => [identifier_type_synonym, identifier_type_property].includes(state.identifiers_deftype[i]) );
-	// synonyms_and_properties.sort( (a,b) => state.identifiers_lineNumbers[a] - state.identifiers_lineNumbers[b] );
-	// for (const identifier_index of synonyms_and_properties)
-	// {
-	// 	objectMask[state.identifiers[identifier_index]] = makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
-	// }
-
 	var all_obj = new BitVec(STRIDE_OBJ);
 	all_obj.inot();
 	objectMask.all = all_obj;
-	// objectMask["\nall\n"] = all_obj; // use \n as a delimeter for internal-only objects
 
 	state.objectMasks = objectMask;
 }
