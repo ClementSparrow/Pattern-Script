@@ -15,7 +15,7 @@ function convertLevelToString()
 	{
 		for (var x = 0; x < level.width; x++)
 		{
-			var bitmask = level.getCell(x + y*level.width);
+			const bitmask = level.getCell(x + y*level.width);
 			var objs = [];
 			for (var bit = 0; bit < 32 * STRIDE_OBJ; ++bit)
 			{
