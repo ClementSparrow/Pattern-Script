@@ -392,7 +392,7 @@ function isCellRowDirectional(cellRow)
 	{
 		for (const [dir, identifier_index] of cell)
 		{
-			if (relativeDirections.indexOf(dir) >= 0)
+			if (relativeDirections.indexOf(dir) >= 0) // TODO: should'nt it also include 'perpendicular' and 'parallel' but exclude 'horizontal' and 'vertical'?
 			{
 				return true;
 			}
@@ -1230,15 +1230,13 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 		var ambiguous_movement_dict = {};
 		//strict first - matches movement direction to objects
 		//for each property replacement in that rule
-		// for (var cand_index in cur_rule.movingReplacement)
 		for (const [cand_index, movingDat] of cur_rule.movingReplacement.entries())
 		{
-			// if (cur_rule.movingReplacement.hasOwnProperty(cand_index))
 			if (movingDat !== undefined)
 			{
-				// const [concreteMovement, occurrenceCount, ambiguousMovement] = cur_rule.movingReplacement[cand_index];
 				const [concreteMovement, occurrenceCount, ambiguousMovement] = movingDat;
 
+				// invalidates an ambiguous movement that appears multiple times in the LHS, whether it's used with different identifiers or multiple occurences of a same identifier.
 				ambiguous_movement_dict[ambiguousMovement] = ( (ambiguousMovement in ambiguous_movement_dict) || (occurrenceCount !== 1) ) ? "INVALID" : concreteMovement;
 
 				if (occurrenceCount === 1)
@@ -1257,7 +1255,7 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 		}
 		delete cur_rule.movingReplacement; // not used anymore
 
-		//for each ambiguous word, if there was a single ambiguous movement specified in the whole lhs, then replace it also in the RHS (for the other identifiers)
+		//for each ambiguous word, if there was a single occurence of it in the whole lhs, then replace it also everywhere it appears in the RHS (whatever the identifier)
 		for(var ambiguousMovement in ambiguous_movement_dict)
 		{
 			if (ambiguous_movement_dict.hasOwnProperty(ambiguousMovement) && ambiguousMovement!=="INVALID")
