@@ -244,14 +244,15 @@ PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, com
 {
 	var ok = true;
 	var objects = new Set()
-	const forbidden_type = ({identifier_type_aggregate: identifier_type_property, identifier_type_property: identifier_type_aggregate})[compound_type];
+	const forbidden_type = (compound_type == identifier_type_aggregate) ? identifier_type_property : identifier_type_aggregate;
 	for (const identifier of identifiers)
 	{
 		const identifier_index = this.identifiers.indexOf(identifier);
 		if (identifier_index < 0)
 		{
 			ok = false;
-			logError('Unknown identifier "' + identifier.toUpperCase() + '" in definition of ' + ['aggregate ', 'property '][compound_type-2] + compound_name.toUpperCase() + ', ignoring it.', this.lineNumber);
+			const type_as_string = (compound_type == identifier_type_aggregate) ? 'aggregate ' : 'property ';
+			logError('Unknown identifier "' + identifier.toUpperCase() + '" found in the definition of ' + type_as_string + compound_name.toUpperCase() + ', ignoring it.', this.lineNumber);
 		}
 		else
 		{
@@ -1146,7 +1147,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 
 	// ignore white space
 	// stream.eatWhile(/[\p{Separator}]/u);
-	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && stream.match(/[\p{Separator}\)]+/u, true) )
+	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && (stream.match(/[\p{Separator}\)]+/u, true) || stream.eol()) )
 	{
 		if (token_starts_line && stream.eol()) // a line that contains only white spaces and unmatched ) is considered a blank line
 			return blankLineHandle(this);
