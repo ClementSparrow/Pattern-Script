@@ -23,14 +23,18 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
-const sectionNames = ['objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
+const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
+const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'] ];
+const section_optional = [ true, false, true, true, false, false, true, false ];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
+
 const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
-const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}]*/u;///\w*[a-uw-zA-UW-Z0-9_]/;
+const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}]*/u;
+const reg_name_nospace = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
 const reg_spriterow = /[\.0-9]{5}\p{Separator}*/u;
-const reg_sectionNames = /(objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
+const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
@@ -40,8 +44,9 @@ const reg_loopmarker = /^(startloop|endloop)$/;
 const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
 const reg_sounddirectionindicators = /\p{Separator}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Separator}*/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)$/;
-const reg_keywords = /(checkpoint|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
-const keyword_array = ['checkpoint','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
+const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
+const keyword_array = ['checkpoint','tags','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
+
 
 const identifier_type_object = 0 // actually, anything >= 0
 const identifier_type_synonym = -1
@@ -458,6 +463,56 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 	return 'METADATA';
 }
 
+
+
+PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, stream)
+{
+	if (is_start_of_line)
+	{
+		this.tokenIndex = 0;
+	}
+
+	switch (this.tokenIndex)
+	{
+		case 0: // tag class name
+		{
+			const tagclass_name = stream.match(reg_name_nospace, true);
+			if (tagclass_name === null)
+			{
+				logError('Unrecognised stuff in the tags section.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
+			{
+				logError('I was expecting an "=" sign after the tag type name.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			// TODO: register the tag class name tagclass_name[0]
+			this.tokenIndex = 1;
+			return 'NAME';
+		}
+		case 1: // equal sign
+		{
+			stream.next();
+			this.tokenIndex = 2;
+			return 'ASSIGNMENT'
+		}
+		case 2:
+		{
+			const tagname = stream.match(reg_name_nospace, true);
+			// todo: register the name
+			return 'NAME';
+		}
+		default:
+		{
+			logError('I reached a part of the code I should never have reached. Please submit a bug repport to ClementSparrow!')
+			stream.match(reg_notcommentstart, true);
+			return null;
+		}
+	}
+}
 
 function findOriginalCaseName(candname, mixedCase)
 {
@@ -1061,51 +1116,39 @@ PuzzleScriptParser.prototype.token = function(stream)
 		if (is_start_of_line && stream.match(reg_sectionNames, true))
 		{
 			this.section = stream.string.slice(0, stream.pos).trim();
-
-		//	Check that we have the right to start this section at this point
-
-			if (this.visitedSections.indexOf(this.section) >= 0)
-			{
-				logError('cannot duplicate sections (you tried to duplicate \"' + this.section.toUpperCase() + '").', this.lineNumber);
-			}
-			this.visitedSections.push(this.section);
 			const sectionIndex = sectionNames.indexOf(this.section);
-			if (sectionIndex == 0)
+
+		//	Check mandatory sections that should have been seen before this one.
+			const failed_constraints = section_constraints[sectionIndex].filter(
+				sec_name => ( this.visitedSections.indexOf(sec_name) < 0 && !section_optional[sectionNames.indexOf(sec_name)] )
+			);
+			for (const failed_constraint of failed_constraints)
 			{
-				this.objects_section = 0;
-				if (this.visitedSections.length > 1)
-				{
-					logError('section "' + this.section.toUpperCase() + '" must be the first section', this.lineNumber);
-				}
-			} else if (this.visitedSections.indexOf(sectionNames[sectionIndex - 1]) == -1)
+				logError('The mandatory section ' + failed_constraint.toUpperCase() + ' should be provided before section ' + this.section.toUpperCase() + '.', this.lineNumber);
+			}
+
+		//	Check that this section is not provided after a section it provides information for.
+			if (section_optional[sectionIndex])
 			{
-				if (sectionIndex === -1) // In theory, we can only get there if reg_sectionNames matches something not in sectionNames
+				const failed_constraints = [...section_constraints.entries()].filter(
+					([sec_index, sec_names]) => ( (sec_names.indexOf(this.section) >= 0) && (this.visitedSections.indexOf(sectionNames[sec_index]) >= 0) )
+				);
+				for (const [missing_section_index, missing_section_constraints] of failed_constraints)
 				{
-					logError('no such section as "' + this.section.toUpperCase() + '".', this.lineNumber);
-				} else {
-					logError('section "' + this.section.toUpperCase() + '" is out of order, must follow  "' + sectionNames[sectionIndex - 1].toUpperCase() + '" (or it could be that the section "'+sectionNames[sectionIndex - 1].toUpperCase()+`"is just missing totally.  You have to include all section headings, even if the section itself is empty).`, this.lineNumber);                            
+					logError('Optional section '+this.section.toUpperCase()+' provides information for section '+sectionNames[missing_section_index].toUpperCase()+' and should therefore be provided before it, not after.', this.lineNumber);
 				}
 			}
+
+			this.visitedSections.push(this.section);
 
 		//	Initialize the parser state for some sections depending on what has been parsed before
 
 			if (this.section === 'levels')
 			{
 				//populate character abbreviations
-				for (const [i, identifier] of this.identifiers.entries())
-				{
-					if ((identifier.length == 1) && (this.identifiers_deftype[i] != identifier_type_property) )
-					{
-						this.abbrevNames.push(identifier);
-					}
-				}
+				this.abbrevNames = this.identifiers.filter( (identifier, i) => ( (identifier.length == 1) && (this.identifiers_deftype[i] != identifier_type_property) ) );
 			}
 			return 'HEADER';
-		}
-
-		if (this.section === undefined)
-		{
-			logError('must start with section "OBJECTS"', this.lineNumber);
 		}
 
 		if (stream.eol())
@@ -1115,6 +1158,9 @@ PuzzleScriptParser.prototype.token = function(stream)
 
 		switch (this.section)
 		{
+			case 'tags':
+				return this.tokenInTagsSection(is_start_of_line, stream)
+				break;
 			case 'objects':
 				return this.tokenInObjectsSection(is_start_of_line, stream, mixedCase)
 				break;
