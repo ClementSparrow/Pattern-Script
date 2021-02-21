@@ -89,7 +89,7 @@ function PuzzleScriptParser()
 	this.visitedSections = [] // There are only 8 sections, so it could be a bitmask rather than an array...
 
 	this.tokenIndex = 0
-
+	this.is_start_of_line = false;
 
 	// metadata defined in the preamble
 	this.metadata_keys = []   // TODO: we should not care about the keys, since it's a predefined set
@@ -145,6 +145,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.visitedSections = this.visitedSections.concat([])
 
 	result.tokenIndex = this.tokenIndex
+	result.is_start_of_line = this.is_start_of_line;
 
 	result.metadata_keys   = this.metadata_keys.concat([])
 	result.metadata_values = this.metadata_values.concat([])
@@ -594,7 +595,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true);
 				logError('Was looking for color for object ' + this.objects[this.objects_candindex].name.toUpperCase() + ', got "' + str + '" instead.', this.lineNumber);
-				return null;
+				return 'ERROR';
 			}
 
 			if (this.objects[this.objects_candindex].colors === undefined)
@@ -1035,84 +1036,18 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 }
 
 
-
-PuzzleScriptParser.prototype.token = function(stream)
+PuzzleScriptParser.prototype.parseActualToken = function(stream, mixedCase, ch) // parses something that is not white space or comment
 {
-	var mixedCase = stream.string;
-	const is_start_of_line = stream.sol();
-	if (is_start_of_line)
-	{
-		stream.string = stream.string.toLowerCase();
-		this.tokenIndex = 0;
-		/*   if (this.lineNumber==undefined) {
-				this.lineNumber=1;
-		}
-		else {
-			this.lineNumber++;
-		}*/
-
-	}
-
-	stream.eatWhile(/[ \t]/);
-
-	////////////////////////////////
-	// COMMENT PROCESSING BEGIN
-	////////////////////////////////
-
-	//NESTED COMMENTS
-	var ch = stream.peek();
-	if (ch === '(' && this.tokenIndex !== -4) // tokenIndex -4 indicates message command
-	{
-		stream.next();
-		this.commentLevel++;
-	}
-	else if (ch === ')') // NOTE: this case should normally only happen when commentLevel>0 and would then be dealt with in the loop below, but it is treated here so that we can have unmatched )'s in the text to ease the commenting of full sections.
-	{
-		stream.next();
-		if (this.commentLevel > 0)
-		{
-			this.commentLevel--;
-			if (this.commentLevel === 0)
-				return 'comment';
-		}
-	}
-	if (this.commentLevel > 0)
-	{
-		do
-		{
-			stream.eatWhile(/[^\(\)]+/);
-
-			if (stream.eol())
-				break;
-
-			ch = stream.peek();
-
-			if (ch === '(')
-			{
-				this.commentLevel++;
-			} else if (ch === ')')
-			{
-				this.commentLevel--;
-			}
-			stream.next();
-		}
-		while (this.commentLevel === 0);
-		return 'comment';
-	}
-
-	stream.eatWhile(/[ \t]/);
-
-	if (is_start_of_line && stream.eol())
-		return blankLineHandle(this);
+	const is_start_of_line = this.is_start_of_line;
 
 	//  if (is_start_of_line)
 	{
 
-		//MATCH '==="s AT START OF LINE
+	//	MATCH '==="s AT START OF LINE
 		if (is_start_of_line && stream.match(reg_equalsrow, true))
 			return 'EQUALSBIT';
 
-		//MATCH SECTION NAME
+	//	MATCH SECTION NAME
 		if (is_start_of_line && stream.match(reg_sectionNames, true))
 		{
 			this.section = stream.string.slice(0, stream.pos).trim();
@@ -1160,33 +1095,24 @@ PuzzleScriptParser.prototype.token = function(stream)
 		{
 			case 'tags':
 				return this.tokenInTagsSection(is_start_of_line, stream)
-				break;
 			case 'objects':
 				return this.tokenInObjectsSection(is_start_of_line, stream, mixedCase)
-				break;
 			case 'legend':
 				return this.tokenInLegendSection(is_start_of_line, stream, mixedCase)
-				break;
 			case 'sounds':
 				return this.tokenInSoundsSection(is_start_of_line, stream)
-				break;
 			case 'collisionlayers':
 				return this.tokenInCollisionLayersSection(is_start_of_line, stream)
-				break;
 			case 'rules':
 				return this.tokenInRulesSection(is_start_of_line, stream, mixedCase, ch)
-				break;
 			case 'winconditions':
 				return this.tokenInWinconditionsSection(is_start_of_line, stream)
-				break;
 			case 'levels':
 				return this.tokenInLevelsSection(is_start_of_line, stream, mixedCase, ch)
-				break;
 			default://if you're in the preamble
 				return this.tokenInPreambleSection(is_start_of_line, stream, mixedCase)
-				break;
 		}
-	};
+	}
 
 	if (stream.eol())
 		return null;
@@ -1195,6 +1121,89 @@ PuzzleScriptParser.prototype.token = function(stream)
 		stream.next();
 		return null;
 	}
+}
+
+
+
+PuzzleScriptParser.prototype.token = function(stream)
+{
+	var mixedCase = stream.string;
+	const token_starts_line = stream.sol();
+	if (token_starts_line)
+	{
+		stream.string = stream.string.toLowerCase();
+		this.tokenIndex = 0;
+		if (this.commentLevel === 0)
+			this.is_start_of_line = true;
+		/*   if (this.lineNumber==undefined) {
+				this.lineNumber=1;
+		}
+		else {
+			this.lineNumber++;
+		}*/
+
+	}
+
+	// ignore white space
+	// stream.eatWhile(/[\p{Separator}]/u);
+	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && stream.match(/[\p{Separator}\)]+/u, true) )
+	{
+		if (token_starts_line && stream.eol()) // a line that contains only white spaces and unmatched ) is considered a blank line
+			return blankLineHandle(this);
+		return null; // don't color spaces and unmatched ) outside messages, and skip them
+	}
+
+	////////////////////////////////
+	// COMMENT PROCESSING BEGINS
+	////////////////////////////////
+
+//	NESTED COMMENTS
+	var ch = stream.peek();
+	if (ch === '(' && this.tokenIndex !== -4) // tokenIndex -4 indicates message command
+	{
+		stream.next();
+		this.commentLevel++;
+	}
+	// else if (ch === ')') // NOTE: this case should normally only happen when commentLevel>0 and would then be dealt with in the loop below, but it is treated here so that we can have unmatched )'s in the text to ease the commenting of full sections.
+	// {
+	// 	stream.next();
+	// 	if (this.commentLevel > 0)
+	// 	{
+	// 		this.commentLevel--;
+	// 		if (this.commentLevel === 0)
+	// 			return 'comment';
+	// 	}
+	// }
+	if (this.commentLevel > 0)
+	{
+		do
+		{
+			stream.match(/[^\(\)]*/, true);
+			
+			if (stream.eol())
+				break;
+
+			ch = stream.peek();
+
+			if (ch === '(')
+			{
+				this.commentLevel++;
+			}
+			else if (ch === ')')
+			{
+				this.commentLevel--;
+			}
+			stream.next();
+		}
+		while (this.commentLevel > 0);
+		return 'comment';
+	}
+
+	// stream.eatWhile(/[ \t]/);
+
+	const result = this.parseActualToken(stream, mixedCase, ch);
+	this.is_start_of_line = false;
+	return result;
 }
 
 // see https://codemirror.net/doc/manual.html#modeapi
