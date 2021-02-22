@@ -77,13 +77,6 @@ function getMaskFromName(state, name)
 }
 
 
-PuzzleScriptParser.prototype.getObjectByName = function (name)
-{
-	const identifier_index = this.identifiers.indexOf(name);
-	return (identifier_index < 0) ? null : this.objects[ this.identifiers_comptype[identifier_index] ];
-}
-
-
 function isSynonym(state, name)
 {
 	const index = state.identifiers.indexOf(name);
@@ -1330,7 +1323,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 			continue;
 
 		const identifier_comptype = state.identifiers_comptype[c];
-		if (identifier_comptype < 0) // not an object nor the synonym of an object
+		if (identifier_comptype != identifier_type_object) // not an object nor the synonym of an object
 		{
 			if (identifier_comptype != identifier_type_aggregate) // not an aggregate or the synonym of an aggregate
 				continue;
@@ -1956,9 +1949,9 @@ function tokenizeWinConditionIdentifier(state, n, lineNumber)
 		return null;
 	}
 	const identifier_comptype = state.identifiers_comptype[identifier_index];
-	if ( (identifier_comptype != identifier_type_property) && (identifier_comptype < 0) ) // not a property, not an object
+	if ( (identifier_comptype != identifier_type_property) && (identifier_comptype != identifier_type_object) ) // not a property, not an object
 	{
-		logError('Invalid object name found in win condition: ' + n + 'is ' + getIdentifierTypeAsText(identifier_comptype) + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
+		logError('Invalid object name found in win condition: ' + n + 'is ' + identifier_type_as_text[identifier_comptype] + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
 		return null;
 	}
 	return state.objectMasks[identifier_index];

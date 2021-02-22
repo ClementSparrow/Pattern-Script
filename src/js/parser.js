@@ -48,19 +48,17 @@ const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rul
 const keyword_array = ['checkpoint','tags','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
 
-const identifier_type_object = 0 // actually, anything >= 0
-const identifier_type_synonym = -1
-const identifier_type_aggregate = -2
-const identifier_type_property = -3
-var identifier_type_as_text = {};
-identifier_type_as_text[identifier_type_synonym] = 'an object synonym';
-identifier_type_as_text[identifier_type_aggregate] = 'an aggregate';
-identifier_type_as_text[identifier_type_property] = 'a property';
 
-function getIdentifierTypeAsText(type)
-{
-	return (type < 0) ? identifier_type_as_text[type] : 'an object';
-}
+
+//	======= TYPES OF IDENTIFIERS =======
+
+var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property' ]
+const [identifier_type_object, identifier_type_synonym, identifier_type_aggregate, identifier_type_property] = identifier_type_as_text.keys();
+
+
+
+
+// ======== PARSER CONSTRUCTORS =========
 
 // NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
 function PuzzleScriptParser()
@@ -226,7 +224,7 @@ PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_c
 		colors: [],
 		spritematrix: []
 	});
-	this.registerNewIdentifier(identifier, original_case, object_id, object_id, new Set([object_id]))
+	this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]))
 }
 
 PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index)
@@ -290,11 +288,10 @@ PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname)
 	if (identifier_index >= 0)
 	{
 		const type = this.identifiers_deftype[identifier_index]
+		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
 		const l = this.identifiers_lineNumbers[identifier_index];
-		const definition_string = (type < 0) ? ' as ' + identifier_type_as_text[type] : '';
 		logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
-		// if (type >= 0)
-			return false;
+		return false;
 	}
 
 	// Warn if the name is a keyword
