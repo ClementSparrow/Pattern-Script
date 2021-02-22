@@ -53,48 +53,6 @@ function generateSpriteMatrix(dat) {
 var debugMode;
 var colorPalette;
 
-function makeMaskFromGlyph(glyph)
-{
-	var glyphmask = new BitVec(STRIDE_OBJ);
-	for (const id of glyph)
-	{
-		if (id >= 0)
-		{
-			glyphmask.ibitset(id);
-		}			
-	}
-	return glyphmask;
-}
-
-function makeMaskFromObjectSet(state, objects)
-{
-	return makeMaskFromGlyph( Array.from( objects, object_pos => state.objects[object_pos].id ) );
-}
-
-function getMaskFromName(state, name)
-{
-	return makeMaskFromObjectSet(state, state.getObjectsAnIdentifierCanBe(name));
-}
-
-
-function isSynonym(state, name)
-{
-	const index = state.identifiers.indexOf(name);
-	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_synonym) );
-}
-
-function isAggregate(state, name)
-{
-	const index = state.identifiers.indexOf(name);
-	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_aggregate) );
-}
-
-function isProperty(state, name)
-{
-	const index = state.identifiers.indexOf(name);
-	return ( (index >= 0) && (state.identifiers_comptype[index] === identifier_type_property) );
-}
-
 
 
 function generateExtraMembers(state)
@@ -276,6 +234,22 @@ Level.prototype.calcBackgroundMask = function(state)
 	cell = new BitVec(STRIDE_OBJ);
 	cell.ibitset(state.backgroundid);
 	return cell;
+}
+
+
+
+
+function makeMaskFromGlyph(glyph)
+{
+	var glyphmask = new BitVec(STRIDE_OBJ);
+	for (const id of glyph)
+	{
+		if (id >= 0)
+		{
+			glyphmask.ibitset(id);
+		}			
+	}
+	return glyphmask;
 }
 
 function levelFromString(state, level)
@@ -1881,6 +1855,14 @@ function generateRigidGroupList(state)
 }
 
 
+
+
+function makeMaskFromObjectSet(state, objects)
+{
+	return makeMaskFromGlyph( Array.from( objects, object_pos => state.objects[object_pos].id ) );
+}
+
+
 /* Computes new attributes for the state: playerMask, layerMasks, objectMask. */
 function generateMasks(state)
 {
@@ -1891,7 +1873,7 @@ function generateMasks(state)
 	}
 	else
 	{
-		state.playerMask = getMaskFromName(state, 'player');
+		state.playerMask = makeMaskFromObjectSet(state, state.getObjectsAnIdentifierCanBe('player'));
 	}
 
 	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
