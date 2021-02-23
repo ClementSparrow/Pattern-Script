@@ -30,7 +30,8 @@ const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","s
 
 const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
 const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}]*/u;
-const reg_name_nospace = /[\p{Letter}\p{Number}_]+/u;
+const reg_tagged_name = /[\p{Letter}\p{Number}_]+(:[\p{Letter}\p{Number}_]+)*/u;
+const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
 const reg_spriterow = /[\.0-9]{5}\p{Separator}*/u;
@@ -52,8 +53,11 @@ const keyword_array = ['checkpoint','tags','objects', 'collisionlayers', 'legend
 
 //	======= TYPES OF IDENTIFIERS =======
 
-var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property' ]
-const [identifier_type_object, identifier_type_synonym, identifier_type_aggregate, identifier_type_property] = identifier_type_as_text.keys();
+var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property', 'a tag', 'a tag class' ];
+const [
+	identifier_type_object, identifier_type_synonym, identifier_type_aggregate, identifier_type_property,
+	identifier_type_tag, identifier_type_tagset
+] = identifier_type_as_text.keys();
 
 
 
@@ -72,7 +76,7 @@ function PuzzleScriptParser()
 	this.identifiers = [] // all the identifiers defined in the game.
 	this.identifiers_deftype = [] // their type when defined
 	this.identifiers_comptype = [] // their type in the end (synonyms have identifier_type_synonym for deftype but the comptype of the thing they are synonym of)
-	this.identifiers_objects = [] // the objects that the identifier can represent, as a set of indexes in this.objects
+	this.identifiers_objects = [] // the objects that the identifier can represent, as a set of indexes in this.objects (or in this.identifiers, for tag sets).
 	this.identifiers_lineNumbers = [] // the number of the line in which the identifier is first defined
 	this.original_case_names = [] // retains the original case of an identifier so that the editor can suggest it as autocompletion.
 
@@ -238,6 +242,82 @@ PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_
 	)
 }
 
+
+function* cartesian_product(head, ...tail)
+{
+	const remainder = tail.length > 0 ? cartesian_product(...tail) : [[]];
+	for (let r of remainder)
+		for (let h of head)
+			yield [h, ...r];
+}
+
+// check that an object name with tags is well formed and returns its parts
+PuzzleScriptParser.prototype.identifierIsWellFormed = function(identifier)
+{
+//	Extract tags
+	const [identifier_base, ...identifier_tags] = identifier.split(':');
+	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) )
+		return [0, identifier_base, []];
+
+//	These tags must be known
+	const tags = identifier_tags.map( tagname => [this.identifiers.indexOf(tagname), tagname] );
+	const unknown_tags = tags.filter( ([tag_index, tn]) => (tag_index < 0) );
+	if ( unknown_tags.length > 0 )
+	{
+		const unknown_tagnames = unknown_tags.map( ([ti, tn]) => tn.toUpperCase() );
+		logError('Unknown tag' + ((unknown_tags.length>1) ? 's ('+ unknown_tagnames.join(', ')+')' : ' '+unknown_tagnames[0]) + ' used in object name.', this.lineNumber);
+		return [-1, identifier_base, tags];
+	}
+
+//	And they must be tag values or tag classes
+	const invalid_tags = tags.filter( ([tag_index, tn]) => !([identifier_type_tag, identifier_type_tagset].includes(this.identifiers_comptype[tag_index])) );
+	if ( invalid_tags.length > 0 )
+	{
+		const invalid_tagnames = invalid_tags.map( ([ti, tn]) => tn.toUpperCase() );
+		logError('Invalid object name containing tags that have not been declared as tag values or tag sets: ' + invalid_tagnames.join(', ') + '.', this.lineNumber);
+		return [-2, identifier_base, tags];
+	}
+	return [0, identifier_base, tags];
+}
+
+// check if an identifier used somewhere is a known object or property
+PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
+{
+//	First, check if we have that name registered
+	var result = this.identifiers.indexOf(identifier);
+	if (result >= 0)
+		return result;
+
+//	If not, it must contain tags
+	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(identifier);
+	if (tags.length === 0 || error_code<0)
+		return error_code - 1;
+
+//	For all possible combinations of tag values in these tag classes, the corresponding object must have been defined (as an object).
+	const tag_values = tags.map( ([tag_index,tag_name]) => this.identifiers_objects[tag_index] );
+	var all_found = true;
+	var objects = new Set();
+	for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
+	{
+		const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.identifiers[i] ).join(':');
+		const new_identifier_index = this.identifiers.indexOf(new_identifier);
+		if (new_identifier_index < 0)
+		{
+			logError('Unknown combination of tags for an object: '+new_identifier.toUpperCase()+'.', this.lineNumber);
+			all_found = false;
+			continue;
+		}
+		objects.add( ...this.identifiers_objects[new_identifier_index] );
+	}
+	if (!all_found)
+		return -4;
+	
+//	Register the identifier as a property to avoid redoing all this again.
+	result = this.identifiers.length;
+	this.registerNewLegend(identifier, identifier, objects, identifier_type_property);
+	return result;
+}
+
 PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, compound_name, compound_type)
 {
 	var ok = true;
@@ -245,7 +325,7 @@ PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, com
 	const forbidden_type = (compound_type == identifier_type_aggregate) ? identifier_type_property : identifier_type_aggregate;
 	for (const identifier of identifiers)
 	{
-		const identifier_index = this.identifiers.indexOf(identifier);
+		const identifier_index = this.checkKnownIdentifier(identifier);
 		if (identifier_index < 0)
 		{
 			ok = false;
@@ -276,23 +356,25 @@ PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, origin
 	this.registerNewIdentifier(new_identifier, original_case, type, type, objects);
 }
 
-PuzzleScriptParser.prototype.identifierExists = function(n)
-{
-	return (this.identifiers.indexOf(n.toLowerCase()) >= 0);
-}
-
+// Function used when declaring objects in the OBJECTS section and synonyms/properties/aggregates in the LEGEND section
 PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname)
 {
 	// Check if this name is already used
 	const identifier_index = this.identifiers.indexOf(candname);
 	if (identifier_index >= 0)
 	{
+		// TODO: it's OK to redefine it if it has been implicitly defined?
 		const type = this.identifiers_deftype[identifier_index]
 		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
 		const l = this.identifiers_lineNumbers[identifier_index];
 		logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
 		return false;
 	}
+
+	// Check that the tags exist
+	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(candname);
+	if ( (error_code < 0) && (identifier_base.length > 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
+		return false;
 
 	// Warn if the name is a keyword
 	if (keyword_array.indexOf(candname) >= 0)
@@ -405,7 +487,11 @@ PuzzleScriptParser.prototype.blankLine = function()
 }
 
 
-PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream, mixedCase)
+
+
+// ------ PREAMBLE -------
+
+PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
 	{
@@ -431,7 +517,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 		{
 			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
 			{
-				stream.string = mixedCase;
+				stream.string = this.mixedCase;
 			}
 			
 			var m2 = stream.match(reg_notcommentstart, false); // TODO: to end of line, not comment (see above)
@@ -464,6 +550,9 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 
 
 
+
+// ------ TAGS -------
+
 PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
@@ -475,8 +564,8 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 	{
 		case 0: // tag class name
 		{
-			const tagclass_name = stream.match(reg_name_nospace, true);
-			if (tagclass_name === null)
+			const tagclass_name_match = stream.match(reg_tagname, true);
+			if (tagclass_name_match === null)
 			{
 				logError('Unrecognised stuff in the tags section.', this.lineNumber)
 				stream.match(reg_notcommentstart, true);
@@ -488,7 +577,21 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				stream.match(reg_notcommentstart, true);
 				return 'ERROR'
 			}
-			// TODO: register the tag class name tagclass_name[0]
+			const tagclass_name = tagclass_name_match[0];
+			const identifier_index = this.identifiers.indexOf(tagclass_name);
+			if (identifier_index >= 0)
+			{
+				const l = this.identifiers_lineNumbers[identifier_index];
+				logError('You are trying to define a new tag class named "'+tagclass_name.toUpperCase()+'", but this name is already used for '+
+					identifier_type_as_text[this.identifiers_comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.', this.lineNumber );
+				this.tokenIndex = 1;
+				return 'ERROR';
+			}
+			else
+			{
+				this.objects_candindex = this.identifiers.length; // reusing objects_candindex instead of defining a new tags_candindex
+				this.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set());
+			}
 			this.tokenIndex = 1;
 			return 'NAME';
 		}
@@ -500,8 +603,41 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 		}
 		case 2:
 		{
-			const tagname = stream.match(reg_name_nospace, true);
-			// todo: register the name
+			const tagname_match = stream.match(reg_tagname, true);
+			if (tagname_match === null)
+			{
+				logError('Invalid character in tag name: "' + stream.peek() + '".', this.lineNumber);
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			const tagname = tagname_match[0];
+			const identifier_index = this.identifiers.indexOf(tagname);
+			if (identifier_index < 0)
+			{
+				// create a new tag
+				const new_identifier_index = this.identifiers.length;
+				this.registerNewIdentifier(tagname, findOriginalCaseName(tagname, this.mixedCase), identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]))
+				this.identifiers_objects[this.objects_candindex].add(new_identifier_index);
+			}
+			else if (identifier_index === this.objects_candindex)
+			{
+				logError('You cannot define a tag class as an element of itself. Il will ignore that.', this.lineNumber);
+				return 'ERROR';
+			}
+			else if ( [identifier_type_tag, identifier_type_tagset].includes(this.identifiers_comptype[identifier_index]) )
+			{
+				// reuse existing tag or tagset
+				this.identifiers_objects[this.objects_candindex].add(...this.identifiers_objects[identifier_index]);
+			}
+			// TODO: should we allow direction keywords to appear here too?
+			// If so, wouldn't it be easier to add them to this.identifiers in the constructor or PuzzleScriptParser with a lineNumber set to -1?
+			else
+			{
+				// error, even if it should never happen because the TAGS section should be the first one.
+				logError('You are trying to define a new tag named "'+tagclass_name.toUpperCase()+'", but this name is already used for '+
+					identifier_type_as_text[this.identifiers_comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.', this.lineNumber);
+				return 'ERROR';
+			}
 			return 'NAME';
 		}
 		default:
@@ -512,6 +648,12 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 		}
 	}
 }
+
+
+
+
+
+// ------ OBJECTS -------
 
 function findOriginalCaseName(candname, mixedCase)
 {
@@ -524,17 +666,17 @@ function findOriginalCaseName(candname, mixedCase)
 	var match = mixedCase.match(nameFinder);
 	if (match != null)
 	{
-		return match[0]; // TODO: we need to use a name index instead of candname
+		return match[0];
 	}
 	return null;
 }
 
 
 
-PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, mixedCase)
+PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 {
 	//LOOK FOR NAME
-	var match_name = is_start_of_line ? stream.match(reg_name, true) : stream.match(/[^\p{Separator}\()]+\p{Separator}*/u, true);
+	var match_name = is_start_of_line ? stream.match(reg_tagged_name, true) : stream.match(/[^\p{Separator}\()]+\p{Separator}*/u, true);
 	if (match_name == null)
 	{
 		stream.match(reg_notcommentstart, true);
@@ -552,18 +694,54 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream, m
 
 	if (is_start_of_line)
 	{
-		this.objects_candindex = this.objects.length
-		this.registerNewObject(candname, findOriginalCaseName(candname, mixedCase))
-	} else {
+		const [identifier_base, ...identifier_tags] = candname.split(':');
+		const tags = identifier_tags.map( tagname => [this.identifiers.indexOf(tagname), tagname] );
+
+	//	For all possible combinations of tag values in these tag classes, define the corresponding object (as an object).
+		const tag_values = tags.map( ([tag_index,tag_name]) => this.identifiers_objects[tag_index] );
+		var objects = new Set();
+		if (tags.length > 0)
+		{
+			for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
+			{
+				const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.identifiers[i] ).join(':');
+				const new_identifier_index = this.identifiers.indexOf(new_identifier);
+				const new_original_case = findOriginalCaseName(identifier_base, this.mixedCase)+':'+tagvalue_identifier_indexes.map(i => this.original_case_names[i] ).join(':');
+				if (new_identifier_index < 0)
+				{
+					objects.add(this.objects.length)
+					this.registerNewObject(new_identifier, new_original_case)
+				}
+				else
+				{
+					objects.add( ...this.identifiers_objects[new_identifier_index] );
+				}			
+			}
+		
+			if (objects.size > 1)
+			{
+			//	Register the identifier as a property to avoid redoing all this again.
+				this.registerNewLegend(candname, findOriginalCaseName(candname, this.mixedCase), objects, identifier_type_property);
+			}
+			this.objects_candindex = this.objects.length - 1 // TODO
+		}
+		else
+		{
+			this.objects_candindex = this.objects.length
+			this.registerNewObject(candname, findOriginalCaseName(candname, this.mixedCase))
+		}
+	}
+	else
+	{
 		//set up alias
-		this.registerNewSynonym(candname, findOriginalCaseName(candname, mixedCase), this.objects[this.objects_candindex].identifier_index)
+		this.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.objects[this.objects_candindex].identifier_index)
 	}
 	this.objects_section = 1;
 	return 'NAME';
 }
 
 
-PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, stream, mixedCase)
+PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line && this.objects_section == 2)
 	{
@@ -581,7 +759,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	case 1: // name of the object or synonym
 		{
 			this.objects_spritematrix = [];
-			return this.tryParseName(is_start_of_line, stream, mixedCase);
+			return this.tryParseName(is_start_of_line, stream);
 		}
 	case 2:
 		{
@@ -617,7 +795,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			if (ch === undefined)
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
-					return this.tryParseName(is_start_of_line, stream, mixedCase);
+					return this.tryParseName(is_start_of_line, stream);
 				logError('Unknown junk in spritematrix for object ' + this.objects[this.objects_candindex].name.toUpperCase() + '.', this.lineNumber);
 				stream.match(reg_notcommentstart, true);
 				return null;
@@ -667,10 +845,16 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 
 
 
+
+
+
+
+// ------ LEGEND -------
+
 // TODO: when defining an abrevation to use in a level, give the possibility to follow it with a (background) color that will be used in the editor to display the levels
 // Or maybe we want to directly use the object's sprite as a background image?
 // Also, it would be nice in the level editor to have the letter displayed on each tile (especially useful for transparent tiles) and activate it with that key.
-PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, stream, mixedCase)
+PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
 	{
@@ -688,11 +872,11 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			if (splits.indexOf(candname, 2) >= 2)
 			{
 				logError("You can't define object " + candname.toUpperCase() + " in terms of itself!", this.lineNumber);
-				ok = false;
+				ok = false; // TODO: we should raise the error only for the identifier that is wrong, not for the whole line.
 			}
 			if ( ! this.checkIfNewIdentifierIsValid(candname) )
 			{
-				stream.match(reg_notcommentstart, true);
+				stream.match(reg_notcommentstart, true); // TODO: we should return an ERROR for this identifier but continue the parsing
 				return 'ERROR';
 			}
 		}
@@ -704,14 +888,14 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			ok = false;
 		} else if (splits.length === 3)
 		{
-			const old_identifier_index = this.identifiers.indexOf(splits[2].toLowerCase());
+			const old_identifier_index = this.checkKnownIdentifier(splits[2].toLowerCase());
 			if (old_identifier_index < 0)
 			{
 				// TODO: log error.
 			}
 			else
 			{
-				this.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], mixedCase), old_identifier_index)
+				this.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], this.mixedCase), old_identifier_index)
 			}
 		} else if (splits.length % 2 === 0) {
 			ok = false;
@@ -742,7 +926,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				{
 					var objects_in_compound;
 					[ok, objects_in_compound] = this.checkCompoundDefinition(new_definition, new_identifier, compound_type)
-					this.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, mixedCase), objects_in_compound, compound_type);
+					this.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, compound_type);
 				} 
 			}
 		}
@@ -774,7 +958,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		}
 	default:
 		{
-			var match_name = stream.match(reg_name, true);
+			var match_name = stream.match(reg_tagged_name, true);
 			if (match_name === null) {
 				logError("Something bad's happening in the LEGEND", this.lineNumber);
 				stream.match(reg_notcommentstart, true);
@@ -784,7 +968,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 			if (this.tokenIndex % 2 === 0)
 				return 'LOGICWORD';
-			if (this.identifierExists(candname) === false) // TODO: why do we need to test that again?
+			if (this.checkKnownIdentifier(candname.toLowerCase())<0) // TODO: why do we need to test that again?
 			{
 				logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.', this.lineNumber);
 				return 'ERROR';
@@ -796,6 +980,9 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 
 
+
+
+// ------ SOUNDS -------
 
 PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, stream)
 {
@@ -834,6 +1021,12 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 
 
 
+
+
+
+
+// ------ COLLISION LAYERS -------
+
 PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
@@ -843,7 +1036,7 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 		this.tokenIndex = 0;
 	}
 
-	const match_name = stream.match(reg_name, true);
+	const match_name = stream.match(reg_tagged_name, true);
 
 	// ignore spaces and commas in the list
 	if (match_name === null)
@@ -865,12 +1058,18 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 
 }
 
-PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, stream, mixedCase, ch)
+
+
+
+
+// ------ RULES -------
+
+PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, stream, ch)
 {
 	if (is_start_of_line)
 	{
 		var rule = reg_notcommentstart.exec(stream.string)[0];
-		this.rules.push([rule, this.lineNumber, mixedCase]);
+		this.rules.push([rule, this.lineNumber, this.mixedCase]);
 		this.tokenIndex = 0;//in rules, records whether bracket has been found or not
 	}
 
@@ -935,6 +1134,11 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 }
 
 
+
+
+
+// ------ WIN CONDITIONS -------
+
 PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_line, stream)
 {
 	if (is_start_of_line)
@@ -974,14 +1178,20 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 }
 
 
-PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, stream, mixedCase, ch)
+
+
+
+
+// ------ LEVELS -------
+
+PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, stream, ch)
 {
 	if (is_start_of_line)
 	{
 		if (stream.match(/\p{Separator}*message\b\p{Separator}*/u, true))
 		{
 			this.tokenIndex = 1;//1/2 = message/level
-			var newdat = ['\n', mixedCase.slice(stream.pos).trim(), this.lineNumber];
+			var newdat = ['\n', this.mixedCase.slice(stream.pos).trim(), this.lineNumber];
 			if (this.levels[this.levels.length - 1].length == 0) {
 				this.levels.splice(this.levels.length - 1, 0, newdat);
 			} else {
@@ -1034,7 +1244,15 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 }
 
 
-PuzzleScriptParser.prototype.parseActualToken = function(stream, mixedCase, ch) // parses something that is not white space or comment
+
+
+
+
+
+
+// ------ DISPATCH TO APPROPRIATE PARSER -------
+
+PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses something that is not white space or comment
 {
 	const is_start_of_line = this.is_start_of_line;
 
@@ -1094,21 +1312,21 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, mixedCase, ch) 
 			case 'tags':
 				return this.tokenInTagsSection(is_start_of_line, stream)
 			case 'objects':
-				return this.tokenInObjectsSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInObjectsSection(is_start_of_line, stream)
 			case 'legend':
-				return this.tokenInLegendSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInLegendSection(is_start_of_line, stream)
 			case 'sounds':
 				return this.tokenInSoundsSection(is_start_of_line, stream)
 			case 'collisionlayers':
 				return this.tokenInCollisionLayersSection(is_start_of_line, stream)
 			case 'rules':
-				return this.tokenInRulesSection(is_start_of_line, stream, mixedCase, ch)
+				return this.tokenInRulesSection(is_start_of_line, stream, ch)
 			case 'winconditions':
 				return this.tokenInWinconditionsSection(is_start_of_line, stream)
 			case 'levels':
-				return this.tokenInLevelsSection(is_start_of_line, stream, mixedCase, ch)
+				return this.tokenInLevelsSection(is_start_of_line, stream, ch)
 			default://if you're in the preamble
-				return this.tokenInPreambleSection(is_start_of_line, stream, mixedCase)
+				return this.tokenInPreambleSection(is_start_of_line, stream)
 		}
 	}
 
@@ -1125,10 +1343,10 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, mixedCase, ch) 
 
 PuzzleScriptParser.prototype.token = function(stream)
 {
-	var mixedCase = stream.string;
 	const token_starts_line = stream.sol();
 	if (token_starts_line)
 	{
+		this.mixedCase = stream.string+'';
 		stream.string = stream.string.toLowerCase();
 		this.tokenIndex = 0;
 		if (this.commentLevel === 0)
@@ -1199,7 +1417,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 
 	// stream.eatWhile(/[ \t]/);
 
-	const result = this.parseActualToken(stream, mixedCase, ch);
+	const result = this.parseActualToken(stream, ch);
 	this.is_start_of_line = false;
 	return result;
 }

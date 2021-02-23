@@ -7,7 +7,7 @@
 /*<!--activeline-->*/
 .cm-s-midday .CodeMirror-activeline-background {background: #E5E5F0 !important;}
 
-.cm-s-midday.CodeMirror {
+.cm-s-midday.CodeMirror, .cm-s-midday-hint {
     background: #F8F8F8;
     color: #2E1200;
 }

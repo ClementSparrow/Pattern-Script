@@ -10,7 +10,7 @@
 })(function(CodeMirror) {
         "use strict";
 
-        var WORD = /[\w$#]+/,
+        var WORD = /[\p{Letter}\p{Number}_:]+/u,
             RANGE = 500;
 
         var PRELUDE_COMMAND_WORDS = [
@@ -88,11 +88,10 @@
                 t2=cur.text;
             }
             var wrapper = document.createElement("span")
-            wrapper.className += " cm-s-midnight ";
+            wrapper.className += " cm-s-midnight cm-s-midday-hint ";
 
-            var h = document.createElement("span")                // Create a <h1> element
-            // h.style.color="white";
-            var t = document.createTextNode(t1);     // Create a text node
+            var h = document.createElement("span"); // Create a <h1> element
+            var t = document.createTextNode(t1);    // Create a text node
 
             h.appendChild(t);   
             wrapper.appendChild(h); 
@@ -125,11 +124,11 @@
 
             var lineToCursor = curLine.substr(0,end);
 
-            while (start && word.test(curLine.charAt(start - 1))) --start;
-            var curWord = start != end && curLine.slice(start, end);
+            while (start && word.test(curLine.charAt(start - 1)))
+                --start;
+            var curWord = (start != end) && curLine.slice(start, end);
 
-            var tok = editor.getTokenAt(cur);
-            var state = tok.state;
+            var state = editor.getTokenAt(cur).state;
 
             // ignore empty word
             if (!curWord || state.commentLevel>0)
@@ -146,13 +145,21 @@
                 // }            
             }
 
+            var addTags = false;
+            var addTagsAfterSemicolon = false;
             var addObjects = false;
             var excludeProperties = false;
             var excludeAggregates = false;
             var candlists = [];
             switch (state.section) {
+                case 'tags':
+                    {
+                        addTags = true;
+                        break;
+                    }
                 case 'objects':
                     {
+                        addTagsAfterSemicolon = true;
                         if (state.objects_section==2){
                             candlists.push(COLOR_WORDS);
                         }
@@ -161,8 +168,10 @@
                 case 'legend':
                     {
                         if (lineToCursor.indexOf('=')>=0){
-                            if ((lineToCursor.trim().split(/\s+/ ).length%2)===1){
+                            const tokindex = lineToCursor.trim().split(/\s+/ );
+                            if ((tokindex.length%2)===1){
                                 addObjects=true;
+                                addTagsAfterSemicolon = true;
                             } else {
                                 candlists.push(LEGEND_LOGICWORDS);                      
                             }
@@ -231,11 +240,42 @@
                         break;
                     }
             }
+
+            var curTag = curWord;
+            var curTagPrefix = '';
+            const semicolon_pos = curWord.lastIndexOf(':');
+            if (addTagsAfterSemicolon && (semicolon_pos >= 0) )
+            {
+                addTags = true;
+                curTagPrefix = curWord.substr(0, semicolon_pos+1);
+                curTag = curWord.substr(semicolon_pos+1);
+            }
+
             // case insensitive
             curWord = curWord.toLowerCase();
+            curTag = curTag.toLowerCase();
 
-            var list = options && options.list || [],
-                seen = {};
+            var list = options && options.list || [];
+            var seen = new Set();
+
+
+            if (addTags)
+            {
+                for (const [identifier_index, w] of state.identifiers.entries())
+                {
+                    if ([identifier_type_tag, identifier_type_tagset].includes(state.identifiers_deftype[identifier_index]))
+                    {
+                        const matchWord = w.toLowerCase();
+                        // if (matchWord === curTag) continue;
+                        if ((!curTag || matchWord.lastIndexOf(curTag, 0) == 0) && !(matchWord in seen))
+                        {
+                            seen.add(matchWord);
+                            const hint = curTagPrefix+state.original_case_names[identifier_index];
+                            list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
+                        }
+                    }
+                }
+            }
 
             //first, add objects if needed
             if (addObjects)
@@ -245,9 +285,10 @@
                     const w = o.name;
                     var matchWord = w.toLowerCase();
                     // if (matchWord === curWord) continue;
-                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
-                        seen[matchWord] = true;
-                        var hint = state.original_case_names[object_index];
+                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen))
+                    {
+                        seen.add(matchWord);
+                        var hint = state.original_case_names[o.identifier_index];
                         list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                     }
                 }
@@ -269,8 +310,8 @@
                     {
                         const matchWord = w.toLowerCase();
                         // if (matchWord === curWord) continue;
-                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
-                            seen[matchWord] = true;
+                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen)) {
+                            seen.add(matchWord);
                             const hint = state.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
@@ -280,8 +321,8 @@
             }
 
             // go through random names
-            for (var i = 0; i < candlists.length; i++) {
-                var candlist = candlists[i]
+            for (const candlist of candlists)
+            {
                 var tag = candlist[0];
                 for (var j = 1; j < candlist.length; j++) {
                     var m = candlist[j];
@@ -296,8 +337,8 @@
                     var matchWord=m;
                     var matchWord = matchWord.toLowerCase();
                     // if (matchWord === curWord) continue;
-                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !Object.prototype.hasOwnProperty.call(seen, matchWord)) {
-                        seen[matchWord] = true;
+                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen)) {
+                        seen.add(matchWord);
 
                         var mytag = tag;
                         if (mytag==="COLOR"){
