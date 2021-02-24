@@ -158,7 +158,7 @@ function generateExtraMembers(state)
 		{
 			if ( o.spritematrix.length !==5 || o.spritematrix.some( line => (line.length !== 5) ) )
 			{
-				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", o.lineNumber);
+				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", state.identifiers_lineNumbers[o.identifier_index]);
 			}
 			o.spritematrix = generateSpriteMatrix(o.spritematrix);
 		}
@@ -2252,14 +2252,18 @@ function generateSoundData(state)
 			}
 			var seed = sound[sound.length-2];
 
-			const target_index = state.identifiers.indexOf(target); // we have already checked in the parser that it is a known identifier
+			const target_index = state.identifiers.indexOf(target);
+			if (target_index<0)
+			{
+				// TODO: we have already checked in the parser that it is a known identifier, but we added the sound anyway.
+				logError('Object "'+ target+'" not found.', lineNumber);
+				continue;
+			}
 			if (state.identifiers_comptype[target_index] == identifier_type_aggregate)
 			{
 				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
+				continue;
 			}
-			// else {
-			// 	logError('Object "'+ target+'" not found.', lineNumber);
-			// }
 
 			var objectMask = state.objectMasks[target_index];
 
@@ -2276,30 +2280,6 @@ function generateSoundData(state)
 				}
 			}
 
-			// // TODO: that does not seem useful, since it does exactly the same thing that what is done to compute propertyDict and synonymDict
-			// var targets = [target_index];
-			// var modified = true;
-			// while (modified)
-			// {
-			// 	modified = false;
-			// 	for (var k=0; k<targets.length; k++)
-			// 	{
-			// 		var t = targets[k];
-			// 		if (state.identifier_comptype[t] == identifier_type_synonym)
-			// 		{
-			// 			targets[k] = state.getObjectsForIdentifier(t).values().map( p => state.objects[p].identifier_index );
-			// 			modified = true;
-			// 		}
-			// 		else if (state.identifier_comptype[t] == identifier_type_property)
-			// 		{
-			// 			modified = true;
-			// 			var props = Array.from(state.getObjectsForIdentifier(t)).map( p => state.objects[p].identifier_index );
-			// 			targets.splice(k, 1);
-			// 			k--;
-			// 			targets.push(...props);
-			// 		}
-			// 	}
-			// }
 			const targets = Array.from( state.getObjectsForIdentifier(target_index), object_index => state.objects[object_index] );
 
 			if (verb === 'move' || verb === 'cantmove')
@@ -2476,7 +2456,7 @@ function loadFile(str)
 
 	delete state.commentLevel;
 	delete state.abbrevNames;
-	delete state.objects_candindex;
+	delete state.current_identifier_index;
 	delete state.objects_section;
 	delete state.objects_spritematrix;
 	delete state.section;

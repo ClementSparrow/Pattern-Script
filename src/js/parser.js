@@ -78,6 +78,7 @@ function PuzzleScriptParser()
 	this.identifiers_comptype = [] // their type in the end (synonyms have identifier_type_synonym for deftype but the comptype of the thing they are synonym of)
 	this.identifiers_objects = [] // the objects that the identifier can represent, as a set of indexes in this.objects (or in this.identifiers, for tag sets).
 	this.identifiers_lineNumbers = [] // the number of the line in which the identifier is first defined
+	this.identifiers_implicit = [] // 0 if the identifier has been explicitely defined, 1 if defined because of the definition of a tag class, 2 if defined because used.
 	this.original_case_names = [] // retains the original case of an identifier so that the editor can suggest it as autocompletion.
 
 	/*
@@ -98,8 +99,7 @@ function PuzzleScriptParser()
 	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
-	// TODO: we should not need objects_candindex, because the candidate is always the last entry in objects and object_names.
-	this.objects_candindex = null // The index of the object currently parsed -> should always be the last index of the array?
+	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed -> should always be the last index of the array?
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
 
@@ -139,8 +139,9 @@ PuzzleScriptParser.prototype.copy = function()
 	result.identifiers = Array.from(this.identifiers)
 	result.identifiers_deftype = Array.from(this.identifiers_deftype)
 	result.identifiers_comptype = Array.from(this.identifiers_comptype)
-	result.identifiers_objects = this.identifiers_objects.map( objects => Array.from(objects) )
+	result.identifiers_objects = this.identifiers_objects.map( objects => new Set(objects) )
 	result.identifiers_lineNumbers = Array.from(this.identifiers_lineNumbers)
+	result.identifiers_implicit = Array.from(this.identifiers_implicit)
 
 	result.commentLevel = this.commentLevel
 	result.section = this.section
@@ -152,7 +153,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.metadata_keys   = this.metadata_keys.concat([])
 	result.metadata_values = this.metadata_values.concat([])
 
-	result.objects_candindex = this.objects_candindex
+	result.current_identifier_index = this.current_identifier_index
 	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
 
@@ -200,6 +201,9 @@ PuzzleScriptParser.prototype.getObjectsAnIdentifierCanBe = function(identifier)
 
 // The functions in this section do not rely on CodeMirror's API
 
+
+//	------- METADATA --------
+
 const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
 const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
 
@@ -209,7 +213,11 @@ PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 	this.metadata_values.push(value)
 }
 
-PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects)
+
+
+//	------- REGISTER IDENTIFIERS --------
+
+PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects, implicit)
 {
 	this.original_case_names.push( original_case );
 	this.identifiers.push( identifier )
@@ -217,9 +225,10 @@ PuzzleScriptParser.prototype.registerNewIdentifier = function(identifier, origin
 	this.identifiers_comptype.push( comptype)
 	this.identifiers_objects.push( objects )
 	this.identifiers_lineNumbers.push( this.lineNumber )
+	this.identifiers_implicit.push( implicit )
 }
 
-PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_case)
+PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_case, implicit)
 {
 	const object_id = this.objects.length
 	this.objects.push( {
@@ -228,7 +237,7 @@ PuzzleScriptParser.prototype.registerNewObject = function(identifier, original_c
 		colors: [],
 		spritematrix: []
 	});
-	this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]))
+	this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), implicit)
 }
 
 PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index)
@@ -238,10 +247,20 @@ PuzzleScriptParser.prototype.registerNewSynonym = function(identifier, original_
 		original_case,
 		identifier_type_synonym,
 		this.identifiers_comptype[old_identifier_index],
-		new Set(this.identifiers_objects[old_identifier_index])
+		new Set(this.identifiers_objects[old_identifier_index]),
+		0
 	)
 }
 
+PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, original_case, objects, type, implicit) // type should be 2 for aggregates and 3 for properties
+{
+	this.registerNewIdentifier(new_identifier, original_case, type, type, objects, implicit);
+}
+
+
+
+
+//	------- CHECK IDENTIFIERS --------
 
 function* cartesian_product(head, ...tail)
 {
@@ -280,6 +299,36 @@ PuzzleScriptParser.prototype.identifierIsWellFormed = function(identifier)
 	return [0, identifier_base, tags];
 }
 
+// Function used when declaring objects in the OBJECTS section and synonyms/properties/aggregates in the LEGEND section
+PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname, accept_implicit)
+{
+	// Check if this name is already used
+	const identifier_index = this.identifiers.indexOf(candname);
+	if (identifier_index >= 0)
+	{
+		// Is it OK to redefine it if it has been implicitly defined earlier?
+		if ( accept_implicit && (this.identifiers_implicit[identifier_index] > 0) )
+			return true;
+		const type = this.identifiers_deftype[identifier_index]
+		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
+		const l = this.identifiers_lineNumbers[identifier_index];
+		logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
+		return false;
+	}
+
+	// Check that the tags exist
+	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(candname);
+	if ( (error_code < 0) && (identifier_base.length > 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
+		return false;
+
+	// Warn if the name is a keyword
+	if (keyword_array.indexOf(candname) >= 0)
+	{
+		logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
+	}
+	return true;
+}
+
 // check if an identifier used somewhere is a known object or property
 PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 {
@@ -307,14 +356,14 @@ PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 			all_found = false;
 			continue;
 		}
-		objects.add( ...this.identifiers_objects[new_identifier_index] );
+		this.identifiers_objects[new_identifier_index].forEach( x => objects.add(x) );
 	}
 	if (!all_found)
 		return -4;
 	
 //	Register the identifier as a property to avoid redoing all this again.
 	result = this.identifiers.length;
-	this.registerNewLegend(identifier, identifier, objects, identifier_type_property);
+	this.registerNewLegend(identifier, identifier, objects, identifier_type_property, 2);
 	return result;
 }
 
@@ -351,38 +400,10 @@ PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, com
 	return [ok, objects];
 }
 
-PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, original_case, objects, type) // type should be 2 for aggregates and 3 for properties
-{
-	this.registerNewIdentifier(new_identifier, original_case, type, type, objects);
-}
 
-// Function used when declaring objects in the OBJECTS section and synonyms/properties/aggregates in the LEGEND section
-PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname)
-{
-	// Check if this name is already used
-	const identifier_index = this.identifiers.indexOf(candname);
-	if (identifier_index >= 0)
-	{
-		// TODO: it's OK to redefine it if it has been implicitly defined?
-		const type = this.identifiers_deftype[identifier_index]
-		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
-		const l = this.identifiers_lineNumbers[identifier_index];
-		logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()), this.lineNumber);
-		return false;
-	}
 
-	// Check that the tags exist
-	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(candname);
-	if ( (error_code < 0) && (identifier_base.length > 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
-		return false;
 
-	// Warn if the name is a keyword
-	if (keyword_array.indexOf(candname) >= 0)
-	{
-		logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!', this.lineNumber);
-	}
-	return true;
-}
+//	------- COLLISION LAYERS --------
 
 // TODO: add a syntax to name collision_layers and use their name as a property?
 // -> Actually, we should check that the identifiers given in a layer form a valid property definition.
@@ -438,6 +459,10 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 	}
 	return identifier_added;
 }
+
+
+
+
 
 
 
@@ -589,8 +614,8 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			}
 			else
 			{
-				this.objects_candindex = this.identifiers.length; // reusing objects_candindex instead of defining a new tags_candindex
-				this.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set());
+				this.current_identifier_index = this.identifiers.length;
+				this.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), 0);
 			}
 			this.tokenIndex = 1;
 			return 'NAME';
@@ -601,7 +626,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			this.tokenIndex = 2;
 			return 'ASSIGNMENT'
 		}
-		case 2:
+		case 2: // tag value names
 		{
 			const tagname_match = stream.match(reg_tagname, true);
 			if (tagname_match === null)
@@ -616,10 +641,10 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			{
 				// create a new tag
 				const new_identifier_index = this.identifiers.length;
-				this.registerNewIdentifier(tagname, findOriginalCaseName(tagname, this.mixedCase), identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]))
-				this.identifiers_objects[this.objects_candindex].add(new_identifier_index);
+				this.registerNewIdentifier(tagname, findOriginalCaseName(tagname, this.mixedCase), identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]), 0)
+				this.identifiers_objects[this.current_identifier_index].add(new_identifier_index);
 			}
-			else if (identifier_index === this.objects_candindex)
+			else if (identifier_index === this.current_identifier_index)
 			{
 				logError('You cannot define a tag class as an element of itself. Il will ignore that.', this.lineNumber);
 				return 'ERROR';
@@ -627,7 +652,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			else if ( [identifier_type_tag, identifier_type_tagset].includes(this.identifiers_comptype[identifier_index]) )
 			{
 				// reuse existing tag or tagset
-				this.identifiers_objects[this.objects_candindex].add(...this.identifiers_objects[identifier_index]);
+				this.identifiers_objects[identifier_index].forEach(x => this.identifiers_objects[this.current_identifier_index].add(x));
 			}
 			// TODO: should we allow direction keywords to appear here too?
 			// If so, wouldn't it be easier to add them to this.identifiers in the constructor or PuzzleScriptParser with a lineNumber set to -1?
@@ -689,7 +714,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 	const candname = match_name[0].trim();
 
-	if ( ! this.checkIfNewIdentifierIsValid(candname) )
+	if ( ! this.checkIfNewIdentifierIsValid(candname, is_start_of_line) )
 		return 'ERROR'
 
 	if (is_start_of_line)
@@ -710,33 +735,37 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 				if (new_identifier_index < 0)
 				{
 					objects.add(this.objects.length)
-					this.registerNewObject(new_identifier, new_original_case)
+					this.registerNewObject(new_identifier, new_original_case, 1)
 				}
 				else
 				{
-					objects.add( ...this.identifiers_objects[new_identifier_index] );
+					this.identifiers_objects[new_identifier_index].forEach( x => objects.add(x) );
 				}			
 			}
 		
 			if (objects.size > 1)
 			{
 			//	Register the identifier as a property to avoid redoing all this again.
-				this.registerNewLegend(candname, findOriginalCaseName(candname, this.mixedCase), objects, identifier_type_property);
+				this.registerNewLegend(candname, findOriginalCaseName(candname, this.mixedCase), objects, identifier_type_property, 0);
 			}
-			this.objects_candindex = this.objects.length - 1 // TODO
+			else if (tag_values.every( ([tag_index,tag_name]) => (this.identifiers_comptype === identifier_type_tag) )) 
+			{
+				// There are only tag values in the tags, no tag class => candname is the name of an atomic object that has not been explicitely defined before
+				this.identifiers_implicit[ this.identifiers.length - 1 ] = 0; // now it's explicitly defined
+			}
+			// else // all tag classes have only one value => synonym, but we don't care (for now?)
 		}
-		else
+		else // no tag in identifier
 		{
-			this.objects_candindex = this.objects.length
-			this.registerNewObject(candname, findOriginalCaseName(candname, this.mixedCase))
+			this.registerNewObject(candname, findOriginalCaseName(candname, this.mixedCase), 0)
 		}
+		this.current_identifier_index = this.identifiers.length - 1 // latest identifier registered
 	}
 	else
 	{
 		//set up alias
-		this.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.objects[this.objects_candindex].identifier_index)
+		this.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.current_identifier_index)
 	}
-	this.objects_section = 1;
 	return 'NAME';
 }
 
@@ -759,6 +788,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	case 1: // name of the object or synonym
 		{
 			this.objects_spritematrix = [];
+			this.objects_section = 1;
 			return this.tryParseName(is_start_of_line, stream);
 		}
 	case 2:
@@ -766,22 +796,30 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			//LOOK FOR COLOR
 			this.tokenIndex = 0;
 
-			var match_color = stream.match(reg_color, true);
+			const match_color = stream.match(reg_color, true);
 			if (match_color == null)
 			{
 				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true);
-				logError('Was looking for color for object ' + this.objects[this.objects_candindex].name.toUpperCase() + ', got "' + str + '" instead.', this.lineNumber);
+				logError('Was looking for color for object ' + this.identifiers[this.current_identifier_index].toUpperCase() + ', got "' + str + '" instead.', this.lineNumber);
 				return 'ERROR';
 			}
 
-			if (this.objects[this.objects_candindex].colors === undefined)
+			const color = match_color[0].trim();
+
+			for (const object_index of this.identifiers_objects[this.current_identifier_index])
 			{
-				this.objects[this.objects_candindex].colors = [match_color[0].trim()];
-			} else {
-				this.objects[this.objects_candindex].colors.push(match_color[0].trim());
+				var o = this.objects[object_index];
+				if ( (o.identifier_index != this.current_identifier_index) && (this.identifiers_implicit[o.identifier_index] === 0) )
+					continue; // do not change the palette of an object that has been explicitely defined unless we're currently explicitly defining it.
+				if (o.colors === undefined)
+				{
+					o.colors = [color];
+				} else {
+					o.colors.push(color);
+				}
 			}
 
-			var candcol = match_color[0].trim().toLowerCase();
+			const candcol = color.toLowerCase();
 			if (candcol in colorPalettes.arnecolors)
 				return 'COLOR COLOR-' + candcol.toUpperCase();
 			if (candcol==="transparent")
@@ -795,8 +833,11 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			if (ch === undefined)
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
+				{
+					this.objects_section = 1;
 					return this.tryParseName(is_start_of_line, stream);
-				logError('Unknown junk in spritematrix for object ' + this.objects[this.objects_candindex].name.toUpperCase() + '.', this.lineNumber);
+				}
+				logError('Unknown junk in spritematrix for object ' + this.identifiers[this.current_identifier_index].toUpperCase() + '.', this.lineNumber);
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
@@ -806,8 +847,6 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				spritematrix.push('');
 			}
 
-			var o = this.objects[this.objects_candindex];
-
 			spritematrix[spritematrix.length - 1] += ch;
 			if (spritematrix[spritematrix.length-1].length>5)
 			{
@@ -815,28 +854,45 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
-			o.spritematrix = this.objects_spritematrix;
 			if (spritematrix.length === 5 && spritematrix[spritematrix.length - 1].length == 5)
 			{
 				this.objects_section = 0;
+				for (const object_index of this.identifiers_objects[this.current_identifier_index])
+				{
+					var o = this.objects[object_index];
+					if ( (o.identifier_index !== this.current_identifier_index) && (this.identifiers_implicit[o.identifier_index] === 0) )
+						continue; // do not change the spritematrix of an object that has been explicitely defined unless we're currently explicitly defining it.
+					o.spritematrix = Array.from(this.objects_spritematrix);
+				}
 			}
 
-			if (ch!=='.')
+		//	Return the correct lexer tag
+			if (ch === '.')
+				return 'COLOR FADECOLOR';
+			const n = parseInt(ch);
+			if (isNaN(n))
 			{
-				var n = parseInt(ch);
+				logError('Invalid character "' + ch + '" in sprite for ' +this.identifiers[this.current_identifier_index].toUpperCase(), this.lineNumber);
+				return 'ERROR';
+			}
+			var token_colors = new Set();
+			var ok = true;
+			for (const object_index of this.identifiers_objects[this.current_identifier_index])
+			{
+				var o = this.objects[object_index];
 				if (n >= o.colors.length)
 				{
-					logError("Trying to access color number "+n+" from the color palette of sprite " +this.objects[this.objects_candindex].name.toUpperCase()+", but there are only "+o.colors.length+" defined in it.", this.lineNumber);
-					return 'ERROR';
+					logError("Trying to access color number "+n+" from the color palette of sprite " +o.name.toUpperCase()+", but there are only "+o.colors.length+" defined in it.", this.lineNumber);
+					ok = false;
 				}
-				if (isNaN(n))
+				else
 				{
-					logError('Invalid character "' + ch + '" in sprite for ' + this.objects[this.objects_candindex].name.toUpperCase(), this.lineNumber);
-					return 'ERROR';
+					token_colors.add( 'COLOR BOLDCOLOR COLOR-' + o.colors[n].toUpperCase() );
 				}
-				return 'COLOR BOLDCOLOR COLOR-' + o.colors[n].toUpperCase();
 			}
-			return 'COLOR FADECOLOR';
+			if (!ok)
+				return 'ERROR';
+			return (token_colors.size == 1) ? token_colors.values().next().value : null;
 		}
 	default:
 		window.console.logError("EEK shouldn't get here.");
@@ -858,7 +914,6 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 {
 	if (is_start_of_line)
 	{
-
 		//step 1 : verify format
 		var longer = stream.string.replace('=', ' = ');
 		longer = reg_notcommentstart.exec(longer)[0];
@@ -874,7 +929,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				logError("You can't define object " + candname.toUpperCase() + " in terms of itself!", this.lineNumber);
 				ok = false; // TODO: we should raise the error only for the identifier that is wrong, not for the whole line.
 			}
-			if ( ! this.checkIfNewIdentifierIsValid(candname) )
+			if ( ! this.checkIfNewIdentifierIsValid(candname, false) )
 			{
 				stream.match(reg_notcommentstart, true); // TODO: we should return an ERROR for this identifier but continue the parsing
 				return 'ERROR';
@@ -926,7 +981,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				{
 					var objects_in_compound;
 					[ok, objects_in_compound] = this.checkCompoundDefinition(new_definition, new_identifier, compound_type)
-					this.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, compound_type);
+					this.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, compound_type, 0);
 				} 
 			}
 		}
@@ -1005,10 +1060,10 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 		this.tokenIndex++;
 		return 'SOUND';
 	} 
-	candname = stream.match(/[^\[\|\]\p{Separator}]*/u, true);
+	candname = stream.match(/[^\[\|\]\p{Separator}]+/u, true);
 	if (candname!== null)
 	{
-		var m = candname[0].trim();
+		const m = candname[0].trim();
 		if (this.identifiers.indexOf(m) >= 0)
 			return 'NAME';
 	}
