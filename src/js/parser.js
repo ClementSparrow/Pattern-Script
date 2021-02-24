@@ -746,20 +746,25 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 			if (objects.size > 1)
 			{
 			//	Register the identifier as a property to avoid redoing all this again.
+				this.current_identifier_index = this.identifiers.length
 				this.registerNewLegend(candname, findOriginalCaseName(candname, this.mixedCase), objects, identifier_type_property, 0);
 			}
-			else if (tag_values.every( ([tag_index,tag_name]) => (this.identifiers_comptype === identifier_type_tag) )) 
+			else if (tags.every( ([tag_index,tag_name]) => (this.identifiers_comptype[tag_index] === identifier_type_tag) )) 
 			{
 				// There are only tag values in the tags, no tag class => candname is the name of an atomic object that has not been explicitely defined before
-				this.identifiers_implicit[ this.identifiers.length - 1 ] = 0; // now it's explicitly defined
+				this.current_identifier_index = this.identifiers.indexOf(candname)
+				this.identifiers_implicit[this.current_identifier_index] = 0; // now it's explicitly defined
 			}
-			// else // all tag classes have only one value => synonym, but we don't care (for now?)
+			else // all tag classes have only one value => synonym, but we don't care (for now?)
+			{
+				this.current_identifier_index = this.identifiers.length - 1 // latest identifier registered
+			}
 		}
 		else // no tag in identifier
 		{
+			this.current_identifier_index = this.identifiers.length
 			this.registerNewObject(candname, findOriginalCaseName(candname, this.mixedCase), 0)
 		}
-		this.current_identifier_index = this.identifiers.length - 1 // latest identifier registered
 	}
 	else
 	{
@@ -811,7 +816,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				var o = this.objects[object_index];
 				if ( (o.identifier_index != this.current_identifier_index) && (this.identifiers_implicit[o.identifier_index] === 0) )
 					continue; // do not change the palette of an object that has been explicitely defined unless we're currently explicitly defining it.
-				if (o.colors === undefined)
+				if ( is_start_of_line || (o.colors === undefined) )
 				{
 					o.colors = [color];
 				} else {
