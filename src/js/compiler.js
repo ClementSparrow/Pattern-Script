@@ -124,7 +124,7 @@ function generateExtraMembers(state)
 	for (var o of state.objects)
 	{
 		if (o.colors.length>10) {
-			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", o.lineNumber+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
+			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", state.identifiers_lineNumbers[o.identifier_index]+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
 		}
 		for (var i=0; i<o.colors.length; i++)
 		{
@@ -134,7 +134,7 @@ function generateExtraMembers(state)
 				c = colorToHex(colorPalette,c);
 				o.colors[i] = c;
 			} else {
-				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', o.lineNumber + 1);
+				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', state.identifiers_lineNumbers[o.identifier_index] + 1);
 				o.colors[i] = '#ff00ff'; // magenta error color
 			}
 		}
@@ -147,7 +147,7 @@ function generateExtraMembers(state)
 		if (o.colors.length == 0)
 		{
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
-			logError('color not specified for object "' + o.name +'".', o.lineNumber);
+			logError('color not specified for object "' + o.name +'".', state.identifiers_lineNumbers[o.identifier_index]);
 			o.colors=["#ff00ff"];
 		}
 		if (o.spritematrix.length === 0)
@@ -1751,7 +1751,10 @@ function arrangeRulesByGroupNumberAux(target)
 			var ruleGroup = target[groupNumber];
 			ruleGroupRandomnessTest(ruleGroup);
 			ruleGroupDiscardOverlappingTest(ruleGroup);
-			result.push(ruleGroup);
+			if (ruleGroup.length > 0)
+			{
+				result.push(ruleGroup);
+			}
 		}
 	}
 	return result;
@@ -1897,7 +1900,7 @@ function checkObjectsAreLayered(state)
 	{
 		if (o.layer === undefined)
 		{
-			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', o.lineNumber);
+			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', state.identifiers_lineNumbers[o.identifier_index]);
 		}
 	}
 }
