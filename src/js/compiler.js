@@ -1924,7 +1924,7 @@ function twiddleMetaData(state)
 
 function tokenizeWinConditionIdentifier(state, n, lineNumber)
 {
-	const identifier_index = state.identifiers.indexOf(n);
+	const identifier_index = state.checkKnownIdentifier(n);
 	if (identifier_index < 0)
 	{
 		logError('Unknown object name "' + n +'" found in win condition.', lineNumber);
@@ -2252,7 +2252,7 @@ function generateSoundData(state)
 			}
 			var seed = sound[sound.length-2];
 
-			const target_index = state.identifiers.indexOf(target);
+			const target_index = state.checkKnownIdentifier(target);
 			if (target_index<0)
 			{
 				// TODO: we have already checked in the parser that it is a known identifier, but we added the sound anyway.
@@ -2262,6 +2262,11 @@ function generateSoundData(state)
 			if (state.identifiers_comptype[target_index] == identifier_type_aggregate)
 			{
 				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
+				continue;
+			}
+			if ( [identifier_type_tag, identifier_type_tagset].includes(state.identifiers_comptype[target_index]) )
+			{
+				logError('cannot assign sound events to tags, only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
 				continue;
 			}
 
