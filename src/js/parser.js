@@ -363,7 +363,8 @@ PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 	
 //	Register the identifier as a property to avoid redoing all this again.
 	result = this.identifiers.length;
-	this.registerNewLegend(identifier, identifier, objects, identifier_type_property, 2);
+	const new_original_case = identifier_base+':'+tags.map( ([tag_index,tag_name]) => this.original_case_names[tag_index] ).join(':'); // TODO: get original case of identifier_base.
+	this.registerNewLegend(identifier, new_original_case, objects, identifier_type_property, 2);
 	return result;
 }
 
@@ -1165,7 +1166,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.match(/\p{Separator}*/u, true);
 		return 'DIRECTION';
 	}
-	if (this.identifiers.indexOf(m) >= 0)
+	if (this.checkKnownIdentifier(m) >= 0)
 	{
 		if (is_start_of_line)
 		{

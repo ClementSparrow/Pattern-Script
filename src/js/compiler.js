@@ -579,14 +579,14 @@ function parseRuleString(rule, state, curRules)
 			} else {
 				rhs = true;
 			}
-		} else if (state.identifiers.indexOf(token) >= 0) {
+		} else if (state.checkKnownIdentifier(token) >= 0) {
 			if (!incellrow) {
 				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 			}
 			else if (curobjcond.length == 0) {
 				curobjcond.push('');
 			}
-			curobjcond.push(state.identifiers.indexOf(token)); // TODO: we should not search it twice...
+			curobjcond.push(state.checkKnownIdentifier(token)); // TODO: we should not search it twice...
 			should_close_objcond = true;
 		} else if (token === '...') {
 			if (!incellrow) {
