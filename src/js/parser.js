@@ -190,7 +190,7 @@ PuzzleScriptParser.prototype.getObjectsForIdentifier = function(identifier_index
 
 PuzzleScriptParser.prototype.getObjectsAnIdentifierCanBe = function(identifier)
 {
-	const identifier_index = this.identifiers.indexOf(identifier);
+	const identifier_index = this.checkKnownIdentifier(identifier);
 	return this.getObjectsForIdentifier(identifier_index);
 }
 
@@ -346,7 +346,8 @@ PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname, ac
 	return true;
 }
 
-// check if an identifier used somewhere is a known object or property
+// check if an identifier used somewhere is a known object or property.
+// This function should be used instead of this.identifiers.indexOf(identifier) whenever there is a possibility that identifier contains tags.
 PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 {
 //	First, check if we have that name registered
@@ -411,7 +412,7 @@ PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, com
 			}
 			else
 			{
-				this.getObjectsAnIdentifierCanBe(identifier).forEach( o => objects.add(o) )
+				this.getObjectsForIdentifier(identifier_index).forEach( o => objects.add(o) )
 			}
 		}
 	}
@@ -450,7 +451,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 	
 	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
 	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
-	const cand_index = this.identifiers.indexOf(candname);
+	const cand_index = this.checkKnownIdentifier(candname);
 	if (cand_index < 0)
 	{
 		logWarning('You are trying to add an object named '+candname.toUpperCase()+' in a collision layer, but no object with that name has been defined.', this.lineNumber);
@@ -1091,7 +1092,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (candname!== null)
 	{
 		const m = candname[0].trim();
-		if (this.identifiers.indexOf(m) >= 0)
+		if (this.checkKnownIdentifier(m) >= 0)
 			return 'NAME';
 	}
 
@@ -1250,7 +1251,7 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 			return (candword != 'on') ? 'ERROR' : 'LOGICWORD';
 		case 1: // expect an identifier
 		case 3:
-			if (this.identifiers.indexOf(candword) === -1)
+			if (this.checkKnownIdentifier(candword) === -1)
 			{
 				logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.', this.lineNumber);
 				return 'ERROR';
