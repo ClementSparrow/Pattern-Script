@@ -260,6 +260,23 @@ PuzzleScriptParser.prototype.registerNewLegend = function(new_identifier, origin
 
 
 
+//	------- CHECK TAGS ----------
+
+PuzzleScriptParser.prototype.checkIfNewTagNameIsValid = function(name)
+{
+	if ( ['background', 'player'].includes(name) )
+	{
+		logError('Cannot use '+name.toUpperCase()+' as a tag name or tag class name: it has to be an object.', this.lineNumber);
+		return false;
+	}
+	if ( keyword_array.indexOf(name) >= 0) // TODO: but we want some keywords such as the direction to exist as predefined tags.
+	{
+		logError('Cannot use the keyword '+name.toUpperCase()+' as a tag name or tag class name.', this.lineNumber);
+		return false;
+	}
+	return true;
+}
+
 //	------- CHECK IDENTIFIERS --------
 
 function* cartesian_product(head, ...tail)
@@ -604,6 +621,11 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				return 'ERROR'
 			}
 			const tagclass_name = tagclass_name_match[0];
+			if ( ! this.checkIfNewTagNameIsValid(tagclass_name) )
+			{
+				this.tokenIndex = 1;
+				return 'ERROR';
+			}
 			const identifier_index = this.identifiers.indexOf(tagclass_name);
 			if (identifier_index >= 0)
 			{
@@ -613,11 +635,8 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				this.tokenIndex = 1;
 				return 'ERROR';
 			}
-			else
-			{
-				this.current_identifier_index = this.identifiers.length;
-				this.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), 0);
-			}
+			this.current_identifier_index = this.identifiers.length;
+			this.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), 0);
 			this.tokenIndex = 1;
 			return 'NAME';
 		}
@@ -637,6 +656,8 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				return 'ERROR'
 			}
 			const tagname = tagname_match[0];
+			if ( ! this.checkIfNewTagNameIsValid(tagname) )
+				return 'ERROR';
 			const identifier_index = this.identifiers.indexOf(tagname);
 			if (identifier_index < 0)
 			{
