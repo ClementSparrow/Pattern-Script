@@ -23,9 +23,9 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
-const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels'];
-const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'] ];
-const section_optional = [ true, false, true, true, false, false, true, false ];
+const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
+const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'], ['tags', 'legend'] ];
+const section_optional = [ true, false, true, true, false, false, true, false, true ];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
 const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
@@ -35,7 +35,7 @@ const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
 const reg_spriterow = /[\.0-9]{5}\p{Separator}*/u;
-const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
+const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
@@ -53,10 +53,11 @@ const keyword_array = ['checkpoint','tags','objects', 'collisionlayers', 'legend
 
 //	======= TYPES OF IDENTIFIERS =======
 
-var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property', 'a tag', 'a tag class' ];
+var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property', 'a tag', 'a tag class', 'a mapping' ];
 const [
 	identifier_type_object, identifier_type_synonym, identifier_type_aggregate, identifier_type_property,
-	identifier_type_tag, identifier_type_tagset
+	identifier_type_tag, identifier_type_tagset,
+	identifier_type_mapping
 ] = identifier_type_as_text.keys();
 
 
@@ -1065,6 +1066,139 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 
 
+// ------- MAPPINGS -------
+
+PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, stream)
+{
+	if (is_start_of_line)
+	{
+		this.tokenIndex = 0;
+	}
+
+	switch (this.tokenIndex)
+	{
+		case 0: // set of values the function opperates on: tag class or object property
+		{
+			const fromset_name_match = stream.match(reg_tagged_name, true);
+			if (fromset_name_match === null)
+			{
+				logError('Unrecognised stuff in the mappings section.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
+			{
+				logError('I was expecting an "=" sign after the name of the mapping\'s start set.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			this.tokenIndex = 1;
+			const fromset_name = fromset_name_match[0];
+			const identifier_index = this.checkKnownIdentifier(fromset_name);
+			if (identifier_index < 0)
+			{
+				logError('Unknown identifier for a mapping\'s start set: '+fromset_name.toUpperCase()+'.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR';
+			}
+			if ( ! [identifier_type_tagset, identifier_type_property].includes(this.identifiers_comptype[identifier_index]) )
+			{
+				logError('Cannot create a mapping with a start set defined as '+identifier_type_as_text[this.identifiers_comptype[identifier_index]]+': only tag classes and object properties are accepted here.', this.lineNumber);
+				stream.match(reg_notcommentstart, true);
+			}
+			this.current_identifier_index = identifier_index;
+			return 'NAME';
+		}
+		case 1: // equal sign
+		case 4:
+		{
+			stream.next();
+			this.tokenIndex += 1;
+			return 'ASSIGNMENT'
+		}
+		case 2: // elements or the start set
+		{
+			if (stream.match(/->/, true))
+			{
+				this.tokenIndex = 3;
+				return 'ARROW';
+			}
+			const fromvalue_match = stream.match(reg_tagged_name, true);
+			if (fromvalue_match === null)
+			{
+				logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			const fromvalue_name = fromvalue_match[0];
+			const identifier_index = this.checkKnownIdentifier(fromvalue_name);
+			if (identifier_index < 0)
+				return 'ERROR'
+			if ( ! this.identifiers_objects[this.current_identifier_index].has(identifier_index) )
+			{
+				logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers[this.current_identifier_index].toUpperCase()+'.', this.lineNumber)
+				return 'ERROR';
+			}
+			// TODO: register the values in order and check that the whole set of values in the start set is covered.
+			return 'NAME';
+
+		}
+		case 3: // name of the function
+		{
+			const toset_name_match = stream.match(reg_tagged_name, true);
+			if (toset_name_match === null)
+			{
+				logError('Unrecognised stuff in the mappings section while reading the mapping\'s name.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
+			{
+				logError('I was expecting an "=" sign after the name of the mapping.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			this.tokenIndex = 4;
+			const toset_name = toset_name_match[0];
+			if ( (this.identifiers_comptype[this.current_identifier_index] === identifier_type_property) ? ! this.checkIfNewIdentifierIsValid(toset_name) : ! this.checkIfNewTagNameIsValid(toset_name) )
+			{
+				logError('Invalid mapping name: '+toset_name.toUpperCase()+'.', this.lineNumber)
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR';
+			}
+			const fromset_identifier_index = this.current_identifier_index;
+			this.current_identifier_index = this.identifiers.length;
+			// TODO: register the function type and the start set
+			this.registerNewIdentifier(toset_name, findOriginalCaseName(toset_name, this.mixedCase), identifier_type_mapping, identifier_type_mapping, new Set(), 0);
+			return 'NAME';
+		}
+		case 5: // elements of the end set
+		{
+			const tovalue_match = stream.match(reg_tagged_name, true);
+			if (tovalue_match === null)
+			{
+				logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
+				stream.match(reg_notcommentstart, true);
+				return 'ERROR'
+			}
+			const tovalue_name = tovalue_match[0];
+			const identifier_index = this.checkKnownIdentifier(tovalue_name);
+			if (identifier_index < 0)
+				return 'ERROR'
+			// TODO: check that the identifier is in the start set
+			// TODO: register the mapping for this value
+			return 'NAME';
+		}
+		default:
+		{
+			logError('I reached a part of the code I should never have reached. Please submit a bug repport to ClementSparrow!')
+			stream.match(reg_notcommentstart, true);
+			return null;
+		}
+	}
+}
+
+
 // ------ SOUNDS -------
 
 PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, stream)
@@ -1190,11 +1324,11 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 	}
 	if (this.checkKnownIdentifier(m) >= 0)
 	{
-		if (is_start_of_line)
-		{
-			logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
-			return 'ERROR';
-		}
+		// if (is_start_of_line)
+		// {
+		// 	logError('Identifiers cannot appear outside of square brackets in rules, only directions can.', this.lineNumber);
+		// 	return 'ERROR';
+		// }
 		stream.match(/\p{Separator}*/u, true);
 		return 'NAME';
 	}
@@ -1352,26 +1486,26 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 			this.section = stream.string.slice(0, stream.pos).trim();
 			const sectionIndex = sectionNames.indexOf(this.section);
 
-		//	Check mandatory sections that should have been seen before this one.
-			const failed_constraints = section_constraints[sectionIndex].filter(
-				sec_name => ( this.visitedSections.indexOf(sec_name) < 0 && !section_optional[sectionNames.indexOf(sec_name)] )
-			);
-			for (const failed_constraint of failed_constraints)
-			{
-				logError('The mandatory section ' + failed_constraint.toUpperCase() + ' should be provided before section ' + this.section.toUpperCase() + '.', this.lineNumber);
-			}
+		// //	Check mandatory sections that should have been seen before this one.
+		// 	const failed_constraints = section_constraints[sectionIndex].filter(
+		// 		sec_name => ( this.visitedSections.indexOf(sec_name) < 0 && !section_optional[sectionNames.indexOf(sec_name)] )
+		// 	);
+		// 	for (const failed_constraint of failed_constraints)
+		// 	{
+		// 		logError('The mandatory section ' + failed_constraint.toUpperCase() + ' should be provided before section ' + this.section.toUpperCase() + '.', this.lineNumber);
+		// 	}
 
-		//	Check that this section is not provided after a section it provides information for.
-			if (section_optional[sectionIndex])
-			{
-				const failed_constraints = [...section_constraints.entries()].filter(
-					([sec_index, sec_names]) => ( (sec_names.indexOf(this.section) >= 0) && (this.visitedSections.indexOf(sectionNames[sec_index]) >= 0) )
-				);
-				for (const [missing_section_index, missing_section_constraints] of failed_constraints)
-				{
-					logError('Optional section '+this.section.toUpperCase()+' provides information for section '+sectionNames[missing_section_index].toUpperCase()+' and should therefore be provided before it, not after.', this.lineNumber);
-				}
-			}
+		// //	Check that this section is not provided after a section it provides information for.
+		// 	if (section_optional[sectionIndex])
+		// 	{
+		// 		const failed_constraints = [...section_constraints.entries()].filter(
+		// 			([sec_index, sec_names]) => ( (sec_names.indexOf(this.section) >= 0) && (this.visitedSections.indexOf(sectionNames[sec_index]) >= 0) )
+		// 		);
+		// 		for (const [missing_section_index, missing_section_constraints] of failed_constraints)
+		// 		{
+		// 			logError('Optional section '+this.section.toUpperCase()+' provides information for section '+sectionNames[missing_section_index].toUpperCase()+' and should therefore be provided before it, not after.', this.lineNumber);
+		// 		}
+		// 	}
 
 			this.visitedSections.push(this.section);
 
@@ -1398,6 +1532,8 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 				return this.tokenInObjectsSection(is_start_of_line, stream)
 			case 'legend':
 				return this.tokenInLegendSection(is_start_of_line, stream)
+			case 'mappings':
+				return this.tokenInMappingSection(is_start_of_line, stream)
 			case 'sounds':
 				return this.tokenInSoundsSection(is_start_of_line, stream)
 			case 'collisionlayers':
