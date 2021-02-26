@@ -389,9 +389,11 @@ function findIndexAfterToken(str, tokens, tokenIndex)
 //read initial directions
 // syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
 // (I use the ! here to denote something that is recognized by the parser but wrong)
-function parseRuleDirections(tokens, lineNumber)
+function parseRuleDirections(state, tokens, lineNumber)
 {
 	var directions = [];
+	var tag_classes = new Set();
+	var properties = new Set();
 	var late = false;
 	var rigid = false;
 	var randomRule = false;
@@ -428,17 +430,45 @@ function parseRuleDirections(tokens, lineNumber)
 		else if (token == '[')
 		{
 			if (directions.length == 0) {
-				directions = directions.concat(directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
+				directions.push(...directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
 			}
-			return [ directions, late, rigid, randomRule, has_plus, i ];
+			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
 
-		} else {
+		}
+		else if (state.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
+		{
+			const identifier_index = state.identifiers.indexOf(token);
+			const identifier_type =  state.identifiers_comptype[identifier_index];
+			switch (identifier_type)
+			{
+				case identifier_type_tagset:
+					if (tag_classes.has(identifier_index))
+					{
+						logWarning('Dupplicate specification of tag class '+token.toUpperCase()+' as rule parameter.', lineNumber);
+						break;
+					}
+					tag_classes.add(identifier_index);
+					break;
+				case identifier_type_property:
+					if (properties.has(identifier_index))
+					{
+						logWarning('Dupplicate specification of property '+token.toUpperCase()+' as rule parameter.', lineNumber);
+						break;
+					}
+					properties.add(identifier_index);
+					break;
+				default:
+					logError('Cannot use '+token.toUpperCase()+' as a rule parameter: it is defined as '+identifier_type_as_text(identifier_type)+', but only tag classes and object properties can be used as rule parameters.', lineNumber);
+			}
+		}
+		else
+		{
 			logError("The start of a rule must consist of some number of directions (possibly 0), before the first bracket, specifying in what directions to look (with no direction specified, it applies in all four directions).  It seems you've just entered \"" + token.toUpperCase() + '\".', lineNumber);
 		}
 	}
 
 	// We would get there by reading the whole line without encountering a [, but we probably don't need to deal with it
-	return [ directions, late, rigid, randomRule, has_plus, tokens.length ];
+	return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, tokens.length ];
 
 }
 
@@ -493,7 +523,7 @@ function parseRuleString(rule, state, curRules)
 		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
 	}
 
-	const [ directions, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(tokens, lineNumber);
+	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state, tokens, lineNumber);
 
 	var groupNumber = lineNumber;
 	if (has_plus)
@@ -631,6 +661,7 @@ function parseRuleString(rule, state, curRules)
 			// close the current object condition / ellipsis
 			if (curobjcond.length == 1)
 			{
+				// TODO: this error message should not be triggered when something was provided but was not a valid object name.
 				logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
 			}
 			else if (curobjcond.length == 2)
@@ -705,6 +736,8 @@ function parseRuleString(rule, state, curRules)
 		lineNumber: lineNumber,
 		groupNumber: groupNumber,
 		directions: directions,
+		tag_classes: tag_classes,
+		parameter_properties: properties,
 		late: late,
 		rigid: rigid,
 		randomRule: randomRule,
@@ -751,6 +784,50 @@ function deepCloneRule(rule)
 	};
 }
 
+function* generateDirections(directions)
+{
+	for (const dirword of directions)
+	{
+		for (const dir of (dirword in directionaggregates) ? directionaggregates[dirword] : [dirword])
+		{
+			yield dir;
+		}
+	}
+}
+
+function* generateRulesExpansions(state, rules)
+{
+	for (const rule of rules)
+	{
+		const directions = new Set( generateDirections(rule.directions) );
+		const parameter_sets = Array.from(
+			[...rule.tag_classes, ...rule.parameter_properties],
+			identifier_index => Array.from(state.identifiers_objects[identifier_index], object_index => [identifier_index, object_index] )
+		);
+		for (const parameters of cartesian_product(directions, ...parameter_sets))
+		{
+			yield [rule, rule.tag_classes.size, ...parameters];
+		}
+	}
+}
+
+function expandRule(state, original_rule, nbtags, dir, ...parameters)
+{
+	var rule = deepCloneRule(original_rule);
+
+	rule.direction = dir; // we have rule.directions (plural) before this loop, but rule.direction (singular) after the loop.
+	rule.tag_classes = parameters.slice(1, nbtags+1);
+	rule.parameter_properties = parameters.slice(nbtags+1);
+
+//	Remove relative directions
+	convertRelativeDirsToAbsolute(rule);
+//	Optional: replace up/left rules with their down/right equivalents
+	rewriteUpLeftRules(rule);
+//	Replace aggregates and synonyms with what they mean
+	atomizeAggregatesAndSynonyms(state, rule);
+	return rule;
+}
+
 function rulesToArray(state)
 {
 	var oldrules = state.rules;
@@ -772,40 +849,7 @@ function rulesToArray(state)
 	state.loops = loops;
 
 	//now expand out rules with multiple directions
-	var rules2 = [];
-	for (const rule of rules)
-	{
-		for (const dir of rule.directions) // we have rule.directions (plural) before this loop, but rule.direction (singular) after the loop.
-		{
-			// TODO: if we have a rule starting with "horizontal right", we will generate two rules for "right" - hence the need to remove duplicate rules later.
-			// A better method would be to first determinate the set of absolute directions corresponding to rule.directions and then run the forEach loop on those.
-			if (dir in directionaggregates && rule.is_directional)
-			{
-				directionaggregates[dir].forEach(
-					function(dir2)
-					{
-						var modifiedrule = deepCloneRule(rule);
-						modifiedrule.direction = dir2;
-						rules2.push(modifiedrule);
-					}
-				);
-			} else {
-				var modifiedrule = deepCloneRule(rule); // TODO: do we really need to deepclone it, there?
-				modifiedrule.direction = dir;
-				rules2.push(modifiedrule);
-			}
-		}
-	}
-
-	for (const rule of rules2)
-	{
-		//remove relative directions
-		convertRelativeDirsToAbsolute(rule);
-		//optional: replace up/left rules with their down/right equivalents
-		rewriteUpLeftRules(rule);
-		//replace aggregates and synonyms with what they mean
-		atomizeAggregatesAndSynonyms(state, rule);
-	}
+	const rules2 = Array.from( generateRulesExpansions(state, rules), rule_expansion => expandRule(state, ...rule_expansion) );
 
 	var rules3 = [];
 	//expand property rules
