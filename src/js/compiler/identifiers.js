@@ -77,6 +77,7 @@ Identifiers.prototype.getObjectsAnIdentifierCanBe = function(identifier, log)
 
 Identifiers.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects, implicit, lineNumber)
 {
+	const result = this.names.length;
 	this.original_case_names.push( original_case );
 	this.names.push( identifier )
 	this.deftype.push( deftype )
@@ -84,6 +85,7 @@ Identifiers.prototype.registerNewIdentifier = function(identifier, original_case
 	this.object_set.push( objects )
 	this.lineNumbers.push( lineNumber )
 	this.implicit.push( implicit )
+	return result;
 }
 
 Identifiers.prototype.registerNewObject = function(identifier, original_case, implicit, lineNumber)
@@ -95,12 +97,12 @@ Identifiers.prototype.registerNewObject = function(identifier, original_case, im
 		colors: [],
 		spritematrix: []
 	});
-	this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), implicit, lineNumber)
+	return this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), implicit, lineNumber)
 }
 
 Identifiers.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index, lineNumber)
 {
-	this.registerNewIdentifier(
+	return this.registerNewIdentifier(
 		identifier,
 		original_case,
 		identifier_type_synonym,
@@ -108,12 +110,12 @@ Identifiers.prototype.registerNewSynonym = function(identifier, original_case, o
 		new Set(this.object_set[old_identifier_index]),
 		0,
 		lineNumber
-	)
+	);
 }
 
 Identifiers.prototype.registerNewLegend = function(new_identifier, original_case, objects, type, implicit, lineNumber) // type should be 2 for aggregates and 3 for properties
 {
-	this.registerNewIdentifier(new_identifier, original_case, type, type, objects, implicit, lineNumber);
+	return this.registerNewIdentifier(new_identifier, original_case, type, type, objects, implicit, lineNumber);
 }
 
 
@@ -416,4 +418,61 @@ Identifiers.prototype.checkCompoundDefinition = function(identifiers, compound_n
 		}
 	}
 	return [ok, objects];
+}
+
+
+
+
+
+
+
+//	======== REGISTER AND CHECK =======
+
+// returns the new identifier if it was OK, -1 otherwise
+Identifiers.prototype.checkAndRegisterNewObjectIdentifier = function(candname, original_case, accept_implicit, log)
+{
+	if ( ! this.checkIfNewIdentifierIsValid(candname, accept_implicit, log) )
+		return -1;
+
+	const [identifier_base, ...identifier_tags] = candname.split(':');
+
+	if (identifier_tags.length == 0) // no tag in identifier
+		return this.registerNewObject(candname, original_case, 0, log.lineNumber)
+
+	const tags = identifier_tags.map( tagname => [this.names.indexOf(tagname), tagname] );
+	const tag_values = tags.map( ([tag_index,tag_name]) => this.object_set[tag_index] );
+	const identifier_base_original_case = original_case.split(':')[0]
+
+//	For all possible combinations of tag values in these tag classes, define the corresponding object (as an object).
+	var objects = new Set();
+	for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
+	{
+		const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.names[i] ).join(':');
+		const new_identifier_index = this.names.indexOf(new_identifier);
+		const new_original_case = identifier_base_original_case+':'+tagvalue_identifier_indexes.map(i => this.original_case_names[i] ).join(':');
+		if (new_identifier_index < 0)
+		{
+			objects.add( this.objects.length );
+			this.registerNewObject(new_identifier, new_original_case, 1, log.lineNumber)
+		}
+		else
+		{
+			this.object_set[new_identifier_index].forEach( x => objects.add(x) );
+		}
+	}
+
+	if (objects.size > 1)
+	{
+	//	Register the identifier as a property to avoid redoing all this again.
+		return this.registerNewLegend(candname, original_case, objects, identifier_type_property, 0, log.lineNumber);
+	}
+	if (tags.every( ([tag_index,tag_name]) => (this.comptype[tag_index] === identifier_type_tag) )) 
+	{
+	//	There are only tag values in the tags, no tag class => candname is the name of an atomic object that has not been explicitely defined before
+		const result = this.names.indexOf(candname)
+		this.implicit[result] = 0; // now it's explicitly defined
+		return result;
+	}
+	// all tag classes have only one value => synonym, but we don't care (for now?)
+	return this.names.length - 1; // latest identifier registered
 }

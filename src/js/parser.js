@@ -521,63 +521,18 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 	const candname = match_name[0].trim();
 
-	if ( ! this.identifiers.checkIfNewIdentifierIsValid(candname, is_start_of_line, this) )
+	if (is_start_of_line) // new object name
+	{
+		const new_identifier_index = this.identifiers.checkAndRegisterNewObjectIdentifier(candname, findOriginalCaseName(candname, this.mixedCase), true, this);
+		if (new_identifier_index < 0)
+			return 'ERROR';
+		this.current_identifier_index = new_identifier_index;
+		return 'NAME';
+	}
+	// set up alias
+	if ( ! this.identifiers.checkIfNewIdentifierIsValid(candname, false, this) )
 		return 'ERROR'
-
-	if (is_start_of_line)
-	{
-		const [identifier_base, ...identifier_tags] = candname.split(':');
-		const tags = identifier_tags.map( tagname => [this.identifiers.names.indexOf(tagname), tagname] );
-
-	//	For all possible combinations of tag values in these tag classes, define the corresponding object (as an object).
-		const tag_values = tags.map( ([tag_index,tag_name]) => this.identifiers.object_set[tag_index] );
-		var objects = new Set();
-		if (tags.length > 0)
-		{
-			for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
-			{
-				const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.identifiers.names[i] ).join(':');
-				const new_identifier_index = this.identifiers.names.indexOf(new_identifier);
-				const new_original_case = findOriginalCaseName(identifier_base, this.mixedCase)+':'+tagvalue_identifier_indexes.map(i => this.identifiers.original_case_names[i] ).join(':');
-				if (new_identifier_index < 0)
-				{
-					objects.add(this.identifiers.objects.length)
-					this.identifiers.registerNewObject(new_identifier, new_original_case, 1, this.lineNumber)
-				}
-				else
-				{
-					this.identifiers.object_set[new_identifier_index].forEach( x => objects.add(x) );
-				}			
-			}
-		
-			if (objects.size > 1)
-			{
-			//	Register the identifier as a property to avoid redoing all this again.
-				this.current_identifier_index = this.identifiers.names.length
-				this.identifiers.registerNewLegend(candname, findOriginalCaseName(candname, this.mixedCase), objects, identifier_type_property, 0, this.lineNumber);
-			}
-			else if (tags.every( ([tag_index,tag_name]) => (this.identifiers.comptype[tag_index] === identifier_type_tag) )) 
-			{
-				// There are only tag values in the tags, no tag class => candname is the name of an atomic object that has not been explicitely defined before
-				this.current_identifier_index = this.identifiers.names.indexOf(candname)
-				this.identifiers.implicit[this.current_identifier_index] = 0; // now it's explicitly defined
-			}
-			else // all tag classes have only one value => synonym, but we don't care (for now?)
-			{
-				this.current_identifier_index = this.identifiers.names.length - 1 // latest identifier registered
-			}
-		}
-		else // no tag in identifier
-		{
-			this.current_identifier_index = this.identifiers.names.length
-			this.identifiers.registerNewObject(candname, findOriginalCaseName(candname, this.mixedCase), 0, this.lineNumber)
-		}
-	}
-	else
-	{
-		//set up alias
-		this.identifiers.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.current_identifier_index, this.lineNumber)
-	}
+	this.identifiers.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.current_identifier_index, this.lineNumber)
 	return 'NAME';
 }
 
@@ -618,7 +573,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 
 			const color = match_color[0].trim();
 
-			for (const object_index of this.identifiers.object_set[this.current_identifier_index])
+			for (const object_index of this.identifiers.getObjectsForIdentifier(this.current_identifier_index))
 			{
 				var o = this.identifiers.objects[object_index];
 				if ( (o.identifier_index != this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
