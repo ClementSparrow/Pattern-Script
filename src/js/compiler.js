@@ -169,6 +169,8 @@ function generateExtraMembers(state)
 	state.glyphDict = state.identifiers.map(
 		function(identifier, identifier_index)
 		{
+			if (state.identifiers_comptype[identifier_index] === identifier_type_mapping)
+				return null;
 			var mask = blankMask.concat([]);
 			for (const object_pos of state.getObjectsForIdentifier(identifier_index))
 			{
@@ -609,14 +611,14 @@ function parseRuleString(rule, state, curRules)
 			} else {
 				rhs = true;
 			}
-		} else if (state.checkKnownIdentifier(token) >= 0) {
+		} else if (state.checkKnownIdentifierOrFunction(token) >= 0) {
 			if (!incellrow) {
 				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 			}
 			else if (curobjcond.length == 0) {
 				curobjcond.push('');
 			}
-			curobjcond.push(state.checkKnownIdentifier(token)); // TODO: we should not search it twice...
+			curobjcond.push(state.checkKnownIdentifierOrFunction(token)); // TODO: we should not search it twice...
 			should_close_objcond = true;
 		} else if (token === '...') {
 			if (!incellrow) {
@@ -736,8 +738,8 @@ function parseRuleString(rule, state, curRules)
 		lineNumber: lineNumber,
 		groupNumber: groupNumber,
 		directions: directions,
-		tag_classes: tag_classes,
-		parameter_properties: properties,
+		tag_classes: Array.from(tag_classes),
+		parameter_properties: Array.from(properties),
 		late: late,
 		rigid: rigid,
 		randomRule: randomRule,
@@ -802,30 +804,75 @@ function* generateRulesExpansions(state, rules)
 		const directions = new Set( generateDirections(rule.directions) );
 		const parameter_sets = Array.from(
 			[...rule.tag_classes, ...rule.parameter_properties],
-			identifier_index => Array.from(state.identifiers_objects[identifier_index], object_index => [identifier_index, object_index] )
+			identifier_index => Array.from(state.identifiers_objects[identifier_index])
 		);
 		for (const parameters of cartesian_product(directions, ...parameter_sets))
 		{
-			yield [rule, rule.tag_classes.size, ...parameters];
+			yield [rule, ...parameters];
 		}
 	}
 }
 
-function expandRule(state, original_rule, nbtags, dir, ...parameters)
+function expandRule(state, original_rule, dir, ...parameters)
 {
 	var rule = deepCloneRule(original_rule);
+	// Also clone the non-directional rule parameters (shallow copy because they should not be modified)
+	rule.tag_classes = original_rule.tag_classes
+	rule.parameter_properties = original_rule.parameter_properties
 
 	rule.direction = dir; // we have rule.directions (plural) before this loop, but rule.direction (singular) after the loop.
-	rule.tag_classes = parameters.slice(1, nbtags+1);
-	rule.parameter_properties = parameters.slice(nbtags+1);
+	rule.tag_classes_replacements = parameters.slice(0, rule.tag_classes.size);
+	rule.parameter_properties_replacements = parameters.slice(rule.tag_classes.size);
 
 //	Remove relative directions
 	convertRelativeDirsToAbsolute(rule);
 //	Optional: replace up/left rules with their down/right equivalents
 	rewriteUpLeftRules(rule);
+//	Replace mappings of the parameters with what they map to.
+	applyRuleParamatersMappings(state, rule);
 //	Replace aggregates and synonyms with what they mean
 	atomizeAggregatesAndSynonyms(state, rule);
 	return rule;
+}
+
+function applyRuleParamatersMappings(state, rule)
+{
+	for (const hs of [rule.lhs, rule.rhs])
+	{
+		for (const cellrow of hs)
+		{
+			for (const cell of cellrow)
+			{
+				for (var objcond of cell)
+				{
+					const identifier_index = objcond[1]
+					if (state.identifiers_comptype[identifier_index] !== identifier_type_mapping)
+						continue;
+					const [mapping_parameters, mapping_startset, mapping_endset] = state.identifiers_objects[identifier_index];
+					const mapping_from = Array.from(
+						mapping_parameters,
+						function (ii)
+						{
+							const p = rule.tag_classes.indexOf(ii);
+							if (p >= 0)
+								return rule.tag_classes_replacements[p];
+							const p2 = rule.parameter_properties.indexOf(ii);
+							if (p2 >= 0)
+								return rule.parameter_properties_replacements[p2];
+							return ii;
+						}
+					);
+					var mapping_index = 0;mapping_startset.indexOf(mapping_from);
+					while (mapping_startset[mapping_index].some( (x,i) => (x !== mapping_from[i]) ))
+						mapping_index++;
+					console.log('id:', identifier_index, state.identifiers[identifier_index], 'objects:', state.identifiers_objects[identifier_index], mapping_from, mapping_index)
+					console.log(state.identifiers)
+					console.assert(mapping_index >= 0);
+					objcond[1] = mapping_endset[mapping_index];
+				}
+			}
+		}
+	}
 }
 
 function rulesToArray(state)
@@ -1928,7 +1975,7 @@ function generateMasks(state)
 //	Compute state.objectMasks
 
 	var objectMask = state.identifiers_comptype.map(
-		(type, identifier_index) => (type == identifier_type_aggregate) ? null : makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
+		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
 	);
 
 	var all_obj = new BitVec(STRIDE_OBJ);

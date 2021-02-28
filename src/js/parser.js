@@ -24,8 +24,8 @@ const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
-const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'], ['tags', 'legend'] ];
-const section_optional = [ true, false, true, true, false, false, true, false, true ];
+// const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'], ['tags', 'legend'] ];
+// const section_optional = [ true, false, true, true, false, false, true, false, true ];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
 const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
@@ -111,6 +111,10 @@ function PuzzleScriptParser()
 	this.abbrevNames = [] // TODO: This is only used in this file to parse levels, and is deleted in compiler.js, which is not very smart as it gets recomputed there.
 	                      // Plus, we don't need it, as we only check if a single character is in the array, which could also be done (slightly slower) using this.identifiers.
 
+	// data for the MAPPINGS section
+	this.current_mapping_startset = new Set();
+	this.current_mapping_startset_array = [];
+
 	this.sounds = []
 
 	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a Set of the indexes of the objects belonging to that layer
@@ -140,7 +144,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.identifiers = Array.from(this.identifiers)
 	result.identifiers_deftype = Array.from(this.identifiers_deftype)
 	result.identifiers_comptype = Array.from(this.identifiers_comptype)
-	result.identifiers_objects = this.identifiers_objects.map( objects => new Set(objects) )
+	result.identifiers_objects = this.identifiers_objects.map( objects => (objects instanceof Set) ? new Set(objects) : Array.from(objects) )
 	result.identifiers_lineNumbers = Array.from(this.identifiers_lineNumbers)
 	result.identifiers_implicit = Array.from(this.identifiers_implicit)
 
@@ -157,6 +161,9 @@ PuzzleScriptParser.prototype.copy = function()
 	result.current_identifier_index = this.current_identifier_index
 	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
+
+	result.current_mapping_startset = new Set(this.current_mapping_startset)
+	result.current_mapping_startset_array = Array.from(this.current_mapping_startset_array)
 
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
@@ -278,6 +285,13 @@ PuzzleScriptParser.prototype.checkIfNewTagNameIsValid = function(name)
 	return true;
 }
 
+PuzzleScriptParser.prototype.checkKnownTagClass = function(identifier)
+{
+	const identifier_index = this.identifiers.indexOf(identifier);
+	return (identifier_index >= 0) && (this.identifiers_comptype[identifier_index] == identifier_type_tagset);
+}
+
+
 //	------- CHECK IDENTIFIERS --------
 
 function* cartesian_product(head, ...tail)
@@ -288,7 +302,7 @@ function* cartesian_product(head, ...tail)
 			yield [h, ...r];
 }
 
-// check that an object name with tags is well formed and returns its parts
+// check that an object name with tags is well formed and return its parts
 PuzzleScriptParser.prototype.identifierIsWellFormed = function(identifier)
 {
 //	Extract tags
@@ -352,7 +366,7 @@ PuzzleScriptParser.prototype.checkIfNewIdentifierIsValid = function(candname, ac
 PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 {
 //	First, check if we have that name registered
-	var result = this.identifiers.indexOf(identifier);
+	const result = this.identifiers.indexOf(identifier);
 	if (result >= 0)
 		return result;
 
@@ -360,7 +374,11 @@ PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(identifier);
 	if (tags.length === 0 || error_code<0)
 		return error_code - 1;
+	return this.checkTagSetExpansion(identifier, identifier_base, tags);
+}
 
+PuzzleScriptParser.prototype.checkTagSetExpansion = function(identifier, identifier_base, tags) // tags must contain only tag values or tag classes, not tag mappings.
+{
 //	For all possible combinations of tag values in these tag classes, the corresponding object must have been defined (as an object).
 	const tag_values = tags.map( ([tag_index,tag_name]) => this.identifiers_objects[tag_index] );
 	var all_found = true;
@@ -375,17 +393,149 @@ PuzzleScriptParser.prototype.checkKnownIdentifier = function(identifier)
 			all_found = false;
 			continue;
 		}
+		// TODO: check type.
 		this.identifiers_objects[new_identifier_index].forEach( x => objects.add(x) );
 	}
 	if (!all_found)
 		return -4;
 	
 //	Register the identifier as a property to avoid redoing all this again.
-	result = this.identifiers.length;
-	const new_original_case = identifier_base+':'+tags.map( ([tag_index,tag_name]) => this.original_case_names[tag_index] ).join(':'); // TODO: get original case of identifier_base.
-	this.registerNewLegend(identifier, new_original_case, objects, identifier_type_property, 2);
+	var result = this.identifiers.indexOf(identifier)
+	if (result < 0)
+	{
+		result = this.identifiers.length;
+		const new_original_case = identifier_base+':'+tags.map( ([tag_index,tag_name]) => this.original_case_names[tag_index] ).join(':'); // TODO: get original case of identifier_base.
+		this.registerNewLegend(identifier, new_original_case, objects, identifier_type_property, 2);
+	}
 	return result;
 }
+
+
+
+// check that an object name with tags is well formed and return its parts
+// todo: this is almost the same thing as identifierIsWellFormed and the two should be merged
+PuzzleScriptParser.prototype.identifierOrFunctionIsWellFormed = function(identifier)
+{
+//	Extract tags
+	const [identifier_base, ...identifier_tags] = identifier.split(':');
+	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) )
+		return [0, identifier_base, []];
+
+//	These tags must be known
+	const tags = identifier_tags.map( tagname => [this.identifiers.indexOf(tagname), tagname] );
+	const unknown_tags = tags.filter( ([tag_index, tn]) => (tag_index < 0) );
+	if ( unknown_tags.length > 0 )
+	{
+		const unknown_tagnames = unknown_tags.map( ([ti, tn]) => tn.toUpperCase() );
+		logError('Unknown tag' + ((unknown_tags.length>1) ? 's ('+ unknown_tagnames.join(', ')+')' : ' '+unknown_tagnames[0]) + ' used in object name.', this.lineNumber);
+		return [-1, identifier_base, tags];
+	}
+
+//	And they must be tag values or tag classes or functions that return tags or tag classes
+	const invalid_tags = tags.filter(
+		([tag_index, tn]) => ! (
+			   [identifier_type_tag, identifier_type_tagset].includes(this.identifiers_comptype[tag_index])
+			|| ( (this.identifiers_comptype[tag_index] === identifier_type_mapping) && this.identifiers_objects[tag_index][2].every( i => [identifier_type_tag, identifier_type_tagset].includes(this.identifiers_comptype[i]) )
+			)
+		)
+	);
+	if ( invalid_tags.length > 0 )
+	{
+		const invalid_tagnames = invalid_tags.map( ([ti, tn]) => tn.toUpperCase() );
+		logError('Invalid object name containing tags that have not been declared as tag values or tag sets: ' + invalid_tagnames.join(', ') + '.', this.lineNumber);
+		return [-2, identifier_base, tags];
+	}
+	return [0, identifier_base, tags];
+}
+
+
+PuzzleScriptParser.prototype.checkKnownIdentifierOrFunction = function(identifier)
+{
+//	First, check if we have that name registered (including object mappings)
+	var result = this.identifiers.indexOf(identifier);
+	if (result >= 0)
+	{
+		const type = this.identifiers_comptype[result]
+		const accepted_types = [identifier_type_object, identifier_type_property, identifier_type_aggregate];
+		if ( accepted_types.includes(type) )
+			return result;
+		if ( (type === identifier_type_mapping) && this.identifiers_objects[result][2].every( ii => accepted_types.includes(this.identifiers_comptype[ii]) ) )
+			return result;
+		logError('I was expecting something that can resolve into an object, property or agregate, but I got '+identifier.toUpperCase()+', which is '+identifier_type_as_text[type]+'.', this.lineNumber)
+		return -1;
+	}
+
+//	If not, it must contain tags
+	const [error_code, identifier_base, tags] = this.identifierOrFunctionIsWellFormed(identifier);
+	if (tags.length === 0 || error_code<0)
+		return error_code - 1;
+
+//	Extract mapping parameters
+	var tag_values = tags.map( ([tag_index,tag_name]) => this.identifiers_objects[tag_index] )
+	var mapping_parameters = [] // values of the parameters (identifier_indexes of tag classes or object properties)
+	var functional_tags = []
+	for (const [i, object_set] of tag_values.entries())
+	{
+		if (object_set instanceof Set)
+			continue;
+		const parameter_identifier_indexes = object_set[0];
+		var new_parameter_identifier_indexes = [];
+		for (const [j, parameter_identifier_index] of parameter_identifier_indexes.entries())
+		{
+			const parameter_index = mapping_parameters.indexOf(parameter_identifier_index);
+			if (parameter_index >= 0)
+			{
+				new_parameter_identifier_indexes.push(parameter_index)
+			}
+			else
+			{
+				new_parameter_identifier_indexes.push(mapping_parameters.length)
+				mapping_parameters.push(parameter_identifier_index)
+			}
+		}
+		functional_tags.push( [i, new_parameter_identifier_indexes, object_set[1], object_set[2]] )
+	}
+	if (functional_tags.length === 0)
+		return this.checkTagSetExpansion(identifier, identifier_base, tags);
+
+//	For every possible combination of mapping parameters, check that it works
+	const mapping_startset = [ ...cartesian_product(...mapping_parameters.map( ii => this.identifiers_objects[ii] )) ];
+	var mapping_endset = []
+	var all_found = true;
+	for (const mapping_parameter_values of mapping_startset)
+	{
+		// console.log('in expansion of '+identifier+', for function parameters '+mapping_parameters+' ['+mapping_parameters.map(i=>this.identifiers[i]).join(',')+'] => '+mapping_parameter_values+' ['+mapping_parameter_values.map(i=>this.identifiers[i])+']');
+		var new_tags = Array.from(tags);
+		for (const [tag_pos, new_parameter_identifier_indexes, startset, endset] of functional_tags)
+		{
+			const replaced_mapping_parameters = new_parameter_identifier_indexes.map( i => mapping_parameter_values[i] )
+			var index_in_startset = 0;
+			while (startset[index_in_startset].some( (x,i) => (x !== replaced_mapping_parameters[i]) ))
+				index_in_startset++;
+			// console.log('   expansion of tag #'+tag_pos+' ('+tags[tag_pos][1]+') ', new_parameter_identifier_indexes, startset, endset, replaced_mapping_parameters, index_in_startset);
+			const new_tag_identifier_index = endset[index_in_startset];
+			new_tags[tag_pos] = [new_tag_identifier_index, this.identifiers[new_tag_identifier_index]]
+		}
+		const new_identifier = identifier_base+':'+new_tags.map( ([ti,tn]) => tn ).join(':');
+		const new_identifier_index = this.checkTagSetExpansion(new_identifier, identifier_base, new_tags);
+		// todo: we also need to check if each of the resulting objects is an object mapping....
+		if (new_identifier_index<0)
+		{
+			all_found = false;
+			logError('Expansion of mapped tags in '+ientifier.toUpperCase()+' gave the unknown object '+new_identifier.toUpperCase()+'.', this.lineNumber);
+			continue;
+		}
+		mapping_endset.push(new_identifier_index);
+	}
+	if (!all_found)
+		return -5;
+	result = this.identifiers.length;
+	this.registerNewIdentifier(identifier, findOriginalCaseName(identifier, this.mixedCase), identifier_type_mapping, identifier_type_mapping, [mapping_parameters, mapping_startset, mapping_endset], 2);
+	return result;
+}
+
+
+
 
 PuzzleScriptParser.prototype.checkCompoundDefinition = function(identifiers, compound_name, compound_type)
 {
@@ -1072,122 +1222,170 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 {
 	if (is_start_of_line)
 	{
+		if (this.tokenIndex === 0)
+		{
+			this.objects_section = (this.objects_section+1) % 2
+		}
+		else if (this.objects_section === 1) // we were parsing the first line
+		{
+			this.objects_section = 0;
+			if (this.tokenIndex < 3)
+			{
+				logError('You started a mapping definition but did not end it. There should be STARTSETNAME => MAPPINGNAME on the first line.', this.lineNumber);
+			}
+		}
+		else
+		{
+			this.objects_section = 1;
+			if (this.tokenIndex < 2)
+			{
+				logError('You started a mapping definition but did not end it. There should be STARTSETNAMES -> MAPPEDVALUES on the second line.', this.lineNumber);
+			}
+			// else
+			// TODO: check that we can end the definition here, i.e. that all the values have been defined
+		}		
 		this.tokenIndex = 0;
+	}
+	else if (this.tokenIndex === 3) // something after the expected end of the first line
+	{
+		logWarning('The first line of a mapping definition should be STARTSETNAME => MAPPINGNAME, but you provided extra stuff after that. I will ignore it.', this.lineNumber);
 	}
 
 	switch (this.tokenIndex)
 	{
-		case 0: // set of values the function opperates on: tag class or object property
+		case 0: 
 		{
-			const fromset_name_match = stream.match(reg_tagged_name, true);
-			if (fromset_name_match === null)
+			if (this.objects_section === 1) // set of values the function opperates on: tag class or object property
 			{
-				logError('Unrecognised stuff in the mappings section.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
+				const fromset_name_match = stream.match(reg_tagged_name, true);
+				if (fromset_name_match === null)
+				{
+					logError('Unrecognised stuff in the mappings section.', this.lineNumber)
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR'
+				}
+				this.tokenIndex = 1;
+				const fromset_name = fromset_name_match[0];
+				const identifier_index = this.checkKnownIdentifier(fromset_name);
+				if (identifier_index < 0)
+				{
+					logError('Unknown identifier for a mapping\'s start set: '+fromset_name.toUpperCase()+'.', this.lineNumber)
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR';
+				}
+				if ( ! [identifier_type_tagset, identifier_type_property].includes(this.identifiers_comptype[identifier_index]) )
+				{
+					logError('Cannot create a mapping with a start set defined as '+identifier_type_as_text[this.identifiers_comptype[identifier_index]]+': only tag classes and object properties are accepted here.', this.lineNumber);
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR';
+				}
+				this.current_identifier_index = identifier_index;
+				this.current_mapping_startset = new Set(this.identifiers_objects[identifier_index])
+				this.current_mapping_startset_array = [];
+				return 'NAME';
+			}
+			else // elements of the start set
+			{
+				if (stream.match(/->/, true))
+				{
+					// check that we have listed all the values in the start set.
+					if (this.current_mapping_startset.size > 0)
+					{
+						logError('You have not specified every values in the mapping start set '+this.identifiers[this.identifiers_objects[this.current_identifier_index][0]].toUpperCase()+
+							'. You forgot: '+Array.from(this.current_mapping_startset, ii => this.identifiers[ii].toUpperCase()).join(', ')+'.');
+					}
+					if (this.current_identifier_index !== null)
+					{
+						this.identifiers_objects[this.current_identifier_index][1] = this.current_mapping_startset_array;
+					}
+					this.current_mapping_startset_array = [];
+					this.tokenIndex = 2;
+					return 'ARROW';
+				}
+				const fromvalue_match = stream.match(reg_tagged_name, true);
+				if (fromvalue_match === null)
+				{
+					logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR'
+				}
+				const fromvalue_name = fromvalue_match[0];
+				const identifier_index = this.checkKnownIdentifier(fromvalue_name);
+				if (identifier_index < 0)
+					return 'ERROR'
+				if (this.current_identifier_index === null)
+					return 'NAME';
+				if ( ! this.current_mapping_startset.delete(identifier_index) )
+				{
+					logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers[this.current_identifier_index].toUpperCase()+'.', this.lineNumber)
+					return 'ERROR';
+				}
+				// register the values in order and check that the whole set of values in the start set is covered.
+				this.current_mapping_startset_array.push([identifier_index]);
+				return 'NAME';
+			}
+		}
+		case 1: // arrows
+		{
+			this.tokenIndex = 2;
+			if (stream.match(/=>/, true) === null) // not followed by an => sign
+			{
+				logError('I was expecting an "=>" sign after the name of the mapping\'s start set.', this.lineNumber)
 				return 'ERROR'
 			}
-			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
-			{
-				logError('I was expecting an "=" sign after the name of the mapping\'s start set.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR'
-			}
-			this.tokenIndex = 1;
-			const fromset_name = fromset_name_match[0];
-			const identifier_index = this.checkKnownIdentifier(fromset_name);
-			if (identifier_index < 0)
-			{
-				logError('Unknown identifier for a mapping\'s start set: '+fromset_name.toUpperCase()+'.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR';
-			}
-			if ( ! [identifier_type_tagset, identifier_type_property].includes(this.identifiers_comptype[identifier_index]) )
-			{
-				logError('Cannot create a mapping with a start set defined as '+identifier_type_as_text[this.identifiers_comptype[identifier_index]]+': only tag classes and object properties are accepted here.', this.lineNumber);
-				stream.match(reg_notcommentstart, true);
-			}
-			this.current_identifier_index = identifier_index;
-			return 'NAME';
+			return 'ARROW'
 		}
-		case 1: // equal sign
-		case 4:
+		case 2: // name of the function
 		{
-			stream.next();
-			this.tokenIndex += 1;
-			return 'ASSIGNMENT'
-		}
-		case 2: // elements or the start set
-		{
-			if (stream.match(/->/, true))
+			if (this.objects_section === 1)
 			{
 				this.tokenIndex = 3;
-				return 'ARROW';
+				const fromset_identifier_index = this.current_identifier_index;
+				this.current_identifier_index = null;
+				const toset_name_match = stream.match(reg_tagged_name, true);
+				if (toset_name_match === null)
+				{
+					logError('Unrecognised stuff in the mappings section while reading the mapping\'s name.', this.lineNumber)
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR'
+				}
+				const toset_name = toset_name_match[0];
+				if ( (this.identifiers_comptype[fromset_identifier_index] === identifier_type_property) ? ! this.checkIfNewIdentifierIsValid(toset_name) : ! this.checkIfNewTagNameIsValid(toset_name) )
+				{
+					logError('Invalid mapping name: '+toset_name.toUpperCase()+'.', this.lineNumber)
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR';
+				}
+				this.current_identifier_index = this.identifiers.length;
+				// TODO: register the function type and the start set
+				this.registerNewIdentifier(toset_name, findOriginalCaseName(toset_name, this.mixedCase), identifier_type_mapping, identifier_type_mapping, [[fromset_identifier_index], [], []], 0);
+				return 'NAME';
 			}
-			const fromvalue_match = stream.match(reg_tagged_name, true);
-			if (fromvalue_match === null)
+			else // elements of the end set
 			{
-				logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR'
+				const tovalue_match = stream.match(reg_tagged_name, true);
+				if (tovalue_match === null)
+				{
+					logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR'
+				}
+				const tovalue_name = tovalue_match[0];
+				const identifier_index = this.checkKnownIdentifier(tovalue_name);
+				if (identifier_index < 0)
+					return 'ERROR'
+				// TODO? check that the identifier is in the start set
+				if (this.current_identifier_index === null)
+					return 'NAME';
+				// register the mapping for this value
+				this.identifiers_objects[this.current_identifier_index][2].push( identifier_index );
+				// if we got all the values in the set
+				if (this.identifiers_objects[this.current_identifier_index][2].length === this.identifiers_objects[this.current_identifier_index][1].length)
+				{
+					this.tokenIndex = 3
+				}
+				return 'NAME';
 			}
-			const fromvalue_name = fromvalue_match[0];
-			const identifier_index = this.checkKnownIdentifier(fromvalue_name);
-			if (identifier_index < 0)
-				return 'ERROR'
-			if ( ! this.identifiers_objects[this.current_identifier_index].has(identifier_index) )
-			{
-				logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers[this.current_identifier_index].toUpperCase()+'.', this.lineNumber)
-				return 'ERROR';
-			}
-			// TODO: register the values in order and check that the whole set of values in the start set is covered.
-			return 'NAME';
-
-		}
-		case 3: // name of the function
-		{
-			const toset_name_match = stream.match(reg_tagged_name, true);
-			if (toset_name_match === null)
-			{
-				logError('Unrecognised stuff in the mappings section while reading the mapping\'s name.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR'
-			}
-			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
-			{
-				logError('I was expecting an "=" sign after the name of the mapping.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR'
-			}
-			this.tokenIndex = 4;
-			const toset_name = toset_name_match[0];
-			if ( (this.identifiers_comptype[this.current_identifier_index] === identifier_type_property) ? ! this.checkIfNewIdentifierIsValid(toset_name) : ! this.checkIfNewTagNameIsValid(toset_name) )
-			{
-				logError('Invalid mapping name: '+toset_name.toUpperCase()+'.', this.lineNumber)
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR';
-			}
-			const fromset_identifier_index = this.current_identifier_index;
-			this.current_identifier_index = this.identifiers.length;
-			// TODO: register the function type and the start set
-			this.registerNewIdentifier(toset_name, findOriginalCaseName(toset_name, this.mixedCase), identifier_type_mapping, identifier_type_mapping, new Set(), 0);
-			return 'NAME';
-		}
-		case 5: // elements of the end set
-		{
-			const tovalue_match = stream.match(reg_tagged_name, true);
-			if (tovalue_match === null)
-			{
-				logError('Invalid character in mapping definition: "' + stream.peek() + '".', this.lineNumber);
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR'
-			}
-			const tovalue_name = tovalue_match[0];
-			const identifier_index = this.checkKnownIdentifier(tovalue_name);
-			if (identifier_index < 0)
-				return 'ERROR'
-			// TODO: check that the identifier is in the start set
-			// TODO: register the mapping for this value
-			return 'NAME';
 		}
 		default:
 		{
@@ -1322,7 +1520,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.match(/\p{Separator}*/u, true);
 		return 'DIRECTION';
 	}
-	if (this.checkKnownIdentifier(m) >= 0)
+	if ( (this.checkKnownTagClass(m) >= 0) || (this.checkKnownIdentifierOrFunction(m) >= 0) )
 	{
 		// if (is_start_of_line)
 		// {
