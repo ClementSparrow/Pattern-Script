@@ -192,7 +192,7 @@ function printLevel()
 	// for (var glyphName in state.glyphDict)
 	for (const [identifier_index, glyph] of state.glyphDict.entries())
 	{
-		const glyphName = state.identifiers[identifier_index];
+		const glyphName = state.identifiers.names[identifier_index];
 		// if (state.glyphDict.hasOwnProperty(glyphName)&&glyphName.length===1)
 		if (glyphName.length === 1)
 		{

@@ -104,7 +104,7 @@ function generateGlyphImages()
 	
 	for (const [identifier_index, g] of state.glyphDict.entries())
     {
-        const n = state.identifiers[identifier_index];
+        const n = state.identifiers.names[identifier_index];
         
         if (n.length > 1)
             continue;
@@ -186,7 +186,7 @@ y = 0;
 
 function glyphCount()
 {
-    return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers[identifier_index].length == 1) ).length;
+    return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers.names[identifier_index].length == 1) ).length;
     // var count=0;
     // for (var n in state.glyphDict) {
     //     if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {

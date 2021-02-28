@@ -331,7 +331,7 @@ function setGameState(_state, command, randomseed) {
 	}
 	//set sprites
 	sprites = [];
-	for (var object of state.objects)
+	for (var object of state.identifiers.objects)
 	{
 		var sprite = {
 			colors: object.colors,
@@ -637,7 +637,7 @@ function getLayersOfMask(cellMask) {
 	var layers=[];
 	for (var i=0;i<state.objectCount;i++) {
 		if (cellMask.get(i)) {
-			layers.push( state.objects[ state.idDict[i] ].layer )
+			layers.push( state.identifiers.objects[ state.idDict[i] ].layer )
 		}
 	}
 	return layers;

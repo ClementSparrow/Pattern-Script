@@ -261,16 +261,16 @@
 
             if (addTags)
             {
-                for (const [identifier_index, w] of state.identifiers.entries())
+                for (const [identifier_index, w] of state.identifiers.names.entries())
                 {
-                    if ([identifier_type_tag, identifier_type_tagset].includes(state.identifiers_deftype[identifier_index]))
+                    if ([identifier_type_tag, identifier_type_tagset].includes(state.identifiers.deftype[identifier_index]))
                     {
                         const matchWord = w.toLowerCase();
                         // if (matchWord === curTag) continue;
                         if ((!curTag || matchWord.lastIndexOf(curTag, 0) == 0) && !(matchWord in seen))
                         {
                             seen.add(matchWord);
-                            const hint = curTagPrefix+state.original_case_names[identifier_index];
+                            const hint = curTagPrefix+state.identifiers.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
                     }
@@ -280,7 +280,7 @@
             //first, add objects if needed
             if (addObjects)
             {
-                for (const [object_index, o] of state.objects.entries())
+                for (const [object_index, o] of state.identifiers.objects.entries())
                 {
                     const w = o.name;
                     var matchWord = w.toLowerCase();
@@ -288,7 +288,7 @@
                     if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen))
                     {
                         seen.add(matchWord);
-                        var hint = state.original_case_names[o.identifier_index];
+                        var hint = state.identifiers.original_case_names[o.identifier_index];
                         list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                     }
                 }
@@ -304,15 +304,15 @@
                 }
 
                 //go through all derived objects
-                for (const [identifier_index, w] of state.identifiers.entries())
+                for (const [identifier_index, w] of state.identifiers.names.entries())
                 {
-                    if (legendbits_types.includes(state.identifiers_deftype[identifier_index]))
+                    if (legendbits_types.includes(state.identifiers.deftype[identifier_index]))
                     {
                         const matchWord = w.toLowerCase();
                         // if (matchWord === curWord) continue;
                         if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen)) {
                             seen.add(matchWord);
-                            const hint = state.original_case_names[identifier_index];
+                            const hint = state.identifiers.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
                     }

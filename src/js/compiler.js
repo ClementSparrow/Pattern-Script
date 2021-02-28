@@ -71,7 +71,7 @@ function generateExtraMembers(state)
 	{
 		for (const object_index of layer)
 		{
-			var o = state.objects[object_index];
+			var o = state.identifiers.objects[object_index];
 			o.id = state.idDict.length;
 			state.idDict.push(object_index);
 		}
@@ -121,10 +121,10 @@ function generateExtraMembers(state)
 
 	//convert colors to hex
 	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-	for (var o of state.objects)
+	for (var o of state.identifiers.objects)
 	{
 		if (o.colors.length>10) {
-			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", state.identifiers_lineNumbers[o.identifier_index]+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
+			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", state.identifiers.lineNumbers[o.identifier_index]+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
 		}
 		for (var i=0; i<o.colors.length; i++)
 		{
@@ -134,7 +134,7 @@ function generateExtraMembers(state)
 				c = colorToHex(colorPalette,c);
 				o.colors[i] = c;
 			} else {
-				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', state.identifiers_lineNumbers[o.identifier_index] + 1);
+				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', state.identifiers.lineNumbers[o.identifier_index] + 1);
 				o.colors[i] = '#ff00ff'; // magenta error color
 			}
 		}
@@ -142,12 +142,12 @@ function generateExtraMembers(state)
 
 	//generate sprite matrix
 	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-	for (var o of state.objects)
+	for (var o of state.identifiers.objects)
 	{
 		if (o.colors.length == 0)
 		{
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
-			logError('color not specified for object "' + o.name +'".', state.identifiers_lineNumbers[o.identifier_index]);
+			logError('color not specified for object "' + o.name +'".', state.identifiers.lineNumbers[o.identifier_index]);
 			o.colors=["#ff00ff"];
 		}
 		if (o.spritematrix.length === 0)
@@ -158,7 +158,7 @@ function generateExtraMembers(state)
 		{
 			if ( o.spritematrix.length !==5 || o.spritematrix.some( line => (line.length !== 5) ) )
 			{
-				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", state.identifiers_lineNumbers[o.identifier_index]);
+				logWarning("Sprite graphics must be 5 wide and 5 high exactly.", state.identifiers.lineNumbers[o.identifier_index]);
 			}
 			o.spritematrix = generateSpriteMatrix(o.spritematrix);
 		}
@@ -166,15 +166,15 @@ function generateExtraMembers(state)
 
 
 	//calculate glyph dictionary
-	state.glyphDict = state.identifiers.map(
+	state.glyphDict = state.identifiers.names.map(
 		function(identifier, identifier_index)
 		{
-			if (state.identifiers_comptype[identifier_index] === identifier_type_mapping)
+			if (state.identifiers.comptype[identifier_index] === identifier_type_mapping)
 				return null;
 			var mask = blankMask.concat([]);
-			for (const object_pos of state.getObjectsForIdentifier(identifier_index))
+			for (const object_pos of state.identifiers.getObjectsForIdentifier(identifier_index))
 			{
-				const o = state.objects[object_pos];
+				const o = state.identifiers.objects[object_pos];
 				mask[o.layer] = o.id;
 			}
 			return mask;
@@ -182,12 +182,12 @@ function generateExtraMembers(state)
 	);
 
 	/* determine which properties specify objects all on one layer */
-	state.single_layer_property = state.identifiers_comptype.map(
+	state.single_layer_property = state.identifiers.comptype.map(
 		function (comptype, i)
 		{
 			if (comptype != identifier_type_property)
 				return -1
-			const layers = new Set( Array.from( state.getObjectsForIdentifier(i), j => state.objects[j].layer ) );
+			const layers = new Set( Array.from( state.identifiers.getObjectsForIdentifier(i), j => state.identifiers.objects[j].layer ) );
 			return (layers.size == 1) ? layers.values().next().value : -1;
 		}
 	);
@@ -198,23 +198,23 @@ function generateExtraMembers(state)
 	}
 
 	//set default background object
-	const background_identifier_index = state.identifiers.indexOf('background');
+	const background_identifier_index = state.identifiers.names.indexOf('background');
 	if (background_identifier_index < 0)
 	{
 		logError("you have to define something to be the background");
 		state.background_index = state.idDict[0];
 	}
-	else if (state.identifiers_comptype[background_identifier_index] == identifier_type_aggregate)
+	else if (state.identifiers.comptype[background_identifier_index] == identifier_type_aggregate)
 	{
 		logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
 		state.background_index = state.idDict[0];
 	}
 	else
 	{
-		state.background_index = state.getObjectsAnIdentifierCanBe('background').values().next().value;
+		state.background_index = state.identifiers.getObjectsAnIdentifierCanBe('background', state).values().next().value;
 	}
-	state.backgroundid = state.objects[state.background_index].id
-	state.backgroundlayer = state.objects[state.background_index].layer
+	state.backgroundid = state.identifiers.objects[state.background_index].id
+	state.backgroundlayer = state.identifiers.objects[state.background_index].layer
 }
 
 
@@ -272,13 +272,13 @@ function levelFromString(state, level)
 				ch = level[j+1].charAt(level[j+1].length-1);
 			}
 
-			const identifier_index = state.identifiers.indexOf(ch); // TODO: this should be done in the parser
+			const identifier_index = state.identifiers.names.indexOf(ch); // TODO: this should be done in the parser
 			if (identifier_index < 0)
 			{
 				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
 				continue;
 			}
-			else if (state.identifiers_comptype[identifier_index] == identifier_type_property)
+			else if (state.identifiers.comptype[identifier_index] == identifier_type_property)
 			{
 				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);
 				continue;
@@ -437,10 +437,10 @@ function parseRuleDirections(state, tokens, lineNumber)
 			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
 
 		}
-		else if (state.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
+		else if (state.identifiers.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
 		{
-			const identifier_index = state.identifiers.indexOf(token);
-			const identifier_type =  state.identifiers_comptype[identifier_index];
+			const identifier_index = state.identifiers.names.indexOf(token);
+			const identifier_type =  state.identifiers.comptype[identifier_index];
 			switch (identifier_type)
 			{
 				case identifier_type_tagset:
@@ -611,14 +611,14 @@ function parseRuleString(rule, state, curRules)
 			} else {
 				rhs = true;
 			}
-		} else if (state.checkKnownIdentifierOrFunction(token) >= 0) {
+		} else if (state.identifiers.checkKnownIdentifierOrFunction(token, token, state) >= 0) {
 			if (!incellrow) {
 				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 			}
 			else if (curobjcond.length == 0) {
 				curobjcond.push('');
 			}
-			curobjcond.push(state.checkKnownIdentifierOrFunction(token)); // TODO: we should not search it twice...
+			curobjcond.push(state.identifiers.checkKnownIdentifierOrFunction(token, token, state)); // TODO: we should not search it twice...
 			should_close_objcond = true;
 		} else if (token === '...') {
 			if (!incellrow) {
@@ -804,7 +804,7 @@ function* generateRulesExpansions(state, rules)
 		const directions = new Set( generateDirections(rule.directions) );
 		const parameter_sets = Array.from(
 			[...rule.tag_classes, ...rule.parameter_properties],
-			identifier_index => Array.from(state.identifiers_objects[identifier_index])
+			identifier_index => Array.from(state.identifiers.object_set[identifier_index])
 		);
 		for (const parameters of cartesian_product(directions, ...parameter_sets))
 		{
@@ -846,9 +846,9 @@ function applyRuleParamatersMappings(state, rule)
 				for (var objcond of cell)
 				{
 					const identifier_index = objcond[1]
-					if (state.identifiers_comptype[identifier_index] !== identifier_type_mapping)
+					if (state.identifiers.comptype[identifier_index] !== identifier_type_mapping)
 						continue;
-					const [mapping_parameters, mapping_startset, mapping_endset] = state.identifiers_objects[identifier_index];
+					const [mapping_parameters, mapping_startset, mapping_endset] = state.identifiers.object_set[identifier_index];
 					const mapping_from = Array.from(
 						mapping_parameters,
 						function (ii)
@@ -865,7 +865,7 @@ function applyRuleParamatersMappings(state, rule)
 					var mapping_index = 0;mapping_startset.indexOf(mapping_from);
 					while (mapping_startset[mapping_index].some( (x,i) => (x !== mapping_from[i]) ))
 						mapping_index++;
-					console.log('id:', identifier_index, state.identifiers[identifier_index], 'objects:', state.identifiers_objects[identifier_index], mapping_from, mapping_index)
+					console.log('id:', identifier_index, state.identifiers.names[identifier_index], 'objects:', state.identifiers.object_set[identifier_index], mapping_from, mapping_index)
 					console.log(state.identifiers)
 					console.assert(mapping_index >= 0);
 					objcond[1] = mapping_endset[mapping_index];
@@ -956,7 +956,7 @@ function getPropertiesFromCell(state, cell)
 	{
 		if (dir == "random")
 			continue;
-		if (state.identifiers_comptype[identifier_index] === identifier_type_property)
+		if (state.identifiers.comptype[identifier_index] === identifier_type_property)
 		{
 			result.push(identifier_index);
 		}
@@ -1009,9 +1009,9 @@ function expandNoPrefixedProperties(state, cell)
 	var expanded = [];
 	for (const [dir, identifier_index] of cell)
 	{
-		if ( (dir === 'no') && (state.identifiers_comptype[identifier_index] === identifier_type_property) )
+		if ( (dir === 'no') && (state.identifiers.comptype[identifier_index] === identifier_type_property) )
 		{
-			expanded.push(...Array.from(state.getObjectsForIdentifier(identifier_index), object_index => [dir, state.objects[object_index].identifier_index] ) );
+			expanded.push(...Array.from(state.identifiers.getObjectsForIdentifier(identifier_index), object_index => [dir, state.identifiers.objects[object_index].identifier_index] ) );
 		}
 		else
 		{
@@ -1105,7 +1105,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 						// TODO: we currently replace a property by all the objects it can be, but if instead we replaced it by the properties/objects appearing in its
 						// definition, it would allow to stop the replacements when one of the replacement is a single-layer property, creating less rules.
 						// an alternative would be to split each property into its single-layer subsets, but that could introduce new bugs easily. -- ClementSparrow
-						const aliases = Array.from(state.getObjectsForIdentifier(property), object_index => state.objects[object_index].identifier_index );
+						const aliases = Array.from(state.identifiers.getObjectsForIdentifier(property), object_index => state.identifiers.objects[object_index].identifier_index );
 						for (const concreteType of aliases)
 						{
 							var newrule = deepCloneRule(cur_rule);
@@ -1201,7 +1201,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 	if (rhsPropertyRemains.length > 0)
 	{
-		logError('This rule has a property on the right-hand side, \"'+ state.identifiers[rhsPropertyRemains].toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
+		logError('This rule has a property on the right-hand side, \"'+ state.identifiers.names[rhsPropertyRemains].toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
 	}
 
 	return result;
@@ -1387,7 +1387,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 		if (dir === '...')
 			continue;
 
-		const identifier_comptype = state.identifiers_comptype[c];
+		const identifier_comptype = state.identifiers.comptype[c];
 		if (identifier_comptype != identifier_type_object) // not an object nor the synonym of an object
 		{
 			if (identifier_comptype != identifier_type_aggregate) // not an aggregate or the synonym of an aggregate
@@ -1399,7 +1399,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 			}
 		}
 
-		const equivs = Array.from( state.getObjectsForIdentifier(c), p => [dir, state.objects[p].identifier_index] );
+		const equivs = Array.from( state.identifiers.getObjectsForIdentifier(c), p => [dir, state.identifiers.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
 		i += equivs.length-1;
 	}
@@ -1511,7 +1511,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
-				const object = (state.identifiers_objects[identifier_index].size > 1) ? null : state.objects[state.identifiers_objects[identifier_index].values().next().value];
+				const object = (state.identifiers.object_set[identifier_index].size > 1) ? null : state.identifiers.objects[state.identifiers.object_set[identifier_index].values().next().value];
 
 				const objectMask = state.objectMasks[identifier_index];
 				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
@@ -1522,14 +1522,14 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if ((layerIndex === undefined) || (layerIndex < 0))
 				{
-					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +state.identifiers.names[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
 					const existing_idindex = layersUsed_l[layerIndex];
 					if (existing_idindex !== null)
 					{
-						rule.discard = [state.identifiers[identifier_index].toUpperCase(), state.identifiers[existing_idindex].toUpperCase()];
+						rule.discard = [state.identifiers.names[identifier_index].toUpperCase(), state.identifiers.names[existing_idindex].toUpperCase()];
 					}
 
 					layersUsed_l[layerIndex] = identifier_index;
@@ -1595,7 +1595,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			for (const [object_dir, identifier_index] of cell_r)
 			{
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
-				const object = state.getObjectsForIdentifier(identifier_index).size > 1 ? null : state.objects[state.getObjectsForIdentifier(identifier_index).values().next().value];
+				const object = state.identifiers.getObjectsForIdentifier(identifier_index).size > 1 ? null : state.identifiers.objects[state.identifiers.getObjectsForIdentifier(identifier_index).values().next().value];
 
 				if (object_dir === '...')
 				{
@@ -1605,18 +1605,18 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				else if (object_dir === 'random')
 				{
 					// if (object.name in state.objectMasks)
-					if (state.identifiers_comptype[identifier_index] !== identifier_type_aggregate)
+					if (state.identifiers.comptype[identifier_index] !== identifier_type_aggregate)
 					{
 						var mask = state.objectMasks[identifier_index];
 						randomMask_r.ior(mask);
-						const values = Array.from( state.getObjectsForIdentifier(identifier_index), p => [p, state.objects[p]] );
+						const values = Array.from( state.identifiers.getObjectsForIdentifier(identifier_index), p => [p, state.identifiers.objects[p]] );
 						for (const [subobject_index, subobject] of values)
 						{
 							const subobj_layerIndex = subobject.layer|0; // TODO: we should store...
 							const existing_index = layersUsed_r[subobj_layerIndex];
 							if ( (existing_index !== null) && (subobject_index !== existing_index) )
 							{
-								logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
+								logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.identifiers.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
 							}
 
 							layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
@@ -1624,7 +1624,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					}
 					else
 					{
-						logError('You want to spawn a random "'+state.identifiers[identifier_index].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
+						logError('You want to spawn a random "'+state.identifiers.names[identifier_index].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
 					}
 					continue;
 				}
@@ -1638,7 +1638,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if ((layerIndex === undefined) || (layerIndex < 0))
 				{
-					logError("Oops!  " +state.identifiers[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +state.identifiers.names[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
@@ -1652,7 +1652,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					{
 						if ( ! rule.hasOwnProperty('discard') )
 						{
-							logError('Rule matches object types that can\'t overlap: "' + state.identifiers[identifier_index].toUpperCase() + '" and "' + state.identifiers[existing_index].toUpperCase() + '".',rule.lineNumber);
+							logError('Rule matches object types that can\'t overlap: "' + state.identifiers.names[identifier_index].toUpperCase() + '" and "' + state.identifiers.names[existing_index].toUpperCase() + '".',rule.lineNumber);
 						}
 					}
 
@@ -1953,29 +1953,29 @@ function generateRigidGroupList(state)
 
 function makeMaskFromObjectSet(state, objects)
 {
-	return makeMaskFromGlyph( Array.from( objects, object_pos => state.objects[object_pos].id ) );
+	return makeMaskFromGlyph( Array.from( objects, object_pos => state.identifiers.objects[object_pos].id ) );
 }
 
 
 /* Computes new attributes for the state: playerMask, layerMasks, objectMask. */
 function generateMasks(state)
 {
-	if (state.identifiers.indexOf('player') < 0)
+	if (state.identifiers.names.indexOf('player') < 0)
 	{
 		logErrorNoLine("error, didn't find any object called player, either in the objects section, or the legends section. there must be a player!");
 		state.playerMask = new BitVec(STRIDE_OBJ);
 	}
 	else
 	{
-		state.playerMask = makeMaskFromObjectSet(state, state.getObjectsAnIdentifierCanBe('player'));
+		state.playerMask = makeMaskFromObjectSet(state, state.identifiers.getObjectsAnIdentifierCanBe('player', state));
 	}
 
 	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
 
 //	Compute state.objectMasks
 
-	var objectMask = state.identifiers_comptype.map(
-		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state, state.getObjectsForIdentifier(identifier_index))
+	var objectMask = state.identifiers.comptype.map(
+		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state, state.identifiers.getObjectsForIdentifier(identifier_index))
 	);
 
 	var all_obj = new BitVec(STRIDE_OBJ);
@@ -1987,11 +1987,11 @@ function generateMasks(state)
 
 function checkObjectsAreLayered(state)
 {
-	for (var o of state.objects)
+	for (var o of state.identifiers.objects)
 	{
 		if (o.layer === undefined)
 		{
-			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', state.identifiers_lineNumbers[o.identifier_index]);
+			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', state.identifiers.lineNumbers[o.identifier_index]);
 		}
 	}
 }
@@ -2018,13 +2018,13 @@ function twiddleMetaData(state)
 
 function tokenizeWinConditionIdentifier(state, n, lineNumber)
 {
-	const identifier_index = state.checkKnownIdentifier(n);
+	const identifier_index = state.identifiers.checkKnownIdentifier(n);
 	if (identifier_index < 0)
 	{
 		logError('Unknown object name "' + n +'" found in win condition.', lineNumber);
 		return null;
 	}
-	const identifier_comptype = state.identifiers_comptype[identifier_index];
+	const identifier_comptype = state.identifiers.comptype[identifier_index];
 	if ( (identifier_comptype != identifier_type_property) && (identifier_comptype != identifier_type_object) ) // not a property, not an object
 	{
 		logError('Invalid object name found in win condition: ' + n + 'is ' + identifier_type_as_text[identifier_comptype] + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
@@ -2062,7 +2062,7 @@ function printCell(state, cell)
 		result += direction + " ";
 		if (direction !== "...")
 		{
-			result += state.identifiers[identifier_index]+" ";
+			result += state.identifiers.names[identifier_index]+" ";
 		}
 	}
 	return result;
@@ -2346,19 +2346,19 @@ function generateSoundData(state)
 			}
 			var seed = sound[sound.length-2];
 
-			const target_index = state.checkKnownIdentifier(target);
+			const target_index = state.identifiers.checkKnownIdentifier(target);
 			if (target_index<0)
 			{
 				// TODO: we have already checked in the parser that it is a known identifier, but we added the sound anyway.
 				logError('Object "'+ target+'" not found.', lineNumber);
 				continue;
 			}
-			if (state.identifiers_comptype[target_index] == identifier_type_aggregate)
+			if (state.identifiers.comptype[target_index] == identifier_type_aggregate)
 			{
 				logError('cannot assign sound events to aggregate objects (declared with "and"), only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
 				continue;
 			}
-			if ( [identifier_type_tag, identifier_type_tagset].includes(state.identifiers_comptype[target_index]) )
+			if ( [identifier_type_tag, identifier_type_tagset].includes(state.identifiers.comptype[target_index]) )
 			{
 				logError('cannot assign sound events to tags, only to regular objects, or properties, things defined in terms of "or" ("'+target+'").', lineNumber);
 				continue;
@@ -2379,7 +2379,7 @@ function generateSoundData(state)
 				}
 			}
 
-			const targets = Array.from( state.getObjectsForIdentifier(target_index), object_index => state.objects[object_index] );
+			const targets = Array.from( state.identifiers.getObjectsForIdentifier(target_index), object_index => state.identifiers.objects[object_index] );
 
 			if (verb === 'move' || verb === 'cantmove')
 			{
@@ -2560,7 +2560,7 @@ function loadFile(str)
 	delete state.objects_spritematrix;
 	delete state.section;
 	delete state.tokenIndex;
-	delete state.visitedSections;
+	// delete state.visitedSections;
 	delete state.loops;
 	/*
 	var lines = stripComments(str);

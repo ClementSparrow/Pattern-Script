@@ -21,7 +21,7 @@ function convertLevelToString()
 			{
 				if (bitmask.get(bit))
 				{
-					objs.push(state.objects[state.idDict[bit]].name)
+					objs.push(state.identifiers.objects[state.idDict[bit]].name)
 				}
 			}
 			objs.sort();
