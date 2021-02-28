@@ -428,6 +428,42 @@ Identifiers.prototype.checkCompoundDefinition = function(identifiers, compound_n
 
 //	======== REGISTER AND CHECK =======
 
+Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_case, tagclass_identifier_index, log)
+{
+
+//	Create a new tag if it does not already exists
+	const identifier_index = this.identifiers.names.indexOf(tagname);
+	if (identifier_index < 0)
+	{
+		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]), 0, log.lineNumber)
+		this.object_set[tagclass_identifier_index].add(new_identifier_index);
+		return new_identifier_index;
+	}
+
+//	Avoid circular definitions
+	if (identifier_index === tagclass_identifier_index)
+	{
+		log.logError('You cannot define tag class '+tagname.toUpperCase()+' as an element of itself. I will ignore that.');
+		return -1;
+	}
+
+//	Reuse existing tag or tagset
+	if ( [identifier_type_tag, identifier_type_tagset].includes(this.comptype[identifier_index]) )
+	{
+		this.object_set[identifier_index].forEach(x => this.object_set[tagclass_identifier_index].add(x));
+		return identifier_index;
+	}
+	// TODO: should we allow direction keywords to appear here too?
+	// If so, wouldn't it be easier to add them to this.names in the constructor or Identifiers with a lineNumber set to -1?
+
+//	Existing identifier but not a tag!
+	const l = this.lineNumbers[identifier_index]
+	log.logError('You are trying to define a new tag named "'+tagname.toUpperCase()+'", but this name is already used for '+
+		identifier_type_as_text[this.comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.');
+	return -2;
+}
+
+
 // returns the new identifier if it was OK, -1 otherwise
 Identifiers.prototype.checkAndRegisterNewObjectIdentifier = function(candname, original_case, accept_implicit, log)
 {

@@ -156,13 +156,13 @@ PuzzleScriptParser.prototype.copy = function()
 
 PuzzleScriptParser.prototype.logError = function(msg)
 {
-	console.log(msg, this.lineNumber);
+	// console.log(msg, this.lineNumber);
 	logError(msg, this.lineNumber);
 }
 
 PuzzleScriptParser.prototype.logWarning = function(msg)
 {
-	console.log(msg, this.lineNumber);
+	// console.log(msg, this.lineNumber);
 	logWarning(msg, this.lineNumber);
 }
 
@@ -215,19 +215,21 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 {
 	// we have a name: let's see if it's valid
 
+	const current_layer = this.collisionLayers.length - 1;
 	if (candname === 'background')
 	{
-		if ( (this.collisionLayers.length > 0) && (this.collisionLayers[this.collisionLayers.length-1].length > 0) )
+		if ( (current_layer >= 0) && (this.collisionLayers[current_layer].length > 0) )
 		{
 			this.logError("Background must be in a layer by itself.");
 		}
 		this.tokenIndex = 1;
-	} else if (this.tokenIndex !== 0)
+	}
+	else if (this.tokenIndex !== 0)
 	{
 		this.logError("Background must be in a layer by itself.");
 	}
 
-	if (this.collisionLayers.length === 0)
+	if (current_layer < 0)
 	{
 		this.logError("no layers found.");
 		return false;
@@ -242,13 +244,12 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 		return false;
 	}
 
-	const ar = this.identifiers.getObjectsForIdentifier(cand_index);
 	var identifier_added = true;
-	for (const objpos of ar)
+	for (const objpos of this.identifiers.getObjectsForIdentifier(cand_index))
 	{
 		const obj = this.identifiers.objects[objpos];
 		const l = obj.layer;
-		if ( (l !== undefined) && (l != this.collisionLayers.length-1) )
+		if ( (l !== undefined) && (l != current_layer) )
 		{
 			identifier_added = false;
 			this.logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!');
@@ -256,8 +257,8 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 		}
 		else
 		{
-			this.identifiers.objects[objpos].layer = this.collisionLayers.length - 1;
-			this.collisionLayers[this.collisionLayers.length - 1].add(objpos);
+			obj.layer = current_layer;
+			this.collisionLayers[current_layer].add(objpos);
 		}
 	}
 	return identifier_added;
@@ -290,6 +291,8 @@ PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 
 
 // ====== PARSING TOKENS IN THE DIFFERENT SECTIONS OF THE FILE =======
+
+// ------ EFFECT OF BLANK LINES -------
 
 function blankLineHandle(state)
 {
@@ -443,34 +446,8 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			const tagname = tagname_match[0];
 			if ( ! this.checkIfNewTagNameIsValid(tagname) )
 				return 'ERROR';
-			const identifier_index = this.identifiers.names.indexOf(tagname);
-			if (identifier_index < 0)
-			{
-				// create a new tag
-				const new_identifier_index = this.identifiers.names.length;
-				this.identifiers.registerNewIdentifier(tagname, findOriginalCaseName(tagname, this.mixedCase), identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]), 0, this.lineNumber)
-				this.identifiers.object_set[this.current_identifier_index].add(new_identifier_index);
-			}
-			else if (identifier_index === this.current_identifier_index)
-			{
-				this.logError('You cannot define a tag class as an element of itself. Il will ignore that.');
-				return 'ERROR';
-			}
-			else if ( [identifier_type_tag, identifier_type_tagset].includes(this.identifiers.comptype[identifier_index]) )
-			{
-				// reuse existing tag or tagset
-				this.identifiers.object_set[identifier_index].forEach(x => this.identifiers.object_set[this.current_identifier_index].add(x));
-			}
-			// TODO: should we allow direction keywords to appear here too?
-			// If so, wouldn't it be easier to add them to this.identifiers.names in the constructor or PuzzleScriptParser with a lineNumber set to -1?
-			else
-			{
-				// error, even if it should never happen because the TAGS section should be the first one.
-				logError('You are trying to define a new tag named "'+tagclass_name.toUpperCase()+'", but this name is already used for '+
-					identifier_type_as_text[this.identifiers.comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.', this.lineNumber);
-				return 'ERROR';
-			}
-			return 'NAME';
+			const identifier_index = this.identifiers.checkAndRegisterNewTagValue(tagname, findOriginalCaseName(tagname, this.mixedCase), this.current_identifier_index, this);
+			return (identifier_index < 0) ? 'ERROR' : 'NAME';
 		}
 		default:
 		{
@@ -629,7 +606,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					var o = this.identifiers.objects[object_index];
 					if ( (o.identifier_index !== this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
 						continue; // do not change the spritematrix of an object that has been explicitely defined unless we're currently explicitly defining it.
-					o.spritematrix = Array.from(this.objects_spritematrix);
+					o.spritematrix = Array.from(spritematrix);
 				}
 			}
 
