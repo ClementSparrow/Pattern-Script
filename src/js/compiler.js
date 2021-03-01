@@ -13,41 +13,30 @@
 function isColor(str)
 {
 	str = str.trim();
-	if (str in colorPalettes.arnecolors)
-		return true;
-	if (/^#([0-9A-F]{3}){1,2}$/i.test(str))
-		return true;
-	if (str === "transparent")
-		return true;
-	return false;
+	return ( (str in colorPalettes.arnecolors) || (/^#([0-9A-F]{3}){1,2}$/i.test(str)) || (str === "transparent") );
 }
 
-function colorToHex(palette,str) {
+function colorToHex(palette, str)
+{
 	str = str.trim();
-	if (str in palette) {
-		return palette[str];
-	}
-
-	return str;
+	return (str in palette) ? palette[str] : str;
 }
 
 
-function generateSpriteMatrix(dat) {
-
-	var result = [];
-	for (var i = 0; i < dat.length; i++) {
-		var row = [];
-		for (var j = 0; j < dat.length; j++) {
-			var ch = dat[i].charAt(j);
-			if (ch == '.') {
-				row.push(-1);
-			} else {
-				row.push(ch);
+function generateSpriteMatrix(dat)
+{
+	return dat.map(
+		function(line)
+		{
+			var row = [];
+			for (var j = 0; j < dat.length; j++)
+			{
+				var ch = line.charAt(j);
+				row.push( (ch == '.') ? -1 : ch );
 			}
+			return row;
 		}
-		result.push(row);
-	}
-	return result;
+	);
 }
 
 var debugMode;
@@ -204,14 +193,14 @@ function generateExtraMembers(state)
 		logError("you have to define something to be the background");
 		state.background_index = state.idDict[0];
 	}
-	else if (state.identifiers.comptype[background_identifier_index] == identifier_type_aggregate)
+	else if ( ! [identifier_type_object, identifier_type_property].includes(state.identifiers.comptype[background_identifier_index]) )
 	{
 		logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
 		state.background_index = state.idDict[0];
 	}
 	else
 	{
-		state.background_index = state.identifiers.getObjectsAnIdentifierCanBe('background', state).values().next().value;
+		state.background_index = state.identifiers.getObjectFromIdentifier(background_identifier_index);
 	}
 	state.backgroundid = state.identifiers.objects[state.background_index].id
 	state.backgroundlayer = state.identifiers.objects[state.background_index].layer
@@ -391,7 +380,7 @@ function findIndexAfterToken(str, tokens, tokenIndex)
 //read initial directions
 // syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
 // (I use the ! here to denote something that is recognized by the parser but wrong)
-function parseRuleDirections(state, tokens, lineNumber)
+function parseRuleDirections(identifiers, tokens, lineNumber)
 {
 	var directions = [];
 	var tag_classes = new Set();
@@ -437,10 +426,10 @@ function parseRuleDirections(state, tokens, lineNumber)
 			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
 
 		}
-		else if (state.identifiers.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
+		else if (identifiers.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
 		{
-			const identifier_index = state.identifiers.names.indexOf(token);
-			const identifier_type =  state.identifiers.comptype[identifier_index];
+			const identifier_index = identifiers.names.indexOf(token);
+			const identifier_type =  identifiers.comptype[identifier_index];
 			switch (identifier_type)
 			{
 				case identifier_type_tagset:
@@ -525,7 +514,7 @@ function parseRuleString(rule, state, curRules)
 		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
 	}
 
-	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state, tokens, lineNumber);
+	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state.identifiers, tokens, lineNumber);
 
 	var groupNumber = lineNumber;
 	if (has_plus)
@@ -797,14 +786,14 @@ function* generateDirections(directions)
 	}
 }
 
-function* generateRulesExpansions(state, rules)
+function* generateRulesExpansions(identifiers, rules)
 {
 	for (const rule of rules)
 	{
 		const directions = new Set( generateDirections(rule.directions) );
 		const parameter_sets = Array.from(
 			[...rule.tag_classes, ...rule.parameter_properties],
-			identifier_index => Array.from(state.identifiers.object_set[identifier_index])
+			identifier_index => Array.from(identifiers.object_set[identifier_index])
 		);
 		for (const parameters of cartesian_product(directions, ...parameter_sets))
 		{
@@ -813,7 +802,7 @@ function* generateRulesExpansions(state, rules)
 	}
 }
 
-function expandRule(state, original_rule, dir, ...parameters)
+function expandRule(identifiers, original_rule, dir, ...parameters)
 {
 	var rule = deepCloneRule(original_rule);
 	// Also clone the non-directional rule parameters (shallow copy because they should not be modified)
@@ -829,13 +818,13 @@ function expandRule(state, original_rule, dir, ...parameters)
 //	Optional: replace up/left rules with their down/right equivalents
 	rewriteUpLeftRules(rule);
 //	Replace mappings of the parameters with what they map to.
-	applyRuleParamatersMappings(state, rule);
+	applyRuleParamatersMappings(identifiers, rule);
 //	Replace aggregates and synonyms with what they mean
-	atomizeAggregatesAndSynonyms(state, rule);
+	atomizeAggregatesAndSynonyms(identifiers, rule);
 	return rule;
 }
 
-function applyRuleParamatersMappings(state, rule)
+function applyRuleParamatersMappings(identifiers, rule)
 {
 	for (const hs of [rule.lhs, rule.rhs])
 	{
@@ -846,9 +835,9 @@ function applyRuleParamatersMappings(state, rule)
 				for (var objcond of cell)
 				{
 					const identifier_index = objcond[1]
-					if (state.identifiers.comptype[identifier_index] !== identifier_type_mapping)
+					if (identifiers.comptype[identifier_index] !== identifier_type_mapping)
 						continue;
-					const [mapping_parameters, mapping_startset, mapping_endset] = state.identifiers.object_set[identifier_index];
+					const [mapping_parameters, mapping_startset, mapping_endset] = identifiers.object_set[identifier_index];
 					const mapping_from = Array.from(
 						mapping_parameters,
 						function (ii)
@@ -865,8 +854,8 @@ function applyRuleParamatersMappings(state, rule)
 					var mapping_index = 0;mapping_startset.indexOf(mapping_from);
 					while (mapping_startset[mapping_index].some( (x,i) => (x !== mapping_from[i]) ))
 						mapping_index++;
-					console.log('id:', identifier_index, state.identifiers.names[identifier_index], 'objects:', state.identifiers.object_set[identifier_index], mapping_from, mapping_index)
-					console.log(state.identifiers)
+					console.log('id:', identifier_index, identifiers.names[identifier_index], 'objects:', identifiers.object_set[identifier_index], mapping_from, mapping_index)
+					console.log(identifiers)
 					console.assert(mapping_index >= 0);
 					objcond[1] = mapping_endset[mapping_index];
 				}
@@ -896,13 +885,13 @@ function rulesToArray(state)
 	state.loops = loops;
 
 	//now expand out rules with multiple directions
-	const rules2 = Array.from( generateRulesExpansions(state, rules), rule_expansion => expandRule(state, ...rule_expansion) );
+	const rules2 = Array.from( generateRulesExpansions(state.identifiers, rules), rule_expansion => expandRule(state.identifiers, ...rule_expansion) );
 
 	var rules3 = [];
 	//expand property rules
 	for (const rule of rules2)
 	{
-		rules3 = rules3.concat(concretizeMovingRule(state, rule, rule.lineNumber));
+		rules3 = rules3.concat(concretizeMovingRule(rule, rule.lineNumber));
 	}
 
 	var rules4 = [];
@@ -949,14 +938,14 @@ function rewriteUpLeftRules(rule)
 	}
 }
 
-function getPropertiesFromCell(state, cell)
+function getPropertiesFromCell(identifiers, cell)
 {
 	var result = [];
 	for (const [dir, identifier_index] of cell)
 	{
 		if (dir == "random")
 			continue;
-		if (state.identifiers.comptype[identifier_index] === identifier_type_property)
+		if (identifiers.comptype[identifier_index] === identifier_type_property)
 		{
 			result.push(identifier_index);
 		}
@@ -1004,14 +993,14 @@ function concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, 
 }
 
 // TODO: this function does something very similar to what atomizeCellAggregatesAndSynonyms does, so the two functions should be merged
-function expandNoPrefixedProperties(state, cell)
+function expandNoPrefixedProperties(identifiers, cell)
 {
 	var expanded = [];
 	for (const [dir, identifier_index] of cell)
 	{
-		if ( (dir === 'no') && (state.identifiers.comptype[identifier_index] === identifier_type_property) )
+		if ( (dir === 'no') && (identifiers.comptype[identifier_index] === identifier_type_property) )
 		{
-			expanded.push(...Array.from(state.identifiers.getObjectsForIdentifier(identifier_index), object_index => [dir, state.identifiers.objects[object_index].identifier_index] ) );
+			expanded.push(...Array.from(identifiers.getObjectsForIdentifier(identifier_index), object_index => [dir, identifiers.objects[object_index].identifier_index] ) );
 		}
 		else
 		{
@@ -1021,11 +1010,11 @@ function expandNoPrefixedProperties(state, cell)
 	return expanded;
 }
 
-function expandNoPrefixedPropertiesForCellRow(state, cellrows)
+function expandNoPrefixedPropertiesForCellRow(identifiers, cellrows)
 {
 	for (const [i, cur_cellrow] of cellrows.entries())
 	{
-		cellrows[i] = cur_cellrow.map( cur_cell => expandNoPrefixedProperties(state, cur_cell) )
+		cellrows[i] = cur_cellrow.map( cur_cell => expandNoPrefixedProperties(identifiers, cur_cell) )
 	}
 }
 
@@ -1045,8 +1034,8 @@ function expandNoPrefixedPropertiesForCellRow(state, cellrows)
 function concretizePropertyRule(state, rule, lineNumber)
 {	
 	//step 1, rephrase rule to change "no flying" to "no cat no bat"
-	expandNoPrefixedPropertiesForCellRow(state, rule.lhs);
-	expandNoPrefixedPropertiesForCellRow(state, rule.rhs);
+	expandNoPrefixedPropertiesForCellRow(state.identifiers, rule.lhs);
+	expandNoPrefixedPropertiesForCellRow(state.identifiers, rule.rhs);
 
 	//are there any properties we could avoid processing?
 	// e.g. [> player | movable] -> [> player | > movable],
@@ -1061,8 +1050,8 @@ function concretizePropertyRule(state, rule, lineNumber)
 		var row_r = rule.rhs[j];
 		for (var k = 0; k < row_r.length; k++)
 		{
-			const properties_l = getPropertiesFromCell(state, row_l[k]);
-			const properties_r = getPropertiesFromCell(state, row_r[k]);
+			const properties_l = getPropertiesFromCell(state.identifiers, row_l[k]);
+			const properties_r = getPropertiesFromCell(state.identifiers, row_r[k]);
 			for (const property of properties_r)
 			{
 				if (properties_l.indexOf(property) == -1)
@@ -1090,7 +1079,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 				const cur_rulerow = cur_rule.lhs[j];
 				for (var k = 0; k < cur_rulerow.length && !shouldremove; k++)
 				{
-					for (const property of getPropertiesFromCell(state, cur_rulerow[k]))
+					for (const property of getPropertiesFromCell(state.identifiers, cur_rulerow[k]))
 					{
 						// ambiguousProperties[property] !== true means that either the property does not appear on the RHS
 						// or it will be disambiguated because whenever it appears in the RHS it also appears in the matching
@@ -1187,7 +1176,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 		{
 			for (const cur_cell of cur_rulerow)
 			{
-				for (const prop of getPropertiesFromCell(state, cur_cell))
+				for (const prop of getPropertiesFromCell(state.identifiers, cur_cell))
 				{
 					if (ambiguousProperties.hasOwnProperty(prop))
 					{
@@ -1208,7 +1197,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 }
 
 
-function concretizeMovingRule(state, rule, lineNumber) // a better name for this function would be concretizeDirectionAggregatesInRule?
+function concretizeMovingRule(rule, lineNumber) // a better name for this function would be concretizeDirectionAggregatesInRule?
 {
 	var result = [rule];
 
@@ -1361,24 +1350,24 @@ function concretizeMovingRule(state, rule, lineNumber) // a better name for this
 // replaces aggregates and synonyms appearing in a rule by the list of all objects they are aggregates/synonyms of, i.e. objects they must be.
 // each new objects has the same motion/action words than the replaced one.
 // -> a possible generalization could be to use more qualifier words beyond motion/action words, and then replace the aggregate/synonym by a list, propagating the qualifier to the objects of the list that support them.
-function atomizeAggregatesAndSynonyms(state, rule)
+function atomizeAggregatesAndSynonyms(identifiers, rule)
 {
-	atomizeHSAggregatesAndSynonyms(state, rule.lhs, rule.lineNumber)
-	atomizeHSAggregatesAndSynonyms(state, rule.rhs, rule.lineNumber)
+	atomizeHSAggregatesAndSynonyms(identifiers, rule.lhs, rule.lineNumber)
+	atomizeHSAggregatesAndSynonyms(identifiers, rule.rhs, rule.lineNumber)
 }
 
-function atomizeHSAggregatesAndSynonyms(state, hs, lineNumber)
+function atomizeHSAggregatesAndSynonyms(identifiers, hs, lineNumber)
 {
 	for (const cellrow of hs)
 	{
 		for (const cell of cellrow)
 		{
-			atomizeCellAggregatesAndSynonyms(state, cell, lineNumber);
+			atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber);
 		}
 	}
 }
 
-function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
+function atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 1)
 	{
@@ -1387,7 +1376,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 		if (dir === '...')
 			continue;
 
-		const identifier_comptype = state.identifiers.comptype[c];
+		const identifier_comptype = identifiers.comptype[c];
 		if (identifier_comptype != identifier_type_object) // not an object nor the synonym of an object
 		{
 			if (identifier_comptype != identifier_type_aggregate) // not an aggregate or the synonym of an aggregate
@@ -1399,7 +1388,7 @@ function atomizeCellAggregatesAndSynonyms(state, cell, lineNumber)
 			}
 		}
 
-		const equivs = Array.from( state.identifiers.getObjectsForIdentifier(c), p => [dir, state.identifiers.objects[p].identifier_index] );
+		const equivs = Array.from( identifiers.getObjectsForIdentifier(c), p => [dir, identifiers.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
 		i += equivs.length-1;
 	}
@@ -1951,31 +1940,32 @@ function generateRigidGroupList(state)
 
 
 
-function makeMaskFromObjectSet(state, objects)
+function makeMaskFromObjectSet(identifiers, objects)
 {
-	return makeMaskFromGlyph( Array.from( objects, object_pos => state.identifiers.objects[object_pos].id ) );
+	return makeMaskFromGlyph( Array.from( objects, object_pos => identifiers.objects[object_pos].id ) );
 }
 
 
 /* Computes new attributes for the state: playerMask, layerMasks, objectMask. */
 function generateMasks(state)
 {
-	if (state.identifiers.names.indexOf('player') < 0)
+	const player_identifier_index = state.identifiers.names.indexOf('player');
+	if (player_identifier_index < 0)
 	{
 		logErrorNoLine("error, didn't find any object called player, either in the objects section, or the legends section. there must be a player!");
 		state.playerMask = new BitVec(STRIDE_OBJ);
 	}
 	else
 	{
-		state.playerMask = makeMaskFromObjectSet(state, state.identifiers.getObjectsAnIdentifierCanBe('player', state));
+		state.playerMask = makeMaskFromObjectSet(state.identifiers, state.identifiers.getObjectsForIdentifier(player_identifier_index));
 	}
 
-	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state, layer) )
+	state.layerMasks = state.collisionLayers.map( layer => makeMaskFromObjectSet(state.identifiers, layer) )
 
 //	Compute state.objectMasks
 
 	var objectMask = state.identifiers.comptype.map(
-		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state, state.identifiers.getObjectsForIdentifier(identifier_index))
+		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state.identifiers, state.identifiers.getObjectsForIdentifier(identifier_index))
 	);
 
 	var all_obj = new BitVec(STRIDE_OBJ);
@@ -1985,13 +1975,13 @@ function generateMasks(state)
 	state.objectMasks = objectMask;
 }
 
-function checkObjectsAreLayered(state)
+function checkObjectsAreLayered(identifiers)
 {
-	for (var o of state.identifiers.objects)
+	for (var o of identifiers.objects)
 	{
 		if (o.layer === undefined)
 		{
-			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', state.identifiers.lineNumbers[o.identifier_index]);
+			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', identifiers.lineNumbers[o.identifier_index]);
 		}
 	}
 }
@@ -2054,7 +2044,7 @@ function processWinConditions(state)
 	state.winconditions = newconditions;
 }
 
-function printCell(state, cell)
+function printCell(identifiers, cell)
 {
 	var result = '';
 	for (const [direction, identifier_index] of cell)
@@ -2062,29 +2052,18 @@ function printCell(state, cell)
 		result += direction + " ";
 		if (direction !== "...")
 		{
-			result += state.identifiers.names[identifier_index]+" ";
+			result += identifiers.names[identifier_index]+" ";
 		}
 	}
 	return result;
 }
 
-function printCellRow(state, cellRow)
+function printCellRow(identifiers, cellRow)
 {
-	return '[ ' + cellRow.map(c => printCell(state,c)).join('| ') + '] ';
-	// var result = "[ ";
-	// for (const [i, cell] of cellRow.entries())
-	// {
-	// 	if (i > 0)
-	// 	{
-	// 		result += "| ";
-	// 	}
-	// 	result += printCell(cellRow[i])
-	// }
-	// result +="] ";
-	// return result;
+	return '[ ' + cellRow.map(c => printCell(identifiers,c)).join('| ') + '] ';
 }
 
-function cacheRuleStringRep(state, rule)
+function cacheRuleStringRep(identifiers, rule)
 {
 	var result='('+makeLinkToLine(rule.lineNumber, rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
 	if (rule.rigid) {
@@ -2097,11 +2076,11 @@ function cacheRuleStringRep(state, rule)
 		result = "LATE "+result+" ";
 	}
 	for (const cellRow of rule.lhs) {
-		result = result + printCellRow(state, cellRow);
+		result = result + printCellRow(identifiers, cellRow);
 	}
 	result = result + "-> ";
 	for (const cellRow of rule.rhs) {
-		result = result + printCellRow(state, cellRow);
+		result = result + printCellRow(identifiers, cellRow);
 	}
 	for (const command of rule.commands)
 	{
@@ -2115,23 +2094,26 @@ function cacheRuleStringRep(state, rule)
 	rule.stringRep = result;
 }
 
-function cacheAllRuleNames(state)
+function cacheAllRuleNames(identifiers)
 {
 	for (const rule of state.rules)
 	{
-		cacheRuleStringRep(state, rule);
+		cacheRuleStringRep(identifiers, rule);
 	}
 }
 
-function printRules(state) {
+function printRules(state)
+{
 	var output = "";
 	var loopIndex = 0;
 	var loopEnd = -1;
 	var discardcount = 0;
-	for (var i=0;i<state.rules.length;i++) {
-		var rule = state.rules[i];
-		if (loopIndex < state.loops.length) {
-			if (state.loops[loopIndex][0] < rule.lineNumber) {
+	for (const rule of state.rules)
+	{
+		if (loopIndex < state.loops.length)
+		{
+			if (state.loops[loopIndex][0] < rule.lineNumber)
+			{
 				output += "STARTLOOP<br>";
 				loopIndex++;
 				if (loopIndex < state.loops.length) { // don't die with mismatched loops
@@ -2267,8 +2249,9 @@ var soundMaskedEvents =["create","destroy","move","cantmove","action"];
 var soundVerbs = soundEvents.concat(soundMaskedEvents);
 
 
-function validSeed (seed ) {
-	return /^\s*\d+\s*$/.exec(seed)!==null;
+function validSeed (seed)
+{
+	return /^\s*\d+\s*$/.exec(seed) !== null;
 }
 
 
@@ -2490,7 +2473,7 @@ function formatHomePage(state)
 	}
 }
 
-var MAX_ERRORS=5;
+const MAX_ERRORS=5;
 function loadFile(str)
 {
 
@@ -2524,7 +2507,7 @@ function loadFile(str)
 	levelsToArray(state);
 	rulesToArray(state);
 
-	cacheAllRuleNames(state);
+	cacheAllRuleNames(state.identifiers);
 
 	removeDuplicateRules(state);
 
@@ -2545,7 +2528,7 @@ function loadFile(str)
 	generateRigidGroupList(state);
 
 	processWinConditions(state);
-	checkObjectsAreLayered(state);
+	checkObjectsAreLayered(state.identifiers);
 
 	generateLoopPoints(state);
 
@@ -2607,7 +2590,7 @@ function compile(command,text,randomseed) {
 	}
 
 	if (state && state.levels && state.levels.length===0){	
-		logError('No levels found.  Add some levels!',undefined,true);
+		logError('No levels found. Add some levels!', undefined, true);
 	}
 
 	if (errorCount>MAX_ERRORS) {
@@ -2647,7 +2630,8 @@ function compile(command,text,randomseed) {
 
 
 
-function qualifyURL(url) {
+function qualifyURL(url)
+{
 	var a = document.createElement('a');
 	a.href = url;
 	return a.href;

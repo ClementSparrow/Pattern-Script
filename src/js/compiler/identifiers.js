@@ -55,15 +55,15 @@ Identifiers.prototype.copy = function()
 
 //  ======= ACCESS THE DATA =======
 
+// Use this when you know there is a single object associated to that identifier, or you just want the first of the objects.
+Identifiers.prototype.getObjectFromIdentifier = function(identifier_index)
+{
+	return this.object_set[identifier_index].values().next().value;
+}
+
 Identifiers.prototype.getObjectsForIdentifier = function(identifier_index)
 {
 	return this.object_set[identifier_index];
-}
-
-Identifiers.prototype.getObjectsAnIdentifierCanBe = function(identifier, log)
-{
-	const identifier_index = this.checkKnownIdentifier(identifier, log);
-	return this.getObjectsForIdentifier(identifier_index);
 }
 
 
