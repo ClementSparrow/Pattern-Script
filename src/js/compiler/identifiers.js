@@ -432,10 +432,10 @@ Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_c
 {
 
 //	Create a new tag if it does not already exists
-	const identifier_index = this.identifiers.names.indexOf(tagname);
+	const identifier_index = this.names.indexOf(tagname);
 	if (identifier_index < 0)
 	{
-		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([new_identifier_index]), 0, log.lineNumber)
+		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([this.names.length]), 0, log.lineNumber)
 		this.object_set[tagclass_identifier_index].add(new_identifier_index);
 		return new_identifier_index;
 	}

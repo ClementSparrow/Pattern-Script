@@ -2094,11 +2094,11 @@ function cacheRuleStringRep(identifiers, rule)
 	rule.stringRep = result;
 }
 
-function cacheAllRuleNames(identifiers)
+function cacheAllRuleNames(state)
 {
 	for (const rule of state.rules)
 	{
-		cacheRuleStringRep(identifiers, rule);
+		cacheRuleStringRep(state.identifiers, rule);
 	}
 }
 
@@ -2507,7 +2507,7 @@ function loadFile(str)
 	levelsToArray(state);
 	rulesToArray(state);
 
-	cacheAllRuleNames(state.identifiers);
+	cacheAllRuleNames(state);
 
 	removeDuplicateRules(state);
 
