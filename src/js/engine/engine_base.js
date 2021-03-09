@@ -277,6 +277,7 @@ function tryDeactivateYoutube(){
 	}
 }
 
+var ifrm;
 function tryActivateYoutube(){
 	var youtubeFrame = document.getElementById("youtubeFrame");
 	if (youtubeFrame){

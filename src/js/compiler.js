@@ -380,7 +380,7 @@ function findIndexAfterToken(str, tokens, tokenIndex)
 //read initial directions
 // syntax is ("+")? (!"+"|"direction"|"late"|"rigid"|"random")+  ("["), where 'direction' is itself (directionaggregate|simpleAbsoluteDirection|!simpleRelativeDirection)
 // (I use the ! here to denote something that is recognized by the parser but wrong)
-function parseRuleDirections(identifiers, tokens, lineNumber)
+function parseRuleDirections(state, tokens, lineNumber)
 {
 	var directions = [];
 	var tag_classes = new Set();
@@ -426,10 +426,10 @@ function parseRuleDirections(identifiers, tokens, lineNumber)
 			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
 
 		}
-		else if (identifiers.checkKnownIdentifier(token)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
+		else if (state.identifiers.checkIdentifierIsKnownWithType(token, [identifier_type_tagset, identifier_type_property], false, state)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
 		{
-			const identifier_index = identifiers.names.indexOf(token);
-			const identifier_type =  identifiers.comptype[identifier_index];
+			const identifier_index = state.identifiers.names.indexOf(token);
+			const identifier_type =  state.identifiers.comptype[identifier_index];
 			switch (identifier_type)
 			{
 				case identifier_type_tagset:
@@ -514,7 +514,7 @@ function parseRuleString(rule, state, curRules)
 		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
 	}
 
-	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state.identifiers, tokens, lineNumber);
+	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state, tokens, lineNumber);
 
 	var groupNumber = lineNumber;
 	if (has_plus)
@@ -600,14 +600,15 @@ function parseRuleString(rule, state, curRules)
 			} else {
 				rhs = true;
 			}
-		} else if (state.identifiers.checkKnownIdentifierOrFunction(token, token, state) >= 0) {
+		} else if (state.identifiers.checkKnownIdentifier(token, true, state) >= 0) { // TODO: we need to check if it can be an object identifier without triggering errors
+			                                                                 // especially, it should reject command keywords without loging an error...
 			if (!incellrow) {
 				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 			}
 			else if (curobjcond.length == 0) {
 				curobjcond.push('');
 			}
-			curobjcond.push(state.identifiers.checkKnownIdentifierOrFunction(token, token, state)); // TODO: we should not search it twice...
+			curobjcond.push(state.identifiers.checkKnownIdentifier(token, true, state)); // TODO: we should not search it twice...
 			should_close_objcond = true;
 		} else if (token === '...') {
 			if (!incellrow) {
@@ -765,6 +766,10 @@ function deepCloneRule(rule)
 		lineNumber: rule.lineNumber,
 		groupNumber: rule.groupNumber,
 		direction: rule.direction,
+		tag_classes: rule.tag_classes,
+		tag_classes_replacements: rule.tag_classes_replacements,
+		parameter_properties: rule.parameter_properties,
+		parameter_properties_replacements: rule.parameter_properties_replacements,
 		late: rule.late,
 		rigid: rule.rigid,
 		randomRule:rule.randomRule,
@@ -784,6 +789,15 @@ function* generateDirections(directions)
 			yield dir;
 		}
 	}
+}
+
+
+function* cartesian_product(head, ...tail)
+{
+	const remainder = tail.length > 0 ? cartesian_product(...tail) : [[]];
+	for (let r of remainder)
+		for (let h of head)
+			yield [h, ...r];
 }
 
 function* generateRulesExpansions(identifiers, rules)
@@ -834,30 +848,27 @@ function applyRuleParamatersMappings(identifiers, rule)
 			{
 				for (var objcond of cell)
 				{
-					const identifier_index = objcond[1]
-					if (identifiers.comptype[identifier_index] !== identifier_type_mapping)
-						continue;
-					const [mapping_parameters, mapping_startset, mapping_endset] = identifiers.object_set[identifier_index];
-					const mapping_from = Array.from(
-						mapping_parameters,
-						function (ii)
-						{
-							const p = rule.tag_classes.indexOf(ii);
-							if (p >= 0)
-								return rule.tag_classes_replacements[p];
-							const p2 = rule.parameter_properties.indexOf(ii);
-							if (p2 >= 0)
-								return rule.parameter_properties_replacements[p2];
-							return ii;
-						}
-					);
-					var mapping_index = 0;mapping_startset.indexOf(mapping_from);
-					while (mapping_startset[mapping_index].some( (x,i) => (x !== mapping_from[i]) ))
-						mapping_index++;
-					console.log('id:', identifier_index, identifiers.names[identifier_index], 'objects:', identifiers.object_set[identifier_index], mapping_from, mapping_index)
-					console.log(identifiers)
-					console.assert(mapping_index >= 0);
-					objcond[1] = mapping_endset[mapping_index];
+					var identifier_index = objcond[1]
+					if (identifier_index === '...')
+						continue
+					for (var tag_position=1; tag_position < identifiers.tag_mappings[identifier_index].length; tag_position++)
+					{
+						const mapping_index = identifiers.tag_mappings[identifier_index][tag_position]
+						if (mapping_index === null)
+							continue
+						const mapping = identifiers.mappings[mapping_index]
+						const tagclass_parameter_index = rule.tag_classes.indexOf(mapping.from)
+						if (tagclass_parameter_index < 0)
+							continue;
+						const replaced_tag = rule.tag_classes_replacements[tagclass_parameter_index]
+						identifier_index = mapping.toset[ mapping.fromset.indexOf(replaced_tag) ]
+					}
+					const property_parameter_index = rule.parameter_properties.indexOf(identifier_index)
+					if (property_parameter_index >= 0)
+					{
+						identifier_index = rule.parameter_properties_replacements[property_parameter_index]
+					}
+					objcond[1] = identifier_index;
 				}
 			}
 		}
@@ -1781,8 +1792,6 @@ function collapseRules(groups)
 // TODO: this is a syntaxic issue that should/could be dealt with much sooner?
 function ruleGroupRandomnessTest(ruleGroup)
 {
-	// if (ruleGroup.length === 0) // TODO: as long as ruleGroupRandomnessTest is only called by arrangeRulesByGroupNumber{Aux}, this test cannot fail
-	// 	return;
 	const firstLineNumber = ruleGroup[0].lineNumber;
 	for (var i=1;i<ruleGroup.length;i++)
 	{
@@ -1798,8 +1807,6 @@ function ruleGroupRandomnessTest(ruleGroup)
 
 function ruleGroupDiscardOverlappingTest(ruleGroup)
 {
-	// if (ruleGroup.length === 0) // TODO: as long as ruleGroupDiscardOverlappingTest is only called by arrangeRulesByGroupNumber{Aux}, this test cannot fail
-	// 	return;
 	var firstLineNumber = ruleGroup[0].lineNumber;
 	var allbad = true;
 	var example = null;
@@ -2008,7 +2015,7 @@ function twiddleMetaData(state)
 
 function tokenizeWinConditionIdentifier(state, n, lineNumber)
 {
-	const identifier_index = state.identifiers.checkKnownIdentifier(n);
+	const identifier_index = state.identifiers.checkKnownIdentifier(n, false, state);
 	if (identifier_index < 0)
 	{
 		logError('Unknown object name "' + n +'" found in win condition.', lineNumber);
@@ -2066,6 +2073,14 @@ function printCellRow(identifiers, cellRow)
 function cacheRuleStringRep(identifiers, rule)
 {
 	var result='('+makeLinkToLine(rule.lineNumber, rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
+	if (rule.tag_classes.length > 0)
+	{
+		result += rule.tag_classes.map( (tc_ii, i) => (identifiers.names[tc_ii].toUpperCase()+'='+identifiers.names[rule.tag_classes_replacements[i]]) ).join(', ') + ' '
+	}
+	if (rule.parameter_properties.length > 0)
+	{
+		result += rule.tag_classes.map( (pp_ii, i) => (identifiers.names[pp_ii].toUpperCase()+'='+identifiers.names[rule.parameter_properties_replacements[i]]) ).join(', ') + ' '
+	}
 	if (rule.rigid) {
 		result = "RIGID "+result+" ";
 	}
@@ -2329,7 +2344,7 @@ function generateSoundData(state)
 			}
 			var seed = sound[sound.length-2];
 
-			const target_index = state.identifiers.checkKnownIdentifier(target);
+			const target_index = state.identifiers.checkKnownIdentifier(target, false, state);
 			if (target_index<0)
 			{
 				// TODO: we have already checked in the parser that it is a known identifier, but we added the sound anyway.
@@ -2554,8 +2569,8 @@ function loadFile(str)
 	return state;
 }
 
-var ifrm;
-function compile(command,text,randomseed) {
+function compile(command, text, randomseed)
+{
 	matchCache={};
 	forceRegenImages=true;
 	if (command===undefined) {

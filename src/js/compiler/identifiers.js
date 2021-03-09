@@ -1,6 +1,10 @@
 
 //	======= TYPES OF IDENTIFIERS =======
 
+// Aggregates are "obj1 and obj2" that can appear in the definition of a legend character.
+// Properties are "obj1 or obj2".
+// Synonyms are "new_obj = old_obj" and can therefore be used either as Properties or Aggregates.
+
 var identifier_type_as_text = [ 'an object', 'an object synonym', 'an aggregate', 'a property', 'a tag', 'a tag class', 'a mapping' ];
 const [
 	identifier_type_object, identifier_type_synonym, identifier_type_aggregate, identifier_type_property,
@@ -15,15 +19,20 @@ const [
 function Identifiers()
 {
 	this.objects = []
+	this.mappings = []
 
-	// struct of array rather than array of struct
+//	Information about the identifiers (struct of array rather than array of struct)
 	this.names = [] // all the identifiers defined in the game.
 	this.deftype = [] // their type when defined
 	this.comptype = [] // their type in the end (synonyms have identifier_type_synonym for deftype but the comptype of the thing they are synonym of)
 	this.lineNumbers = [] // the number of the line in which the identifier is first defined
 	this.implicit = [] // 0 if the identifier has been explicitely defined, 1 if defined because of the definition of a tag class, 2 if defined because used.
 	this.original_case_names = [] // retains the original case of an identifier so that the editor can suggest it as autocompletion.
+
+//	Data for specific types of identifiers
 	this.object_set = [] // the objects that the identifier can represent, as a set of indexes in this.objects (or in this.identifiers, for tag sets).
+	this.tag_mappings = [] // an array of positions in this.mappings (or null), one mapping for the basename (if it's declared as a mapping) and one mapping for each tag.
+	                     // the structure thus also allow to iterate on tags and know their domain of possible values (as the mapping's fromset).
 }
 
 Identifiers.prototype.copy = function()
@@ -34,10 +43,15 @@ Identifiers.prototype.copy = function()
 			name: o.name,
 			identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
-			// lineNumber : o.lineNumber,
 			spritematrix: o.spritematrix.concat([]),
 			layer: o.layer
 		}))
+	result.mappings = Array.from(this.mappings, (m) => ({
+		from: Array.from(m.from),
+		identifier_index: m.identifier_index,
+		fromset: Array.from(m.fromset),
+		toset: Array.from(m.toset)
+	}));
 
 	result.names = Array.from(this.names)
 	result.deftype = Array.from(this.deftype)
@@ -45,10 +59,14 @@ Identifiers.prototype.copy = function()
 	result.lineNumbers = Array.from(this.lineNumbers)
 	result.implicit = Array.from(this.implicit)
 	result.original_case_names = Array.from(this.original_case_names)
-	result.object_set = this.object_set.map( objects => (objects instanceof Set) ? new Set(objects) : Array.from(objects) )
+
+	result.object_set = this.object_set.map( objects => new Set(objects) )
+	result.tag_mappings = Array.from(this.tag_mappings, mappings => Array.from(mappings))
 
 	return result;
 }
+
+
 
 
 
@@ -75,7 +93,7 @@ Identifiers.prototype.getObjectsForIdentifier = function(identifier_index)
 //	======= REGISTER IDENTIFIERS =======
 
 
-Identifiers.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects, implicit, lineNumber)
+Identifiers.prototype.registerNewIdentifier = function(identifier, original_case, deftype, comptype, objects, tag_mappings, implicit, lineNumber)
 {
 	const result = this.names.length;
 	this.original_case_names.push( original_case );
@@ -85,6 +103,7 @@ Identifiers.prototype.registerNewIdentifier = function(identifier, original_case
 	this.object_set.push( objects )
 	this.lineNumbers.push( lineNumber )
 	this.implicit.push( implicit )
+	this.tag_mappings.push( tag_mappings )
 	return result;
 }
 
@@ -97,10 +116,10 @@ Identifiers.prototype.registerNewObject = function(identifier, original_case, im
 		colors: [],
 		spritematrix: []
 	});
-	return this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), implicit, lineNumber)
+	return this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), [], implicit, lineNumber)
 }
 
-Identifiers.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index, lineNumber)
+Identifiers.prototype.registerNewSynonym = function(identifier, original_case, old_identifier_index, tag_mappings, lineNumber)
 {
 	return this.registerNewIdentifier(
 		identifier,
@@ -108,14 +127,101 @@ Identifiers.prototype.registerNewSynonym = function(identifier, original_case, o
 		identifier_type_synonym,
 		this.comptype[old_identifier_index],
 		new Set(this.object_set[old_identifier_index]),
+		tag_mappings,
 		0,
 		lineNumber
 	);
 }
 
-Identifiers.prototype.registerNewLegend = function(new_identifier, original_case, objects, type, implicit, lineNumber) // type should be 2 for aggregates and 3 for properties
+Identifiers.prototype.registerNewLegend = function(new_identifier, original_case, objects, tag_mappings, type, implicit, lineNumber) // type should be identifier_type_{aggregate,property}
 {
-	return this.registerNewIdentifier(new_identifier, original_case, type, type, objects, implicit, lineNumber);
+	return this.registerNewIdentifier(new_identifier, original_case, type, type, objects, tag_mappings, implicit, lineNumber);
+}
+
+
+Identifiers.prototype.registerNewMapping = function(identifier, original_case, fromset_identifier_index, objects, implicit, lineNumber)
+{
+	const mapping_index = this.mappings.length;
+	result = this.registerNewIdentifier(identifier, original_case, identifier_type_mapping, identifier_type_mapping, objects, [mapping_index], implicit, lineNumber);
+	this.mappings.push({
+		from: fromset_identifier_index,
+		identifier_index: result,
+		fromset: [],
+		toset: []
+	});
+	return result;
+}
+
+
+
+
+
+
+//	======= EXPAND TAGS AND VISIT EXPANDED OBJECTS ======
+
+/* The methods in this section visit all possible ways to expand a tagged identifier when some of its tags are tag classes or tag mappings.
+ * callback functions can be applied to the visited objects, but the visit itself does not check anything about the expanded tagged identifiers,
+ * and notably they don't check the identifiers have been registered.
+ */
+
+Identifiers.prototype.visitTagExpansion = function(identifier, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
+{
+	const tag_identifier_indexes = tagged_identifier[3];
+	const tag_mapping = Array.from(
+		tag_identifier_indexes.entries(),
+		([i, replaced_tag_index]) => this.visitExpandedTag(replaced_tag_index, i, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
+	);
+	return identifier_operation(identifier, tagged_identifier, tag_mapping);
+}
+
+Identifiers.prototype.visitExpandedTag = function(tag_identifier_index, tag_position, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
+{
+	var mapping_startset;
+	var mapping_iterationset;
+	var mapping_from;
+	switch (this.comptype[tag_identifier_index])
+	{
+		case identifier_type_tagset:
+			mapping_startset = Array.from(this.object_set[tag_identifier_index])
+			mapping_iterationset = mapping_startset
+			mapping_from = tag_identifier_index
+			break;
+		case identifier_type_mapping:
+			if (accepts_mapping)
+			{
+				const mapping = this.mappings[this.tag_mappings[tag_identifier_index][0]];
+				mapping_startset = mapping.fromset
+				mapping_iterationset = mapping.toset
+				mapping_from = mapping.from
+				break;
+			}
+		case identifier_type_tag:
+			return null;
+	}
+	const mapping_endset = mapping_iterationset.map(
+		replacement_tag_ii => this.replaceTag(replacement_tag_ii, tag_position, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
+	)
+	return tag_operation(tag_identifier_index, tag_position, tagged_identifier, mapping_from, mapping_startset, mapping_endset);
+}
+
+Identifiers.prototype.replaceTag = function(replacement_tag_identifier_index, tag_position, tagged_identifier, ...visitor_params)
+{
+	const [identifier_base, identifier_base_original_case, tag_identifiers, tag_identifier_indexes, lineNumber] = tagged_identifier
+
+//	Replace the tag name
+	var new_tag_identifiers = Array.from(tag_identifiers)
+	new_tag_identifiers[tag_position] = this.names[replacement_tag_identifier_index]
+
+//	Replace the identifiers
+	var new_tag_identifier_indexes = Array.from(tag_identifier_indexes)
+	new_tag_identifier_indexes[tag_position] = replacement_tag_identifier_index
+
+//	Make the new tagged identifier
+	const new_identifier = identifier_base+':'+new_tag_identifiers.join(':');
+	const new_tagged_identifier = [identifier_base, identifier_base_original_case, new_tag_identifiers, new_tag_identifier_indexes, lineNumber]
+
+//	Recursively call the function
+	return this.visitTagExpansion(new_identifier, new_tagged_identifier, ...visitor_params);
 }
 
 
@@ -124,9 +230,22 @@ Identifiers.prototype.registerNewLegend = function(new_identifier, original_case
 
 
 
+//	======= CHECK IDENTIFIERS ======
+
+Identifiers.prototype.checkIdentifierType = function(identifier_index, accepted_types, accepts_mapping)
+{
+	const type = this.comptype[identifier_index]
+	if ( accepted_types.includes(type) )
+		return true;
+	if (accepts_mapping && (type === identifier_type_mapping))
+		return this.mappings[this.tag_mappings[identifier_index][0]].toset.every( i => this.checkIdentifierType(i, accepted_types, true) )
+	return false;
+}
 
 
-//	======= CHECK TAGS =======
+
+
+//	======= CHECK IDENTIFIERS FOR TAGS =======
 
 Identifiers.prototype.checkKnownTagClass = function(identifier)
 {
@@ -136,28 +255,14 @@ Identifiers.prototype.checkKnownTagClass = function(identifier)
 
 
 
+//	======= CHECK IDENTIFIERS FOR OBJECTS =======
 
-
-
-
-
-
-//	======= CHECK IDENTIFIERS =======
-
-function* cartesian_product(head, ...tail)
-{
-	const remainder = tail.length > 0 ? cartesian_product(...tail) : [[]];
-	for (let r of remainder)
-		for (let h of head)
-			yield [h, ...r];
-}
-
-// check that an object name with tags is well formed and return its parts
-Identifiers.prototype.identifierIsWellFormed = function(identifier, log)
+// checks that an object name with tags is well formed and returns its parts
+Identifiers.prototype.identifierIsWellFormed = function(identifier, accepts_mapping, log)
 {
 //	Extract tags
 	const [identifier_base, ...identifier_tags] = identifier.split(':');
-	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) )
+	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
 		return [0, identifier_base, []];
 
 //	These tags must be known
@@ -166,128 +271,13 @@ Identifiers.prototype.identifierIsWellFormed = function(identifier, log)
 	if ( unknown_tags.length > 0 )
 	{
 		const unknown_tagnames = unknown_tags.map( ([ti, tn]) => tn.toUpperCase() );
-		log.logError('Unknown tag' + ((unknown_tags.length>1) ? 's ('+ unknown_tagnames.join(', ')+')' : ' '+unknown_tagnames[0]) + ' used in object name.');
+		log.logError('Unknown tag' + ((unknown_tags.length>1) ? 's ('+ unknown_tagnames.join(', ')+')' : (' '+unknown_tagnames[0])) + ' used in object name.');
 		return [-1, identifier_base, tags];
 	}
 
 //	And they must be tag values or tag classes
-	const invalid_tags = tags.filter( ([tag_index, tn]) => !([identifier_type_tag, identifier_type_tagset].includes(this.comptype[tag_index])) );
-	if ( invalid_tags.length > 0 )
-	{
-		const invalid_tagnames = invalid_tags.map( ([ti, tn]) => tn.toUpperCase() );
-		log.logError('Invalid object name containing tags that have not been declared as tag values or tag sets: ' + invalid_tagnames.join(', ') + '.');
-		return [-2, identifier_base, tags];
-	}
-	return [0, identifier_base, tags];
-}
-
-// Function used when declaring objects in the OBJECTS section and synonyms/properties/aggregates in the LEGEND section
-Identifiers.prototype.checkIfNewIdentifierIsValid = function(candname, accept_implicit, log)
-{
-	// Check if this name is already used
-	const identifier_index = this.names.indexOf(candname);
-	if (identifier_index >= 0)
-	{
-		// Is it OK to redefine it if it has been implicitly defined earlier?
-		if ( accept_implicit && (this.implicit[identifier_index] > 0) )
-			return true;
-		const type = this.deftype[identifier_index]
-		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
-		const l = this.lineNumbers[identifier_index];
-		log.logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()));
-		return false;
-	}
-
-	// Check that the tags exist
-	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(candname, log);
-	if ( (error_code < 0) && (identifier_base.length > 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
-		return false;
-
-	// Warn if the name is a keyword
-	if (keyword_array.indexOf(candname) >= 0)
-	{
-		log.logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!');
-	}
-	return true;
-}
-
-// check if an identifier used somewhere is a known object or property.
-// This function should be used instead of this.identifiers.names.indexOf(identifier) whenever there is a possibility that identifier contains tags.
-Identifiers.prototype.checkKnownIdentifier = function(identifier, log)
-{
-//	First, check if we have that name registered
-	const result = this.names.indexOf(identifier);
-	if (result >= 0)
-		return result;
-
-//	If not, it must contain tags
-	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(identifier, log);
-	if (tags.length === 0 || error_code<0)
-		return error_code - 1;
-	return this.checkTagSetExpansion(identifier, identifier_base, tags, log);
-}
-
-Identifiers.prototype.checkTagSetExpansion = function(identifier, identifier_base, tags, log) // tags must contain only tag values or tag classes, not tag mappings.
-{
-//	For all possible combinations of tag values in these tag classes, the corresponding object must have been defined (as an object).
-	const tag_values = tags.map( ([tag_index,tag_name]) => this.object_set[tag_index] );
-	var all_found = true;
-	var objects = new Set();
-	for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
-	{
-		const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.names[i] ).join(':');
-		const new_identifier_index = this.names.indexOf(new_identifier);
-		if (new_identifier_index < 0)
-		{
-			log.logError('Unknown combination of tags for an object: '+new_identifier.toUpperCase()+'.');
-			all_found = false;
-			continue;
-		}
-		// TODO: check type.
-		this.object_set[new_identifier_index].forEach( x => objects.add(x) );
-	}
-	if (!all_found)
-		return -4;
-	
-//	Register the identifier as a property to avoid redoing all this again.
-	var result = this.names.indexOf(identifier)
-	if (result < 0)
-	{
-		result = this.names.length;
-		const new_original_case = identifier_base+':'+tags.map( ([tag_index,tag_name]) => this.original_case_names[tag_index] ).join(':'); // TODO: get original case of identifier_base.
-		this.registerNewLegend(identifier, new_original_case, objects, identifier_type_property, 2, log.lineNumber);
-	}
-	return result;
-}
-
-
-
-// check that an object name with tags is well formed and return its parts
-// todo: this is almost the same thing as identifierIsWellFormed and the two should be merged
-Identifiers.prototype.identifierOrFunctionIsWellFormed = function(identifier, log)
-{
-//	Extract tags
-	const [identifier_base, ...identifier_tags] = identifier.split(':');
-	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) )
-		return [0, identifier_base, []];
-
-//	These tags must be known
-	const tags = identifier_tags.map( tagname => [this.names.indexOf(tagname), tagname] );
-	const unknown_tags = tags.filter( ([tag_index, tn]) => (tag_index < 0) );
-	if ( unknown_tags.length > 0 )
-	{
-		const unknown_tagnames = unknown_tags.map( ([ti, tn]) => tn.toUpperCase() );
-		log.logError('Unknown tag' + ((unknown_tags.length>1) ? 's ('+ unknown_tagnames.join(', ')+')' : ' '+unknown_tagnames[0]) + ' used in object name.');
-		return [-1, identifier_base, tags];
-	}
-
-//	And they must be tag values or tag classes or functions that return tags or tag classes
 	const invalid_tags = tags.filter(
-		([tag_index, tn]) => ! (
-			   [identifier_type_tag, identifier_type_tagset].includes(this.comptype[tag_index])
-			|| ( (this.comptype[tag_index] === identifier_type_mapping) && this.object_set[tag_index][2].every( i => [identifier_type_tag, identifier_type_tagset].includes(this.comptype[i]) )
-			)
-		)
+		([tag_index, tn]) => ! this.checkIdentifierType(tag_index, [identifier_type_tag, identifier_type_tagset], accepts_mapping)
 	);
 	if ( invalid_tags.length > 0 )
 	{
@@ -298,90 +288,107 @@ Identifiers.prototype.identifierOrFunctionIsWellFormed = function(identifier, lo
 	return [0, identifier_base, tags];
 }
 
-
-Identifiers.prototype.checkKnownIdentifierOrFunction = function(identifier, identifier_original_case, log)
+// checks that it is a name that could be used for an object, but does not check if it has already been declared.
+Identifiers.prototype.canBeAnObjectName = function(candname, log)
 {
-//	First, check if we have that name registered (including object mappings)
-	var result = this.names.indexOf(identifier);
-	if (result >= 0)
+//	Warn if the name is a keyword
+	if (keyword_array.indexOf(candname) >= 0)
 	{
-		const type = this.comptype[result]
-		const accepted_types = [identifier_type_object, identifier_type_property, identifier_type_aggregate];
-		if ( accepted_types.includes(type) )
-			return result;
-		if ( (type === identifier_type_mapping) && this.object_set[result][2].every( ii => accepted_types.includes(this.comptype[ii]) ) )
-			return result;
-		log.logError('I was expecting something that can resolve into an object, property or agregate, but I got '+identifier.toUpperCase()+', which is '+identifier_type_as_text[type]+'.')
-		return -1;
+		log.logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!');
+		return [0, candname, []]; // yes, this is only a warning
 	}
+//	Check the tags
+	return this.identifierIsWellFormed(candname, false, log);
+}
+
+// Function used when declaring objects in the OBJECTS section and synonyms/properties/aggregates in the LEGEND section
+Identifiers.prototype.checkIfNewIdentifierIsValid = function(candname, accept_implicit, log)
+{
+//	Check if this name is already used
+	const identifier_index = this.names.indexOf(candname);
+	if (identifier_index >= 0)
+	{
+		// Is it OK to redefine it if it has been implicitly defined earlier?
+		if (   accept_implicit
+			&& (this.implicit[identifier_index] > 0)
+			&& this.checkIdentifierType(identifier_index, [identifier_type_object, identifier_type_property, identifier_type_aggregate], false)
+		)
+			return true;
+		const type = this.deftype[identifier_index]
+		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
+		const l = this.lineNumbers[identifier_index];
+		log.logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()));
+		return false;
+	}
+
+//	Check that the name can be used
+	const [error_code, identifier_base, tags] = this.canBeAnObjectName(candname, log);
+	return (error_code == 0);
+}
+
+// TODO: we should log an error if the identifier is not found, instead of letting the caller do that, so that we have uniform error messages.
+// also we should define error functions for logging the messages, so that the caller can change the message or do something appropriate in case of error.
+Identifiers.prototype.checkIdentifierIsKnownWithType = function(identifier, accepted_types, accepts_mapping, log)
+{
+	const result = this.names.indexOf(identifier);
+	if (result < 0)
+		return -2;
+	if (this.checkIdentifierType(result, accepted_types, accepts_mapping))
+		return result;
+	log.logError('You cannot use '+identifier.toUpperCase()+' here because it is '+identifier_type_as_text[this.comptype[result]]+' but I was expecting '+accepted_types.map(t => identifier_type_as_text[t]).join(' or ')+(accepts_mapping ? ' or a mapping giving one.' : '.'))
+	return -1;
+}
+
+// check if an identifier used somewhere is a known object or property.
+// This function should be used instead of this.identifiers.names.indexOf(identifier) whenever there is a possibility the identifier contains tags.
+Identifiers.prototype.checkKnownIdentifier = function(identifier, accepts_mapping, log)
+{
+//	First, check if we have that name registered
+	const result = this.checkIdentifierIsKnownWithType(identifier, [identifier_type_object, identifier_type_property, identifier_type_aggregate], accepts_mapping, log);
+	if (result !== -2)
+		return result; // known identifier with an appropriate type or -1
 
 //	If not, it must contain tags
-	const [error_code, identifier_base, tags] = this.identifierOrFunctionIsWellFormed(identifier, log);
-	if (tags.length === 0 || error_code<0)
-		return error_code - 1;
-
-//	Extract mapping parameters
-	var tag_values = tags.map( ([tag_index,tag_name]) => this.object_set[tag_index] )
-	var mapping_parameters = [] // values of the parameters (identifier_indexes of tag classes or object properties)
-	var functional_tags = []
-	for (const [i, object_set] of tag_values.entries())
+	const [error_code, identifier_base, tags] = this.identifierIsWellFormed(identifier, accepts_mapping, log);
+	if (tags.length === 0)
 	{
-		if (object_set instanceof Set)
-			continue;
-		const parameter_identifier_indexes = object_set[0];
-		var new_parameter_identifier_indexes = [];
-		for (const [j, parameter_identifier_index] of parameter_identifier_indexes.entries())
-		{
-			const parameter_index = mapping_parameters.indexOf(parameter_identifier_index);
-			if (parameter_index >= 0)
-			{
-				new_parameter_identifier_indexes.push(parameter_index)
-			}
-			else
-			{
-				new_parameter_identifier_indexes.push(mapping_parameters.length)
-				mapping_parameters.push(parameter_identifier_index)
-			}
-		}
-		functional_tags.push( [i, new_parameter_identifier_indexes, object_set[1], object_set[2]] )
+		// log.logError('Unknown object '+identifier.toUpperCase()+'.')
+		return -2;
 	}
-	if (functional_tags.length === 0)
-		return this.checkTagSetExpansion(identifier, identifier_base, tags, log);
+	if (error_code < 0)
+		return error_code - 2;
 
-//	For every possible combination of mapping parameters, check that it works
-	const mapping_startset = [ ...cartesian_product(...mapping_parameters.map( ii => this.object_set[ii] )) ];
-	var mapping_endset = []
-	var all_found = true;
-	for (const mapping_parameter_values of mapping_startset)
-	{
-		// console.log('in expansion of '+identifier+', for function parameters '+mapping_parameters+' ['+mapping_parameters.map(i=>this.names[i]).join(',')+'] => '+mapping_parameter_values+' ['+mapping_parameter_values.map(i=>this.names[i])+']');
-		var new_tags = Array.from(tags);
-		for (const [tag_pos, new_parameter_identifier_indexes, startset, endset] of functional_tags)
-		{
-			const replaced_mapping_parameters = new_parameter_identifier_indexes.map( i => mapping_parameter_values[i] )
-			var index_in_startset = 0;
-			while (startset[index_in_startset].some( (x,i) => (x !== replaced_mapping_parameters[i]) ))
-				index_in_startset++;
-			// console.log('   expansion of tag #'+tag_pos+' ('+tags[tag_pos][1]+') ', new_parameter_identifier_indexes, startset, endset, replaced_mapping_parameters, index_in_startset);
-			const new_tag_identifier_index = endset[index_in_startset];
-			new_tags[tag_pos] = [new_tag_identifier_index, this.names[new_tag_identifier_index]]
-		}
-		const new_identifier = identifier_base+':'+new_tags.map( ([ti,tn]) => tn ).join(':');
-		const new_identifier_index = this.checkTagSetExpansion(new_identifier, identifier_base, new_tags, log);
-		// todo: we also need to check if each of the resulting objects is an object mapping....
-		if (new_identifier_index<0)
-		{
-			all_found = false;
-			log.logError('Expansion of mapped tags in '+ientifier.toUpperCase()+' gave the unknown object '+new_identifier.toUpperCase()+'.');
-			continue;
-		}
-		mapping_endset.push(new_identifier_index);
-	}
-	if (!all_found)
+	const tagged_identifier = [identifier_base, identifier_base, tags.map( ([tag_index,tag_name]) => tag_name ), tags.map( ([tag_index,tag_name]) => tag_index ), log.lineNumber]
+
+//	For all possible combinations of tag values in these tag classes, the corresponding object must have been defined (as an object).
+	if ( ! this.visitTagExpansion(identifier, tagged_identifier, accepts_mapping, this.checkTagMapping.bind(this), this.checkImplicitObjectIdentifier.bind(this, log)) )
 		return -5;
-	result = this.names.length;
-	this.registerNewIdentifier(identifier, identifier_original_case, identifier_type_mapping, identifier_type_mapping, [mapping_parameters, mapping_startset, mapping_endset], 2, log.lineNumber);
-	return result;
+
+//	Register the identifier as a property to avoid redoing all this again.
+	return this.visitTagExpansion(identifier, tagged_identifier, accepts_mapping, this.registerTagMapping.bind(this), this.registerImplicitObjectIdentifier.bind(this));
+}
+
+
+
+// Functions to use with visitTagExpansion to check the expansion of tags creates only registered objects
+Identifiers.prototype.checkImplicitObjectIdentifier = function(log, new_identifier, tagged_identifier, tag_mapping)
+{
+	if (tag_mapping.every( x => (x === null) ))
+	{
+		// no tag class in the tags: check that the object exists
+		const result = this.names.indexOf(new_identifier) >= 0;
+		if ( ! result )
+		{
+			log.logError('Unknown combination of tags for an object: '+new_identifier.toUpperCase()+'.');
+		}
+		return result;
+	}
+	// for all tags, check that every possible replacement of a tagclass tag is valid
+	return tag_mapping.every( x => ((x === null) || (x === true)) );
+}
+Identifiers.prototype.checkTagMapping = function(tag_identifier_index, tag_position, tagged_identifier, mapping_from, mapping_startset, mapping_endset)
+{
+	return mapping_endset.every( x => x ); // all posible replacements of the tagclass tag must be valid!
 }
 
 
@@ -392,9 +399,10 @@ Identifiers.prototype.checkCompoundDefinition = function(identifiers, compound_n
 	var ok = true;
 	var objects = new Set()
 	const forbidden_type = (compound_type == identifier_type_aggregate) ? identifier_type_property : identifier_type_aggregate;
+	// TODO: change forbidden_type for accepted_type!
 	for (const identifier of identifiers)
 	{
-		const identifier_index = this.checkKnownIdentifier(identifier, log);
+		const identifier_index = this.checkKnownIdentifier(identifier, false, log);
 		if (identifier_index < 0)
 		{
 			ok = false;
@@ -435,7 +443,7 @@ Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_c
 	const identifier_index = this.names.indexOf(tagname);
 	if (identifier_index < 0)
 	{
-		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([this.names.length]), 0, log.lineNumber)
+		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([this.names.length]), [], 0, log.lineNumber)
 		this.object_set[tagclass_identifier_index].add(new_identifier_index);
 		return new_identifier_index;
 	}
@@ -464,51 +472,80 @@ Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_c
 }
 
 
-// returns the new identifier if it was OK, -1 otherwise
-Identifiers.prototype.checkAndRegisterNewObjectIdentifier = function(candname, original_case, accept_implicit, log)
+// Functions to use with visitTagExpansion to implicitely register all the names resulting from a tag expansion
+Identifiers.prototype.registerTagMapping = function(tag_identifier_index, tag_position, tagged_identifier, mapping_from, mapping_startset, mapping_endset)
 {
-	if ( ! this.checkIfNewIdentifierIsValid(candname, accept_implicit, log) )
+	const result = this.mappings.length;
+	this.mappings.push({
+		identifier_index: tag_identifier_index,
+		from: mapping_from,
+		fromset: mapping_startset,
+		toset: mapping_endset
+	});
+	return result;
+}
+Identifiers.prototype.registerImplicitObjectIdentifier = function(new_identifier, tagged_identifier, tag_mapping)
+{
+	const replaced_tags = tag_mapping.filter( x => (x !== null) )
+
+	const [identifier_base, identifier_base_original_case, new_tag_identifiers, tag_identifier_indexes, lineNumber] = tagged_identifier
+	const new_original_case = identifier_base_original_case+':'+tag_identifier_indexes.map(i => this.original_case_names[i] ).join(':');
+
+	if (replaced_tags.length == 0) // Only tag values in the tags, no tag class => new_identifier is the name of an atomic object 
+	{
+		const result = this.names.indexOf(new_identifier);
+		if (result >= 0) // the object been (implicitely) defined before
+			return result;
+		return this.registerNewObject(new_identifier, new_original_case, 1, tagged_identifier[4]); // TODO: pass the number we should use for implicit (1 or 2) as parameter?
+	}
+
+//	Compute the set objects covered by this identifier
+	const objects = new Set()
+	this.mappings[replaced_tags[0]].toset.forEach( ii => this.object_set[ii].forEach(oii => objects.add(oii) ) )
+
+	if (objects.size > 1) // Register the identifier as a property to avoid redoing all this again.
+		return this.registerNewLegend(new_identifier, new_original_case, objects, [null, ...tag_mapping], identifier_type_property, 0, lineNumber);
+
+	// all tag classes have only one value => new synonym
+	const old_identifier_index = this.objects[objects.values().next().value].identifier_index;
+	return this.registerNewSynonym(new_identifier, new_original_case, old_identifier_index, [null, ...tag_mapping], lineNumber);
+}
+
+
+// function called when declaring an object in the OBJECTS section
+// returns the new identifier if it was OK, -1 otherwise
+Identifiers.prototype.checkAndRegisterNewObjectIdentifier = function(candname, original_case, log)
+{
+//	Check if this name is already used
+	const identifier_index = this.names.indexOf(candname);
+	if (identifier_index >= 0)
+	{
+	//	If it was defined implicitly, we just have to mark it as explicitely defined.
+		if (this.implicit[identifier_index] > 0)
+		{
+			this.implicit[identifier_index] = 0
+			return identifier_index;
+		}
+		this.checkIfNewIdentifierIsValid(candname, true, log) // just to reuse the error message that it will trigger
+		return -1;
+	}
+
+//	Check that the name can be used
+	const [error_code, identifier_base, tags] = this.canBeAnObjectName(candname, log);
+	if (error_code < 0)
 		return -1;
 
-	const [identifier_base, ...identifier_tags] = candname.split(':');
-
-	if (identifier_tags.length == 0) // no tag in identifier
+	if (tags.length == 0) // no tag in identifier
 		return this.registerNewObject(candname, original_case, 0, log.lineNumber)
 
-	const tags = identifier_tags.map( tagname => [this.names.indexOf(tagname), tagname] );
-	const tag_values = tags.map( ([tag_index,tag_name]) => this.object_set[tag_index] );
+	// const tag_values = tags.map( ([tag_index,tag_name]) => this.object_set[tag_index] );
 	const identifier_base_original_case = original_case.split(':')[0]
 
-//	For all possible combinations of tag values in these tag classes, define the corresponding object (as an object).
-	var objects = new Set();
-	for (const tagvalue_identifier_indexes of cartesian_product(...tag_values))
-	{
-		const new_identifier = identifier_base+':'+tagvalue_identifier_indexes.map(i => this.names[i] ).join(':');
-		const new_identifier_index = this.names.indexOf(new_identifier);
-		const new_original_case = identifier_base_original_case+':'+tagvalue_identifier_indexes.map(i => this.original_case_names[i] ).join(':');
-		if (new_identifier_index < 0)
-		{
-			objects.add( this.objects.length );
-			this.registerNewObject(new_identifier, new_original_case, 1, log.lineNumber)
-		}
-		else
-		{
-			this.object_set[new_identifier_index].forEach( x => objects.add(x) );
-		}
-	}
-
-	if (objects.size > 1)
-	{
-	//	Register the identifier as a property to avoid redoing all this again.
-		return this.registerNewLegend(candname, original_case, objects, identifier_type_property, 0, log.lineNumber);
-	}
-	if (tags.every( ([tag_index,tag_name]) => (this.comptype[tag_index] === identifier_type_tag) )) 
-	{
-	//	There are only tag values in the tags, no tag class => candname is the name of an atomic object that has not been explicitely defined before
-		const result = this.names.indexOf(candname)
-		this.implicit[result] = 0; // now it's explicitly defined
-		return result;
-	}
-	// all tag classes have only one value => synonym, but we don't care (for now?)
-	return this.names.length - 1; // latest identifier registered
+	const tag_names = tags.map( ([tag_index, tag_name]) => tag_name )
+	const tag_identifier_indexes = tags.map( ([tag_index, tag_name]) => tag_index )
+	const tagged_identifier = [identifier_base, identifier_base_original_case, tag_names, tag_identifier_indexes, log.lineNumber]
+	// const result = this.checkAndRegisterNewImplicitObjectIdentifier(candname, tagged_identifier);
+	const result = this.visitTagExpansion(candname, tagged_identifier, false, this.registerTagMapping.bind(this), this.registerImplicitObjectIdentifier.bind(this));
+	this.implicit[result] = 0; // now it's explicitly defined
+	return result;
 }

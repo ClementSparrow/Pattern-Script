@@ -24,8 +24,6 @@ const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
-// const section_constraints = [ [], ['tags'], ['objects'], ['objects'], ['legend'], ['collisionlayers', 'sounds'], ['collisionlayers'], ['legend'], ['tags', 'legend'] ];
-// const section_optional = [ true, false, true, true, false, false, true, false, true ];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
 const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
@@ -70,7 +68,6 @@ function PuzzleScriptParser()
 	this.commentLevel = 0
 
 	this.section = ''
-	// this.visitedSections = [] // There are only 8 sections, so it could be a bitmask rather than an array...
 
 	this.tokenIndex = 0
 	this.is_start_of_line = false;
@@ -85,9 +82,6 @@ function PuzzleScriptParser()
 	this.objects_spritematrix = []
 
 	// data for the LEGEND section.
-	// Aggregates are "obj1 and obj2" that can appear in the definition of a legend character.
-	// Properties are "obj1 or obj2".
-	// Synonyms are "new_obj = old_obj" and can therefore be used either as Properties or Aggregates.
 	this.abbrevNames = [] // TODO: This is only used in this file to parse levels, and is deleted in compiler.js, which is not very smart as it gets recomputed there.
 	                      // Plus, we don't need it, as we only check if a single character is in the array, which could also be done (slightly slower) using this.identifiers.names.
 
@@ -116,7 +110,6 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.commentLevel = this.commentLevel
 	result.section = this.section
-	// result.visitedSections = this.visitedSections.concat([])
 
 	result.tokenIndex = this.tokenIndex
 	result.is_start_of_line = this.is_start_of_line;
@@ -156,7 +149,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 PuzzleScriptParser.prototype.logError = function(msg)
 {
-	// console.log(msg, this.lineNumber);
+	// console.log(msg, this.lineNumber); console.assert(false)
 	logError(msg, this.lineNumber);
 }
 
@@ -237,7 +230,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 	
 	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
 	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
-	const cand_index = this.identifiers.checkKnownIdentifier(candname);
+	const cand_index = this.identifiers.checkKnownIdentifier(candname, false, this);
 	if (cand_index < 0)
 	{
 		this.logWarning('You are trying to add an object named '+candname.toUpperCase()+' in a collision layer, but no object with that name has been defined.');
@@ -424,7 +417,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				return 'ERROR';
 			}
 			this.current_identifier_index = this.identifiers.names.length;
-			this.identifiers.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), 0, this.lineNumber);
+			this.identifiers.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), [null], 0, this.lineNumber);
 			this.tokenIndex = 1;
 			return 'NAME';
 		}
@@ -500,7 +493,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 	if (is_start_of_line) // new object name
 	{
-		const new_identifier_index = this.identifiers.checkAndRegisterNewObjectIdentifier(candname, findOriginalCaseName(candname, this.mixedCase), true, this);
+		const new_identifier_index = this.identifiers.checkAndRegisterNewObjectIdentifier(candname, findOriginalCaseName(candname, this.mixedCase), this);
 		if (new_identifier_index < 0)
 			return 'ERROR';
 		this.current_identifier_index = new_identifier_index;
@@ -509,7 +502,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 	// set up alias
 	if ( ! this.identifiers.checkIfNewIdentifierIsValid(candname, false, this) )
 		return 'ERROR'
-	this.identifiers.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.current_identifier_index, this.lineNumber)
+	this.identifiers.registerNewSynonym(candname, findOriginalCaseName(candname, this.mixedCase), this.current_identifier_index, [], this.lineNumber)
 	return 'NAME';
 }
 
@@ -687,14 +680,16 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			ok = false;
 		} else if (splits.length === 3)
 		{
-			const old_identifier_index = this.identifiers.checkKnownIdentifier(splits[2].toLowerCase());
+			const old_identifier_index = this.identifiers.checkKnownIdentifier(splits[2].toLowerCase(), false, this);
 			if (old_identifier_index < 0)
 			{
 				// TODO: log error.
 			}
 			else
 			{
-				this.identifiers.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], this.mixedCase), old_identifier_index, this.lineNumber)
+				// TODO: deal with tags. It should be OK to declare a synonym for an identifier with tag classes (and even tag functions!) as tags, but only if
+				// the set of tag classes is the same in the new and old identifiers.
+				this.identifiers.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], this.mixedCase), old_identifier_index, [], this.lineNumber)
 			}
 		} else if (splits.length % 2 === 0) {
 			ok = false;
@@ -725,7 +720,8 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				{
 					var objects_in_compound;
 					[ok, objects_in_compound] = this.identifiers.checkCompoundDefinition(new_definition, new_identifier, compound_type, this)
-					this.identifiers.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, compound_type, 0, this.lineNumber);
+					// TODO: deal with tag classes in the tags of new_identifier or in the objects_in_compound, and manage tag_mappings?
+					this.identifiers.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, [], compound_type, 0, this.lineNumber);
 				} 
 			}
 		}
@@ -767,7 +763,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 			if (this.tokenIndex % 2 === 0)
 				return 'LOGICWORD';
-			if (this.identifiers.checkKnownIdentifier(candname.toLowerCase())<0) // TODO: why do we need to test that again?
+			if (this.identifiers.checkKnownIdentifier(candname.toLowerCase(), false, this) < 0) // TODO: why do we need to test that again?
 			{
 				this.logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.');
 				return 'ERROR';
@@ -811,16 +807,12 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 		}		
 		this.tokenIndex = 0;
 	}
-	else if (this.tokenIndex === 3) // something after the expected end of the first line
-	{
-		this.logWarning('The first line of a mapping definition should be STARTSETNAME => MAPPINGNAME, but you provided extra stuff after that. I will ignore it.');
-	}
 
-	switch (this.tokenIndex)
+	if (this.objects_section === 1) // first line
 	{
-		case 0: 
+		switch (this.tokenIndex)
 		{
-			if (this.objects_section === 1) // set of values the function opperates on: tag class or object property
+			case 0: // set of values the function opperates on: tag class or object property
 			{
 				const fromset_name_match = stream.match(reg_tagged_name, true);
 				if (fromset_name_match === null)
@@ -831,7 +823,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				}
 				this.tokenIndex = 1;
 				const fromset_name = fromset_name_match[0];
-				const identifier_index = this.identifiers.checkKnownIdentifier(fromset_name);
+				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(fromset_name, [identifier_type_property, identifier_type_tagset], false, this);
 				if (identifier_index < 0)
 				{
 					this.logError('Unknown identifier for a mapping\'s start set: '+fromset_name.toUpperCase()+'.')
@@ -849,19 +841,64 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				this.current_mapping_startset_array = [];
 				return 'NAME';
 			}
-			else // elements of the start set
+			case 1: // arrows
+			{
+				this.tokenIndex = 2;
+				if (stream.match(/=>/, true) === null) // not followed by an => sign
+				{
+					this.logError('I was expecting an "=>" sign after the name of the mapping\'s start set.')
+					return 'ERROR'
+				}
+				return 'ARROW'
+			}
+			case 2: // name of the function
+			{
+				this.tokenIndex = 3;
+				const fromset_identifier_index = this.current_identifier_index;
+				this.current_identifier_index = null;
+				const toset_name_match = stream.match(reg_tagged_name, true);
+				if (toset_name_match === null)
+				{
+					this.logError('Unrecognised stuff in the mappings section while reading the mapping\'s name.')
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR'
+				}
+				const toset_name = toset_name_match[0];
+				if ( (this.identifiers.comptype[fromset_identifier_index] === identifier_type_property) ? ! this.identifiers.checkIfNewIdentifierIsValid(toset_name, false, this) : ! this.checkIfNewTagNameIsValid(toset_name) )
+				{
+					this.logError('Invalid mapping name: '+toset_name.toUpperCase()+'.')
+					stream.match(reg_notcommentstart, true);
+					return 'ERROR';
+				}
+				this.current_identifier_index = this.identifiers.registerNewMapping(toset_name, findOriginalCaseName(toset_name, this.mixedCase), fromset_identifier_index, new Set(), 0, this.lineNumber);
+				return 'NAME';
+			}
+			case 3: // error: extra stuff
+			{
+				this.logWarning('The first line of a mapping definition should be STARTSETNAME => MAPPINGNAME, but you provided extra stuff after that. I will ignore it.');
+				return 'ERROR';
+			}
+
+		}
+	}
+	else // second line
+	{
+		switch (this.tokenIndex)
+		{
+			case 0: // elements of the start set
 			{
 				if (stream.match(/->/, true))
 				{
 					// check that we have listed all the values in the start set.
 					if (this.current_mapping_startset.size > 0)
 					{
+						// TODO: create a mean to get the name of the start set of the currently defined mapping
 						logError('You have not specified every values in the mapping start set '+this.identifiers.names[this.identifiers.object_set[this.current_identifier_index][0]].toUpperCase()+
 							'. You forgot: '+Array.from(this.current_mapping_startset, ii => this.identifiers.names[ii].toUpperCase()).join(', ')+'.');
 					}
 					if (this.current_identifier_index !== null)
 					{
-						this.identifiers.object_set[this.current_identifier_index][1] = this.current_mapping_startset_array;
+						this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].fromset = this.current_mapping_startset_array;
 					}
 					this.current_mapping_startset_array = [];
 					this.tokenIndex = 2;
@@ -875,58 +912,22 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					return 'ERROR'
 				}
 				const fromvalue_name = fromvalue_match[0];
-				const identifier_index = this.identifiers.checkKnownIdentifier(fromvalue_name);
+				// TODO: better define the accepted types here
+				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(fromvalue_name, [identifier_type_object, identifier_type_tag], false, this);
 				if (identifier_index < 0)
 					return 'ERROR'
 				if (this.current_identifier_index === null)
 					return 'NAME';
 				if ( ! this.current_mapping_startset.delete(identifier_index) )
 				{
-					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers.names[this.current_identifier_index].toUpperCase()+'.')
+					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers.names[this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from.join(' x ')].toUpperCase()+'.')
 					return 'ERROR';
 				}
 				// register the values in order and check that the whole set of values in the start set is covered.
-				this.current_mapping_startset_array.push([identifier_index]);
+				this.current_mapping_startset_array.push(identifier_index);
 				return 'NAME';
 			}
-		}
-		case 1: // arrows
-		{
-			this.tokenIndex = 2;
-			if (stream.match(/=>/, true) === null) // not followed by an => sign
-			{
-				this.logError('I was expecting an "=>" sign after the name of the mapping\'s start set.')
-				return 'ERROR'
-			}
-			return 'ARROW'
-		}
-		case 2: // name of the function
-		{
-			if (this.objects_section === 1)
-			{
-				this.tokenIndex = 3;
-				const fromset_identifier_index = this.current_identifier_index;
-				this.current_identifier_index = null;
-				const toset_name_match = stream.match(reg_tagged_name, true);
-				if (toset_name_match === null)
-				{
-					this.logError('Unrecognised stuff in the mappings section while reading the mapping\'s name.')
-					stream.match(reg_notcommentstart, true);
-					return 'ERROR'
-				}
-				const toset_name = toset_name_match[0];
-				if ( (this.identifiers.comptype[fromset_identifier_index] === identifier_type_property) ? ! this.identifiers.checkIfNewIdentifierIsValid(toset_name, true, this) : ! this.checkIfNewTagNameIsValid(toset_name) )
-				{
-					this.logError('Invalid mapping name: '+toset_name.toUpperCase()+'.')
-					stream.match(reg_notcommentstart, true);
-					return 'ERROR';
-				}
-				this.current_identifier_index = this.identifiers.names.length;
-				// TODO: register the function type and the start set
-				this.identifiers.registerNewIdentifier(toset_name, findOriginalCaseName(toset_name, this.mixedCase), identifier_type_mapping, identifier_type_mapping, [[fromset_identifier_index], [], []], 0, this.lineNumber);
-				return 'NAME';
-			}
-			else // elements of the end set
+			case 2: // elements of the end set
 			{
 				const tovalue_match = stream.match(reg_tagged_name, true);
 				if (tovalue_match === null)
@@ -936,27 +937,28 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					return 'ERROR'
 				}
 				const tovalue_name = tovalue_match[0];
-				const identifier_index = this.identifiers.checkKnownIdentifier(tovalue_name);
+				// TODO: better define the accepted types here
+				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(tovalue_name, [identifier_type_object, identifier_type_property, identifier_type_tag, identifier_type_tagset], false, this);
 				if (identifier_index < 0)
 					return 'ERROR'
 				// TODO? check that the identifier is in the start set
 				if (this.current_identifier_index === null)
 					return 'NAME';
 				// register the mapping for this value
-				this.identifiers.object_set[this.current_identifier_index][2].push( identifier_index );
+				var mapping = this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]];
+				mapping.toset.push( identifier_index );
 				// if we got all the values in the set
-				if (this.identifiers.object_set[this.current_identifier_index][2].length === this.identifiers.object_set[this.current_identifier_index][1].length)
+				if (mapping.toset.length === mapping.fromset.length)
 				{
 					this.tokenIndex = 3
 				}
 				return 'NAME';
 			}
-		}
-		default:
-		{
-			logError('I reached a part of the code I should never have reached. Please submit a bug repport to ClementSparrow!')
-			stream.match(reg_notcommentstart, true);
-			return null;
+			case 3: // error: extra stuff
+			{
+				this.logWarning('The second line of a mapping definition should be STARTSETVAUES -> ENDSETVALUES, but you provided extra stuff after that. I will ignore it.');
+				return 'ERROR';
+			}
 		}
 	}
 }
@@ -989,7 +991,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (candname!== null)
 	{
 		const m = candname[0].trim();
-		if (this.identifiers.checkKnownIdentifier(m) >= 0)
+		if (this.identifiers.checkKnownIdentifier(m, false, this) >= 0)
 			return 'NAME';
 	}
 
@@ -1085,13 +1087,8 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.match(/\p{Separator}*/u, true);
 		return 'DIRECTION';
 	}
-	if ( (this.identifiers.checkKnownTagClass(m) >= 0) || (this.identifiers.checkKnownIdentifierOrFunction(m, m, this) >= 0) )
+	if ( (this.identifiers.checkKnownTagClass(m) >= 0) || (this.identifiers.checkKnownIdentifier(m, true, this) >= 0) )
 	{
-		// if (is_start_of_line)
-		// {
-		// 	this.logError('Identifiers cannot appear outside of square brackets in rules, only directions can.');
-		// 	return 'ERROR';
-		// }
 		stream.match(/\p{Separator}*/u, true);
 		return 'NAME';
 	}
@@ -1148,7 +1145,7 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 			return (candword != 'on') ? 'ERROR' : 'LOGICWORD';
 		case 1: // expect an identifier
 		case 3:
-			if (this.identifiers.checkKnownIdentifier(candword) === -1)
+			if (this.identifiers.checkKnownIdentifier(candword, false, this) === -1)
 			{
 				this.logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.');
 				return 'ERROR';
@@ -1249,29 +1246,6 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 			this.section = stream.string.slice(0, stream.pos).trim();
 			const sectionIndex = sectionNames.indexOf(this.section);
 
-		// //	Check mandatory sections that should have been seen before this one.
-		// 	const failed_constraints = section_constraints[sectionIndex].filter(
-		// 		sec_name => ( this.visitedSections.indexOf(sec_name) < 0 && !section_optional[sectionNames.indexOf(sec_name)] )
-		// 	);
-		// 	for (const failed_constraint of failed_constraints)
-		// 	{
-		// 		this.logError('The mandatory section ' + failed_constraint.toUpperCase() + ' should be provided before section ' + this.section.toUpperCase() + '.');
-		// 	}
-
-		// //	Check that this section is not provided after a section it provides information for.
-		// 	if (section_optional[sectionIndex])
-		// 	{
-		// 		const failed_constraints = [...section_constraints.entries()].filter(
-		// 			([sec_index, sec_names]) => ( (sec_names.indexOf(this.section) >= 0) && (this.visitedSections.indexOf(sectionNames[sec_index]) >= 0) )
-		// 		);
-		// 		for (const [missing_section_index, missing_section_constraints] of failed_constraints)
-		// 		{
-		// 			this.logError('Optional section '+this.section.toUpperCase()+' provides information for section '+sectionNames[missing_section_index].toUpperCase()+' and should therefore be provided before it, not after.');
-		// 		}
-		// 	}
-
-		//	this.visitedSections.push(this.section);
-
 		//	Initialize the parser state for some sections depending on what has been parsed before
 
 			if (this.section === 'levels')
@@ -1343,7 +1317,6 @@ PuzzleScriptParser.prototype.token = function(stream)
 	}
 
 	// ignore white space
-	// stream.eatWhile(/[\p{Separator}]/u);
 	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && (stream.match(/[\p{Separator}\)]+/u, true) || stream.eol()) )
 	{
 		if (token_starts_line && stream.eol()) // a line that contains only white spaces and unmatched ) is considered a blank line
