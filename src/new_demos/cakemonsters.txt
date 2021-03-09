@@ -6,7 +6,7 @@ text_color #FF5588
 background_color #050A0A
 noaction
 youtube Z6ih1aKeETk (tycho!)
-
+debug
 
 ========
 TAGS
@@ -15,6 +15,23 @@ TAGS
 Primary = Red Yellow Blue
 Secondary = Purple Orange Green
 Color = Primary Secondary Trash
+
+SecondaryNotPurple = Orange Green
+SecondaryNotOrange = Green Purple
+SecondaryNotGreen = Purple Orange
+
+========
+MAPPINGS
+========
+
+Secondary => ColorComponent1
+Purple Orange Green -> Blue Red Yellow
+
+Secondary => ColorComponent2
+Purple Orange Green -> Red Yellow Blue
+
+Secondary => DifferentSecondary (tag to tag class mapping !)
+Purple Orange Green -> SecondaryNotPurple SecondaryNotOrange SecondaryNotGreen
 
 ========
 OBJECTS
@@ -204,23 +221,15 @@ Color [ > Monster:Color | Cake no Cake:Color ] -> [ Monster:Color | Cake no Cake
 (---MONSTER COLOR MIXING---)
 (--------------------------)
 
-Secondary [ > Monster:colorComponent1 | stationary Monster:colorComponent2 ] -> [ | monster:secondary ] sfx1
+Secondary [ > Monster:colorComponent1 | stationary Monster:colorComponent2 ] -> [ | Monster:Secondary ] sfx1
+Secondary [ > Monster:colorComponent2 | stationary Monster:colorComponent1 ] -> [ | Monster:Secondary ] sfx1
 
 (primary color + secondary color = brown aka trash)
 [ > Monster:Primary | stationary Monster:Secondary] -> [ | Monster:Trash] sfx1
 [ > Monster:Secondary | stationary Monster:Primary] -> [ | Monster:Trash] sfx1
 
-(green+orange = trash)
-[ > Monster:Green | stationary Monster:Orange] -> [ | Monster:Trash] sfx1
-[ > Monster:Orange | stationary Monster:Green] -> [ | Monster:Trash] sfx1
-
-(purple+orange = trash)
-[ > Monster:Purple | stationary Monster:Orange] -> [ | Monster:Trash] sfx1
-[ > Monster:Orange | stationary Monster:Purple] -> [ | Monster:Trash] sfx1
-
-(green+purple = trash)
-[ > Monster:Green | stationary Monster:Purple] -> [ | Monster:Trash] sfx1
-[ > Monster:Purple | stationary Monster:Green] -> [ | Monster:Trash] sfx1
+(secondary + different secondary = trash)
+Secondary [ > Monster:Secondary | stationary Monster:DifferentSecondary ] -> [ | Monster:Trash] sfx1
 
 (trash+anything = trash)
 [ > Monster:Trash | stationary Monster] -> [ | Monster:Trash] sfx1
