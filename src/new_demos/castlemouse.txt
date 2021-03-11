@@ -6,6 +6,18 @@ text_color lightgreen
 again_interval 0
 youtube CnjtQbU0Gg8
 
+debug
+verbose_logging
+
+========
+TAGS
+========
+
+AnimalType = Mouse Cat Dog Elephant
+MarkerType = AnimalType NothingSelected
+Motion = Static directions
+WallType = Hole noHole
+
 ========
 OBJECTS
 ========
@@ -13,7 +25,7 @@ OBJECTS
 Background
 Black
 
-Wall
+Wall:noHole
 Brown DarkBrown
 00010
 11111
@@ -30,7 +42,7 @@ Floor
 00100
 
 
-Hole
+Wall:Hole
 Black #222222 Brown
 21112
 10000
@@ -38,47 +50,19 @@ Black #222222 Brown
 10000
 10000
 
-Marker
+Marker:MarkerType
+Purple
+00.00
+0...0
+.....
+0...0
+00.00
+
+Marker:NothingSelected
 Red
-00.00
-0...0
-.....
-0...0
-00.00
 
-MMarker
-Purple
-00.00
-0...0
-.....
-0...0
-00.00
 
-CMarker
-Purple
-00.00
-0...0
-.....
-0...0
-00.00
-
-DMarker
-Purple
-00.00
-0...0
-.....
-0...0
-00.00
-
-EMarker
-Purple
-00.00
-0...0
-.....
-0...0
-00.00
-
-Mouse
+Animal:Mouse:Motion
 LightGrey Black
 .....
 .1.1.
@@ -86,39 +70,8 @@ LightGrey Black
 .010.
 ..1..
 
-UpMovingMouse
-LightGrey Black
-.....
-.1.1.
-.000.
-.010.
-..1..
 
-LeftMovingMouse
-LightGrey Black
-.....
-.1.1.
-.000.
-.010.
-..1..
-
-RightMovingMouse
-LightGrey Black
-.....
-.1.1.
-.000.
-.010.
-..1..
-
-DownMovingMouse
-LightGrey Black
-.....
-.1.1.
-.000.
-.010.
-..1..
-
-Cat
+Animal:Cat:Motion
 White Green Pink Grey
 0...0
 00000
@@ -126,39 +79,7 @@ White Green Pink Grey
 30203
 .000.
 
-RightMovingCat
-White Green Pink Grey
-0...0
-00000
-01010
-30203
-.000.
-
-LeftMovingCat
-White Green Pink Grey
-0...0
-00000
-01010
-30203
-.000.
-
-UpMovingCat
-White Green Pink Grey
-0...0
-00000
-01010
-30203
-.000.
-
-DownMovingCat
-White Green Pink Grey
-0...0
-00000
-01010
-30203
-.000.
-
-Dog
+Animal:Dog:Motion
 DarkBrown Black
 .0.0.
 01010
@@ -166,39 +87,8 @@ DarkBrown Black
 00100
 01110
 
-UpMovingDog
-DarkBrown Black
-.0.0.
-01010
-00000
-00100
-01110
 
-DownMovingDog
-DarkBrown Black
-.0.0.
-01010
-00000
-00100
-01110
-
-LeftMovingDog
-DarkBrown Black
-.0.0.
-01010
-00000
-00100
-01110
-
-RightMovingDog
-DarkBrown Black
-.0.0.
-01010
-00000
-00100
-01110
-
-Elephant
+Animal:Elephant:Motion
 LightGrey Black #eeeeee Grey
 .000.
 31300
@@ -206,76 +96,31 @@ LightGrey Black #eeeeee Grey
 30000
 .0..0
 
-UpMovingElephant
-LightGrey Black #eeeeee Grey
-.000.
-31300
-32330
-30000
-.0..0
-
-DownMovingElephant
-LightGrey Black #eeeeee Grey
-.000.
-31300
-32330
-30000
-.0..0
-
-LeftMovingElephant
-LightGrey Black #eeeeee Grey
-.000.
-31300
-32330
-30000
-.0..0
-
-RightMovingElephant
-LightGrey Black #eeeeee Grey
-.000.
-31300
-32330
-30000
-.0..0
 
 =======
 LEGEND
 =======
 
+Marker = Marker:NothingSelected
+
 X = Background
 . = Floor
-# = Wall
-E = Elephant and Floor and Marker
-D = Dog and Floor and Marker
-C = Cat and Floor and Marker
-M = Mouse and Floor and Marker
-3 = Elephant and Floor
-2 = Dog and Floor
-1 = Cat and Floor
-0 = Mouse and Floor
-H = Hole and Floor
+# = Wall:noHole
+E = Animal:Elephant:Static and Floor and Marker
+D = Animal:Dog:Static and Floor and Marker
+C = Animal:Cat:Static and Floor and Marker
+M = Animal:Mouse:Static and Floor and Marker
+3 = Animal:Elephant:Static and Floor
+2 = Animal:Dog:Static and Floor
+1 = Animal:Cat:Static and Floor
+0 = Animal:Mouse:Static and Floor
+H = Wall:Hole and Floor
 
 Player = Marker
 
-Obstacle = Wall or Hole
+MoveMarker = Marker:AnimalType
 
-VerticalMovingElephant = UpMovingElephant or DownMovingElephant
-HorizontalMovingElephant = LeftMovingElephant or RightMovingElephant
-MovingElephant = VerticalMovingElephant or HorizontalMovingElephant
-
-VerticalMovingDog = UpMovingDog or DownMovingDog
-HorizontalMovingDog = LeftMovingDog or RightMovingDog
-MovingDog = VerticalMovingDog or HorizontalMovingDog
-
-VerticalMovingCat = UpMovingCat or DownMovingCat
-HorizontalMovingCat = LeftMovingCat or RightMovingCat
-MovingCat = VerticalMovingCat or HorizontalMovingCat
-
-VerticalMovingMouse = UpMovingMouse or DownMovingMouse
-HorizontalMovingMouse = LeftMovingMouse or RightMovingMouse
-MovingMouse = VerticalMovingMouse or HorizontalMovingMouse
-
-MoveMarker = MMarker or CMarker or DMarker or EMarker
+AnyAnimal = Animal:AnimalType:Motion
 
 =======
 SOUNDS
@@ -294,123 +139,61 @@ COLLISIONLAYERS
 
 Background
 Floor
-Hole
-Mouse, MovingMouse, Cat, MovingCat, Dog, MovingDog, Elephant, MovingElephant, Wall
-Marker, MoveMarker
+Wall:Hole
+Animal:AnimalType:Motion, Wall:noHole
+Marker:MarkerType
+
+
+======
+MAPPINGS
+======
+
+AnimalType => Frightening
+Elephant Dog Cat Mouse -> Mouse Elephant Dog Cat
+
+AnimalType => isStopping
+Elephant Dog Cat Mouse -> WallType WallType WallType noHole
 
 ======
 RULES
 ======
 
 (Marker rules)
-[ > Marker Mouse ] -> [ MMarker > Mouse ]
-[ > Marker Cat ] -> [ CMarker > Cat ]
-[ > Marker Dog ] -> [ DMarker > Dog ]
-[ > Marker Elephant ] -> [ EMarker > Elephant ]
+AnimalType [ > Marker Animal:AnimalType:Static ] -> [ Marker:AnimalType > Animal:AnimalType:Static ]
 
 startLoop
 
-(Elephant rules)
-[ UP Elephant ] -> [ UP UpMovingElephant ]
-[ DOWN Elephant ] -> [ DOWN DownMovingElephant ]
-[ LEFT Elephant ] -> [ LEFT LeftMovingElephant ]
-[ RIGHT Elephant ] -> [ RIGHT RightMovingElephant ]
+(continue motion)
+(AnimalType should not be necessary here as a rule parameter, but I did not implement mappings in in-rule expansion of properties yet)
+AnimalType [ > Animal:AnimalType:Static ] -> [ > Animal:AnimalType:> ]
+AnimalType [ Animal:AnimalType:> ] -> [ > Animal:AnimalType:> ]
 
-[ UpMovingElephant ] -> [ Up UpMovingElephant ] again
-[ LeftMovingElephant ] -> [ Left LeftMovingElephant ] again
-[ RightMovingElephant ] -> [ Right RightMovingElephant ] again
-[ DownMovingElephant ] -> [ Down DownMovingElephant ] again
+(frightening other animals)
+AnimalType [ Animal:Frightening:Motion | stationary Animal:AnimalType:Static | no Wall:isStopping ] -> [ Animal:Frightening:Motion | > Animal:AnimalType:> | ] (todo: sound depends on the animals!)
 
-[ Elephant | Stationary Dog | No Obstacle ] -> [ Elephant | > Dog | ] SFX3
-horizontal [ VerticalMovingElephant | Stationary Dog | No Obstacle ] -> [ VerticalMovingElephant | > Dog | ] SFX3
-vertical [ HorizontalMovingElephant | Stationary Dog | No Obstacle ] -> [ HorizontalMovingElephant | > Dog | ] SFX3
+(Mouse enters hole)
+[ > Animal:Mouse:> Wall:Hole ] -> [ Wall:Hole ] sfx0
 
-[ > MovingElephant | Cat | ] -> [ Elephant | Cat | ] SFX5
-[ > MovingElephant | Mouse ] -> [ Elephant | Mouse ]
-[ > MovingElephant | Dog | Obstacle | ] -> [ Elephant | Dog | Obstacle | ] SFX3
-[ > MovingElephant | Dog | No Obstacle ] -> [ Elephant | > Dog | ] SFX3
-[ > MovingElephant | Obstacle | ] -> [ Elephant | Obstacle | ] SFX2
+(stopping when coliding with another animal or walls)
+AnimalType [ > Animal:AnimalType:> | AnyAnimal ] -> [ stationary Animal:AnimalType:Static | AnyAnimal ] (todo: sound depends on the animals!)
+(AnimalType parameter should not be necessary here, but I dit not implement inrule expansion with tag mappings yet.)
+AnimalType [ > Animal:AnimalType:> | Wall:isStopping ] -> [ stationary Animal:AnimalType:Static | Wall:isStopping ] sfx2
 
-(Dog rules)
-[ UP Dog ] -> [ UP UpMovingDog ]
-[ DOWN Dog ] -> [ DOWN DownMovingDog ]
-[ LEFT Dog ] -> [ LEFT LeftMovingDog ]
-[ RIGHT Dog ] -> [ RIGHT RightMovingDog ]
-
-[ UpMovingDog ] -> [ Up UpMovingDog ] again
-[ LeftMovingDog ] -> [ Left LeftMovingDog ] again
-[ RightMovingDog ] -> [ Right RightMovingDog ] again
-[ DownMovingDog ] -> [ Down DownMovingDog ] again
-
-[ Dog | Stationary Cat | No Obstacle ] -> [ Dog | > Cat | ] SFX4
-horizontal [ VerticalMovingDog | Stationary Cat | No Obstacle ] -> [ VerticalMovingDog | > Cat | ] SFX4
-vertical [ HorizontalMovingDog | Stationary Cat | No Obstacle ] -> [ HorizontalMovingDog | > Cat | ] SFX4
-
-[ > MovingDog | Mouse | ] -> [ Dog | Mouse | ] SFX3
-[ > MovingDog | Elephant ] -> [ Dog | Elephant ]
-[ > MovingDog | Cat | Obstacle | ] -> [ Dog | Cat | Obstacle | ] SFX4
-[ > MovingDog | Cat | No Obstacle ] -> [ Dog | > Cat | ] SFX4
-[ > MovingDog | Obstacle | ] -> [ Dog | Obstacle | ] SFX2
-
-(Cat rules)
-[ UP Cat ] -> [ UP UpMovingCat ]
-[ DOWN Cat ] -> [ DOWN DownMovingCat ]
-[ LEFT Cat ] -> [ LEFT LeftMovingCat ]
-[ RIGHT Cat ] -> [ RIGHT RightMovingCat ]
-
-[ UpMovingCat ] -> [ Up UpMovingCat ] again
-[ LeftMovingCat ] -> [ Left LeftMovingCat ] again
-[ RightMovingCat ] -> [ Right RightMovingCat ] again
-[ DownMovingCat ] -> [ Down DownMovingCat ] again
-
-[ Cat | Stationary Mouse | No Wall ] -> [ Cat | > Mouse | ] SFX1
-horizontal [ VerticalMovingCat | Stationary Mouse | No Wall ] -> [ VerticalMovingCat | > Mouse | ] SFX1
-vertical [ HorizontalMovingCat | Stationary Mouse | No Wall ] -> [ HorizontalMovingCat | > Mouse | ] SFX1
-
-[ > MovingCat | Elephant | ] -> [ Cat | Elephant | ] SFX4
-[ > MovingCat | Dog ] -> [ Cat | Dog ]
-[ > MovingCat | Mouse | Wall | ] -> [ Cat | Mouse | Wall | ] SFX1
-[ > MovingCat | Mouse | No Wall ] -> [ Cat | > Mouse | ] SFX1
-[ > MovingCat | Obstacle | ] -> [ Cat | Obstacle | ] SFX2
-
-(Mouse rules)
-[ UP Mouse ] -> [ UP UpMovingMouse ]
-[ DOWN Mouse ] -> [ DOWN DownMovingMouse ]
-[ LEFT Mouse ] -> [ LEFT LeftMovingMouse ]
-[ RIGHT Mouse ] -> [ RIGHT RightMovingMouse ]
-
-[ UpMovingMouse ] -> [ Up UpMovingMouse ] again
-[ LeftMovingMouse ] -> [ Left LeftMovingMouse ] again
-[ RightMovingMouse ] -> [ Right RightMovingMouse ] again
-[ DownMovingMouse ] -> [ Down DownMovingMouse ] again
-
-[ Mouse | Stationary Elephant | No Obstacle ] -> [ Mouse | > Elephant | ] SFX5
-horizontal [ VerticalMovingMouse | Stationary Elephant | No Obstacle ] -> [ VerticalMovingMouse | > Elephant | ] SFX5
-vertical [ HorizontalMovingMouse | Stationary Elephant | No Obstacle ] -> [ HorizontalMovingMouse | > Elephant | ] SFX5
-
-[ > MovingMouse | Dog | ] -> [ Mouse | Dog | ] SFX1
-[ > MovingMouse | Cat ] -> [ Mouse | Cat ]
-[ > MovingMouse | Elephant | Wall | ] -> [ Mouse | Elephant | Wall | ] SFX5
-[ > MovingMouse | Elephant | No Obstacle ] -> [ Mouse | > Elephant | ] SFX5
-[ > MovingMouse | Wall | ] -> [ Mouse | Wall | ] SFX2
-[ > MovingMouse | Hole | ] -> [ No MovingMouse | Hole | ] SFX0
 
 endloop
 
 
 (Late marker rules)
+late AnimalType [ Animal:AnimalType:Static ] [ Marker:AnimalType ] -> [ Animal:AnimalType:Static Marker:NothingSelected ] []
 
-late [ Mouse ] [ MMarker ] -> [ Mouse Marker ] []
-late [ Cat ] [ CMarker ] -> [ Cat Marker ] []
-late [ Dog ] [ DMarker ] -> [ Dog Marker ] []
-late [ Elephant ] [ EMarker ] -> [ Elephant Marker ] []
+(trigger again if some animal is moving)
+late [ Animal:AnimalType:directions ] -> again
 
 ==============
 WINCONDITIONS
 ==============
 
-No MovingMouse
-No Mouse
+No Animal:Mouse:Motion
 
 =======
 LEVELS
