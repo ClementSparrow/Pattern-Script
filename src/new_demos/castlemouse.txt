@@ -6,9 +6,6 @@ text_color lightgreen
 again_interval 0
 youtube CnjtQbU0Gg8
 
-debug
-verbose_logging
-
 ========
 TAGS
 ========
