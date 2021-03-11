@@ -106,7 +106,7 @@ function generateGlyphImages()
     {
         const n = state.identifiers.names[identifier_index];
         
-        if (n.length > 1)
+        if ( (n.length > 1) || (! [identifier_type_object, identifier_type_property, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index])) )
             continue;
 
         var sprite = makeSpriteCanvas("C"+n)
@@ -187,13 +187,6 @@ y = 0;
 function glyphCount()
 {
     return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers.names[identifier_index].length == 1) ).length;
-    // var count=0;
-    // for (var n in state.glyphDict) {
-    //     if (n.length==1 && state.glyphDict.hasOwnProperty(n)) {
-    //         count++;
-    //     }
-    // }    
-    // return count;
 }
 
 function redraw() {

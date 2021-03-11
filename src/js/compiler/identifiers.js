@@ -14,6 +14,18 @@ const [
 
 
 
+//	======= DIRECTIONS AND DIRECTION MAPPINGS =======
+
+const absolutedirs = ['up', 'down', 'right', 'left'];
+const relativeDirs = ['^','v','<','>','parallel','perpendicular'];//used to index the following
+const relativeDict = {
+	'right': ['up', 'down', 'left', 'right','horizontal','vertical'],
+	'up': ['left', 'right', 'down', 'up','vertical','horizontal'],
+	'down': ['right', 'left', 'up', 'down','vertical','horizontal'],
+	'left': ['down', 'up', 'right', 'left','horizontal','vertical']
+}
+
+
 // ======= CONSTRUCTORS =======
 
 function Identifiers()
@@ -33,6 +45,24 @@ function Identifiers()
 	this.object_set = [] // the objects that the identifier can represent, as a set of indexes in this.objects (or in this.identifiers, for tag sets).
 	this.tag_mappings = [] // an array of positions in this.mappings (or null), one mapping for the basename (if it's declared as a mapping) and one mapping for each tag.
 	                     // the structure thus also allow to iterate on tags and know their domain of possible values (as the mapping's fromset).
+
+//	Register predefined direction tags
+	for (const [i, dirname] of absolutedirs.entries())
+	{
+		this.registerNewIdentifier(dirname, dirname, identifier_type_tag, identifier_type_tag, new Set([i]), [], 0, -1)
+	}
+	this.registerNewIdentifier('horizontal', 'horizontal', identifier_type_tagset, identifier_type_tagset, new Set([2,3]), [null], 0, -1) // 4
+	this.registerNewIdentifier('vertical', 'vertical', identifier_type_tagset, identifier_type_tagset, new Set([0,1]), [null], 0, -1) // 5
+	this.registerNewIdentifier('directions', 'directions', identifier_type_tagset, identifier_type_tagset, new Set([0,1,2,3]), [null], 0, -1) // 6
+
+//	Register predefined direction mappings
+	for (const [i, dirname] of relativeDirs.entries())
+	{
+		this.registerNewMapping(dirname, dirname, 6, new Set(), 0, -1)
+		this.mappings[i].fromset = Array.from(absolutedirs, ad => this.names.indexOf(ad) )
+		this.mappings[i].toset = Array.from(absolutedirs, ad => this.names.indexOf(relativeDict[ad][i]) )
+	}
+	
 }
 
 Identifiers.prototype.copy = function()

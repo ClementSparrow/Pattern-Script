@@ -20,7 +20,6 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 
 */
 
-const absolutedirs = ['up', 'down', 'right', 'left'];
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
@@ -269,7 +268,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 
 PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
 {
-	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_]+[\p{Separator}]*/u);
+	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_:]+[\p{Separator}]*/u);
 	return (match !== null) ? match[0].trim() : null;
 }
 
@@ -937,13 +936,14 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					return 'ERROR'
 				}
 				const tovalue_name = tovalue_match[0];
-				// TODO: better define the accepted types here
-				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(tovalue_name, [identifier_type_object, identifier_type_property, identifier_type_tag, identifier_type_tagset], false, this);
+				if (this.current_identifier_index === null)
+					return 'NAME';
+				const fromset_identifier_index = this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from
+				const accepted_types = (this.identifiers.comptype[fromset_identifier_index] === identifier_type_property) ? [identifier_type_object, identifier_type_property] : [identifier_type_tag, identifier_type_tagset]
+				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(tovalue_name, accepted_types, false, this); // todo: better error message when we use a tag instead or a property and vice versa.
 				if (identifier_index < 0)
 					return 'ERROR'
 				// TODO? check that the identifier is in the start set
-				if (this.current_identifier_index === null)
-					return 'NAME';
 				// register the mapping for this value
 				var mapping = this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]];
 				mapping.toset.push( identifier_index );

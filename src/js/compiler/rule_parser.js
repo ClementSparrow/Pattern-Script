@@ -97,7 +97,7 @@ function parseRuleDirections(state, tokens, lineNumber)
 			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
 
 		}
-		else if (state.identifiers.checkIdentifierIsKnownWithType(token, [identifier_type_tagset, identifier_type_property], false, state)) // we do that last because '+' and ']' may be used as identifiers (synonyms)
+		else if (state.identifiers.checkIdentifierIsKnownWithType(token, [identifier_type_tagset, identifier_type_property], false, state) >= 0) // we do that last because '+' and ']' may be used as identifiers (synonyms)
 		{
 			const identifier_index = state.identifiers.names.indexOf(token);
 			const identifier_type =  state.identifiers.comptype[identifier_index];

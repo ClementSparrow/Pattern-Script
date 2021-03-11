@@ -49,10 +49,10 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 
 //	Remove relative directions
 	convertRelativeDirsToAbsolute(rule);
-//	Optional: replace up/left rules with their down/right equivalents
-	rewriteUpLeftRules(rule);
 //	Replace mappings of the parameters with what they map to.
 	applyRuleParamatersMappings(identifiers, rule);
+//	Optional: replace up/left rules with their down/right equivalents
+	rewriteUpLeftRules(rule);
 //	Replace aggregates and synonyms with what they mean
 	atomizeAggregatesAndSynonyms(identifiers, rule);
 	return rule;
@@ -71,19 +71,36 @@ function applyRuleParamatersMappings(identifiers, rule)
 					var identifier_index = objcond[1]
 					if (identifier_index === '...')
 						continue
+
+				//	Apply mappings appearing in the tags
 					for (var tag_position=1; tag_position < identifiers.tag_mappings[identifier_index].length; tag_position++)
 					{
 						const mapping_index = identifiers.tag_mappings[identifier_index][tag_position]
-						if (mapping_index === null)
-							continue
-						const mapping = identifiers.mappings[mapping_index]
-						const tagclass_parameter_index = rule.tag_classes.indexOf(mapping.from)
-						if (tagclass_parameter_index < 0)
+						if (mapping_index === null) // no mapping in this tag
 							continue;
-						const replaced_tag = rule.tag_classes_replacements[tagclass_parameter_index]
-						identifier_index = mapping.toset[ mapping.fromset.indexOf(replaced_tag) ]
+						const mapping = identifiers.mappings[mapping_index]
+
+					//	Replace tag class parameters when they appear directly as a tag or as the fromset of a tag mapping
+						const tagclass_parameter_index = rule.tag_classes.indexOf(mapping.from)
+						if (tagclass_parameter_index >= 0) // the tag mapping is compatible with a tag class rule parameter
+						{
+							const replaced_tag = rule.tag_classes_replacements[tagclass_parameter_index]
+							identifier_index = mapping.toset[ mapping.fromset.indexOf(replaced_tag) ]
+							continue;
+						}
+
+					//	Replace direction parameters only when the tag uses a directional mapping (not when the tag is 'directions' or a supset or superset of it)
+						const direction_index = mapping.fromset.indexOf(identifiers.names.indexOf(rule.direction))
+						if ( (direction_index < 0) || (mapping.identifier_index == mapping.from) ) // direction not included in tag, or not a tag mapping
+							continue;
+						identifier_index = mapping.toset[direction_index]
 					}
-					const property_parameter_index = rule.parameter_properties.indexOf(identifier_index)
+
+				//	Replace property parameters and apply object mappings
+					if (identifiers.names[identifier_index] === 'stopping')
+						{ console.log(identifiers); console.assert(false)}
+					const identifier_property = (identifiers.comptype[identifier_index] === identifier_type_mapping) ? identifiers.mappings[identifiers.tag_mappings[identifier_index][0]].from : identifier_index
+					const property_parameter_index = rule.parameter_properties.indexOf(identifier_property)
 					if (property_parameter_index >= 0)
 					{
 						identifier_index = rule.parameter_properties_replacements[property_parameter_index]
@@ -647,14 +664,6 @@ function absolutifyRuleHS(hs, forward)
 		}
 	}
 }
-
-var relativeDirs = ['^','v','<','>','parallel','perpendicular'];//used to index the following
-var relativeDict = {
-	'right': ['up', 'down', 'left', 'right','horizontal','vertical'],
-	'up': ['left', 'right', 'down', 'up','vertical','horizontal'],
-	'down': ['right', 'left', 'up', 'down','vertical','horizontal'],
-	'left': ['down', 'up', 'right', 'left','horizontal','vertical']
-};
 
 function absolutifyRuleCell(forward, cell)
 {
