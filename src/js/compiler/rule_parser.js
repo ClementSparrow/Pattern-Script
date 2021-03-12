@@ -89,13 +89,12 @@ function parseRuleDirections(state, tokens, lineNumber)
 		} else if (simpleRelativeDirections.indexOf(token) >= 0) {
 			logError('You cannot use relative directions (\"^v<>\") to indicate in which direction(s) a rule applies.  Use absolute directions indicators (Up, Down, Left, Right, Horizontal, or Vertical, for instance), or, if you want the rule to apply in all four directions, do not specify directions', lineNumber);
 		}
-		else if (token == '[')
+		else if (token === '[')
 		{
 			if (directions.length == 0) {
 				directions.push(...directionaggregates['orthogonal']); // it's not actually about orthogonality, it's just that this word contains the four directions and only that
 			}
 			return [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, i ];
-
 		}
 		else if (state.identifiers.checkIdentifierIsKnownWithType(token, [identifier_type_tagset, identifier_type_property], false, state) >= 0) // we do that last because '+' and ']' may be used as identifiers (synonyms)
 		{
@@ -151,6 +150,7 @@ function parseRuleString(rule, state, curRules)
 		post : CellMask[]
 */
 	var [line, lineNumber, origLine] = rule;
+	state.lineNumber = lineNumber // TODO: inelegant. Just to report errors.
 
 //	STEP ONE, TOKENIZE
 	line = line.replace(/\[/g, ' [ ').replace(/\]/g, ' ] ').replace(/\|/g, ' | ').replace(/\-\>/g, ' -> ');

@@ -262,6 +262,9 @@ Identifiers.prototype.replaceTag = function(replacement_tag_identifier_index, ta
 
 //	======= CHECK IDENTIFIERS ======
 
+// forbidden_keywords cannot be used as tags or object names
+const forbidden_keywords = ['checkpoint','tags','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','late','rigid', 'no','randomdir','random', 'any', 'all', 'some', 'moving','stationary','action','message'];
+
 Identifiers.prototype.checkIdentifierType = function(identifier_index, accepted_types, accepts_mapping)
 {
 	const type = this.comptype[identifier_index]
@@ -318,11 +321,11 @@ Identifiers.prototype.identifierIsWellFormed = function(identifier, accepts_mapp
 	return [0, identifier_base, tags];
 }
 
-// checks that it is a name that could be used for an object, but does not check if it has already been declared.
+// checks that it is a name that could be used for an object, but does not check if it has already been declared (it's already done by the callers).
 Identifiers.prototype.canBeAnObjectName = function(candname, log)
 {
 //	Warn if the name is a keyword
-	if (keyword_array.indexOf(candname) >= 0)
+	if (forbidden_keywords.indexOf(candname) >= 0)
 	{
 		log.logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!');
 		return [0, candname, []]; // yes, this is only a warning
@@ -534,7 +537,7 @@ Identifiers.prototype.registerImplicitObjectIdentifier = function(new_identifier
 	this.mappings[replaced_tags[0]].toset.forEach( ii => this.object_set[ii].forEach(oii => objects.add(oii) ) )
 
 	if (objects.size > 1) // Register the identifier as a property to avoid redoing all this again.
-		return this.registerNewLegend(new_identifier, new_original_case, objects, [null, ...tag_mapping], identifier_type_property, 0, lineNumber);
+		return this.registerNewLegend(new_identifier, new_original_case, objects, [null, ...tag_mapping], identifier_type_property, 1, lineNumber);
 
 	// all tag classes have only one value => new synonym
 	const old_identifier_index = this.objects[objects.values().next().value].identifier_index;

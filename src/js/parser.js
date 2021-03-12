@@ -43,7 +43,6 @@ const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|or
 const reg_sounddirectionindicators = /\p{Separator}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Separator}*/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)$/;
 const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
-const keyword_array = ['checkpoint','tags','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','up', 'down', 'left', 'right', 'late','rigid', '^','v','\>','\<','no','randomdir','random', 'horizontal', 'vertical','any', 'all', 'no', 'some', 'moving','stationary','parallel','perpendicular','action','message'];
 
 
 
@@ -188,7 +187,7 @@ PuzzleScriptParser.prototype.checkIfNewTagNameIsValid = function(name)
 		this.logError('Cannot use '+name.toUpperCase()+' as a tag name or tag class name: it has to be an object.');
 		return false;
 	}
-	if ( keyword_array.indexOf(name) >= 0) // TODO: but we want some keywords such as the direction to exist as predefined tags.
+	if ( forbidden_keywords.indexOf(name) >= 0)
 	{
 		this.logError('Cannot use the keyword '+name.toUpperCase()+' as a tag name or tag class name.');
 		return false;

@@ -158,7 +158,7 @@ function generateExtraMembers(state)
 	state.glyphDict = state.identifiers.names.map(
 		function(identifier, identifier_index)
 		{
-			if (state.identifiers.comptype[identifier_index] === identifier_type_mapping)
+			if ( ! [identifier_type_object, identifier_type_property, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
 				return null;
 			var mask = blankMask.concat([]);
 			for (const object_pos of state.identifiers.getObjectsForIdentifier(identifier_index))
@@ -656,7 +656,7 @@ function generateMasks(state)
 //	Compute state.objectMasks
 
 	var objectMask = state.identifiers.comptype.map(
-		(type, identifier_index) => ([identifier_type_aggregate, identifier_type_mapping].includes(type)) ? null : makeMaskFromObjectSet(state.identifiers, state.identifiers.getObjectsForIdentifier(identifier_index))
+		(type, identifier_index) => ([identifier_type_object, identifier_type_property].includes(type)) ? makeMaskFromObjectSet(state.identifiers, state.identifiers.getObjectsForIdentifier(identifier_index)) : null
 	);
 
 	var all_obj = new BitVec(STRIDE_OBJ);
