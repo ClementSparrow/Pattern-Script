@@ -726,7 +726,6 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 		if (ok === false)
 		{
-			console.log(splits)
 			this.logError('incorrect format of legend - should be one of A = B, A = B or C ( or D ...), A = B and C (and D ...)');
 			stream.match(reg_notcommentstart, true);
 			return 'ERROR';
