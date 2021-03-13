@@ -25,22 +25,22 @@ const logicWords = ['all', 'no', 'on', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
-const reg_commands = /\p{Separator}*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\p{Separator}*/u;
-const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}]*/u;
+const reg_commands = /[\p{Separator}\s]*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)[\p{Separator}\s]*/u;
+const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}\s]*/u;
 const reg_tagged_name = /[\p{Letter}\p{Number}_]+(:[\p{Letter}\p{Number}_]+)*/u;
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
-const reg_spriterow = /[\.0-9]{5}\p{Separator}*/u;
-const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)(?![\p{Letter}\p{Number}_])[\p{Separator}]*/u;
+const reg_spriterow = /[\.0-9]{5}[\p{Separator}\s]*/u;
+const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)(?![\p{Letter}\p{Number}_])[\p{Separator}\s]*/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
-const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)\p{Separator}+/u;
+const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx1|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10)[\p{Separator}\s]+/u;
 const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 const reg_loopmarker = /^(startloop|endloop)$/;
 const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-const reg_sounddirectionindicators = /\p{Separator}*(up|down|left|right|horizontal|vertical|orthogonal)\p{Separator}*/u;
+const reg_sounddirectionindicators = /[\p{Separator}\s]*(up|down|left|right|horizontal|vertical|orthogonal)[\p{Separator}\s]*/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)$/;
 const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
 
@@ -267,7 +267,7 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 
 PuzzleScriptParser.prototype.parse_keyword_or_identifier = function(stream)
 {
-	const match = stream.match(/[\p{Separator}]*[\p{Letter}\p{Number}_:]+[\p{Separator}]*/u);
+	const match = stream.match(/[\p{Separator}\s]*[\p{Letter}\p{Number}_:]+[\p{Separator}\s]*/u);
 	return (match !== null) ? match[0].trim() : null;
 }
 
@@ -393,7 +393,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				stream.match(reg_notcommentstart, true);
 				return 'ERROR'
 			}
-			if (stream.match(/[\p{Separator}]*=/u, false) === null) // not followed by an = sign
+			if (stream.match(/[\p{Separator}\s]*=/u, false) === null) // not followed by an = sign
 			{
 				this.logError('I was expecting an "=" sign after the tag type name.')
 				stream.match(reg_notcommentstart, true);
@@ -476,7 +476,7 @@ function findOriginalCaseName(candname, mixedCase)
 PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 {
 	//LOOK FOR NAME
-	var match_name = is_start_of_line ? stream.match(reg_tagged_name, true) : stream.match(/[^\p{Separator}\()]+\p{Separator}*/u, true);
+	var match_name = is_start_of_line ? stream.match(reg_tagged_name, true) : stream.match(/[^\p{Separator}\s\()]+[\p{Separator}\s]*/u, true);
 	if (match_name == null)
 	{
 		stream.match(reg_notcommentstart, true);
@@ -653,7 +653,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 		var longer = stream.string.replace('=', ' = ');
 		longer = reg_notcommentstart.exec(longer)[0];
 
-		var splits = longer.split(/\p{Separator}/u).filter( v => (v !== '') );
+		var splits = longer.split(/[\p{Separator}\s]+/u).filter( v => (v !== '') );
 		var ok = true;
 
 		if (splits.length > 0)
@@ -726,6 +726,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 		if (ok === false)
 		{
+			console.log(splits)
 			this.logError('incorrect format of legend - should be one of A = B, A = B or C ( or D ...), A = B and C (and D ...)');
 			stream.match(reg_notcommentstart, true);
 			return 'ERROR';
@@ -746,7 +747,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 	case 2: // =
 		{
 			stream.next();
-			stream.match(/\p{Separator}*/u, true);
+			stream.match(/[\p{Separator}\s]*/u, true);
 			return 'ASSIGNMENT';
 		}
 	default:
@@ -970,7 +971,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	if (is_start_of_line)
 	{
 		var ok = true;
-		var splits = reg_notcommentstart.exec(stream.string)[0].split(/\p{Separator}/u).filter( v => (v !== '') );
+		var splits = reg_notcommentstart.exec(stream.string)[0].split(/[\p{Separator}\s]+/u).filter( v => (v !== '') );
 		splits.push(this.lineNumber);
 		this.sounds.push(splits);
 	}
@@ -986,7 +987,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 		this.tokenIndex++;
 		return 'SOUND';
 	} 
-	candname = stream.match(/[^\[\|\]\p{Separator}]+/u, true);
+	candname = stream.match(/[^\[\|\]\p{Separator}\s]+/u, true);
 	if (candname!== null)
 	{
 		const m = candname[0].trim();
@@ -1059,7 +1060,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.skipToEnd();
 		return 'MESSAGE';
 	}
-	if (stream.match(/\p{Separator}*->\p{Separator}*/u, true)) // TODO: also match the unicode arrow character
+	if (stream.match(/[\p{Separator}\s]*->[\p{Separator}\s]*/u, true)) // TODO: also match the unicode arrow character
 		return 'ARROW';
 	if (ch === '[' || ch === '|' || ch === ']' || ch==='+')
 	{
@@ -1068,27 +1069,27 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 			this.tokenIndex = 1;
 		}
 		stream.next();
-		stream.match(/\p{Separator}*/u, true);
+		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'BRACKET';
 	}
 
-	const m = stream.match(/[^\[\|\]\p{Separator}]*/u, true)[0].trim();
+	const m = stream.match(/[^\[\|\]\p{Separator}\s]*/u, true)[0].trim();
 
 	if (this.tokenIndex === 0 && reg_loopmarker.exec(m))
 		return 'BRACKET'; // styled as a bracket but actually a keyword
 	if (this.tokenIndex === 0 && reg_ruledirectionindicators.exec(m))
 	{
-		stream.match(/\p{Separator}*/u, true);
+		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'DIRECTION';
 	}
 	if (this.tokenIndex === 1 && reg_directions.exec(m))
 	{
-		stream.match(/\p{Separator}*/u, true);
+		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'DIRECTION';
 	}
 	if ( (this.identifiers.checkKnownTagClass(m) >= 0) || (this.identifiers.checkKnownIdentifier(m, true, this) >= 0) )
 	{
-		stream.match(/\p{Separator}*/u, true);
+		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'NAME';
 	}
 	if (m === '...')
@@ -1120,7 +1121,7 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 	if (is_start_of_line)
 	{
 		var tokenized = reg_notcommentstart.exec(stream.string);
-		var splitted = tokenized[0].split(/\p{Separator}/u);
+		var splitted = tokenized[0].split(/[\p{Separator}\s]+/u);
 		var filtered = splitted.filter( v => (v !== '') );
 		filtered.push(this.lineNumber);
 		
@@ -1164,7 +1165,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 {
 	if (is_start_of_line)
 	{
-		if (stream.match(/\p{Separator}*message\b\p{Separator}*/u, true))
+		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 1;//1/2 = message/level
 			var newdat = ['\n', this.mixedCase.slice(stream.pos).trim(), this.lineNumber];
@@ -1316,7 +1317,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 	}
 
 	// ignore white space
-	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && (stream.match(/[\p{Separator}\)]+/u, true) || stream.eol()) )
+	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && (stream.match(/[\p{Separator}\s\)]+/u, true) || stream.eol()) )
 	{
 		if (token_starts_line && stream.eol()) // a line that contains only white spaces and unmatched ) is considered a blank line
 			return blankLineHandle(this);
