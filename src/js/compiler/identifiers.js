@@ -585,3 +585,81 @@ Identifiers.prototype.checkAndRegisterNewObjectIdentifier = function(candname, o
 	this.implicit[result] = 0; // now it's explicitly defined
 	return result;
 }
+
+
+
+
+
+//	====== GENERATE EXPANSIONS FROM PARAMETERS ======
+
+function* cartesian_product(head, ...tail)
+{
+	const remainder = tail.length > 0 ? cartesian_product(...tail) : [[]];
+	for (let r of remainder)
+		for (let h of head)
+			yield [h, ...r];
+}
+
+Identifiers.prototype.make_expansion_parameter = function(identifiers_indexes)
+{
+	return Array.from(
+		identifiers_indexes,
+		identifier_index => Array.from(this.object_set[identifier_index])
+	);
+}
+
+Identifiers.prototype.expand_parameters = function*(identifiers_indexes)
+{
+	for (const parameters of cartesian_product(...this.make_expansion_parameter(identifiers_indexes)))
+	{
+		yield parameters;
+	}
+}
+
+Identifiers.prototype.replace_directional_tag_mappings = function(direction, identifier_index)
+{
+//	Apply mappings appearing in the tags
+	for (var tag_position=1; tag_position < this.tag_mappings[identifier_index].length; tag_position++)
+	{
+		const mapping_index = this.tag_mappings[identifier_index][tag_position]
+		if (mapping_index === null) // no mapping in this tag
+			continue;
+		const mapping = this.mappings[mapping_index]
+
+	//	Replace direction parameters only when the tag uses a directional mapping (not when the tag is 'directions' or a subset or superset of it)
+		const direction_index = mapping.fromset.indexOf(this.names.indexOf(direction))
+		if ( (direction_index < 0) || (mapping.identifier_index == mapping.from) ) // direction not included in tag, or not a tag mapping
+			continue;
+		identifier_index = mapping.toset[direction_index]
+	}
+	return identifier_index;
+}
+
+Identifiers.prototype.replace_parameters = function(identifier_index, from_identifiers_indexes, replacements_identifier_indexes)
+{
+//	Apply mappings appearing in the tags
+	for (var tag_position=1; tag_position < this.tag_mappings[identifier_index].length; tag_position++)
+	{
+		const mapping_index = this.tag_mappings[identifier_index][tag_position]
+		if (mapping_index === null) // no mapping in this tag
+			continue;
+		const mapping = this.mappings[mapping_index]
+
+	//	Replace tag class parameters when they appear directly as a tag or as the fromset of a tag mapping
+		const tagclass_parameter_index = from_identifiers_indexes.indexOf(mapping.from)
+		if (tagclass_parameter_index < 0)
+			continue;
+		// the tag mapping is compatible with a tag class parameter
+		const replaced_tag = replacements_identifier_indexes[tagclass_parameter_index]
+		identifier_index = mapping.toset[ mapping.fromset.indexOf(replaced_tag) ]
+	}
+
+//	Replace property parameters and apply object mappings
+	const identifier_property = (this.comptype[identifier_index] === identifier_type_mapping) ? this.mappings[this.tag_mappings[identifier_index][0]].from : identifier_index
+	const property_parameter_index = from_identifiers_indexes.indexOf(identifier_property)
+	if (property_parameter_index >= 0)
+	{
+		identifier_index = replacements_identifier_indexes[property_parameter_index]
+	}
+	return identifier_index;
+}

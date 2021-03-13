@@ -12,23 +12,12 @@ function* generateDirections(directions)
 }
 
 
-function* cartesian_product(head, ...tail)
-{
-	const remainder = tail.length > 0 ? cartesian_product(...tail) : [[]];
-	for (let r of remainder)
-		for (let h of head)
-			yield [h, ...r];
-}
-
 function* generateRulesExpansions(identifiers, rules)
 {
 	for (const rule of rules)
 	{
 		const directions = new Set( generateDirections(rule.directions) );
-		const parameter_sets = Array.from(
-			[...rule.tag_classes, ...rule.parameter_properties],
-			identifier_index => Array.from(identifiers.object_set[identifier_index])
-		);
+		const parameter_sets = identifiers.make_expansion_parameter([...rule.tag_classes, ...rule.parameter_properties])
 		for (const parameters of cartesian_product(directions, ...parameter_sets))
 		{
 			yield [rule, ...parameters];
@@ -48,7 +37,7 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 	rule.parameter_properties_replacements = parameters.slice(rule.tag_classes.size);
 
 //	Remove relative directions
-	convertRelativeDirsToAbsolute(rule);
+	convertRelativeDirsToAbsolute(identifiers, rule);
 //	Replace mappings of the parameters with what they map to.
 	applyRuleParamatersMappings(identifiers, rule);
 //	Optional: replace up/left rules with their down/right equivalents
@@ -69,43 +58,14 @@ function applyRuleParamatersMappings(identifiers, rule)
 				for (var objcond of cell)
 				{
 					var identifier_index = objcond[1]
-					if (identifier_index === '...')
-						continue
-
-				//	Apply mappings appearing in the tags
-					for (var tag_position=1; tag_position < identifiers.tag_mappings[identifier_index].length; tag_position++)
+					if (identifier_index !== '...')
 					{
-						const mapping_index = identifiers.tag_mappings[identifier_index][tag_position]
-						if (mapping_index === null) // no mapping in this tag
-							continue;
-						const mapping = identifiers.mappings[mapping_index]
-
-					//	Replace tag class parameters when they appear directly as a tag or as the fromset of a tag mapping
-						const tagclass_parameter_index = rule.tag_classes.indexOf(mapping.from)
-						if (tagclass_parameter_index >= 0) // the tag mapping is compatible with a tag class rule parameter
-						{
-							const replaced_tag = rule.tag_classes_replacements[tagclass_parameter_index]
-							identifier_index = mapping.toset[ mapping.fromset.indexOf(replaced_tag) ]
-							continue;
-						}
-
-					//	Replace direction parameters only when the tag uses a directional mapping (not when the tag is 'directions' or a supset or superset of it)
-						const direction_index = mapping.fromset.indexOf(identifiers.names.indexOf(rule.direction))
-						if ( (direction_index < 0) || (mapping.identifier_index == mapping.from) ) // direction not included in tag, or not a tag mapping
-							continue;
-						identifier_index = mapping.toset[direction_index]
+						objcond[1] = identifiers.replace_parameters(
+							identifier_index,
+							[...rule.tag_classes, ...rule.parameter_properties],
+							[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
+						)
 					}
-
-				//	Replace property parameters and apply object mappings
-					if (identifiers.names[identifier_index] === 'stopping')
-						{ console.log(identifiers); console.assert(false)}
-					const identifier_property = (identifiers.comptype[identifier_index] === identifier_type_mapping) ? identifiers.mappings[identifiers.tag_mappings[identifier_index][0]].from : identifier_index
-					const property_parameter_index = rule.parameter_properties.indexOf(identifier_property)
-					if (property_parameter_index >= 0)
-					{
-						identifier_index = rule.parameter_properties_replacements[property_parameter_index]
-					}
-					objcond[1] = identifier_index;
 				}
 			}
 		}
@@ -642,37 +602,35 @@ function atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber)
 	}
 }
 
-// TODO: that's just applying a direction function and should probably be implemented as such.
-// It means that each entry of relativeDirs should be a direction function, and
-// that "const index = relativeDirs.indexOf(c)" should become "const ruledir_function = ruledir_function_names.indexOf(c)"
-// and "cell[i] = relativeDict[forward][index]" should be replaced with "cell[i] = ruledir_functions[index][forward]"
-// where each ruledir_function is a array giving the result of the function for each rule direction.
-function convertRelativeDirsToAbsolute(rule)
+function convertRelativeDirsToAbsolute(identifiers, rule)
 {
 	const forward = rule.direction;
-	absolutifyRuleHS(rule.lhs, forward);
-	absolutifyRuleHS(rule.rhs, forward);
+	absolutifyRuleHS(identifiers, rule.lhs, forward);
+	absolutifyRuleHS(identifiers, rule.rhs, forward);
 }
 
-function absolutifyRuleHS(hs, forward)
+function absolutifyRuleHS(identifiers, hs, forward)
 {
 	for (const cellrow of hs)
 	{
 		for (const cell of cellrow)
 		{
-			absolutifyRuleCell(forward, cell);
+			absolutifyRuleCell(identifiers, forward, cell);
 		}
 	}
 }
 
-function absolutifyRuleCell(forward, cell)
+function absolutifyRuleCell(identifiers, forward, cell)
 {
 	for (var objcond of cell)
 	{
+		if (objcond[1] === '...')
+			continue;
 		const index = relativeDirs.indexOf(objcond[0]);
 		if (index >= 0)
 		{
 			objcond[0] = relativeDict[forward][index];
 		}
+		objcond[1] = identifiers.replace_directional_tag_mappings(forward, objcond[1])
 	}
 }

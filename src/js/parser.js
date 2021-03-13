@@ -90,6 +90,9 @@ function PuzzleScriptParser()
 	this.sounds = []
 
 	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a Set of the indexes of the objects belonging to that layer
+	this.backgroundlayer = null;
+	this.current_layer_parameters = []
+	this.current_layer_expansion = [] // a array of [layer_index, parameter_values] where parameter_values is an array of tags/objects belonging to the tag classes/properties in current_layer_parameters
 
 	this.rules = []
 
@@ -125,6 +128,9 @@ PuzzleScriptParser.prototype.copy = function()
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
 	result.collisionLayers = this.collisionLayers.map( s => new Array(...s) )
+	result.backgroundlayer = this.backgroundlayer
+	result.current_layer_parameters = Array.from( this.current_layer_parameters )
+	result.current_layer_expansion = Array.from( this.current_layer_expansion, ([layer_index, parameter_values]) => [layer_index, Array.from(parameter_values)] )
 
 	result.rules = this.rules.concat([])
 
@@ -202,25 +208,24 @@ PuzzleScriptParser.prototype.checkIfNewTagNameIsValid = function(name)
 // TODO: add a syntax to name collision_layers and use their name as a property?
 // -> Actually, we should check that the identifiers given in a layer form a valid property definition.
 //    or simply we check that a name given in a collision layer is not the name of an aggregate.
-PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(candname)
+PuzzleScriptParser.prototype.addIdentifierInCollisionLayer = function(candname, layer_index, ...expansion)
 {
 	// we have a name: let's see if it's valid
 
-	const current_layer = this.collisionLayers.length - 1;
 	if (candname === 'background')
 	{
-		if ( (current_layer >= 0) && (this.collisionLayers[current_layer].length > 0) )
+		if ( (layer_index >= 0) && (this.collisionLayers[layer_index].length > 0) )
 		{
 			this.logError("Background must be in a layer by itself.");
 		}
-		this.tokenIndex = 1;
+		this.backgroundlayer = layer_index;
 	}
-	else if (this.tokenIndex !== 0)
+	else if (this.backgroundlayer === layer_index)
 	{
 		this.logError("Background must be in a layer by itself.");
 	}
 
-	if (current_layer < 0)
+	if (layer_index < 0)
 	{
 		this.logError("no layers found.");
 		return false;
@@ -235,12 +240,14 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 		return false;
 	}
 
+	const identifier_index = this.identifiers.replace_parameters(cand_index, ...expansion)
+
 	var identifier_added = true;
-	for (const objpos of this.identifiers.getObjectsForIdentifier(cand_index))
+	for (const objpos of this.identifiers.getObjectsForIdentifier(identifier_index))
 	{
 		const obj = this.identifiers.objects[objpos];
 		const l = obj.layer;
-		if ( (l !== undefined) && (l != current_layer) )
+		if ( (l !== undefined) && (l != layer_index) )
 		{
 			identifier_added = false;
 			this.logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!');
@@ -248,8 +255,8 @@ PuzzleScriptParser.prototype.addIdentifierInCurrentCollisionLayer = function(can
 		}
 		else
 		{
-			obj.layer = current_layer;
-			this.collisionLayers[current_layer].add(objpos);
+			obj.layer = layer_index;
+			this.collisionLayers[layer_index].add(objpos);
 		}
 	}
 	return identifier_added;
@@ -822,13 +829,13 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				this.tokenIndex = 1;
 				const fromset_name = fromset_name_match[0];
 				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(fromset_name, [identifier_type_property, identifier_type_tagset], false, this);
-				if (identifier_index < 0)
+				if (identifier_index === -2) // unknown identifier
 				{
 					this.logError('Unknown identifier for a mapping\'s start set: '+fromset_name.toUpperCase()+'.')
 					stream.match(reg_notcommentstart, true);
 					return 'ERROR';
 				}
-				if ( ! [identifier_type_tagset, identifier_type_property].includes(this.identifiers.comptype[identifier_index]) )
+				if ( identifier_index === -1 )
 				{
 					this.logError('Cannot create a mapping with a start set defined as '+identifier_type_as_text[this.identifiers.comptype[identifier_index]]+': only tag classes and object properties are accepted here.');
 					stream.match(reg_notcommentstart, true);
@@ -1012,9 +1019,27 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 {
 	if (is_start_of_line)
 	{
-		//create new collision layer
-		this.collisionLayers.push(new Set());
-		this.tokenIndex = 0;
+		this.current_layer_parameters = []
+		this.current_layer_expansion = []
+		this.tokenIndex = (/->/.test(stream.string)) ? 0 : 1;
+		if (this.tokenIndex == 1)
+		{
+			//create new collision layer
+			this.current_layer_expansion.push( [this.collisionLayers.length, []] )
+			this.collisionLayers.push(new Set());
+		}
+	}
+
+	if (stream.match(/->/, true) !== null)
+	{
+		// finalize the list of parameters and create the collision layers
+		this.current_layer_expansion = Array.from(
+			this.identifiers.expand_parameters(this.current_layer_parameters),
+			(expansion, i) => [this.collisionLayers.length+i, expansion]
+		)
+		this.current_layer_expansion.forEach( e => this.collisionLayers.push( new Set() ) )
+		this.tokenIndex = 1
+		return 'ARROW';
 	}
 
 	const match_name = stream.match(reg_tagged_name, true);
@@ -1033,10 +1058,27 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 		return null;
 	}
 	
-	if ( ! this.addIdentifierInCurrentCollisionLayer( match_name[0].trim() ) )
-		return 'ERROR' // this is a semantic rather than a syntactic error
-	return 'NAME'
+	const identifier = match_name[0].trim()
 
+	if (this.tokenIndex == 0) // list of expansion parameters
+	{
+		const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(identifier, [identifier_type_property, identifier_type_tagset], false, this)
+		if (identifier_index === -2) // unknown identifier
+		{
+			this.logError('I cannot generate collision layers for unknown tag class or object property "'+identifier.toUpperCase()+'".')
+			return 'ERROR'
+		}
+		if (identifier_index === -1) // wrong type
+		{
+			this.logError('I cannot generate collision layers for "'+identifier.toUpperCase()+'" because it is not a tag class or object property.')
+			return 'ERROR'
+		}
+		this.current_layer_parameters.push(identifier_index)
+		return 'NAME';
+	}
+	if ( this.current_layer_expansion.every( ([layer_index,expansion]) => this.addIdentifierInCollisionLayer(identifier, layer_index, this.current_layer_parameters, expansion) ) )
+		return 'NAME';
+	return 'ERROR'; // this is a semantic rather than a syntactic error
 }
 
 
