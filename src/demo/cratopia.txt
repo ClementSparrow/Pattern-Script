@@ -247,9 +247,9 @@ G = Goal
 K = Key
 L = Ladder
 
-> = PlayerRight
-< = PlayerLeft
-^ = PlayerLadder
+→ = PlayerRight
+← = PlayerLeft
+↑ = PlayerLadder
 Player = PlayerLeft or PlayerRight or PlayerLadder or EditModeCursor
 NonCursorPlayer = PlayerLeft or PlayerRight or PlayerLadder
 PlayerJump = PlayerJumpLeft or PlayerJumpRight
@@ -462,7 +462,7 @@ SG.C..#LS
 S..C..#LS
 S*****#LS
 S......LS
-S>.C..C.S
+S→.C..C.S
 S*******S
 SSSSSSSSS
 
@@ -473,7 +473,7 @@ S..............****LS
 S................C.LS
 S.......C.CL...****LS
 S.......***L.......LS
-SG....>......***...LS
+SG....→......***...LS
 S**...C....C......C*S
 S##*.**************#S
 S###*###############S
@@ -483,7 +483,7 @@ message I wish the world had more crates.
 
 (rain tutorial prelude)
 SSSSSSSSSSSSSSSSSSS
-SG..<.............S
+SG..←.............S
 S*.*L.............S
 S...L.............S
 S.***.********....S
@@ -509,7 +509,7 @@ S.***.********....S
 S.................S
 SL***.****.****...S
 SL.............***S
-SL.......L***....>S
+SL.......L***....→S
 S*.....CC......C**S
 S#*************C##S
 S##############*##S
@@ -524,13 +524,13 @@ S*..S
 S...S
 S...S
 S...S
-S>..S
+S→..S
 S***S
 SSSSS
 
 (rain 2)
 SDDDDDDDDDDDDS
-S.K.........<S
+S.K.........←S
 S.**.**.**.**S
 S...........@S
 S..........**S
@@ -549,7 +549,7 @@ SL.C.C..S
 SL.C.C..S
 SL.C@C..S
 SL.C*C..S
-SL.C^C..S
+SL.C↑C..S
 SL.C*C..S
 SL.C.C..S
 SL.C.C..S
@@ -560,7 +560,7 @@ SSSSSSSSS
 (fire 1)
 SDDDDDDDDDDDS
 S...........S
-S@.......C<.S
+S@.......C←.S
 S******L***LS
 S..........LS
 SK..*......LS
@@ -574,14 +574,14 @@ S......C...S
 S..**L***..S
 S....L....KS
 S....L...**S
-S>.C..C...@S
+S→.C..C...@S
 S****F*****S
 SSSSSSSSSSSS
 
 (fire 3)
 SDDDDDDDDDS
 S.........S
-S...^.....S
+S...↑.....S
 S*.***....S
 S#.#......S
 S#.#K*....S
@@ -598,7 +598,7 @@ SSSSSSSSSSS
 SDDDDDDDDDDDS
 SK..........S
 S****...L...S
-S@.>........S
+S@.→........S
 S****-----**S
 S####*FFF*##S
 SSSSSSSSSSSSS
@@ -607,7 +607,7 @@ SSSSSSSSSSSSS
 SDDDDDDDDDS
 S.......**S
 S.****..##S
-S.......C<S
+S.......C←S
 S*----****S
 S#..F*####S
 S#....G###S
@@ -627,7 +627,7 @@ SL*.****.*.F*.*LS
 SL.............LS
 SL****-.*.-*F.*LS
 SL......G......LS
-S*C.....^.....C*S
+S*C.....↑.....C*S
 S#**FFF***FFF**#S
 SSSSSSSSSSSSSSSSS
 
@@ -636,7 +636,7 @@ SSSSSSSSSSSSSSSSSSSSS
 S................+++S
 S..............+++++S
 S............+++++A+S
-S>........+++++++CCCS
+S→........+++++++CCCS
 S*******CCCCCCCCCCCCS
 ST##CCCCCCCCCCCCCCCCS
 SSSSSSSSSSSSSSSSSSSSS

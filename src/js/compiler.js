@@ -267,9 +267,14 @@ function levelFromString(state, level)
 				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
 				continue;
 			}
-			else if (state.identifiers.comptype[identifier_index] == identifier_type_property)
+			if (state.identifiers.comptype[identifier_index] == identifier_type_property)
 			{
 				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);
+				continue;
+			}
+			if ( ! [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
+			{
+				logError('Error, symbol "' + ch + '" is defined as '+identifier_type_as_text[state.identifiers.comptype[identifier_index]]+'. It cannot be used in a map.', level[0]+j);
 				continue;
 			}
 

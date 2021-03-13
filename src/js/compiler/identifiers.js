@@ -56,6 +56,9 @@ function Identifiers()
 	this.registerNewIdentifier('directions', 'directions', identifier_type_tagset, identifier_type_tagset, new Set([0,1,2,3]), [null], 0, -1) // 6
 
 //	Register predefined direction mappings
+	// note that by doing so, we forbid the use of > < v ^ as legend characters to use in levels, which is accepted in vanilla PuzzleScript. But I
+	// have no problem with that because I think the whole LEGEND section should be redesigned. The definition of properties and aggregates should have its own section
+	// and the definition of legend symbols should only accept aggregates, and be case-sensitive and more unicode-friendly.
 	for (const [i, dirname] of relativeDirs.entries())
 	{
 		this.registerNewMapping(dirname, dirname, 6, new Set(), 0, -1)

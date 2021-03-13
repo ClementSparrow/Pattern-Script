@@ -258,7 +258,7 @@ J = JumpVariableA
 H = JumpVariableT
 L = JumpVariableB
 E = Exit
-^ = Teleport
+P = Teleport
 F = Fire
 O = Boulder
 - = Tunnel
@@ -399,7 +399,7 @@ message #3. Twilight teleports and zaps.
 ............
 ............
 .T....E.O...
-~^~FFF~~~~^~
+~P~FFF~~~~P~
 ############
 
 message #4. Rainbow Dash flies and smashes.
@@ -459,11 +459,11 @@ JHL..#####O############
 ..#####..-O------O-E###
 ######..##O######O#####
 #####..###|...A..O.....
-####..####O###^.#######
+####..####O###P.#######
 ####.-----O-------...B.
 ##########O############
 ..........O..........T.
-############^##########
+############P##########
 
 message #10. Friendship is magic!
 
@@ -472,7 +472,7 @@ JH.........###
 DAT....|.#..O#
 ~~~.~~~.~###O#
 .......F.#..O#
-########^#^###
+########P#P###
 
 message #11. Evil enchantress.
 ~~~~~...............JHL

@@ -199,10 +199,10 @@ W = CrateW
 S = CrateS
 O = Target
 + = Shell
-^ = GunN
-< = GunW
-> = GunE
-˅ = GunS
+↑ = GunN
+← = GunW
+→ = GunE
+↓ = GunS
 M = InertMine
 A = ActiveMine
 B = Boom
@@ -338,7 +338,7 @@ MESSAGE Try firing the gun
 #..+.+.O#
 #..N+...#
 #....S..#
-#...^...#
+#...↑...#
 #.P.....#
 #########
 
@@ -349,7 +349,7 @@ MESSAGE Chain reaction
 #+.++...#
 #.+.+.N.#
 #+......#
-#E+++.<.#
+#E+++.←.#
 #########
 
 MESSAGE Inert mines, active mines
@@ -380,7 +380,7 @@ MESSAGE There seems to be another way to open crates
 #.......#
 #..P....#
 #....NNN#
-#.>..SON#
+#.→..SON#
 #########
 
 
@@ -431,10 +431,10 @@ MESSAGE Symbiosis
 
 ###########
 #P.NNN.DN.#
-#MM>.+++N.#
+#MM→.+++N.#
 #..N.NN+..#
 #++N++....#
-#++...<.O.#
+#++...←.O.#
 ###########
 
 MESSAGE Inert Mine field
