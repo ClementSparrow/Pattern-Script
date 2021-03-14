@@ -23,6 +23,7 @@ function deepCloneRule(rule)
 		tag_classes_replacements: rule.tag_classes_replacements,
 		parameter_properties: rule.parameter_properties,
 		parameter_properties_replacements: rule.parameter_properties_replacements,
+		parameter_expansion_string: rule.parameter_expansion_string,
 		late: rule.late,
 		rigid: rule.rigid,
 		randomRule:rule.randomRule,
@@ -58,7 +59,7 @@ function printCellRow(identifiers, cellRow)
 
 function cacheRuleStringRep(identifiers, rule)
 {
-	var result='('+makeLinkToLine(rule.lineNumber, rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
+	var result='('+makeLinkToLine(rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
 	if (rule.tag_classes.length > 0)
 	{
 		result += rule.tag_classes.map( (tc_ii, i) => (identifiers.names[tc_ii].toUpperCase()+'='+identifiers.names[rule.tag_classes_replacements[i]]) ).join(', ') + ' '

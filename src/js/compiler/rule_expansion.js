@@ -35,6 +35,8 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 	rule.direction = dir; // we have rule.directions (plural) before this loop, but rule.direction (singular) after the loop.
 	rule.tag_classes_replacements = parameters.slice(0, rule.tag_classes.size);
 	rule.parameter_properties_replacements = parameters.slice(rule.tag_classes.size);
+	const parameter_names = ( (rule.is_directional) ? [dir] : [] ).concat( parameters.map(ii => identifiers.names[ii]) )
+	rule.parameter_expansion_string =  (parameter_names.length > 0) ? '(' + parameter_names.join(' ') + ')' : ''
 
 //	Remove relative directions
 	convertRelativeDirsToAbsolute(identifiers, rule);

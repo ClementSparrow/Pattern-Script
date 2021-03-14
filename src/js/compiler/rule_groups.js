@@ -1,12 +1,10 @@
 
 function collapseRules(groups)
 {
-	for (var gn = 0; gn < groups.length; gn++)
+	for (var rules of groups)
 	{
-		var rules = groups[gn];
-		for (var i = 0; i < rules.length; i++)
+		for (const [i, oldrule] of rules.entries())
 		{
-			const oldrule = rules[i];
 			var newrule = [0, [], oldrule.rhs.length>0, oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
 			var ellipses = Array(oldrule.lhs.length).fill(false);
 
@@ -27,12 +25,7 @@ function collapseRules(groups)
 				}
 				newrule[1][j] = cellrow_l;
 			}
-			newrule.push(ellipses);
-			newrule.push(oldrule.groupNumber);
-			newrule.push(oldrule.rigid);
-			newrule.push(oldrule.commands);
-			newrule.push(oldrule.randomRule);
-			newrule.push(cellRowMasks(newrule));
+			newrule.push(ellipses, oldrule.groupNumber, oldrule.rigid, oldrule.commands, oldrule.randomRule, cellRowMasks(newrule), oldrule.parameter_expansion_string);
 			rules[i] = new Rule(newrule);
 		}
 	}

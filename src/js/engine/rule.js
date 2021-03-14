@@ -11,6 +11,7 @@ function Rule(rule) {
 	this.commands = rule[7];		/* cancel, restart, sfx, etc */
 	this.isRandom = rule[8];
 	this.cellRowMasks = rule[9];
+	this.parameter_expansion_string = rule[10]
 	this.cellRowMatches = [];
 	for (var i=0;i<this.patterns.length;i++) {
 		this.cellRowMatches.push(this.generateCellRowMatchesFunction(this.patterns[i],this.isEllipsis[i]));
@@ -143,21 +144,22 @@ Rule.prototype.findMatches = function() {
 	return matches;
 };
 
-Rule.prototype.directional = function(){
+Rule.prototype.directional = function()
+{
 	//Check if other rules in its rulegroup with the same line number.
-	for (var i=0;i<state.rules.length;i++){
-		var rg = state.rules[i];
-		var copyCount=0;
-		for (var j=0;j<rg.length;j++){
-			if (this.lineNumber===rg[j].lineNumber){
+	for (const rg of state.rules)
+	{
+		var copyCount = 0;
+		for (const rule of rg)
+		{
+			if (this.lineNumber === rule.lineNumber)
+			{
 				copyCount++;
 			}
-			if (copyCount>1){
+			if (copyCount>1)
 				return true;
-			}
 		}
 	}
-
 	return false;
 }
 
@@ -209,15 +211,11 @@ Rule.prototype.applyAt = function(delta,tuple,check) {
 		}
 	}
 
-	if (verbose_logging && result){
-		var ruleDirection = dirMaskName[rule.direction];
-		if (!rule.directional()){
-			ruleDirection="";
-		}
-
-		var logString = '<font color="green">Rule <a onclick="jumpToLine(' + rule.lineNumber + ');"  href="javascript:void(0);">' + rule.lineNumber + '</a> ' + 
-			ruleDirection + ' applied.</font>';
-		consolePrint(logString);
+	if (verbose_logging && result)
+	{
+		const ruleDirection = rule.directional() ? ' '+dirMaskName[rule.direction]+'ward' : '';
+		const rule_expansion = (rule.parameter_expansion_string.length > 0) ? ' '+rule.parameter_expansion_string : ''
+		consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + rule_expansion + ' applied' + ruleDirection + '.</font>');
 	}
 
 	return result;

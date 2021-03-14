@@ -7,9 +7,10 @@ var compiling = false;
 var errorStrings = [];//also stores warning strings
 var errorCount=0;//only counts errors
 
-function makeLinkToLine(lineNumber, anchor_text)
+function makeLinkToLine(lineNumber, anchor_text = null)
 {
-	return '<a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);">' + anchor_text + '</a>';
+	const l = lineNumber.toString()
+	return '<a onclick="jumpToLine(' + l + ');"  href="javascript:void(0);">' + ((anchor_text === null) ? l : anchor_text) + '</a>';
 }
 
 function logErrorCacheable(str, lineNumber, urgent)
