@@ -616,6 +616,14 @@ Identifiers.prototype.expand_parameters = function*(identifiers_indexes)
 	}
 }
 
+
+Identifiers.prototype.has_directional_tag_mapping = function(identifier_index)
+{
+	return this.tag_mappings[identifier_index].slice(1).filter(x => x !== null).some(
+		mapping_index => this.mappings[mapping_index].fromset.some( ii => absolutedirs.includes(this.names[ii]) )
+	);
+}
+
 Identifiers.prototype.replace_directional_tag_mappings = function(direction, identifier_index)
 {
 //	Apply mappings appearing in the tags

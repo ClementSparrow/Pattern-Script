@@ -13,7 +13,7 @@ var simpleRelativeDirections = ['^', 'v', '<', '>'];
 var reg_directions_only = /^(\>|\<|\^|v|up|down|left|right|moving|stationary|no|randomdir|random|horizontal|vertical|orthogonal|perpendicular|parallel|action)$/;
 
 
-function isCellRowDirectional(cellRow)
+function isCellRowDirectional(identifiers, cellRow)
 {
 	if (cellRow.length > 1)
 		return true;
@@ -22,17 +22,17 @@ function isCellRowDirectional(cellRow)
 		for (const [dir, identifier_index] of cell)
 		{
 			if (relativeDirections.indexOf(dir) >= 0) // TODO: should'nt it also include 'perpendicular' and 'parallel' but exclude 'horizontal' and 'vertical'?
-			{
 				return true;
-			}
+			if (identifiers.has_directional_tag_mapping(identifier_index))
+				return true;
 		}
 	}
 	return false;
 }
 
-function directionalRule(rule)
+function directionalRule(identifiers, rule)
 {
-	return rule.lhs.some( isCellRowDirectional ) || rule.rhs.some( isCellRowDirectional )
+	return rule.lhs.some( cellrow => isCellRowDirectional(identifiers, cellrow) ) || rule.rhs.some( cellrow => isCellRowDirectional(identifiers, cellrow) )
 }
 
 function findIndexAfterToken(str, tokens, tokenIndex)
@@ -409,7 +409,7 @@ function parseRuleString(rule, state, curRules)
 		commands: commands
 	};
 
-	rule_line.is_directional = directionalRule(rule_line)
+	rule_line.is_directional = directionalRule(state.identifiers, rule_line)
 	if (rule_line.is_directional === false)
 	{
 		rule_line.directions = ['up'];
