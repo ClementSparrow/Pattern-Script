@@ -80,7 +80,7 @@ Identifiers.prototype.copy = function()
 			layer: o.layer
 		}))
 	result.mappings = Array.from(this.mappings, (m) => ({
-		from: Array.from(m.from),
+		from: m.from,
 		identifier_index: m.identifier_index,
 		fromset: Array.from(m.fromset),
 		toset: Array.from(m.toset)
@@ -643,8 +643,9 @@ Identifiers.prototype.replace_directional_tag_mappings = function(direction, ide
 	return identifier_index;
 }
 
-Identifiers.prototype.replace_parameters = function(identifier_index, from_identifiers_indexes, replacements_identifier_indexes)
+Identifiers.prototype.replace_parameters = function(start_identifier_index, from_identifiers_indexes, replacements_identifier_indexes)
 {
+	var identifier_index = start_identifier_index
 //	Apply mappings appearing in the tags
 	for (var tag_position=1; tag_position < this.tag_mappings[identifier_index].length; tag_position++)
 	{

@@ -127,7 +127,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
-	result.collisionLayers = this.collisionLayers.map( s => new Array(...s) )
+	result.collisionLayers = this.collisionLayers.map( s => new Set(s) )
 	result.backgroundlayer = this.backgroundlayer
 	result.current_layer_parameters = Array.from( this.current_layer_parameters )
 	result.current_layer_expansion = Array.from( this.current_layer_expansion, ([layer_index, parameter_values]) => [layer_index, Array.from(parameter_values)] )
