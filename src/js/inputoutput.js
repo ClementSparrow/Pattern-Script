@@ -53,95 +53,64 @@ function adjustLevel(level, widthdelta, heightdelta) {
 	return oldlevel;
 }
 
-function addLeftColumn() {
-	var oldlevel = adjustLevel(level, 1, 0);
-	for (var x=1; x<level.width; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index - level.height))
+function copyLevelRegion(oldlevel, level, dx, dy)
+{
+	const xmin = Math.max(0, dx) // x >= 0 and x-dx >= 0
+	const xmax = Math.min(level.width, oldlevel.width+dx) // x < level.width and x-dx < oldlevel.width
+	const ymin = Math.max(0, dy) // y >= 0 and y-dy >= 0
+	const ymax = Math.min(level.height, oldlevel.height+dy) // y < level.height and y-dy < oldlevel.height
+	for (var x=xmin; x<xmax; ++x)
+	{
+		for (var y=ymin; y<ymax; ++y)
+		{
+			const index = x*level.height + y;
+			const old_index = (x-dx)*oldlevel.height + y-dy
+			level.setCell(index, oldlevel.getCell(old_index))
 		}
 	}
 }
 
-function addRightColumn() {
-	var oldlevel = adjustLevel(level, 1, 0);
-	for (var x=0; x<level.width-1; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index))
-		}
-	}
+function addLeftColumn()
+{
+	copyLevelRegion(adjustLevel(level, 1, 0), level, 1, 0)
 }
 
-function addTopRow() {
-	var oldlevel = adjustLevel(level, 0, 1);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=1; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index - x - 1))
-		}
-	}
+function addRightColumn()
+{
+	copyLevelRegion(adjustLevel(level, 1, 0), level, 0, 0)
 }
 
-function addBottomRow() {
-	var oldlevel = adjustLevel(level, 0, 1);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=0; y<level.height - 1; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index - x));
-		}
-	}
+function addTopRow()
+{
+	copyLevelRegion(adjustLevel(level, 0, 1), level, 0, 1)
 }
 
-function removeLeftColumn() {
-	if (level.width<=1) {
-		return;
-	}
-	var oldlevel = adjustLevel(level, -1, 0);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index + level.height))
-		}
-	}
+function addBottomRow()
+{
+	copyLevelRegion(adjustLevel(level, 0, 1), level, 0, 0)
 }
 
-function removeRightColumn(){
-	if (level.width<=1) {
-		return;
-	}
-	var oldlevel = adjustLevel(level, -1, 0);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index))
-		}
-	}
+function removeLeftColumn()
+{
+	if (level.width > 1)
+		copyLevelRegion(adjustLevel(level, -1, 0), level, -1, 0)
 }
 
-function removeTopRow(){
-	if (level.height<=1) {
-		return;
-	}
-	var oldlevel = adjustLevel(level, 0, -1);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index + x + 1))
-		}
-	}
+function removeRightColumn()
+{
+	if (level.width > 1)
+		copyLevelRegion(adjustLevel(level, -1, 0), level, 0, 0)
 }
-function removeBottomRow(){
-	if (level.height<=1) {
-		return;
-	}
-	var oldlevel = adjustLevel(level, 0, -1);
-	for (var x=0; x<level.width; ++x) {
-		for (var y=0; y<level.height; ++y) {
-			var index = x*level.height + y;
-			level.setCell(index, oldlevel.getCell(index + x))
-		}
-	}
+
+function removeTopRow()
+{
+	if (level.height > 1)
+		copyLevelRegion(adjustLevel(level, 0, -1), level, 0, -1)
+}
+function removeBottomRow()
+{
+	if (level.height > 1)
+		copyLevelRegion(adjustLevel(level, 0, -1), level, 0, 0)
 }
 
 function matchGlyph(inputmask,glyphAndMask) {
@@ -189,7 +158,6 @@ var selectableint  = 0;
 function printLevel()
 {
 	var glyphMasks = [];
-	// for (var glyphName in state.glyphDict)
 	for (const [identifier_index, glyph] of state.glyphDict.entries())
 	{
 		const glyphName = state.identifiers.names[identifier_index];
@@ -485,19 +453,19 @@ function onMyBlur(event) {
 var mouseCoordX=0;
 var mouseCoordY=0;
 
-function setMouseCoord(e){
+function setMouseCoord(e)
+{
     var coords = canvas.relMouseCoords(e);
-    mouseCoordX=coords.x-xoffset;
-	mouseCoordY=coords.y-yoffset;
-	mouseCoordX=Math.floor(mouseCoordX/cellwidth);
-	mouseCoordY=Math.floor(mouseCoordY/cellheight);
+    mouseCoordX = coords.x - xoffset;
+	mouseCoordY = coords.y - yoffset;
+	mouseCoordX = Math.floor(mouseCoordX/cellwidth);
+	mouseCoordY = Math.floor(mouseCoordY/cellheight);
 }
 
 function mouseMove(event) {
 	
-	if (event.handled){
+	if (event.handled)
 		return;
-	}
 
     if (levelEditorOpened) {
     	setMouseCoord(event);  

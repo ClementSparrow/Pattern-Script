@@ -189,103 +189,115 @@ function glyphCount()
     return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers.names[identifier_index].length == 1) ).length;
 }
 
-function redraw() {
-    if (cellwidth===0||cellheight===0) {
+function redraw()
+{
+    if (cellwidth === 0 || cellheight === 0)
         return;
-    }
-    if (spriteimages===undefined) {
+
+    if (spriteimages === undefined)
+    {
         regenSpriteImages();
     }
 
-    if (textMode) {
+    if (textMode)
+    {
         ctx.fillStyle = state.bgcolor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         for (var i = 0; i < titleWidth; i++) {
             for (var j = 0; j < titleHeight; j++) {
-                var ch = titleImage[j].charAt(i);
+                const ch = titleImage[j].charAt(i);
                 if (ch in textImages) {
-                    var sprite = textImages[ch];
-                    ctx.drawImage(sprite, xoffset + i * cellwidth, yoffset + j * cellheight);                   
+                    const sprite = textImages[ch];
+                    ctx.drawImage(sprite, xoffset + i * cellwidth, yoffset + j * cellheight);
                 }
             }
         }
         return;
-    } else {
-        ctx.fillStyle = state.bgcolor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
-        var mini=0;
-        var maxi=screenwidth;
-        var minj=0;
-        var maxj=screenheight;
+    ctx.fillStyle = state.bgcolor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (levelEditorOpened) {
-            var glyphcount = glyphCount();
-            editorRowCount = Math.ceil(glyphcount/(screenwidth-1));
-            maxi-=2;
-            maxj-=2+editorRowCount;
-        } else if (flickscreen) {
-            var playerPositions = getPlayerPositions();
-            if (playerPositions.length>0) {
-                var playerPosition=playerPositions[0];
-                var px = (playerPosition/(level.height))|0;
-                var py = (playerPosition%level.height)|0;
+    var mini = 0;
+    var maxi = screenwidth;
+    var minj = 0;
+    var maxj = screenheight;
 
-                var screenx = (px/screenwidth)|0;
-                var screeny = (py/screenheight)|0;
-                mini=screenx*screenwidth;
-                minj=screeny*screenheight;
-                maxi=Math.min(mini+screenwidth,level.width);
-                maxj=Math.min(minj+screenheight,level.height);
+    if (levelEditorOpened)
+    {
+        const glyphcount = glyphCount();
+        editorRowCount = Math.ceil(glyphcount/(screenwidth-1));
+        maxi -= 2;
+        maxj -= 2 + editorRowCount;
+    }
+    else if (flickscreen)
+    {
+        var playerPositions = getPlayerPositions();
+        if (playerPositions.length>0) {
+            var playerPosition=playerPositions[0];
+            var px = (playerPosition/(level.height))|0;
+            var py = (playerPosition%level.height)|0;
 
-                oldflickscreendat=[mini,minj,maxi,maxj];
-            } else if (oldflickscreendat.length>0){
-                mini=oldflickscreendat[0];
-                minj=oldflickscreendat[1];
-                maxi=oldflickscreendat[2];
-                maxj=oldflickscreendat[3];
-            }
-        } else if (zoomscreen) {
-            var playerPositions = getPlayerPositions();
-            if (playerPositions.length>0) {
-                var playerPosition=playerPositions[0];
-                var px = (playerPosition/(level.height))|0;
-                var py = (playerPosition%level.height)|0;
-                mini=Math.max(Math.min(px-((screenwidth/2)|0),level.width-screenwidth),0);
-                minj=Math.max(Math.min(py-((screenheight/2)|0),level.height-screenheight),0);
-                maxi=Math.min(mini+screenwidth,level.width);
-                maxj=Math.min(minj+screenheight,level.height);
-                oldflickscreendat=[mini,minj,maxi,maxj];
-            }  else if (oldflickscreendat.length>0){
-                mini=oldflickscreendat[0];
-                minj=oldflickscreendat[1];
-                maxi=oldflickscreendat[2];
-                maxj=oldflickscreendat[3];
-            }         
+            var screenx = (px/screenwidth)|0;
+            var screeny = (py/screenheight)|0;
+            mini=screenx*screenwidth;
+            minj=screeny*screenheight;
+            maxi=Math.min(mini+screenwidth,level.width);
+            maxj=Math.min(minj+screenheight,level.height);
+
+            oldflickscreendat=[mini,minj,maxi,maxj];
+        } else if (oldflickscreendat.length>0){
+            mini=oldflickscreendat[0];
+            minj=oldflickscreendat[1];
+            maxi=oldflickscreendat[2];
+            maxj=oldflickscreendat[3];
         }
-	    
+    } else if (zoomscreen) {
+        var playerPositions = getPlayerPositions();
+        if (playerPositions.length>0) {
+            var playerPosition=playerPositions[0];
+            var px = (playerPosition/(level.height))|0;
+            var py = (playerPosition%level.height)|0;
+            mini=Math.max(Math.min(px-((screenwidth/2)|0),level.width-screenwidth),0);
+            minj=Math.max(Math.min(py-((screenheight/2)|0),level.height-screenheight),0);
+            maxi=Math.min(mini+screenwidth,level.width);
+            maxj=Math.min(minj+screenheight,level.height);
+            oldflickscreendat=[mini,minj,maxi,maxj];
+        }  else if (oldflickscreendat.length>0){
+            mini=oldflickscreendat[0];
+            minj=oldflickscreendat[1];
+            maxi=oldflickscreendat[2];
+            maxj=oldflickscreendat[3];
+        }         
+    }
+    
 
-        for (var i = mini; i < maxi; i++) {
-            for (var j = minj; j < maxj; j++) {
-                var posIndex = j + i * level.height;
-                var posMask = level.getCellInto(posIndex,_o12);                
-                for (var k = 0; k < state.objectCount; k++) {
-                    if (posMask.get(k) != 0) {                  
-                        var sprite = spriteimages[k];
-                        ctx.drawImage(sprite, xoffset + (i-mini) * cellwidth, yoffset + (j-minj) * cellheight);
-                    }
+    for (var i = mini; i < maxi; i++)
+    {
+        for (var j = minj; j < maxj; j++)
+        {
+            const posMask = level.getCellInto(j + i*level.height, _o12);
+            for (var k = 0; k < state.objectCount; k++)
+            {
+                if (posMask.get(k) != 0)
+                {
+                    const sprite = spriteimages[k];
+                    ctx.drawImage(sprite, xoffset + (i-mini) * cellwidth, yoffset + (j-minj) * cellheight);
                 }
             }
         }
+    }
 
-	    if (levelEditorOpened) {
-	    	drawEditorIcons();
-	    }
+    if (levelEditorOpened)
+    {
+    	drawEditorIcons(mini, minj);
     }
 }
 
-function drawEditorIcons() {
+// TODO: this should not be in graphics.js but in a file dedicated to the editor mode, so that we can ship games without embeding the editor
+function drawEditorIcons(mini, minj)
+{
 	var glyphCount = glyphImages.length;
 	var glyphStartIndex=0;
 	var glyphEndIndex = glyphImages.length;/*Math.min(
@@ -303,11 +315,12 @@ function drawEditorIcons() {
 	var ypos = editorRowCount-(-mouseCoordY-2)-1;
 	var mouseIndex=mouseCoordX+(screenwidth-1)*ypos;
 
-	for (var i=0;i<glyphsToDisplay;i++) {
-		var glyphIndex = glyphStartIndex+i;
-		var sprite = glyphImages[glyphIndex];
-        var xpos=i%(screenwidth-1);
-        var ypos=(i/(screenwidth-1))|0;
+	for (var i=0; i<glyphsToDisplay; i++)
+    {
+		const glyphIndex = glyphStartIndex+i;
+		const sprite = glyphImages[glyphIndex];
+        const xpos=i%(screenwidth-1);
+        const ypos=(i/(screenwidth-1))|0;
 		ctx.drawImage(sprite,xoffset+(xpos)*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
 		if (mouseCoordX>=0&&mouseCoordX<(screenwidth-1)&&mouseIndex===i) {
 			ctx.drawImage(glyphMouseOver,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));						
@@ -316,13 +329,46 @@ function drawEditorIcons() {
 			ctx.drawImage(glyphHighlight,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
 		} 		
 	}
-	if (mouseCoordX>=-1&&mouseCoordY>=-1&&mouseCoordX<screenwidth-1&&mouseCoordY<screenheight-1-editorRowCount) {
-		if (mouseCoordX==-1||mouseCoordY==-1||mouseCoordX==screenwidth-2||mouseCoordY===screenheight-2-editorRowCount) {
+
+    var tooltip_string = ''
+    var tooltip_objects = null
+    // prepare tooltip: legend for highlighted editor icon
+    if ( (mouseIndex >= 0) && (mouseIndex < glyphsToDisplay) )
+    {
+        const glyphIndex = glyphStartIndex + mouseIndex
+        const identifier_index = glyphImagesCorrespondance[glyphIndex]
+        tooltip_string = state.identifiers.names[identifier_index] + ' = '
+        tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
+    }
+    // prepare tooltip: content of a level's cell
+    else if ( (mouseCoordX >= 0) && (mouseCoordY >= 0) && (mouseCoordX < screenwidth) && (mouseCoordY < screenheight-editorRowCount) )
+    {
+        const posMask = level.getCellInto((mouseCoordY+minj) + (mouseCoordX+mini)*level.height, _o12);
+        tooltip_objects = state.idDict.filter( (x,k) => (posMask.get(k) != 0) )
+    }
+    // prepare tooltip: object names
+    if (tooltip_objects !== null)
+    {
+        tooltip_string = tooltip_string + Array.from(tooltip_objects, oi => state.identifiers.objects[oi].name).join(' ')
+    }
+    // show tooltip
+    if (tooltip_string.length > 0)
+    {
+        ctx.fillStyle = 'lightgray'
+        ctx.fillText(tooltip_string, xoffset, yoffset-0.4*cellheight)
+    }
+
+	if (mouseCoordX>=-1&&mouseCoordY>=-1&&mouseCoordX<screenwidth-1&&mouseCoordY<screenheight-1-editorRowCount)
+    {
+		if (mouseCoordX==-1||mouseCoordY==-1||mouseCoordX==screenwidth-2||mouseCoordY===screenheight-2-editorRowCount)
+        {
+            // show "+" cursor to resize the level
 			ctx.drawImage(glyphHighlightResize,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
 				);								
 		} else {
+            // highlight cell in level
 			ctx.drawImage(glyphHighlight,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
