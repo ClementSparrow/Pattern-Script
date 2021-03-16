@@ -579,7 +579,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					this.objects_section = 1;
 					return this.tryParseName(is_start_of_line, stream);
 				}
-				this.logError('Unknown junk in spritematrix for object ' + this.identifiers[this.current_identifier_index].toUpperCase() + '.');
+				this.logError('Unknown junk in spritematrix for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() + '.');
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
