@@ -161,8 +161,7 @@ function printLevel()
 	for (const [identifier_index, glyph] of state.glyphDict.entries())
 	{
 		const glyphName = state.identifiers.names[identifier_index];
-		// if (state.glyphDict.hasOwnProperty(glyphName)&&glyphName.length===1)
-		if (glyphName.length === 1)
+		if ( (glyphName.length === 1) && [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
 		{
 			// var glyph = state.glyphDict[glyphName];
 			var glyphmask = makeMaskFromGlyph(glyph);
