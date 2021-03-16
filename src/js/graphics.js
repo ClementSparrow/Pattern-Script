@@ -189,6 +189,14 @@ function glyphCount()
     return state.glyphDict.filter( (glyph, identifier_index) => (state.identifiers.names[identifier_index].length == 1) ).length;
 }
 
+// TODO: this should be in a file for the console, so that we can ship the game without it.
+var highlighted_cell = null;
+function highlightCell(coords)
+{
+    highlighted_cell = coords;
+    redraw()
+}
+
 function redraw()
 {
     if (cellwidth === 0 || cellheight === 0)
@@ -293,6 +301,12 @@ function redraw()
     {
     	drawEditorIcons(mini, minj);
     }
+    // highlight the cell hovered in the output of verbose_logging.
+    // TODO: this should not be in this function and should be in a file for the console, so that we can ship the game without it.
+    if (highlighted_cell !== null)
+    {
+        ctx.drawImage(glyphHighlight, xoffset+(highlighted_cell[0]-mini)*cellwidth, yoffset+(highlighted_cell[1]-minj)*cellheight);
+    }
 }
 
 // TODO: this should not be in graphics.js but in a file dedicated to the editor mode, so that we can ship games without embeding the editor
@@ -322,10 +336,12 @@ function drawEditorIcons(mini, minj)
         const xpos=i%(screenwidth-1);
         const ypos=(i/(screenwidth-1))|0;
 		ctx.drawImage(sprite,xoffset+(xpos)*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
-		if (mouseCoordX>=0&&mouseCoordX<(screenwidth-1)&&mouseIndex===i) {
+		if ( (mouseCoordX >= 0) && (mouseCoordX < (screenwidth-1)) && (mouseIndex === i) )
+        {
 			ctx.drawImage(glyphMouseOver,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));						
 		}
-		if (i===glyphSelectedIndex) {
+		if (i === glyphSelectedIndex)
+        {
 			ctx.drawImage(glyphHighlight,xoffset+xpos*cellwidth,yoffset+ypos*cellheight-cellheight*(1+editorRowCount));
 		} 		
 	}
@@ -366,16 +382,15 @@ function drawEditorIcons(mini, minj)
 			ctx.drawImage(glyphHighlightResize,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
-				);								
+				);
 		} else {
             // highlight cell in level
 			ctx.drawImage(glyphHighlight,
 				xoffset+mouseCoordX*cellwidth,
 				yoffset+mouseCoordY*cellheight
-				);				
+				);
 		}
 	}
-
 }
 
 var lastDownTarget;
