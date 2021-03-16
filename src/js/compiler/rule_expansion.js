@@ -43,7 +43,7 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 //	Replace mappings of the parameters with what they map to.
 	applyRuleParamatersMappings(identifiers, rule);
 //	Optional: replace up/left rules with their down/right equivalents
-	rewriteUpLeftRules(rule);
+	// rewriteUpLeftRules(rule);
 //	Replace aggregates and synonyms with what they mean
 	atomizeAggregatesAndSynonyms(identifiers, rule);
 	return rule;

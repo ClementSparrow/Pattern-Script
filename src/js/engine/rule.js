@@ -163,16 +163,21 @@ Rule.prototype.directional = function()
 	return false;
 }
 
-Rule.prototype.applyAt = function(delta,tuple,check) {
-	var rule = this;
+Rule.prototype.applyAt = function(delta, tuple, check)
+{
+	const rule = this;
 	//have to double check they apply
 	//Q: why?
-	if (check) {
-		var ruleMatches=true;                
-		for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
-			if (rule.isEllipsis[cellRowIndex]) {//if ellipsis
+	if (check)
+	{
+		var ruleMatches = true;
+		for (var cellRowIndex=0; cellRowIndex<rule.patterns.length; cellRowIndex++)
+		{
+			if (rule.isEllipsis[cellRowIndex]) //if ellipsis
+			{
 				if (DoesCellRowMatchWildCard(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex][0],
-					tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1])===false) { /* pass mink to specify */
+					tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1])===false) /* pass mink to specify */
+				{
 					ruleMatches=false;
 					break;
 				}
@@ -190,24 +195,22 @@ Rule.prototype.applyAt = function(delta,tuple,check) {
 	var result=false;
 	
 	//APPLY THE RULE
-	var d0 = delta[0]*level.height;
-	var d1 = delta[1];
-	for (var cellRowIndex=0;cellRowIndex<rule.patterns.length;cellRowIndex++) {
+	const d = delta[0]*level.height + delta[1];
+	for (var cellRowIndex=0; cellRowIndex<rule.patterns.length; cellRowIndex++)
+	{
 		var preRow = rule.patterns[cellRowIndex];
 		
 		var currentIndex = rule.isEllipsis[cellRowIndex] ? tuple[cellRowIndex][0] : tuple[cellRowIndex];
-		for (var cellIndex=0;cellIndex<preRow.length;cellIndex++) {
-			var preCell = preRow[cellIndex];
-
-			if (preCell === ellipsisPattern) {
+		for (const preCell of preRow)
+		{
+			if (preCell === ellipsisPattern)
+			{
 				var k = tuple[cellRowIndex][1];
-				currentIndex = (currentIndex+(d1+d0)*k);
+				currentIndex += d*k
 				continue;
 			}
-
 			result = preCell.replace(rule, currentIndex) || result;
-
-			currentIndex = (currentIndex+d1+d0);
+			currentIndex += d;
 		}
 	}
 
@@ -215,7 +218,8 @@ Rule.prototype.applyAt = function(delta,tuple,check) {
 	{
 		const ruleDirection = rule.directional() ? ' '+dirMaskName[rule.direction]+'ward' : '';
 		const rule_expansion = (rule.parameter_expansion_string.length > 0) ? ' '+rule.parameter_expansion_string : ''
-		consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + rule_expansion + ' applied' + ruleDirection + '.</font>');
+		const position = tuple.map( (x,i) => rule.isEllipsis[i] ? x[0] : x ).map(x => Math.trunc(x/level.height).toString()+'-'+(x%level.height).toString()).join(', ')
+		consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + rule_expansion + ' applied' + ruleDirection + ' at ' + position + '.</font>');
 	}
 
 	return result;
