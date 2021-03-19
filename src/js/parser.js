@@ -417,7 +417,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			{
 				const l = this.identifiers.lineNumbers[identifier_index];
 				this.logError('You are trying to define a new tag class named "'+tagclass_name.toUpperCase()+'", but this name is already used for '+
-					identifier_type_as_text[this.identifiers.comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.');
+					identifier_type_as_text[this.identifiers.comptype[identifier_index]]+((l >= 0) ? ' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.' : ' keyword.'));
 				this.tokenIndex = 1;
 				return 'ERROR';
 			}

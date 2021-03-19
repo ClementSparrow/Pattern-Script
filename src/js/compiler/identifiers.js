@@ -353,7 +353,14 @@ Identifiers.prototype.checkIfNewIdentifierIsValid = function(candname, accept_im
 		const type = this.deftype[identifier_index]
 		const definition_string = (type !== identifier_type_object) ? ' as ' + identifier_type_as_text[type] : '';
 		const l = this.lineNumbers[identifier_index];
-		log.logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()));
+		if (l == -1)
+		{
+			log.logError('You named an object "'+candname.toUpperCase()+'", but this is a keyword. Don\'t do that!');
+		}
+		else
+		{
+			log.logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()));
+		}
 		return false;
 	}
 
@@ -503,7 +510,7 @@ Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_c
 //	Existing identifier but not a tag!
 	const l = this.lineNumbers[identifier_index]
 	log.logError('You are trying to define a new tag named "'+tagname.toUpperCase()+'", but this name is already used for '+
-		identifier_type_as_text[this.comptype[identifier_index]]+' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.');
+		identifier_type_as_text[this.comptype[identifier_index]]+ ((l >= 0) ? ' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.' : ' keyword.'));
 	return -2;
 }
 
