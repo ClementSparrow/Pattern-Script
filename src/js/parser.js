@@ -898,7 +898,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					if (this.current_mapping_startset.size > 0)
 					{
 						// TODO: create a mean to get the name of the start set of the currently defined mapping
-						logError('You have not specified every values in the mapping start set '+this.identifiers.names[this.identifiers.object_set[this.current_identifier_index][0]].toUpperCase()+
+						logError('You have not specified every values in the mapping start set '+this.identifiers.names[this.identifiers.tag_mappings[this.current_identifier_index][0]].toUpperCase()+
 							'. You forgot: '+Array.from(this.current_mapping_startset, ii => this.identifiers.names[ii].toUpperCase()).join(', ')+'.');
 					}
 					if (this.current_identifier_index !== null)
@@ -925,7 +925,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					return 'NAME';
 				if ( ! this.current_mapping_startset.delete(identifier_index) )
 				{
-					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers.names[this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from.join(' x ')].toUpperCase()+'.')
+					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers.names[this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from].toUpperCase()+'.')
 					return 'ERROR';
 				}
 				// register the values in order and check that the whole set of values in the start set is covered.

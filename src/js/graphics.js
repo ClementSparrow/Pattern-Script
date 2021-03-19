@@ -349,7 +349,7 @@ function drawEditorIcons(mini, minj)
     var tooltip_string = ''
     var tooltip_objects = null
     // prepare tooltip: legend for highlighted editor icon
-    if ( (mouseIndex >= 0) && (mouseIndex < glyphsToDisplay) )
+    if ( (mouseCoordX >= 0) && (mouseCoordX < screenwidth) && (mouseIndex >= 0) && (mouseIndex < glyphsToDisplay) )
     {
         const glyphIndex = glyphStartIndex + mouseIndex
         const identifier_index = glyphImagesCorrespondance[glyphIndex]
