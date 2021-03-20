@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Pattern:Script Login</title>
+</head>
+
+<body>
+	<div id="main">
+		<p>Pattern:Script needs a credential from GitHub to save your game as a Gist on your behalf.</p>
+		<p>To create such a credential, please follow the steps in the documentation link below, and make sure to only check <b><code>gists</code></b> during the "scope" selection (step 7 as I write this). It may look impressive but it actually takes only a few seconds.</p>
+		<p><a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token#creating-a-token">GitHub documentation on how to create a personal access token</a>.</p>
+		<p>Now, copy the "personal access token" that you created in the field below and click the button. Then forget the token, you should not keep it anywhere. I will store it in your browser safe storage so that Pattern:Script only can use it. If you use multiple browsers/devices, you will need to redo this step on each.
+		<form>
+			<label for="pat">GitHub personal access token:</label>
+			<input type="password" name="pat"  id="pat" required></input>
+			<input type="submit" name="submit" id="submit"/>
+		</form>
+	</div>
+	<div style="display: none;" id="success">
+		<p>Pattern:Script has been authorized to save your game as a Gist on GitHub on your behalf from this browser. You should now be able to use the SAVE IN CLOUD function from the editor. If for some reason it does not work, click the button below and try the authorization procedure again.</p>
+		<button onclick="resetCredential();">Reset GitHub credential</button>
+	</div>
+<script>
+//	Set token if found in parameters
+	var url = new URL(window.location);
+	const access_token = url.searchParams.get("pat");
+	if (typeof access_token === "string")
+	{
+		console.log(access_token)
+		window.localStorage.setItem("oauth_access_token", access_token)
+	}
+
+//	Display appropriate message
+	const oauthAccessToken = window.localStorage.getItem("oauth_access_token")
+	if (typeof oauthAccessToken === "string")
+	{
+		document.getElementById('main').style.display = 'none'
+		document.getElementById('success').style.display = 'block'
+	}
+
+//	Remove token if needed
+	function resetCredential()
+	{
+		window.localStorage.removeItem("oauth_access_token")
+		window.location = window.location.href.split("?")[0] // reload page without params
+	}
+</script>
+</body>
+</html>
