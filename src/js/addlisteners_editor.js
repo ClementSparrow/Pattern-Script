@@ -14,6 +14,8 @@ runClickLink.addEventListener("click", runClick, false);
 var saveClickLink = document.getElementById("saveClickLink");
 saveClickLink.addEventListener("click", saveClick, false);
 
+document.getElementById("cloudSaveClickLink").addEventListener("click", cloudSaveClick, false);
+
 var rebuildClickLink = document.getElementById("rebuildClickLink");
 rebuildClickLink.addEventListener("click", rebuildClick, false);
 
