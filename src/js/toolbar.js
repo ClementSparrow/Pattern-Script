@@ -233,12 +233,9 @@ function shareOnGitHub(is_public)
 		return;
 	}
 
-	consolePrint("<br>Sending code to github...", true)
-	const title = (state.metadata.title !== undefined) ? state.metadata.title + " ("+PSFORKNAME+" Script)" : "Untitled "+PSFORKNAME+" Script";
-	
 	compile(["rebuild"]);
 
-
+	const title = (state.metadata.title !== undefined) ? state.metadata.title + " ("+PSFORKNAME+" Script)" : ("Untitled "+PSFORKNAME+" Script");
 	const source = editor.getValue();
 
 	var gistToCreate = {
@@ -254,6 +251,7 @@ function shareOnGitHub(is_public)
 		}
 	};
 
+	consolePrint("<br>Sending code to github...", true)
 	const githubURL = 'https://api.github.com/gists';
 	var githubHTTPClient = new XMLHttpRequest();
 	githubHTTPClient.open('POST', githubURL);
