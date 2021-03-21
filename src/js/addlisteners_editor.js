@@ -8,31 +8,17 @@ for (var i=0;i<10;i++) {
 //var soundButtonPress = document.getElementById("soundButtonPress");
 //soundButtonPress.addEventListener("click", buttonPress, false);
 
-var runClickLink = document.getElementById("runClickLink");
-runClickLink.addEventListener("click", runClick, false);
+// Upper toolbar
+// document.getElementById("runClickLink").addEventListener("click", runClick, false);
+// document.getElementById("saveClickLink").addEventListener("click", saveClick, false);
+// document.getElementById("cloudSaveClickLink").addEventListener("click", cloudSaveClick, false);
+// document.getElementById("rebuildClickLink").addEventListener("click", rebuildClick, false);
+// document.getElementById("shareClickLink").addEventListener("click", shareClick, false);
+// document.getElementById("levelEditorClickLink").addEventListener("click", levelEditorClick_Fn, false);
+// document.getElementById("exportClickLink").addEventListener("click", exportClick, false);
 
-var saveClickLink = document.getElementById("saveClickLink");
-saveClickLink.addEventListener("click", saveClick, false);
-
-document.getElementById("cloudSaveClickLink").addEventListener("click", cloudSaveClick, false);
-
-var rebuildClickLink = document.getElementById("rebuildClickLink");
-rebuildClickLink.addEventListener("click", rebuildClick, false);
-
-var shareClickLink = document.getElementById("shareClickLink");
-shareClickLink.addEventListener("click", shareClick, false);
-
-var levelEditorClickLink = document.getElementById("levelEditorClickLink");
-levelEditorClickLink.addEventListener("click", levelEditorClick_Fn, false);
-
-var exportClickLink = document.getElementById("exportClickLink");
-exportClickLink.addEventListener("click", exportClick, false);
-
-var exampleDropdown = document.getElementById("exampleDropdown");
-exampleDropdown.addEventListener("change", dropdownChange, false);
-
-var loadDropDown = document.getElementById("loadDropDown");
-loadDropDown.addEventListener("change", loadDropDownChange, false);
+document.getElementById("exampleDropdown").addEventListener("change", dropdownChange, false);
+document.getElementById("loadDropDown").addEventListener("change", loadDropDownChange, false);
 
 var horizontalDragbar = document.getElementById("horizontaldragbar");
 horizontalDragbar.addEventListener("mousedown", horizontalDragbarMouseDown, false);

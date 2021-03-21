@@ -40,14 +40,11 @@ function dateToReadable(title, time)
 
 function saveClick()
 {
-	var title = "Untitled";
-	if (state.metadata.title!==undefined) {
-		title=state.metadata.title;
-	}
-	var text=editor.getValue();
+	const title = (state.metadata.title!==undefined) ? state.metadata.title : "Untitled";
+	const text = editor.getValue();
 	var saveDat = {
-		title:title,
-		text:text,
+		title: title,
+		text: text,
 		date: new Date()
 	}
 
@@ -187,7 +184,8 @@ function levelEditorClick_Fn() {
 const HOSTPAGEURL = "https://clementsparrow.github.io/PuzzleScript/src"
 const PSFORKNAME = "Pattern:Script"
 
-/* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user, which is to create a personal identification token. */
+/* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,
+   which is to create a personal identification token. */
 // OAUTH_CLIENT_ID = "211570277eb588cddf44";
 function getAuthURL()
 {
