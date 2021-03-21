@@ -249,8 +249,10 @@ function shareOnGitHub(is_public)
 		}
 	};
 
+	const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
+
 	consolePrint("<br>Sending code to github...", true)
-	const githubURL = 'https://api.github.com/gists';
+	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id : '' )
 	var githubHTTPClient = new XMLHttpRequest();
 	githubHTTPClient.open('POST', githubURL);
 	githubHTTPClient.onreadystatechange = function()
@@ -291,7 +293,9 @@ function shareOnGitHub(is_public)
 				consolePrint("<br>Cannot link directly to playable game, because there are compiler errors.",true);
 			} else {
 				consolePrint("<br>The game can now be played at this url:<br><a target=\"_blank\" href=\""+url+"\">"+url+"</a>",true);
-			} 
+			}
+
+			window.history.replaceState(null, null, "?hack="+id);
 
 		}
 	}
