@@ -181,7 +181,7 @@ function levelEditorClick_Fn() {
 
 // const HOSTPAGEURL = "http://www.puzzlescript.net"
 // const PSFORKNAME = "PuzzleScript"
-const HOSTPAGEURL = "https://clementsparrow.github.io/PuzzleScript/src"
+const HOSTPAGEURL = "https://clementsparrow.github.io/Pattern-Script/src"
 const PSFORKNAME = "Pattern:Script"
 
 /* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,
