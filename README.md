@@ -1,13 +1,11 @@
 Pattern:Script
 ==============
 
-Open Source HTML5 Game Engine based on [PuzzleScript](https://www.puzzlescript.net)
-
-Try it out [here](clementsparrow.github.io/Pattern-Script/src/)
+An open Source HTML5 Game Engine based on [PuzzleScript](https://www.puzzlescript.net). Try it out [here](https://clementsparrow.github.io/Pattern-Script/src/)!
 
 -----
 
-Dev instructions will come later
+Dev instructions will come later.
 
 -----
 
