@@ -5,7 +5,7 @@ var intro_template = [
 	"..................................",
 	"..................................",
 	"..................................",
-	"......Puzzle Script Terminal......",
+	"......Pattern:Script Terminal.....",
 	"..............v 1.7...............",
 	"..................................",
 	"..................................",
@@ -143,10 +143,7 @@ function generateTitleScreen()
 		return;
 	}
 
-	var title = "PuzzleScript Game";
-	if (state.metadata.title!==undefined) {
-		title=state.metadata.title;
-	}
+	const title = (state.metadata.title !== undefined) ? state.metadata.title : "Pattern:Script Game";
 
 	if (titleMode===0) {
 		if (titleSelected) {
