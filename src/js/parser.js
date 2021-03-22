@@ -27,7 +27,7 @@ const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","s
 
 const reg_commands = /[\p{Separator}\s]*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)[\p{Separator}\s]*/u;
 const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}\s]*/u;
-const reg_tagged_name = /[\p{Letter}\p{Number}_]+(:[\p{Letter}\p{Number}_]+)*/u;
+const reg_tagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_]+)*/u;
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
@@ -75,9 +75,10 @@ function PuzzleScriptParser()
 	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
-	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed -> should always be the last index of the array?
+	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed
 	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
+	this.sprite_transforms = []
 
 	// data for the LEGEND section.
 	this.abbrevNames = [] // TODO: This is only used in this file to parse levels, and is deleted in compiler.js, which is not very smart as it gets recomputed there.
@@ -121,6 +122,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.current_identifier_index = this.current_identifier_index
 	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
+	result.sprite_transforms = this.sprite_transforms.concat([])
 
 	result.current_mapping_startset = new Set(this.current_mapping_startset)
 	result.current_mapping_startset_array = Array.from(this.current_mapping_startset_array)
@@ -512,16 +514,69 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 }
 
 
+PuzzleScriptParser.prototype.copySpriteMatrix = function()
+{
+	for (const [object_index, [source_object_index, replaced_dir]] of this.current_layer_expansion)
+	{
+		var object = this.identifiers.objects[object_index]
+		var sprite = Array.from( this.identifiers.objects[source_object_index].spritematrix )
+		for (const transform of this.sprite_transforms)
+		{
+			var f = null;
+			if (transform === '|')
+				f = ( m => m.map( l => l.split('').reverse().join('') ) )
+			else if (transform === '-')
+				f = ( m => Array.from(m).reverse() )
+			else 
+			{
+				const parts = transform.split(':')
+				if (parts[0] === 'shift')
+				{
+					const absolute_shift_direction = absolutedirs.indexOf(parts[1])
+					const shift_direction = (absolute_shift_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[1])]) : absolute_shift_direction
+					f = ([
+							(m => [ ...Array.from(m.slice(1)), m[0] ]), // up
+							(m => [ m[m.length-1], ...Array.from(m.slice(0,-1)) ]), // down
+							(m => Array.from(m, l => l[l.length-1]+l.substr(0,l.length-1)) ), // right
+							(m => Array.from(m, l => l.substr(1)+l[0]) ) // left
+						])[shift_direction]
+				}
+				else // rotation
+				{
+					const absolute_ref_direction = absolutedirs.indexOf(parts[1])
+					const ref_direction = (absolute_ref_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[1])]) : absolute_ref_direction
+					const absolute_to_direction = absolutedirs.indexOf(parts[2])
+					const to_direction = (absolute_to_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[2])]) : absolute_to_direction
+					const angle = (to_direction - ref_direction) % 4 // clockwise
+					f = ([
+							( m => Array.from(m) ), // 0°
+							( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
+							( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
+							( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
+						])[angle]
+				}
+			}
+			const newsprite = f(sprite)
+			sprite = newsprite
+		}
+		object.spritematrix = sprite
+	}
+}
+
 PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, stream)
 {
-	if (is_start_of_line && this.objects_section == 2)
+	if (is_start_of_line)
 	{
-		this.objects_section = 3;
-	}
-
-	if (is_start_of_line && this.objects_section == 1)
-	{
-		this.objects_section = 2;
+		if ( [1,2].includes(this.objects_section) )
+		{
+			this.objects_section += 1;
+		}
+		else if (this.objects_section >= 5) // copy sprite matrix with a valid name
+		{
+			this.copySpriteMatrix()
+			this.objects_section = 0
+			this.sprite_transforms = []
+		}
 	}
 
 	switch (this.objects_section)
@@ -576,8 +631,25 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 				{
-					this.objects_section = 1;
-					return this.tryParseName(is_start_of_line, stream);
+					if (stream.match(/copy:\s+/u, true) === null)
+					{
+						this.objects_section = 1;
+						return this.tryParseName(is_start_of_line, stream);
+					}
+					this.objects_section = 4
+					const classes = this.identifiers.getTagClassesInIdentifier(this.current_identifier_index);
+					if ( (new Set(classes)).size !== classes.length )
+					{
+						this.logError('Sorry, I cannot copy sprites for identifier '+this.identifiers.names[this.current_identifier_index].toUpperCase()+
+							' because it contains multiple instances of a same tag class. Please use aliases so that each tag class only appears once in the identifier.')
+						return 'ERROR';
+					}
+					this.current_layer_parameters = classes // I'm reusing this because I'm lazy
+					this.current_layer_expansion = (classes.length === 0) ? [ [this.identifiers.getObjectFromIdentifier(this.current_identifier_index), []] ] : Array.from(
+						this.identifiers.expand_parameters(classes),
+						(expansion, i) => [this.identifiers.getObjectFromIdentifier(this.identifiers.replace_parameters(this.current_identifier_index, classes, expansion)), expansion]
+					)
+					return null; // TODO: new lexer type?
 				}
 				this.logError('Unknown junk in spritematrix for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() + '.');
 				stream.match(reg_notcommentstart, true);
@@ -596,7 +668,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
-			if (spritematrix.length === 5 && spritematrix[spritematrix.length - 1].length == 5)
+			if (spritematrix.length === 5 && spritematrix[spritematrix.length - 1].length == 5) // last char of the sprite
 			{
 				this.objects_section = 0;
 				for (const object_index of this.identifiers.object_set[this.current_identifier_index])
@@ -636,6 +708,55 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return 'ERROR';
 			return (token_colors.size == 1) ? token_colors.values().next().value : null;
 		}
+	case 4: // copy spritematrix: name of the object to copy from
+	{
+		const copy_from_match = stream.match(reg_tagged_name, true)
+		if (copy_from_match === null)
+		{
+			this.logError('Unexpected character ' + stream.peek() + ' found instead of object name in definition of sprite copy.')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR';
+		}
+		copy_from_id = copy_from_match[0].trim()
+		this.objects_section = 5;
+		const copy_from_identifier_index = this.identifiers.checkKnownIdentifier(copy_from_id, true, this);
+		if (copy_from_identifier_index < 0)
+		{
+			this.logError('I cannot copy the sprite of unknown object '+copy_from_id.toUpperCase()+'.')
+			return 'ERROR';
+		}
+		// Now we need to replace the tag classes in the identifier according to the expansion parameters in the currently defined object
+		var new_expansion = []
+		const directions_index = this.current_layer_parameters.indexOf(this.identifiers.names.indexOf('directions'));
+		var all_copied = true;
+		for (const [object_index, replacements_identifier_indexes] of this.current_layer_expansion)
+		{
+			const replaced_source_identifier_index = this.identifiers.replace_parameters(copy_from_identifier_index, this.current_layer_parameters, replacements_identifier_indexes)
+			if (this.identifiers.comptype[replaced_source_identifier_index] != identifier_type_object)
+			{
+				this.logError('Cannot copy the sprite of '+this.identifiers.names[this.current_identifier_index].toUpperCase()+' from '+copy_from_id+
+					' because it would imply to copy from '+this.identifiers.names[replaced_source_identifier_index].toUpperCase() + ', which is not an atomic object.')
+				all_copied = false;
+				continue;
+			}
+			const source_object_index = this.identifiers.getObjectFromIdentifier(replaced_source_identifier_index)
+			new_expansion.push( [object_index, [source_object_index, (directions_index >= 0) ? this.identifiers.names[replacements_identifier_indexes[directions_index]] : null]] )
+		}
+		this.current_layer_expansion = new_expansion
+		return all_copied ? 'NAME' : 'ERROR';
+	}
+	case 5: // copy spritematrix: transformations to apply
+	{
+		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])|-|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^]))\s*/u, true)
+		if (transform_match === null)
+		{
+			this.logError('I do not understand this sprite transformation!')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR';
+		}
+		this.sprite_transforms.push(transform_match[1])
+		return 'NAME'; // actually, we should add a new token type for the transform instructions but I'm lazy
+	}
 	default:
 		window.console.logError("EEK shouldn't get here.");
 	}

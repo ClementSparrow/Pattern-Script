@@ -16,13 +16,13 @@ const [
 
 //	======= DIRECTIONS AND DIRECTION MAPPINGS =======
 
-const absolutedirs = ['up', 'down', 'right', 'left'];
-const relativeDirs = ['^','v','<','>','parallel','perpendicular'];//used to index the following
+const absolutedirs = ['up', 'right', 'down', 'left'];
+const relativeDirs = ['^','>','v','<','parallel','perpendicular'];//used to index the following
 const relativeDict = {
-	'right': ['up', 'down', 'left', 'right','horizontal','vertical'],
-	'up': ['left', 'right', 'down', 'up','vertical','horizontal'],
-	'down': ['right', 'left', 'up', 'down','vertical','horizontal'],
-	'left': ['down', 'up', 'right', 'left','horizontal','vertical']
+	'up': ['left', 'up', 'right', 'down', 'vertical', 'horizontal'],
+	'right': ['up', 'right', 'down', 'left', 'horizontal', 'vertical'],
+	'down': ['right', 'down', 'left', 'up', 'vertical', 'horizontal'],
+	'left': ['down', 'left', 'up', 'right', 'horizontal', 'vertical']
 }
 
 
@@ -51,8 +51,8 @@ function Identifiers()
 	{
 		this.registerNewIdentifier(dirname, dirname, identifier_type_tag, identifier_type_tag, new Set([i]), [], 0, -1)
 	}
-	this.registerNewIdentifier('horizontal', 'horizontal', identifier_type_tagset, identifier_type_tagset, new Set([2,3]), [null], 0, -1) // 4
-	this.registerNewIdentifier('vertical', 'vertical', identifier_type_tagset, identifier_type_tagset, new Set([0,1]), [null], 0, -1) // 5
+	this.registerNewIdentifier('horizontal', 'horizontal', identifier_type_tagset, identifier_type_tagset, new Set([1,3]), [null], 0, -1) // 4
+	this.registerNewIdentifier('vertical', 'vertical', identifier_type_tagset, identifier_type_tagset, new Set([0,2]), [null], 0, -1) // 5
 	this.registerNewIdentifier('directions', 'directions', identifier_type_tagset, identifier_type_tagset, new Set([0,1,2,3]), [null], 0, -1) // 6
 
 //	Register predefined direction mappings
@@ -678,4 +678,10 @@ Identifiers.prototype.replace_parameters = function(start_identifier_index, from
 		identifier_index = replacements_identifier_indexes[property_parameter_index]
 	}
 	return identifier_index;
+}
+
+
+Identifiers.prototype.getTagClassesInIdentifier = function(identifier_index)
+{
+	return Array.from( this.tag_mappings[identifier_index].filter( x => (x !== null) ), mapping_index => this.mappings[mapping_index].from)
 }

@@ -1018,7 +1018,11 @@ function loadFile(str)
 		var ss = new CodeMirror.StringStream(line, 4); // note that we use the CodeMirror API to parse the file, here, but we don't have to
 		do
 		{
-			state.token(ss)
+			if (line.length > 0)
+				state.token(ss)
+			else
+				state.blankLine()
+			
 			if (errorCount>MAX_ERRORS)
 			{
 				consolePrint("too many errors, aborting compilation");
