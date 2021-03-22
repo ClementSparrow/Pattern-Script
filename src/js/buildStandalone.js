@@ -26,7 +26,7 @@ function buildStandalone(sourceCode) {
 	}
 
 	var htmlString = standalone_HTML_String.concat("");
-	var title = "PuzzleScript Game";
+	var title = "Pattern:Script Game";
 	if (state.metadata.title!==undefined) {
 		title=state.metadata.title;
 	}
