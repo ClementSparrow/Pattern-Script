@@ -3,7 +3,7 @@ Pattern:Script
 
 Open Source HTML5 Game Engine based on [PuzzleScript](https://www.puzzlescript.net)
 
-Try it out [here](clementsparrow.github.io/PuzzleScript/src/)
+Try it out [here](clementsparrow.github.io/Pattern-Script/src/)
 
 -----
 
