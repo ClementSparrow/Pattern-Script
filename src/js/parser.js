@@ -512,7 +512,6 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 PuzzleScriptParser.prototype.copySpriteMatrix = function()
 {
-	console.log(this.lineNumber.toString() + ' - ' + this.sprite_transforms)
 	for (const [object_index, [source_object_index, replaced_dir]] of this.current_layer_expansion)
 	{
 		var object = this.identifiers.objects[object_index]

@@ -1022,8 +1022,8 @@ function loadFile(str)
 				state.token(ss)
 			else
 				state.blankLine()
-			
-			if (errorCount>MAX_ERRORS)
+
+			if (errorCount > MAX_ERRORS)
 			{
 				consolePrint("too many errors, aborting compilation");
 				return;
