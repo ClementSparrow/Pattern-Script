@@ -294,21 +294,17 @@ PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 
 // ------ EFFECT OF BLANK LINES -------
 
-function blankLineHandle(state)
+PuzzleScriptParser.prototype.blankLine = function() // called when the line is empty or contains only spaces and/or comments
 {
-	if (state.section === 'objects')
+	if (this.section === 'objects')
 	{
-		state.objects_section = 0;
+		if (this.objects_section >= 5)
+		{
+			this.copySpriteMatrix()
+		}
+		this.objects_section = 0;
 	}
-	else
-	{
-		state.blankLine()
-	}
-}
-
-PuzzleScriptParser.prototype.blankLine = function()
-{
-	if (this.section === 'levels')
+	else if (this.section === 'levels')
 	{
 		if (this.levels[this.levels.length - 1].length > 0)
 		{
@@ -516,6 +512,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 PuzzleScriptParser.prototype.copySpriteMatrix = function()
 {
+	console.log(this.lineNumber.toString() + ' - ' + this.sprite_transforms)
 	for (const [object_index, [source_object_index, replaced_dir]] of this.current_layer_expansion)
 	{
 		var object = this.identifiers.objects[object_index]
@@ -561,6 +558,7 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 		}
 		object.spritematrix = sprite
 	}
+	this.sprite_transforms = []
 }
 
 PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, stream)
@@ -575,7 +573,6 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		{
 			this.copySpriteMatrix()
 			this.objects_section = 0
-			this.sprite_transforms = []
 		}
 	}
 
@@ -1482,7 +1479,7 @@ PuzzleScriptParser.prototype.token = function(stream)
 	if ( (this.commentLevel === 0) && (this.tokenIndex !== -4) && (stream.match(/[\p{Separator}\s\)]+/u, true) || stream.eol()) )
 	{
 		if (token_starts_line && stream.eol()) // a line that contains only white spaces and unmatched ) is considered a blank line
-			return blankLineHandle(this);
+			return this.blankLine();
 		return null; // don't color spaces and unmatched ) outside messages, and skip them
 	}
 
