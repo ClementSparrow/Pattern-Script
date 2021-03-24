@@ -71,56 +71,61 @@ function saveClick()
 
 	consolePrint("saved file to local storage",true);
 
-	if (window.location.href.indexOf("?hack")>=0){
-		var currURL= window.location.href; 
-		var afterDomain= currURL.substring(currURL.lastIndexOf('/') + 1);
-		var beforeQueryString= afterDomain.split("?")[0];  
+	// //clear parameters from url bar if any present
+	// if (window.location.href.indexOf("?hack") >= 0)
+	// {
+	// 	const currURL = window.location.href; 
+	// 	const afterDomain = currURL.substring(currURL.lastIndexOf('/') + 1);
+	// 	const beforeQueryString = afterDomain.split("?")[0];  
  
-		window.history.pushState({}, document.title, "./" +beforeQueryString);
-	}
-	//clear parameters from url bar if any present
+	// 	window.history.pushState({}, document.title, "./" + beforeQueryString);
+	// }
 
 }
 
-window.addEventListener( "pageshow", function ( event ) {
-	var historyTraversal = event.persisted || 
+window.addEventListener("pageshow", function (event)
+{
+	const historyTraversal = event.persisted || 
 						   ( typeof window.performance != "undefined" && 
 								window.performance.navigation.type === 2 );
-	if ( historyTraversal ) {
-	  // Handle page restore.
-	  window.location.reload();
+	if ( historyTraversal )
+	{
+		// Handle page restore.
+		window.location.reload();
 	}
-  });
+});
 
-window.addEventListener("popstate", function(event){
+window.addEventListener("popstate", function(event)
+{
 	console.log("hey");
 	location.reload();
 });
 
-function loadDropDownChange() {
-
-	if(!canExit()) {
+function loadDropDownChange()
+{
+	if ( ! canExit() )
+	{
  		this.selectedIndex = 0;
  		return;
  	}
 
-	var saveString = localStorage['saves'];
-	if (saveString===undefined) {
-			consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!",true);
+	const saveString = localStorage['saves'];
+	if (saveString === undefined)
+	{
+		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!",true);
 	} 
 
 	saves = JSON.parse(saveString);
 	
-	for (var i=0;i<saves.length;i++) {
-		var sd = saves[i];
-	    var key = dateToReadable(sd.title,new Date(sd.date));
-	    if (key==this.value) {
-
-	    	var saveText = sd.text;
+	for (const sd of saves)
+	{
+	    var key = dateToReadable(sd.title, new Date(sd.date));
+	    if (key == this.value)
+	    {
+	    	const saveText = sd.text;
 			editor.setValue(saveText);
 			setEditorClean();
-			var loadDropdown = document.getElementById('loadDropDown');
-			loadDropdown.selectedIndex=0;
+			document.getElementById('loadDropDown').selectedIndex = 0;
 			unloadGame();
 			compile(["restart"]);
 			return;
@@ -131,18 +136,21 @@ function loadDropDownChange() {
 }
 
 
-function repopulateSaveDropdown(saves) {
+function repopulateSaveDropdown(saves)
+{
 	var loadDropdown = document.getElementById('loadDropDown');
 	loadDropdown.options.length = 0;
 
-	if (saves===undefined) {
-		try {
-			if (localStorage['saves']===undefined) {
+	if (saves === undefined)
+	{
+		try
+		{
+			if (localStorage['saves'] === undefined)
 				return;
-			} else {
-				saves = JSON.parse(localStorage["saves"]);
-			}
-		} catch (ex) {
+			saves = JSON.parse(localStorage["saves"]);
+		}
+		catch (ex)
+		{
 			return;
 		}
 	}
@@ -152,30 +160,32 @@ function repopulateSaveDropdown(saves) {
     optn.value = "Load";
     loadDropdown.options.add(optn);  
 
-	for (var i=saves.length-1;i>=0;i--) {			
-		var sd = saves[i];
+	for (var i=saves.length-1; i >= 0; i--)
+	{
+		const sd = saves[i];
 	    var optn = document.createElement("OPTION");
-	    var key = dateToReadable(sd.title,new Date(sd.date));
+	    const key = dateToReadable(sd.title, new Date(sd.date));
 	    optn.text = key;
 	    optn.value = key;
 	    loadDropdown.options.add(optn);  
 	}
-	loadDropdown.selectedIndex=0;
+	loadDropdown.selectedIndex = 0;
 }
 
 repopulateSaveDropdown();
 var loadDropdown = document.getElementById('loadDropDown');
 loadDropdown.selectedIndex=0;
 
-function levelEditorClick_Fn() {
-	if (textMode || state.levels.length===0) {
+function levelEditorClick_Fn()
+{
+	if (textMode || state.levels.length === 0)
+	{
 		compile(["loadLevel",0]);
-		levelEditorOpened=true;
-    	canvasResize();
+		levelEditorOpened = true;
 	} else {
-		levelEditorOpened=!levelEditorOpened;
-    	canvasResize();
+		levelEditorOpened = !levelEditorOpened;
     }
+	canvasResize();
     lastDownTarget=canvas;	
 }
 
@@ -189,7 +199,7 @@ const PSFORKNAME = "Pattern:Script"
 // OAUTH_CLIENT_ID = "211570277eb588cddf44";
 function getAuthURL()
 {
-	return HOSTPAGEURL+'/auth_pat.html';
+	return './auth_pat.html';
 	// const randomState = window.btoa(Array.prototype.map.call(
 	// 	window.crypto.getRandomValues(new Uint8Array(24)),
 	// 	function(x) { return String.fromCharCode(x); }).join(""));
@@ -296,6 +306,7 @@ function shareOnGitHub(is_public)
 			}
 
 			window.history.replaceState(null, null, "?hack="+id);
+			setEditorCleanForGithub()
 
 		}
 	}
@@ -319,21 +330,18 @@ function githubLogOut()
 				,true);
 }
 
-function rebuildClick() {
+function rebuildClick()
+{
 	clearConsole();
 	compile(["rebuild"]);
 }
 
-function exportClick() {
-	var sourceCode = editor.getValue();
-
+function exportClick()
+{
+	const sourceCode = editor.getValue();
 	compile("restart");
-
-	var sourceString = JSON.stringify(sourceCode);
-	
-	buildStandalone(sourceString);
+	buildStandalone(JSON.stringify(sourceCode));
 }
-
 
 
 function switchLightClick()
