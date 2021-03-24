@@ -336,3 +336,8 @@ function exportClick() {
 
 
 
+function switchLightClick()
+{
+	const clicklink = document.getElementById('switchModeClickLink')
+	setEditorLightMode( ['DARK MODE', 'LIGHT MODE'].indexOf(clicklink.innerHTML) )
+}

@@ -106,9 +106,18 @@ editor.on("beforeChange", function(instance, change) {
 });*/
 
 
+
+function setEditorLightMode(new_mode) // 0 for dark, 1 for light
+{
+	const mode = (new_mode === null) ? 1 : parseInt(new_mode)
+	window.localStorage.setItem('light_mode', mode)
+	editor.setOption('theme', (['midnight', 'midday'])[mode]);
+	document.getElementById('switchModeClickLink').innerHTML = (['LIGHT MODE', 'DARK MODE'])[mode]
+}
+
 code.editorreference = editor;
-// editor.setOption('theme', 'midnight');
-editor.setOption('theme', 'midday');
+setEditorLightMode(window.localStorage.getItem('light_mode'))
+
 
 function getParameterByName(name) {
     name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
