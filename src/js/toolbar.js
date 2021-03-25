@@ -70,17 +70,20 @@ function saveClick()
 	setEditorClean();
 
 	consolePrint("saved file to local storage",true);
+	// removeHackParam()
+}
 
-	// //clear parameters from url bar if any present
-	// if (window.location.href.indexOf("?hack") >= 0)
-	// {
-	// 	const currURL = window.location.href; 
-	// 	const afterDomain = currURL.substring(currURL.lastIndexOf('/') + 1);
-	// 	const beforeQueryString = afterDomain.split("?")[0];  
+function removeHackParam()
+{
+	//clear parameters from url bar if any present
+	if (window.location.href.indexOf("?hack") >= 0)
+	{
+		const currURL = window.location.href; 
+		const afterDomain = currURL.substring(currURL.lastIndexOf('/') + 1);
+		const beforeQueryString = afterDomain.split("?")[0];  
  
-	// 	window.history.pushState({}, document.title, "./" + beforeQueryString);
-	// }
-
+		window.history.pushState({}, document.title, "./" + beforeQueryString);
+	}
 }
 
 window.addEventListener("pageshow", function (event)
@@ -231,7 +234,7 @@ function cloudSaveClick()
 }
 
 
-function shareOnGitHub(is_public)
+function shareOnGitHub(is_public, should_fork=false)
 {
 	const oauthAccessToken = window.localStorage.getItem("oauth_access_token");
 	if (typeof oauthAccessToken !== "string")
@@ -262,7 +265,7 @@ function shareOnGitHub(is_public)
 	const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
 
 	consolePrint("<br>Sending code to github...", true)
-	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id : '' )
+	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id+(should_fork ? '/forks' : '') : '' )
 	var githubHTTPClient = new XMLHttpRequest();
 	githubHTTPClient.open('POST', githubURL);
 	githubHTTPClient.onreadystatechange = function()
@@ -282,6 +285,12 @@ function shareOnGitHub(is_public)
 			} else {
 				consoleError("HTTP Error "+ githubHTTPClient.status + ' - ' + githubHTTPClient.statusText);
 				consoleError("Try giving "+PSFORKNAME+" permission again, that might fix things...");
+				if (update_gist_id !== null)
+				{
+					consoleError('Or are you trying to update a game created by someone else? In that case, you can either:')
+					consoleError('- <a onclick="shareOnGitHub(\''+update_gist_id+'\',true)">fork it</a> (recommended), or')
+					consoleError('- <a onclick="removeHackParam()">clear the connexion with that game</a> and continue your edits (not recommended, as some authors could consider you\'re setaling their game).')
+				}
 			}
 			printUnauthorized();
 		}
