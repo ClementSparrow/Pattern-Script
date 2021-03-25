@@ -289,9 +289,11 @@ function shareOnGitHub(is_public, should_fork=false)
 				consoleError("Try giving "+PSFORKNAME+" permission again, that might fix things...");
 				if (update_gist_id !== null)
 				{
-					consoleError('Or are you trying to update a game created by someone else? In that case, you can either:')
-					consoleError('- <a onclick="shareOnGitHub(\''+update_gist_id+'\',true)">fork it</a> (recommended), or')
-					consoleError('- <a onclick="removeHackParam()">clear the connexion with that game</a> and continue your edits (not recommended, as some authors could consider you\'re stealing their game).')
+					consoleError('Or are you trying to update a game created by someone else? In that case, you can <a onclick="removeHackParam()" href="javascript:void(0);">clear the connexion with that game</a> and continue your edits (please be sure to be allowed to do that and not violate any copyright).')
+					// Unfortunately, forking gists into private ones is not supported by GitHub yet.
+					// consoleError('Or are you trying to update a game created by someone else? In that case, you can either:')
+					// consoleError('- <a onclick="shareOnGitHub(\''+update_gist_id+'\',true)" href="javascript:void(0);">fork it</a> (recommended), or')
+					// consoleError('- <a onclick="removeHackParam()" href="javascript:void(0);">clear the connexion with that game</a> and continue your edits (not recommended, as some authors could consider you\'re stealing their game).')
 				}
 			}
 			printUnauthorized();
