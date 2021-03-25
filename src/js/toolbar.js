@@ -80,9 +80,11 @@ function removeHackParam()
 	{
 		const currURL = window.location.href; 
 		const afterDomain = currURL.substring(currURL.lastIndexOf('/') + 1);
-		const beforeQueryString = afterDomain.split("?")[0];  
+		const params =  afterDomain.split("?");
+		const beforeQueryString =params[0];  
  
 		window.history.pushState({}, document.title, "./" + beforeQueryString);
+		consolePrint('The game is now disconnected from the original saved on cloud.')
 	}
 }
 
@@ -289,7 +291,7 @@ function shareOnGitHub(is_public, should_fork=false)
 				{
 					consoleError('Or are you trying to update a game created by someone else? In that case, you can either:')
 					consoleError('- <a onclick="shareOnGitHub(\''+update_gist_id+'\',true)">fork it</a> (recommended), or')
-					consoleError('- <a onclick="removeHackParam()">clear the connexion with that game</a> and continue your edits (not recommended, as some authors could consider you\'re setaling their game).')
+					consoleError('- <a onclick="removeHackParam()">clear the connexion with that game</a> and continue your edits (not recommended, as some authors could consider you\'re stealing their game).')
 				}
 			}
 			printUnauthorized();
