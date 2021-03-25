@@ -84,15 +84,11 @@ function checkEditorDirty()
 
 function setEditorCleanForGithub() // called after a game has been loaded in the editor from GitHub or after it has been saved on GitHub
 {
-	_editorCleanState = editor.getValue();
-	if (_editorDirty === true)
+	var saveOnGitgubLink = document.getElementById('cloudSaveClickLink')
+	if (saveOnGitgubLink)
 	{
-		var saveOnGitgubLink = document.getElementById('cloudSaveClickLink')
-		if (saveOnGitgubLink)
-		{
-			const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
-			saveOnGitgubLink.innerHTML = (update_gist_id === null) ? 'SAVE ON CLOUD' : 'SAVED ON CLOUD';
-		}
+		const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
+		saveOnGitgubLink.innerHTML = (update_gist_id === null) ? 'SAVE ON CLOUD' : 'SAVED ON CLOUD';
 	}
 }
 
