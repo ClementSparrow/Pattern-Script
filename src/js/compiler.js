@@ -728,7 +728,7 @@ function processWinConditions(state)
 		if (wincondition.length == 0)
 			return;
 
-		const num = ({some:0, no:-1, all:1})[wincondition[0]]; // TODO: this tokenisation should be done in the parser, not here.
+		const num = ({some:0, any:0, no:-1, all:1})[wincondition[0]]; // TODO: this tokenisation should be done in the parser, not here.
 
 		const lineNumber = wincondition[wincondition.length-1];
 
