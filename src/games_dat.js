@@ -779,11 +779,4 @@ var games_gallery = [
     "author": " nebu soku",
     "homepage": "https://nebu-soku.itch.io/"
   },
-  {
-    "url": "https://vexorian.itch.io/boolean-bloom",
-    "thumb": "booleanbloom.gif",
-    "title": "Boolean Bloom 1.42",
-    "author": " vexorian",
-    "homepage": "https://vexorian.itch.io/"
-  },
 ]
