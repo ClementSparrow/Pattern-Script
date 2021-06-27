@@ -5,18 +5,6 @@ for (var i=0;i<10;i++) {
     el.addEventListener("click", (function(n){return function(){return newSound(n);};})(i), false);
 }
 
-//var soundButtonPress = document.getElementById("soundButtonPress");
-//soundButtonPress.addEventListener("click", buttonPress, false);
-
-// Upper toolbar
-// document.getElementById("runClickLink").addEventListener("click", runClick, false);
-// document.getElementById("saveClickLink").addEventListener("click", saveClick, false);
-// document.getElementById("cloudSaveClickLink").addEventListener("click", cloudSaveClick, false);
-// document.getElementById("rebuildClickLink").addEventListener("click", rebuildClick, false);
-// document.getElementById("shareClickLink").addEventListener("click", shareClick, false);
-// document.getElementById("levelEditorClickLink").addEventListener("click", levelEditorClick_Fn, false);
-// document.getElementById("exportClickLink").addEventListener("click", exportClick, false);
-
 document.getElementById("exampleDropdown").addEventListener("change", dropdownChange, false);
 document.getElementById("loadDropDown").addEventListener("change", loadDropDownChange, false);
 

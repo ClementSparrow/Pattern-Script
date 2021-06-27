@@ -306,6 +306,9 @@ function shareOnGitHub(is_public, should_fork=false)
 			const editurl = qualifyURL("editor.html?hack="+id);
 			const sourceCodeLink = "Link to source code:<br><a target=\"_blank\"  href=\""+editurl+"\">"+editurl+"</a>";
 
+			// Note: unfortunately, updating a gist does not return the id of the commit. So if we need to link against this specific version of the game, we need to
+			// get the most recent commit SHA by GET /gists/{gist_id}/commits, which returns a list L, sort it by decreasing L[i].committed_at, and get L[0].version ...
+
 
 			consolePrint('GitHub (<a onclick="githubLogOut();"  href="javascript:void(0);">log out</a>) submission successful.<br>',true);
 
