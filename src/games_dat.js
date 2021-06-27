@@ -86,7 +86,7 @@ var games_gallery = [
     "thumb": "6877929.gif",
     "title": "Explod",
     "author": "CHz",
-    "homepage": "https://quiteajolt.com/"
+    "homepage": "quiteajolt.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=fcf4b43ee6c679ef9389",
@@ -225,22 +225,22 @@ var games_gallery = [
     "url": "https://www.puzzlescript.net/play.html?p=7114130",
     "thumb": "7114130.gif",
     "title": "Cratopia",
-    "author": "CHz",
-    "homepage": "https://quiteajolt.com/"
+    "author": "CHz [v1]",
+    "homepage": "quiteajolt.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=7324598",
     "thumb": "7324598.gif",
     "title": "Flying Kick",
     "author": "Aaron Steed",
-    "homepage": "http://www.robotacid.com/"
+    "homepage": "www.robotacid.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=c784daec18555b9d48f3",
     "thumb": "c784daec18555b9d48f3.gif",
     "title": "Drop Swap",
     "author": "Aaron Steed",
-    "homepage": "http://www.robotacid.com/"
+    "homepage": "www.robotacid.com"
   },
   {
     "url": "https://candle.itch.io/chaos-wizard",
@@ -348,14 +348,14 @@ var games_gallery = [
     "thumb": "6ec59e0b3f1f306acdc1.gif",
     "title": "Pornography for Beginners",
     "author": "Holly",
-    "homepage": "https://hollygramazio.net"
+    "homepage": "hollygramazio.net"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=0590a6662f9e8e6afe4a",
     "thumb": "0590a6662f9e8e6afe4a.gif",
     "title": "SwapBot",
     "author": "John M. Williams",
-    "homepage": "https://gate.itch.io"
+    "homepage": "gate.itch.io"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=6a6c07f71d7039e4155e",
@@ -368,7 +368,7 @@ var games_gallery = [
     "thumb": "dinnertime.gif",
     "title": "Dinnertime!",
     "author": "Ben Reilly",
-    "homepage": "https://www.ben-reilly.com/"
+    "homepage": "ben-reilly.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=09d9778d0e69116c5406",
@@ -382,14 +382,14 @@ var games_gallery = [
     "thumb": "ac003a3b7e159dd54eb8.gif",
     "title": "Boxes & Balloons",
     "author": "Ben Reilly",
-    "homepage": "https://www.ben-reilly.com/"
+    "homepage": "ben-reilly.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=a8f4e5aed01de7c9ef50",
     "thumb": "a8f4e5aed01de7c9ef50.gif",
     "title": "Pushcat Jr",
     "author": "Zut!",
-    "homepage": "http://zutgames.com/pushcat.php"
+    "homepage": "zutgames.com/pushcat"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=d210a5248fa713153950",
@@ -403,7 +403,7 @@ var games_gallery = [
     "thumb": "d688de5e0e1e978f63fd.gif",
     "title": "Marble Shoot",
     "author": "Stuart Burfield",
-    "homepage": "https://www.thepixelshelf.com"
+    "homepage": "www.thepixelshelf.com"
   },
   {
     "url": "https://www.draknek.org/games/puzzlescript/cyber-lasso.php",
@@ -424,7 +424,7 @@ var games_gallery = [
     "thumb": "e8ce49f2b9834e80516d.gif",
     "title": "Enqueue",
     "author": "Allen Webster",
-    "homepage": "https://twitter.com/AllenWebster4th"
+    "homepage": "www.pushthegame.com"
   },
   {
     "url": "https://w.itch.io/aunt-floras-mansion",
@@ -457,7 +457,7 @@ var games_gallery = [
     "thumb": "62070c89dc7604de2484.gif",
     "title": "Rock, Paper, Scissors",
     "author": "chaotic_iak",
-    "homepage": "https://chaosatthesky.wordpress.com/"
+    "homepage": "chaosatthesky.wordpress.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=ed5ba4e63cf2c92788da",
@@ -496,7 +496,7 @@ var games_gallery = [
     "thumb": "4e66fc851edbf42ae008.gif",
     "title": "Dharma Dojo demake",
     "author": "Metro [cloned by CHz]",
-    "homepage": "https://quiteajolt.com/"
+    "homepage": "quiteajolt.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=c7da961162348381d271",
@@ -516,7 +516,7 @@ var games_gallery = [
     "thumb": "9cf57ca82a0181de97e4e225bc9bf4ca.gif",
     "title": "Newton's Crates",
     "author": "Andrey Shevchuk",
-    "homepage": "http://shevchuk.net/"
+    "homepage": "shevchuk.net"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=ed8845d930c8940bef1236cf18ca5bd2",
@@ -565,14 +565,12 @@ var games_gallery = [
   {
     "url": "https://www.puzzlescript.net/play.html?p=0f174b98074b628e8de5514c5839efae",
     "thumb": "0f174b98074b628e8de5514c5839efae.gif",
-    "title": "Rose",
-    "author": "Jared Piers"
+    "title": "Rose"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=d42bf2a870aab3a2deca6132ff6ebad5",
     "thumb": "d42bf2a870aab3a2deca6132ff6ebad5.gif",
-    "title": "Season Finale",
-    "author": "Jack Lance"
+    "title": "Season Finale"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=fbbcdbcf3e28bc08fe953f8853446e9f",
@@ -592,35 +590,35 @@ var games_gallery = [
     "thumb": "castle.gif",
     "title": "The closet and the castle",
     "author": "HeskHwis and Holly Hatter",
-    "homepage": "https://heskhwis.tumblr.com/"
+    "homepage": "heskhwis.tumblr.com"
   },
   {
     "url": "https://heskhwis.itch.io/my-first-kishoutenketsu",
     "thumb": "fish.gif",
     "title": "\"My first Kishoutenketsu\"",
     "author": "HeskHwis",
-    "homepage": "https://heskhwis.tumblr.com/"
+    "homepage": "heskhwis.tumblr.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=983d3fe448e281182289826597fe5a4b",
     "thumb": "983d3fe448e281182289826597fe5a4b.gif",
     "title": "PrograMaze",
     "author": "Adam Gashlin",
-    "homepage": "http://gashlin.net/"
+    "homepage": "gashlin.net"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=57da05bc817b904d037df40fefa78d66",
     "thumb": "57da05bc817b904d037df40fefa78d66.gif",
     "title": "Symbolism",
     "author": "Richard Locke",
-    "homepage": "http://www.richardlocke.co.uk/"
+    "homepage": "www.richardlocke.co.uk"
   },
   {
     "url": "https://virelsa.itch.io/entanglement-chapter-1",
     "thumb": "entanglement.gif",
     "title": "Entanglement - Chapter One",
     "author": "Richard Locke",
-    "homepage": "http://www.richardlocke.co.uk/"
+    "homepage": "www.richardlocke.co.uk"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=ce2474f62432e2a703bba3fb65f5b01f",
@@ -632,8 +630,8 @@ var games_gallery = [
     "url": "https://rosden.itch.io/theflames",
     "thumb": "flames.gif",
     "title": "The Flames",
-    "author": "Rosden Shadow",
-    "homepage": "https://rosden.itch.io/"
+    "author": "Rosden Shadow [Mark Signorelli]",
+    "homepage": "rosden.itch.io"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=0e692c47ab0b18099c2485d644590b4e",
@@ -664,54 +662,51 @@ var games_gallery = [
   {
     "url": "https://www.puzzlescript.net/play.html?p=9ebe1e5ad44ac22259343de170a3b337",
     "thumb": "9ebe1e5ad44ac22259343de170a3b337.gif",
-    "title": "Coin Counter",
-    "author": "Jack Lance"
+    "title": "Coin Counter"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=a95269130d520a58adf710b692d1e52e",
     "thumb": "a95269130d520a58adf710b692d1e52e.gif",
-    "title": "Easy Enigma",
-    "author": "Jack Lance"
+    "title": "Easy Enigma"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=45f13378f02acf2d2583d91fac32e729",
     "thumb": "45f13378f02acf2d2583d91fac32e729.gif",
     "title": "the art of cloning",
-    "author": "Rosden Shadow",
-    "homepage": "https://rosden.itch.io/"
+    "author": "Rosden Shadow [Mark Signorelli]",
+    "homepage": "rosden.itch.io"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=3acdd359dea642168ff946bfc26f0152",
     "thumb": "3acdd359dea642168ff946bfc26f0152.gif",
     "title": "interconnection",
-    "author": "Rosden Shadow",
-    "homepage": "https://rosden.itch.io/"
+    "author": "Rosden Shadow [Mark Signorelli]",
+    "homepage": "rosden.itch.io"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=b1c07b54e2091c40221cf48fe66d25ab",
     "thumb": "b1c07b54e2091c40221cf48fe66d25ab.gif",
     "title": "Path lines",
-    "author": "Rosden Shadow",
-    "homepage": "https://rosden.itch.io/"
+    "author": "Rosden Shadow [Mark Signorelli]",
+    "homepage": "rosden.itch.io"
   },
   {
     "url": "https://chz.itch.io/maera-public-works",
     "thumb": "public.gif",
     "title": "Maera Public Works",
     "author": "CHz",
-    "homepage": "https://quiteajolt.com/"
+    "homepage": "quiteajolt.com"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=a4bb2bf44284bdb9347cf3f1399d4f11",
     "thumb": "a4bb2bf44284bdb9347cf3f1399d4f11.gif",
-    "title": "I'm too far gone",
-    "author": "Jack Lance"
+    "title": "I'm too far gone"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=9eb8f8f3df4efb450b798a279eeba2e0",
     "thumb": "9eb8f8f3df4efb450b798a279eeba2e0.gif",
     "title": "VEXT EDIT",
-    "author": "Jack Lance"
+    "author": "JACK"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=4adc7b17c2c0449c3a8b6c730e8cbfc9",
@@ -724,14 +719,14 @@ var games_gallery = [
     "thumb": "f7518dbe107486ab1a50e6119f4bc3f2.gif",
     "title": "Broken Abacus",
     "author": "Le Slo",
-    "homepage": "https://le-slo.itch.io/"
+    "homepage": "le-slo.itch.io/"
   },
   {
     "url": "https://www.puzzlescript.net/play.html?p=7572972f749909993b12d84991e47ec9",
     "thumb": "7572972f749909993b12d84991e47ec9.gif",
     "title": "Mini Nomerads",
     "author": "Dan Williams",
-    "homepage": "https://www.activeupgames.com/"
+    "homepage": "www.activeupgames.com"
   },
   {
     "url": "https://zacharybarbanell.itch.io/loop-deleter",
