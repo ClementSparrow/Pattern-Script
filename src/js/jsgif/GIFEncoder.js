@@ -135,7 +135,7 @@
 		* BitmapData object to be treated as a GIF's frame
 		*/
 		
-		var addFrame = exports.addFrame = function addFrame(im/*BitmapData*/, is_imageData)/*Boolean*/
+		var addFrame = exports.addFrame = function addFrame(im/*BitmapData*/, is_imageData=false)/*Boolean*/
 		{
 			
 			if ((im == null) || !started || out == null) 
