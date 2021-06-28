@@ -80,7 +80,7 @@ function generateExtraMembers(state)
 	state.STRIDE_MOV=STRIDE_MOV;
 	
 	debugMode = ('debug' in state.metadata)
-	verbose_logging = ('verbose_logging' in state.metadata)
+	// verbose_logging = ('verbose_logging' in state.metadata)
 	throttle_movement = ('throttle_movement' in state.metadata)
 	if (debugMode||verbose_logging)
 	{
