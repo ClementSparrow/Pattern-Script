@@ -543,7 +543,8 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 					const ref_direction = (absolute_ref_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[1])]) : absolute_ref_direction
 					const absolute_to_direction = absolutedirs.indexOf(parts[2])
 					const to_direction = (absolute_to_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[2])]) : absolute_to_direction
-					const angle = (to_direction - ref_direction) % 4 // clockwise
+					const angle = (4 + to_direction - ref_direction) % 4 // clockwise
+					// console.log(absolute_ref_direction, ref_direction, absolute_to_direction, to_direction, angle)
 					f = ([
 							( m => Array.from(m) ), // 0°
 							( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
