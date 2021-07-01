@@ -31,7 +31,7 @@ const reg_tagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_]+)*/
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
-const reg_spriterow = /[\.0-9]{5}[\p{Separator}\s]*/u;
+const reg_spriterow = /[\.0-9]+[\p{Separator}\s]*/u;
 const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)(?![\p{Letter}\p{Number}_])[\p{Separator}\s]*/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
@@ -43,9 +43,6 @@ const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|or
 const reg_sounddirectionindicators = /[\p{Separator}\s]*(up|down|left|right|horizontal|vertical|orthogonal)[\p{Separator}\s]*/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)$/;
 const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
-
-
-
 
 
 // ======== PARSER CONSTRUCTORS =========
@@ -175,7 +172,7 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 
 //	------- METADATA --------
 
-const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube']
+const metadata_with_value = ['title','author','homepage','background_color','text_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size']
 const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','scanline']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
@@ -376,6 +373,20 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 }
 
 
+// TODO: merge with twiddleMetaData defined in compiler.js. Also, it should be done directly as we parse, not after the preamble.
+PuzzleScriptParser.prototype.finalizePreamble = function()
+{
+	const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
+	if (sprite_size_key_index >= 0)
+	{
+		[sprite_width, sprite_height] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
+		if ( isNaN(sprite_width) || isNaN(sprite_height) )
+		{
+			this.logError('Wrong paramater for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
+			[sprite_width, sprite_height] = [5, 5]
+		}
+	}
+}
 
 
 // ------ TAGS -------
@@ -487,7 +498,7 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 		stream.match(reg_notcommentstart, true);
 		if (stream.pos>0)
 		{
-			this.logWarning('Unknown junk in object section (possibly: sprites have to be 5 pixels wide and 5 pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).');
+			this.logWarning('Unknown junk in object section (possibly: sprites have to be '+sprite_width+' pixels wide and '+sprite_height+' pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).');
 		}
 		return 'ERROR';
 	}
@@ -659,13 +670,13 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			}
 
 			spritematrix[spritematrix.length - 1] += ch;
-			if (spritematrix[spritematrix.length-1].length>5)
+			if (spritematrix[spritematrix.length-1].length>sprite_width)
 			{
-				this.logError('Sprites must be 5 wide and 5 high.');
+				this.logError('Sprites must be ' + sprite_width + ' wide and ' + sprite_height + ' high.');
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
-			if (spritematrix.length === 5 && spritematrix[spritematrix.length - 1].length == 5) // last char of the sprite
+			if (spritematrix.length === sprite_height && spritematrix[spritematrix.length - 1].length == sprite_width) // last char of the sprite
 			{
 				this.objects_section = 0;
 				for (const object_index of this.identifiers.object_set[this.current_identifier_index])
@@ -1402,6 +1413,10 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 	//	MATCH SECTION NAME
 		if (is_start_of_line && stream.match(reg_sectionNames, true))
 		{
+			if (this.section == '') // leaving prelude
+			{
+				this.finalizePreamble()
+			}
 			this.section = stream.string.slice(0, stream.pos).trim();
 			const sectionIndex = sectionNames.indexOf(this.section);
 

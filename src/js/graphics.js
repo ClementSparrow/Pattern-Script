@@ -431,8 +431,8 @@ function canvasResize() {
     cellwidth = canvas.width / screenwidth;
     cellheight = canvas.height / screenheight;
 
-    var w = 5;//sprites[1].dat.length;
-    var h = 5;//sprites[1].dat[0].length;
+    var w = sprite_width //5;//sprites[1].dat.length;
+    var h = sprite_height //5;//sprites[1].dat[0].length;
 
 
     if (textMode) {
