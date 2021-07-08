@@ -141,7 +141,6 @@ function generateExtraMembers(state)
 		}
 		if (o.spritematrix.length === 0)
 		{
-			// o.spritematrix = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]];
 			o.spritematrix = Array.from( {length: sprite_height}, () => (new Array(sprite_width).fill(0)) )
 		}
 		else

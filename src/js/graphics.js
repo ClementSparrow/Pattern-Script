@@ -174,7 +174,6 @@ var x;
 var y;
 var cellwidth;
 var cellheight;
-var magnification;
 var xoffset;
 var yoffset;
 
@@ -400,7 +399,9 @@ var oldcellheight=0;
 var oldtextmode=-1;
 var oldfgcolor=-1;
 var forceRegenImages=false;
-function canvasResize() {
+
+function canvasResize()
+{
     canvas.width = canvas.parentNode.clientWidth;
     canvas.height = canvas.parentNode.clientHeight;
 
@@ -441,7 +442,7 @@ function canvasResize() {
     }
 
 
-    cellwidth =w * Math.max( ~~(cellwidth / w),1);
+    cellwidth  = w * Math.max( ~~(cellwidth / w),1);
     cellheight = h * Math.max(~~(cellheight / h),1);
 
     xoffset = 0;
@@ -457,7 +458,6 @@ function canvasResize() {
         yoffset = (canvas.height - cellheight * screenheight) / 2;
         xoffset = (canvas.width - cellwidth * screenwidth) / 2;
     }
-    magnification = ((cellwidth/w)*5)|0;
 
     if (levelEditorOpened && !textMode) {
     	xoffset+=cellwidth;
