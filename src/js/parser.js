@@ -1540,16 +1540,3 @@ PuzzleScriptParser.prototype.token = function(stream)
 	this.is_start_of_line = false;
 	return result;
 }
-
-// see https://codemirror.net/doc/manual.html#modeapi
-window.CodeMirror.defineMode('puzzle', function()
-	{
-		'use strict';
-		return {
-			copyState: function(state) { return state.copy(); },
-			blankLine: function(state) { state.blankLine(); },
-			token: function(stream, state) { return state.token(stream); },
-			startState: function() { return new PuzzleScriptParser(); }
-		};
-	}
-);

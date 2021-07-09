@@ -1015,7 +1015,7 @@ function loadFile(str)
 	{
 	//	Parse the line
 		state.lineNumber = i + 1;
-		var ss = new CodeMirror.StringStream(line, 4); // note that we use the CodeMirror API to parse the file, here, but we don't have to
+		var ss = new CodeMirrorStringStream(line, 4); // note that we use the CodeMirror API to parse the file, here, but we don't have to
 		do
 		{
 			if (line.length > 0)

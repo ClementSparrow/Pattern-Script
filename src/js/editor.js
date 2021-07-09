@@ -1,3 +1,18 @@
+
+// see https://codemirror.net/doc/manual.html#modeapi
+window.CodeMirror.defineMode('puzzle', function()
+	{
+		'use strict';
+		return {
+			copyState: function(state) { return state.copy(); },
+			blankLine: function(state) { state.blankLine(); },
+			token: function(stream, state) { return state.token(stream); },
+			startState: function() { return new PuzzleScriptParser(); }
+		};
+	}
+);
+
+
 var code = document.getElementById('code');
 var _editorDirty = false;
 var _editorCleanState = "";

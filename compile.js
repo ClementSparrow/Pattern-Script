@@ -144,6 +144,7 @@ new Inliner('./src/standalone.html', function (error, html) {
                     "./src/js/codemirror/show-hint.js",
                     "./src/js/codemirror/anyword-hint.js",
                     "./src/js/codemirror/comment.js",
+                    "./src/js/codemirror/stringstream.js",
                     "./src/js/colors.js",
                     "./src/js/graphics.js",
                     "./src/js/inputoutput.js",
