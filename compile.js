@@ -11,6 +11,8 @@ npm i tar  html-minifier-terser ycssmin  google-closure-compiler concat  pngcrus
 
 var fs = require("fs");
 
+/* Read and increment build number
+   =============================== */
 var lines = fs.readFileSync(".build/buildnumber.txt",encoding='utf-8');
 var buildnum = parseInt(lines);
 buildnum++;
@@ -41,7 +43,7 @@ var Inliner = require('inliner');
 
 new Inliner('./src/standalone.html', function (error, html) {
   // compressed and inlined HTML page
-  fs.writeFileSync("./src/standalone_inlined.txt",html,'utf8');
+  fs.writeFileSync("./src/standalone_inlined.txt", html, 'utf8');
 
   console.log("Copying files")
   var ncp = require('ncp').ncp;
@@ -123,9 +125,7 @@ new Inliner('./src/standalone.html', function (error, html) {
 
             const { minify } = require("terser");
 
-            var files = [  
-                    "./src/js/Blob.js",
-                    "./src/js/FileSaver.js",
+            var files = [
                     "./src/js/jsgif/LZWEncoder.js",
                     "./src/js/jsgif/NeuQuant.js",
                     "./src/js/jsgif/GIFEncoder.js",
