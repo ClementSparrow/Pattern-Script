@@ -116,9 +116,6 @@ function clearConsole() {
 	objDiv.scrollTop = objDiv.scrollHeight;
 }
 
-var clearConsoleClick = document.getElementById("clearConsoleClick");
-clearConsoleClick.addEventListener("click", clearConsole, false);
-
 function verboseToggle()
 {
 	if (!titleScreen)
