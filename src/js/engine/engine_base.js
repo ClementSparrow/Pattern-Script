@@ -334,11 +334,10 @@ function setGameState(_state, command, randomseed) {
 	sprites = [];
 	for (var object of state.identifiers.objects)
 	{
-		var sprite = {
+		sprites[object.id] = {
 			colors: object.colors,
 			dat: object.spritematrix
-		};
-		sprites[object.id] = sprite;
+		}
 	}
 	if (state.metadata.realtime_interval!==undefined) {
 		autotick=0;

@@ -32,12 +32,15 @@ function createSprite(name,spritegrid, colors, padding) {
     return sprite;
 }
 
-function regenText(spritecanvas,spritectx) {
-	textImages={};
+function regenText(spritecanvas, spritectx)
+{
+	textImages = {}
 
-	for (var n in font) {
-		if (font.hasOwnProperty(n)) {
-			textImages[n] = createSprite('char'+n,font[n], undefined, 1);
+	for (var n in font)
+    {
+		if (font.hasOwnProperty(n))
+        {
+			textImages[n] = createSprite('char'+n, font[n], undefined, 1);
 		}
 	}
 }

@@ -91,18 +91,3 @@ function logErrorNoLine(str, urgent)
 		errorCount++;
 	}
 }
-
-
-function logBetaMessage(str, urgent)
-{
-	if (compiling||urgent)
-	{
-		var errorString = '<span class="betaText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consoleError(errorString);
-			errorStrings.push(errorString);
-		}
-	}  
-}
