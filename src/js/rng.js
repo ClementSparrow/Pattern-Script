@@ -77,11 +77,12 @@ RC4.prototype.next = function() {
     return this.s[(this.s[this.i] + this.s[this.j]) % 256];
 };
 
-function print_call_stack() {
-  var e = new Error();
-  var stack = e.stack;
-  console.log( stack );
-}
+// function print_call_stack() {
+//   var e = new Error();
+//   var stack = e.stack;
+//   console.log( stack );
+// }
+
 /**
  * Create a new random number generator with optional seed. If the
  * provided seed is a function (i.e. Math.random) it will be used as
@@ -143,55 +144,55 @@ RNG.prototype.uniform = function() {
  * @param {number} m
  *
  */
-RNG.prototype.random = function(n, m) {
-    if (n == null) {
-        return this.uniform();
-    } else if (m == null) {
-        m = n;
-        n = 0;
-    }
-    return n + Math.floor(this.uniform() * (m - n));
-};
+// RNG.prototype.random = function(n, m) {
+//     if (n == null) {
+//         return this.uniform();
+//     } else if (m == null) {
+//         m = n;
+//         n = 0;
+//     }
+//     return n + Math.floor(this.uniform() * (m - n));
+// };
 
 /**
  * Generates numbers using this.uniform() with the Box-Muller transform.
  * @return {number} Normally-distributed random number of mean 0, variance 1.
  */
-RNG.prototype.normal = function() {
-    if (this._normal !== null) {
-        var n = this._normal;
-        this._normal = null;
-        return n;
-    } else {
-        var x = this.uniform() || Math.pow(2, -53); // can't be exactly 0
-        var y = this.uniform();
-        this._normal = Math.sqrt(-2 * Math.log(x)) * Math.sin(2 * Math.PI * y);
-        return Math.sqrt(-2 * Math.log(x)) * Math.cos(2 * Math.PI * y);
-    }
-};
+// RNG.prototype.normal = function() {
+//     if (this._normal !== null) {
+//         var n = this._normal;
+//         this._normal = null;
+//         return n;
+//     } else {
+//         var x = this.uniform() || Math.pow(2, -53); // can't be exactly 0
+//         var y = this.uniform();
+//         this._normal = Math.sqrt(-2 * Math.log(x)) * Math.sin(2 * Math.PI * y);
+//         return Math.sqrt(-2 * Math.log(x)) * Math.cos(2 * Math.PI * y);
+//     }
+// };
 
 /**
  * Generates numbers using this.uniform().
  * @return {number} Number from the exponential distribution, lambda = 1.
  */
-RNG.prototype.exponential = function() {
-    return -Math.log(this.uniform() || Math.pow(2, -53));
-};
+// RNG.prototype.exponential = function() {
+//     return -Math.log(this.uniform() || Math.pow(2, -53));
+// };
 
 /**
  * Generates numbers using this.uniform() and Knuth's method.
  * @param {number} [mean=1]
  * @return {number} Number from the Poisson distribution.
  */
-RNG.prototype.poisson = function(mean) {
-    var L = Math.exp(-(mean || 1));
-    var k = 0, p = 1;
-    do {
-        k++;
-        p *= this.uniform();
-    } while (p > L);
-    return k - 1;
-};
+// RNG.prototype.poisson = function(mean) {
+//     var L = Math.exp(-(mean || 1));
+//     var k = 0, p = 1;
+//     do {
+//         k++;
+//         p *= this.uniform();
+//     } while (p > L);
+//     return k - 1;
+// };
 
 /**
  * Generates numbers using this.uniform(), this.normal(),
@@ -199,24 +200,24 @@ RNG.prototype.poisson = function(mean) {
  * @param {number} a
  * @return {number} Number from the gamma distribution.
  */
-RNG.prototype.gamma = function(a) {
-    var d = (a < 1 ? 1 + a : a) - 1 / 3;
-    var c = 1 / Math.sqrt(9 * d);
-    do {
-        do {
-            var x = this.normal();
-            var v = Math.pow(c * x + 1, 3);
-        } while (v <= 0);
-        var u = this.uniform();
-        var x2 = Math.pow(x, 2);
-    } while (u >= 1 - 0.0331 * x2 * x2 &&
-             Math.log(u) >= 0.5 * x2 + d * (1 - v + Math.log(v)));
-    if (a < 1) {
-        return d * v * Math.exp(this.exponential() / -a);
-    } else {
-        return d * v;
-    }
-};
+// RNG.prototype.gamma = function(a) {
+//     var d = (a < 1 ? 1 + a : a) - 1 / 3;
+//     var c = 1 / Math.sqrt(9 * d);
+//     do {
+//         do {
+//             var x = this.normal();
+//             var v = Math.pow(c * x + 1, 3);
+//         } while (v <= 0);
+//         var u = this.uniform();
+//         var x2 = Math.pow(x, 2);
+//     } while (u >= 1 - 0.0331 * x2 * x2 &&
+//              Math.log(u) >= 0.5 * x2 + d * (1 - v + Math.log(v)));
+//     if (a < 1) {
+//         return d * v * Math.exp(this.exponential() / -a);
+//     } else {
+//         return d * v;
+//     }
+// };
 
 /**
  * Accepts a dice rolling notation string and returns a generator
@@ -225,17 +226,17 @@ RNG.prototype.gamma = function(a) {
  * @param {RNG} rng An optional RNG object.
  * @return {Function}
  */
-RNG.roller = function(expr, rng) {
-    var parts = expr.split(/(\d+)?d(\d+)([+-]\d+)?/).slice(1);
-    var dice = parseFloat(parts[0]) || 1;
-    var sides = parseFloat(parts[1]);
-    var mod = parseFloat(parts[2]) || 0;
-    rng = rng || new RNG();
-    return function() {
-        var total = dice + mod;
-        for (var i = 0; i < dice; i++) {
-            total += rng.random(sides);
-        }
-        return total;
-    };
-};
+// RNG.roller = function(expr, rng) {
+//     var parts = expr.split(/(\d+)?d(\d+)([+-]\d+)?/).slice(1);
+//     var dice = parseFloat(parts[0]) || 1;
+//     var sides = parseFloat(parts[1]);
+//     var mod = parseFloat(parts[2]) || 0;
+//     rng = rng || new RNG();
+//     return function() {
+//         var total = dice + mod;
+//         for (var i = 0; i < dice; i++) {
+//             total += rng.random(sides);
+//         }
+//         return total;
+//     };
+// };

@@ -39,34 +39,25 @@ Mobile.log = function (message) {
     h1.innerHTML = "" + Math.random().toString().substring(4, 1) + "-" + message;
 };
 
-Mobile.debugDot = function (event) {
-    var dot, body, style
-
-    style = 'border-radius: 50px;' +
-        'width: 5px;' +
-        'height: 5px;' +
-        'background: red;' +
-        'position: absolute;' +
-        'left: ' + event.touches[0].clientX + 'px;' +
-        'top: ' + event.touches[0].clientY + 'px;';
-    dot = document.createElement('div');
-    dot.setAttribute('style', style);
-    body = document.getElementsByTagName('body')[0];
-    body.appendChild(dot);
-};
+// Mobile.debugDot = function (event)
+// {
+// 	var dot = document.createElement('div');
+// 	dot.setAttribute('style', 'border-radius:50px;width:5px;height:5px;background:red;position:absolute;left:' + event.touches[0].clientX + 'px;top: ' + event.touches[0].clientY + 'px;')
+// 	document.getElementsByTagName('body')[0].appendChild(dot);
+// }
 
 (function (proto) {
     'use strict';
 
     // Minimum range to begin looking at the swipe direction, in pixels
-    var SWIPE_THRESHOLD = 10;
+    const SWIPE_THRESHOLD = 10;
     // Distance in pixels required to complete a swipe gesture.
-    var SWIPE_DISTANCE = 50;
+    const SWIPE_DISTANCE = 50;
     // Time in milliseconds to complete the gesture.
-    var SWIPE_TIMEOUT = 1000;
+    const SWIPE_TIMEOUT = 1000;
     // Time in milliseconds to repeat a motion if still holding down,
     // ... and not specified in state.metadata.key_repeat_interval.
-    var DEFAULT_REPEAT_INTERVAL = 150;
+    const DEFAULT_REPEAT_INTERVAL = 150;
 
     // Lookup table mapping action to keyCode.
     var CODE = {
@@ -80,7 +71,7 @@ Mobile.debugDot = function (event) {
         quit:    27 // escape
     }
 
-    var TAB_STRING = [
+    const TAB_STRING = [
         '<div class="tab">',
         '  <div class="tab-affordance"></div>',
         '  <div class="tab-icon">',
