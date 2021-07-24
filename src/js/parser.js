@@ -543,8 +543,8 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 					const shift_direction = (absolute_shift_direction < 0) ? absolutedirs.indexOf(relativeDict[replaced_dir][relativeDirs.indexOf(parts[1])]) : absolute_shift_direction
 					f = ([
 							(m => [ ...Array.from(m.slice(1)), m[0] ]), // up
-							(m => [ m[m.length-1], ...Array.from(m.slice(0,-1)) ]), // down
 							(m => Array.from(m, l => l[l.length-1]+l.substr(0,l.length-1)) ), // right
+							(m => [ m[m.length-1], ...Array.from(m.slice(0,-1)) ]), // down
 							(m => Array.from(m, l => l.substr(1)+l[0]) ) // left
 						])[shift_direction]
 				}
