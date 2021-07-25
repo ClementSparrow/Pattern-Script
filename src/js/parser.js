@@ -382,7 +382,7 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 		[sprite_width, sprite_height] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
 		if ( isNaN(sprite_width) || isNaN(sprite_height) )
 		{
-			this.logError('Wrong paramater for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
+			this.logError('Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
 			[sprite_width, sprite_height] = [5, 5]
 		}
 	}
@@ -1257,7 +1257,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'DIRECTION';
 	}
-	if ( (this.identifiers.checkKnownTagClass(m) >= 0) || (this.identifiers.checkKnownIdentifier(m, true, this) >= 0) )
+	if ( this.identifiers.checkKnownTagClass(m) || (this.identifiers.checkKnownIdentifier(m, true, this) >= 0) )
 	{
 		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'NAME';
@@ -1290,8 +1290,8 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 {
 	if (is_start_of_line)
 	{
-		var tokenized = reg_notcommentstart.exec(stream.string);
-		var splitted = tokenized[0].split(/[\p{Separator}\s]+/u);
+		const tokenized = reg_notcommentstart.exec(stream.string);
+		const splitted = tokenized[0].split(/[\p{Separator}\s]+/u);
 		var filtered = splitted.filter( v => (v !== '') );
 		filtered.push(this.lineNumber);
 		
