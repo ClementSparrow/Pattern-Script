@@ -1,4 +1,5 @@
-function createSprite(name,spritegrid, colors, padding) {
+function createSprite(name, spritegrid, colors, padding)
+{
 	if (colors === undefined) {
 		colors = [state.bgcolor, state.fgcolor];
 	}
@@ -372,7 +373,7 @@ function drawEditorIcons(mini, minj)
     // show tooltip
     if (tooltip_string.length > 0)
     {
-        ctx.fillStyle = 'lightgray'
+        ctx.fillStyle = state.fgcolor
         ctx.fillText(tooltip_string, xoffset, yoffset-0.4*cellheight)
     }
 
