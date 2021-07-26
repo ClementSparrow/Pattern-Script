@@ -1,3 +1,20 @@
+var canvasdict = {}
+
+function makeSpriteCanvas(name)
+{
+	var canvas;
+	if (name in canvasdict)
+	{
+		canvas = canvasdict[name];
+	} else {
+		canvas = document.createElement('canvas');
+		canvasdict[name] = canvas;
+	}
+	canvas.width = cellwidth;
+	canvas.height = cellheight;
+	return canvas;
+}
+
 function createSprite(name, spritegrid, colors, padding)
 {
 	if (colors === undefined) {
@@ -46,15 +63,26 @@ function regenText(spritecanvas, spritectx)
 	}
 }
 
-var editor_s_grille=[[0,1,1,1,0],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[0,1,1,1,0]];
+const editor_s_grille = [
+    [0,1,1,1,0],
+    [1,0,0,0,0],
+    [0,1,1,1,0],
+    [0,0,0,0,1],
+    [0,1,1,1,0]
+];
 
 var spriteimages;
-function regenSpriteImages() {
+
+function regenSpriteImages()
+{
 	if (textMode) {
 		regenText();
 		return;
-	} else if (levelEditorOpened) {
-        textImages['editor_s'] = createSprite('chars',editor_s_grille,undefined);
+	}
+	// else if (levelEditorOpened)
+	if (textImages['editor_s'] === undefined)
+	{
+        textImages['editor_s'] = createSprite('chars', editor_s_grille, undefined);
     }
     
     if (state.levels.length===0) {
@@ -83,19 +111,6 @@ var glyphMouseOver;
 var glyphSelectedIndex=0;
 var editorRowCount=1;
 
-var canvasdict={};
-function makeSpriteCanvas(name) {
-    var canvas;
-    if (name in canvasdict) {
-        canvas = canvasdict[name];
-    } else {
-        canvas = document.createElement('canvas');
-        canvasdict[name]=canvas;
-    }
-	canvas.width = cellwidth;
-	canvas.height = cellheight;
-	return canvas;
-}
 
 
 function generateGlyphImages()
@@ -324,7 +339,7 @@ function drawEditorIcons(mini, minj)
 							);*/
 	var glyphsToDisplay = glyphEndIndex-glyphStartIndex;
 
-	ctx.drawImage(glyphPrintButton,xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));
+	ctx.drawImage(glyphPrintButton, xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));
 	if (mouseCoordY===(-1-editorRowCount)&&mouseCoordX===-1) {
 			ctx.drawImage(glyphMouseOver,xoffset-cellwidth,yoffset-cellheight*(1+editorRowCount));								
 	}
