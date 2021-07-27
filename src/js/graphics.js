@@ -81,7 +81,7 @@ function regenSpriteImages()
 		return;
 	}
 	// else if (levelEditorOpened)
-	if (textImages['editor_s'] === undefined)
+	// if (textImages['editor_s'] === undefined)
 	{
         textImages['editor_s'] = createSprite('chars', editor_s_grille, undefined);
     }
