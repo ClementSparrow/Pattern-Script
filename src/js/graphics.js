@@ -26,21 +26,21 @@ function createSprite(name, spritegrid, colors, padding)
 
     spritectx.clearRect(0, 0, cellwidth, cellheight);
 
-	var w = spritegrid[0].length;
-	var h = spritegrid.length;
-	var cw = ~~(cellwidth / (w + (padding|0)));
-    var ch = ~~(cellheight / (h + (padding|0)));
-    var pixh=ch;
+	const w = spritegrid[0].length;
+	const h = spritegrid.length;
+	const cw = ~~(cellwidth / (w + (padding|0)));
+    const ch = ~~(cellheight / (h + (padding|0)));
+    var pixh = ch;
     if ("scanline" in state.metadata) {
-        pixh=Math.ceil(ch/2);
+        pixh = Math.ceil(ch/2);
     }
     spritectx.fillStyle = state.fgcolor;
     for (var j = 0; j < h; j++) {
         for (var k = 0; k < w; k++) {
             var val = spritegrid[j][k];
             if (val >= 0) {
-                var cy = (j * ch)|0;
-                var cx = (k * cw)|0;
+                const cy = (j * ch)|0;
+                const cx = (k * cw)|0;
                 spritectx.fillStyle = colors[val];
                 spritectx.fillRect(cx, cy, cw, pixh);
             }
@@ -73,6 +73,7 @@ const editor_s_grille = [
 
 var spriteimages;
 
+// called only by redraw() (if spriteimages is undefined) and canvasResize() (if forceRegenImages is true or one of the layout parameters has changed)
 function regenSpriteImages()
 {
 	if (textMode) {
@@ -85,17 +86,18 @@ function regenSpriteImages()
         textImages['editor_s'] = createSprite('chars', editor_s_grille, undefined);
     }
     
-    if (state.levels.length===0) {
+    if (state.levels.length === 0)
         return;
-    }
+
     spriteimages = [];
 
-    for (var i = 0; i < sprites.length; i++) {
-        if (sprites[i] == undefined) {
-            continue;
-        }
-        spriteimages[i] = createSprite(i.toString(),sprites[i].dat, sprites[i].colors);
-    }
+	for (var i = 0; i < sprites.length; i++)
+	{
+        if (sprites[i] !== undefined)
+		{
+			spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors);
+		}
+	}
 
     if (canOpenEditor) {
     	generateGlyphImages();
@@ -424,9 +426,10 @@ function canvasResize()
     canvas.width = canvas.parentNode.clientWidth;
     canvas.height = canvas.parentNode.clientHeight;
 
-    screenwidth=level.width;
-    screenheight=level.height;
-    if (state!==undefined){
+    screenwidth = level.width;
+    screenheight = level.height;
+    if (state!==undefined)
+    {
         flickscreen=state.metadata.flickscreen!==undefined;
         zoomscreen=state.metadata.zoomscreen!==undefined;
 	    if (levelEditorOpened) {
@@ -488,8 +491,9 @@ function canvasResize()
     xoffset = xoffset|0;
     yoffset = yoffset|0;
 
-    if (oldcellwidth!=cellwidth||oldcellheight!=cellheight||oldtextmode!=textMode||oldfgcolor!=state.fgcolor||forceRegenImages){
-    	forceRegenImages=false;
+    if (oldcellwidth!=cellwidth || oldcellheight!=cellheight || oldtextmode!=textMode || oldfgcolor!=state.fgcolor || forceRegenImages)
+    {
+    	forceRegenImages = false;
     	regenSpriteImages();
     }
 
