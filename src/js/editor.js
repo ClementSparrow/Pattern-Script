@@ -169,6 +169,7 @@ function tryLoadGist(id)
 
 	consolePrint("Contacting GitHub", true);
 	var githubHTTPClient = new XMLHttpRequest();
+	githubHTTPClient.open('GET', githubURL);
   if (window.localStorage!==undefined && localStorage['oauth_access_token']!==undefined)
   {
     var oauthAccessToken = window.localStorage.getItem("oauth_access_token");
@@ -176,7 +177,6 @@ function tryLoadGist(id)
       githubHTTPClient.setRequestHeader("Authorization","token "+oauthAccessToken);
     }
   }
-	githubHTTPClient.open('GET', githubURL);
 	githubHTTPClient.onreadystatechange = function() {
 	
 		if(githubHTTPClient.readyState != 4)
