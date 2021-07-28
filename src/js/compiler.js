@@ -31,7 +31,7 @@ function generateSpriteMatrix(dat)
 			var row = [];
 			for (var j = 0; j < dat.length; j++)
 			{
-				var ch = line.charAt(j);
+				const ch = line.charAt(j);
 				row.push( (ch == '.') ? -1 : ch );
 			}
 			return row;

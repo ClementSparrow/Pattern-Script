@@ -527,6 +527,11 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 	{
 		var object = this.identifiers.objects[object_index]
 		var sprite = Array.from( this.identifiers.objects[source_object_index].spritematrix )
+		if (sprite.length === 0)
+		{
+			object.spritematrix = sprite
+			continue
+		}
 		for (const transform of this.sprite_transforms)
 		{
 			var f = null;
@@ -1257,6 +1262,8 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		stream.match(/[\p{Separator}\s]*/u, true);
 		return 'DIRECTION';
 	}
+	// TODO: checkKnownIdentifier cannot check identifiers with mappings used in tags or tag rule parameters,
+	// so we need to list the rule parameters and perform some special checking here
 	if ( this.identifiers.checkKnownTagClass(m) || (this.identifiers.checkKnownIdentifier(m, true, this) >= 0) )
 	{
 		stream.match(/[\p{Separator}\s]*/u, true);
