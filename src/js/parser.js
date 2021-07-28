@@ -931,7 +931,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 			this.objects_section = 0;
 			if (this.tokenIndex < 3)
 			{
-				this.logError('You started a mapping definition but did not end it. There should be STARTSETNAME => MAPPINGNAME on the first line.');
+				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAME => MAPPING_NAME on the first line.');
 			}
 		}
 		else
@@ -939,7 +939,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 			this.objects_section = 1;
 			if (this.tokenIndex < 2)
 			{
-				this.logError('You started a mapping definition but did not end it. There should be STARTSETNAMES -> MAPPEDVALUES on the second line.');
+				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAMES -> MAPPED_VALUES on the second line.');
 			}
 			// else
 			// TODO: check that we can end the definition here, i.e. that all the values have been defined
@@ -1014,6 +1014,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 			}
 			case 3: // error: extra stuff
 			{
+				stream.match(reg_notcommentstart, true)
 				this.logWarning('The first line of a mapping definition should be STARTSETNAME => MAPPINGNAME, but you provided extra stuff after that. I will ignore it.');
 				return 'ERROR';
 			}
@@ -1096,7 +1097,8 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 			}
 			case 3: // error: extra stuff
 			{
-				this.logWarning('The second line of a mapping definition should be STARTSETVAUES -> ENDSETVALUES, but you provided extra stuff after that. I will ignore it.');
+				stream.match(reg_notcommentstart, true)
+				this.logWarning('The second line of a mapping definition should be START_SET_VALUES -> END_SET_VALUES, but you provided extra stuff after that. I will ignore it.');
 				return 'ERROR';
 			}
 		}
