@@ -22,14 +22,6 @@ OBJECTS
 Background
 Black
 
-Wall:noHole
-Brown DarkBrown
-00010
-11111
-01000
-11111
-00010
-
 Floor
 #888855 #885588
 00100
@@ -37,6 +29,15 @@ Floor
 11011
 01110
 00100
+
+
+Wall:noHole
+Brown DarkBrown
+00010
+11111
+01000
+11111
+00010
 
 
 Wall:Hole

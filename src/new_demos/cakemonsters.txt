@@ -215,7 +215,7 @@ Color [ > Monster:Color | Cake:Color ] -> [ | Monster:Color ] sfx2
 
 (stop the monster if it hits a cake of a different color)
 (note: this is necessary to make sure the monster is marked as stationary)
-Color [ > Monster:Color | Cake no Cake:Color ] -> [ Monster:Color | Cake no Cake:Color ]
+Color [ > Monster:Color | Cake ] -> [ Monster:Color | Cake ]
 
 (--------------------------)
 (---MONSTER COLOR MIXING---)
