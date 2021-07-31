@@ -68,6 +68,8 @@ function buildStandalonePack(sourceCode, htmlString, standalone_JS_String)
 	sourceCode = sourceCode.replace(/\$/g, '$$$$');
 	htmlString = htmlString.replace(/__GAMEDAT__/g, sourceCode);
 
+	standalone_JS_String = standalone_JS_String.replace(/\/\/ <-- FONT START -->(?:.|\s)*?\/\/ <-- FONT END -->/m, 'font.src = "'+font.asDataURL() + '"')
+
 	htmlString = htmlString.split('__JAVASCRIPT_GOES_HERE__', 2).join(standalone_JS_String) // using replace would cause a bug, as standalone_JS_String contains $ characters
 
 	downloadBlob(new Blob([htmlString], {type: "text/plain;charset=utf-8"}), 'index.html')

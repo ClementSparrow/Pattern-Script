@@ -13,13 +13,13 @@
 function isColor(str)
 {
 	str = str.trim();
-	return ( (str in colorPalettes.arnecolors) || (/^#([0-9A-F]{3}){1,2}$/i.test(str)) || (str === "transparent") );
+	return ( (str in colorPalettes.arnecolors) || (/^#([0-9A-F]{3,8})$/i.test(str) && ([4,7,9]).includes(str.length) ) || (str === "transparent") );
 }
 
 function colorToHex(palette, str)
 {
 	str = str.trim();
-	return (str in palette) ? palette[str] : str;
+	return (str in palette) ? palette[str]+'FF' : str;
 }
 
 
@@ -124,7 +124,7 @@ function generateExtraMembers(state)
 				o.colors[i] = c;
 			} else {
 				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', state.identifiers.lineNumbers[o.identifier_index] + 1);
-				o.colors[i] = '#ff00ff'; // magenta error color
+				o.colors[i] = '#ff00ffff'; // magenta error color
 			}
 		}
 	}
@@ -137,7 +137,7 @@ function generateExtraMembers(state)
 		{
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
 			logError('color not specified for object "' + o.name +'".', state.identifiers.lineNumbers[o.identifier_index]);
-			o.colors=["#ff00ff"];
+			o.colors=["#ff00ffff"];
 		}
 		if (o.spritematrix.length === 0)
 		{
@@ -954,21 +954,21 @@ function formatHomePage(state)
 	if ('background_color' in state.metadata) {
 		state.bgcolor=colorToHex(colorPalette,state.metadata.background_color);
 	} else {
-		state.bgcolor="#000000";
+		state.bgcolor="#000000FF";
 	}
 	if ('text_color' in state.metadata) {
 		state.fgcolor=colorToHex(colorPalette,state.metadata.text_color);
 	} else {
-		state.fgcolor="#FFFFFF";
+		state.fgcolor="#FFFFFFFF";
 	}
 	
 	if (isColor(state.fgcolor)===false ){
 		logError("text_color in incorrect format - found "+state.fgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to white.")
-		state.fgcolor="#FFFFFF";
+		state.fgcolor="#FFFFFFFF";
 	}
 	if (isColor(state.bgcolor)===false ){
 		logError("background_color in incorrect format - found "+state.bgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to black.")
-		state.bgcolor="#000000";
+		state.bgcolor="#000000FF";
 	}
 
 	if (canSetHTMLColors) {

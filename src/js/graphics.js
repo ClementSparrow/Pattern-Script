@@ -50,19 +50,6 @@ function createSprite(name, spritegrid, colors, padding)
     return sprite;
 }
 
-function regenText(spritecanvas, spritectx)
-{
-	textImages = {}
-
-	for (var n in font)
-    {
-		if (font.hasOwnProperty(n))
-        {
-			textImages[n] = createSprite('char'+n, font[n], undefined, 1);
-		}
-	}
-}
-
 const editor_s_grille = [
     [0,1,1,1,0],
     [1,0,0,0,0],
@@ -76,15 +63,10 @@ var spriteimages;
 // called only by redraw() (if spriteimages is undefined) and canvasResize() (if forceRegenImages is true or one of the layout parameters has changed)
 function regenSpriteImages()
 {
-	if (textMode) {
-		regenText();
+	if (textMode)
 		return;
-	}
-	// else if (levelEditorOpened)
-	// if (textImages['editor_s'] === undefined)
-	{
-        textImages['editor_s'] = createSprite('chars', editor_s_grille, undefined);
-    }
+
+    editor_s_icon = createSprite('chars', editor_s_grille, undefined);
     
     if (state.levels.length === 0)
         return;
@@ -156,7 +138,7 @@ function generateGlyphImages()
 	}
 
 	{
-		glyphPrintButton = textImages['editor_s'];
+		glyphPrintButton = editor_s_icon
 	}
 	{
 		//make highlight thingy
@@ -232,15 +214,16 @@ function redraw()
         ctx.fillStyle = state.bgcolor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        for (var i = 0; i < titleWidth; i++) {
-            for (var j = 0; j < titleHeight; j++) {
-                const ch = titleImage[j].charAt(i);
-                if (ch in textImages) {
-                    const sprite = textImages[ch];
-                    ctx.drawImage(sprite, xoffset + i * cellwidth, yoffset + j * cellheight);
-                }
-            }
-        }
+		const f = font.colored_font(state.fgcolor)
+		if (f === null)
+			return;
+		const char_width  = cellwidth  * font_width /(font_width +1)
+		const char_height = cellheight * font_height/(font_height+1)
+		for (var j = 0; j < titleHeight; j++) {
+			for (var i = 0; i < titleWidth; i++) {
+				draw_char(ctx, f, titleImage[j].charAt(i), xoffset + i*cellwidth, yoffset + j*cellheight, char_width, char_height)
+			}
+		}
         return;
     }
 
@@ -458,10 +441,11 @@ function canvasResize()
     var h = sprite_height //5;//sprites[1].dat[0].length;
 
 
-    if (textMode) {
-        w=font['X'][0].length + 1;
-        h=font['X'].length + 1;
-    }
+	if (textMode)
+	{
+		w = font_width+1
+		h = font_height+1
+	}
 
 
     cellwidth  = w * Math.max( ~~(cellwidth / w),1);
