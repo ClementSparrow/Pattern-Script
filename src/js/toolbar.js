@@ -189,31 +189,20 @@ function levelEditorClick_Fn()
 		levelEditorOpened = true;
 	} else {
 		levelEditorOpened = !levelEditorOpened;
-    }
+	}
+	forceRegenImages = true
 	canvasResize();
-    lastDownTarget=canvas;	
+	lastDownTarget = canvas;	
 }
 
-// const HOSTPAGEURL = "http://www.puzzlescript.net"
-// const PSFORKNAME = "PuzzleScript"
 const HOSTPAGEURL = "https://clementsparrow.github.io/Pattern-Script/src"
 const PSFORKNAME = "Pattern:Script"
 
 /* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,
    which is to create a personal identification token. */
-// OAUTH_CLIENT_ID = "211570277eb588cddf44";
 function getAuthURL()
 {
 	return './auth_pat.html';
-	// const randomState = window.btoa(Array.prototype.map.call(
-	// 	window.crypto.getRandomValues(new Uint8Array(24)),
-	// 	function(x) { return String.fromCharCode(x); }).join(""));
-
-	// return "https://github.com/login/oauth/authorize"
-	// 	+ "?client_id=" + OAUTH_CLIENT_ID
-	// 	+ "&scope=gist"
-	// 	+ "&state=" + randomState
-	// 	+ "&allow_signup=true";
 }
 
 function printUnauthorized()

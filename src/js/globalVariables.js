@@ -52,7 +52,6 @@ var restarting=false;
 
 var messageselected=false;
 
-// var textImages={};
 var initLevel = {
     width: 5,
     height: 5,
