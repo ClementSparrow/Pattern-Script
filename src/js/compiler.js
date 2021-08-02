@@ -697,8 +697,9 @@ function twiddleMetaData(state)
 		const coords = newmetadata.zoomscreen.split('x');
 		newmetadata.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])];
 	}
+	[ sprite_width, sprite_height ] = newmetadata['sprite_size']
 
-	state.metadata = newmetadata;	
+	state.metadata = newmetadata
 }
 
 

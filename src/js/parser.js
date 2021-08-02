@@ -379,12 +379,21 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 	const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
 	if (sprite_size_key_index >= 0)
 	{
-		[sprite_width, sprite_height] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
-		if ( isNaN(sprite_width) || isNaN(sprite_height) )
+		const [sprite_w, sprite_h] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
+		if ( isNaN(sprite_w) || isNaN(sprite_h) )
 		{
 			this.logError('Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
-			[sprite_width, sprite_height] = [5, 5]
+			this.metadata_values[sprite_size_key_index] = [5, 5]
 		}
+		else
+		{
+			this.metadata_values[sprite_size_key_index] = [sprite_w, sprite_h]
+		}
+	}
+	else
+	{
+		this.metadata_keys.push('sprite_size')
+		this.metadata_values.push( [5, 5] )
 	}
 }
 
@@ -498,7 +507,8 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 		stream.match(reg_notcommentstart, true);
 		if (stream.pos>0)
 		{
-			this.logWarning('Unknown junk in object section (possibly: sprites have to be '+sprite_width+' pixels wide and '+sprite_height+' pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).');
+			const [sprite_w, sprite_h] = this.metadata_values[this.metadata_keys.indexOf('sprite_size')]
+			this.logWarning('Unknown junk in object section (possibly: sprites have to be '+sprite_w+' pixels wide and '+sprite_h+' pixels high exactly. Or maybe: the main names for objects have to be words containing only the letters a-z0.9 - if you want to call them something like ",", do it in the legend section).');
 		}
 		return 'ERROR';
 	}
@@ -675,13 +685,14 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			}
 
 			spritematrix[spritematrix.length - 1] += ch;
-			if (spritematrix[spritematrix.length-1].length>sprite_width)
+			const [sprite_w, sprite_h] = this.metadata_values[this.metadata_keys.indexOf('sprite_size')]
+			if (spritematrix[spritematrix.length-1].length > sprite_w)
 			{
-				this.logError('Sprites must be ' + sprite_width + ' wide and ' + sprite_height + ' high.');
+				this.logError('Sprites must be ' + sprite_w + ' wide and ' + sprite_h + ' high.');
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
-			if (spritematrix.length === sprite_height && spritematrix[spritematrix.length - 1].length == sprite_width) // last char of the sprite
+			if (spritematrix.length === sprite_h && spritematrix[spritematrix.length - 1].length == sprite_w) // last char of the sprite
 			{
 				this.objects_section = 0;
 				for (const object_index of this.identifiers.object_set[this.current_identifier_index])
