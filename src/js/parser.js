@@ -1434,7 +1434,10 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 			if (this.section === 'levels')
 			{
 				//populate character abbreviations
-				this.abbrevNames = this.identifiers.names.filter( (identifier, i) => ( (identifier.length == 1) && (this.identifiers.deftype[i] != identifier_type_property) ) );
+				const abbrevTypes = [ identifier_type_object, identifier_type_synonym, identifier_type_aggregate ]
+				this.abbrevNames = this.identifiers.names.filter(
+					(identifier, i) => ( (identifier.length == 1) && abbrevTypes.includes(this.identifiers.deftype[i]) )
+				)
 			}
 			return 'HEADER';
 		}
