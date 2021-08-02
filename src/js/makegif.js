@@ -4,10 +4,9 @@ function makeGIF() {
 	var targetlevel=curlevel;
 	canvasResize()
 	var gifcanvas = document.createElement('canvas');
-	gifcanvas.width=screenwidth*cellwidth;
-	gifcanvas.height=screenheight*cellheight;
-	gifcanvas.style.width=screenwidth*cellwidth;
-	gifcanvas.style.height=screenheight*cellheight;
+	const [virtual_screen_w, virtual_screen_h] = screen_layout.content.get_virtual_screen_size.call(screen_layout.content)
+	gifcanvas.width  = gifcanvas.style.width  = virtual_screen_w * screen_layout.magnification
+	gifcanvas.height = gifcanvas.style.height = virtual_screen_h * screen_layout.magnification
 
 	var gifctx = gifcanvas.getContext('2d');
 
@@ -27,7 +26,8 @@ function makeGIF() {
 	compile(["loadLevel",curlevel],levelString,randomseed);
 	canvasResize();
 	redraw();
-	gifctx.drawImage(canvas,-xoffset,-yoffset);
+	gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
+	// gifctx.drawImage(canvas, 0, 0);
   	encoder.addFrame(gifctx);
 	var autotimer=0;
 
@@ -45,7 +45,8 @@ function makeGIF() {
 			processInput(val);
 		}
 		redraw();
-		gifctx.drawImage(canvas,-xoffset,-yoffset);
+		gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
+		// gifctx.drawImage(canvas, 0, 0);
 		encoder.addFrame(gifctx);
 		encoder.setDelay(realtimeframe?autotickinterval:repeatinterval);
 		autotimer+=repeatinterval;
@@ -54,7 +55,8 @@ function makeGIF() {
 			processInput(-1);		
 			redraw();
 			encoder.setDelay(againinterval);
-			gifctx.drawImage(canvas,-xoffset,-yoffset);
+			gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
+			// gifctx.drawImage(canvas, 0, 0);
 	  		encoder.addFrame(gifctx);	
 		}
 	}

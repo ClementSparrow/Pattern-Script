@@ -1072,7 +1072,7 @@ function loadFile(str)
 	formatHomePage(state);
 
 	delete state.commentLevel;
-	delete state.abbrevNames;
+	// delete state.abbrevNames; // we keep them for the level editor only
 	delete state.current_identifier_index;
 	delete state.objects_section;
 	delete state.objects_spritematrix;

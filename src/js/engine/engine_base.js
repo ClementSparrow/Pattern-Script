@@ -550,11 +550,6 @@ function restoreLevel(lev) {
 	level.commandQueueSourceRules=[];
 }
 
-var zoomscreen=false;
-var flickscreen=false;
-var screenwidth=0;
-var screenheight=0;
-
 function DoRestart(force) {
 	if (restarting===true){
 		return;
@@ -597,10 +592,10 @@ function backupDiffers(){
 	return false;
 }
 
-function DoUndo(force,ignoreDuplicates) {
-	if ((!levelEditorOpened)&&('noundo' in state.metadata && force!==true)) {
+function DoUndo(force, ignoreDuplicates)
+{
+	if ( (screen_layout.content !== levelEditor_Screen) && ( ('noundo' in state.metadata) && (force !== true) ) )
 		return;
-	}
 	if (verbose_logging) {
 		consolePrint("--- undoing ---",true);
 	}
@@ -621,12 +616,15 @@ function DoUndo(force,ignoreDuplicates) {
 	}
 }
 
-function getPlayerPositions() {
+function getPlayerPositions()
+{
 	var result=[];
 	var playerMask = state.playerMask;
-	for (i=0;i<level.n_tiles;i++) {
+	for (i=0; i<level.n_tiles; i++)
+	{
 		level.getCellInto(i,_o11);
-		if (playerMask.anyBitsInCommon(_o11)) {
+		if (playerMask.anyBitsInCommon(_o11))
+		{
 			result.push(i);
 		}
 	}
@@ -1579,8 +1577,9 @@ function processInput(dir, dontDoWin, dontModify)
 
 function checkWin(dontDoWin)
 {
-	if (levelEditorOpened) {
-		dontDoWin=true;
+	if (screen_layout.content === levelEditor_Screen)
+	{
+		dontDoWin = true;
 	}
 
 	if (level.commandQueue.indexOf('win')>=0)

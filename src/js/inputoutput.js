@@ -5,6 +5,13 @@ var lastinput=-100;
 
 var dragging=false;
 var rightdragging=false;
+
+
+// FUNCTIONS FOR THE LEVEL EDITOR (AND CONSOLE)
+// ============================================
+
+// TODO: all these functions should be moved into a new file so that they are not included in exported games
+
 var columnAdded=false;
 
 function selectText(containerid,e) {
@@ -28,13 +35,12 @@ function selectText(containerid,e) {
 	}
 }
 
-function recalcLevelBounds(){
-}
+// function recalcLevelBounds() { }
 
-function arrCopy(from, fromoffset, to, tooffset, len) {
-	while (len--)
-		to[tooffset++] = from[fromoffset]++;
-}
+// function arrCopy(from, fromoffset, to, tooffset, len) {
+// 	while (len--)
+// 		to[tooffset++] = from[fromoffset]++;
+// }
 
 function adjustLevel(level, widthdelta, heightdelta) {
 	backups.push(backupLevel());
@@ -193,142 +199,247 @@ function printLevel()
 	consolePrint(output,true);
 }
 
-function levelEditorClick(event, click)
+function relMouseCoords(event, canvas)
 {
-	if (mouseCoordY <= -2)
-	{
-		var ypos = editorRowCount - (-mouseCoordY-2) - 1;
-		var newindex = mouseCoordX + (screenwidth-1)*ypos;
-		if (mouseCoordX === -1) {
-			printLevel();
-		} else if (mouseCoordX >=0 && newindex < glyphImages.length) {
-			glyphSelectedIndex = newindex;
-			redraw();
-		}
+	const origin = (event.touches == null) ? event : event.touches[0]
+	var result = { x: origin.pageX, y: origin.pageY }
 
+    var currentElement = canvas
+
+    do {
+        result.x -= currentElement.offsetLeft - currentElement.scrollLeft
+        result.y -= currentElement.offsetTop  - currentElement.scrollTop
+    }
+    while(currentElement = currentElement.offsetParent)
+
+    return result;
+}
+
+function setMouseCoord(e)
+{
+    const coords = relMouseCoords(e, canvas);
+    const virtualscreenCoordX = Math.floor( (coords.x - screen_layout.margins[0]) / screen_layout.magnification )
+	const virtualscreenCoordY = Math.floor( (coords.y - screen_layout.margins[1]) / screen_layout.magnification )
+	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width  );
+	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height );
+	const editor_layout = screen_layout.content
+	editor_layout.hovered_glyph_index  = null
+	editor_layout.hovered_level_cell   = null
+	editor_layout.hovered_level_resize = null
+	if (gridCoordY < editor_layout.editorRowCount)
+	{
+		const [w, h] = editor_layout.get_nb_tiles()
+		if ( (gridCoordX == 0) && (gridCoordY == 0) )
+		{
+			editor_layout.hovered_glyph_index = -1
+		}
+		if ( (gridCoordX > 0) && (gridCoordY >= 0) && (gridCoordX < w-1))
+		{
+			const index = gridCoordY * (w-1) + (gridCoordX-1)
+			if (index < state.abbrevNames.length)
+			{
+				editor_layout.hovered_glyph_index = index
+			}
+		}
+		return;
 	}
-	else if (mouseCoordX > -1 && mouseCoordY > -1 && mouseCoordX < screenwidth-2 && mouseCoordY < screenheight-2-editorRowCount )
+
+	const [w, h] = editor_layout.content.get_nb_tiles()
+	const [x, y] = [ gridCoordX-1, gridCoordY - editor_layout.editorRowCount - 1 ]
+	if ( (x < -1) || (x > w) || (y > h) )
+		return;
+	if ( (x == -1) || (y == -1) || (x == w) || (y == h) )
+	{
+		editor_layout.hovered_level_resize = [ gridCoordX, gridCoordY, x, y ]
+	}
+	else if ( (x >= 0) && (y >= 0) && (x < w) && (y < h) )
+	{
+		editor_layout.hovered_level_cell = [ gridCoordX, gridCoordY, x, y ]
+	}
+}
+
+
+var anyEditsSinceMouseDown = false;
+
+function levelEditorClick(event, click) // click is false if we're in a drag gesture
+{
+	const editor_layout = screen_layout.content
+
+	if ( click && (editor_layout.hovered_glyph_index !== null) )
+	{
+		if (editor_layout.hovered_glyph_index == -1)
+		{
+			printLevel()
+		}
+		else
+		{
+			glyphSelectedIndex = editor_layout.hovered_glyph_index
+			redraw()
+		}
+		return;
+	}
+
+	if (editor_layout.hovered_level_cell !== null)
 	{
 		var glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[glyphSelectedIndex] ] );
 
 		var backgroundMask = state.layerMasks[state.backgroundlayer];
-		if (glyphmask.bitsClearInArray(backgroundMask.data)) {
-			// If we don't already have a background layer, mix in
-			// the default one.
+		if (glyphmask.bitsClearInArray(backgroundMask.data))
+		{
+			// If we don't already have a background layer, mix in  the default one.
 			glyphmask.ibitset(state.backgroundid);
 		}
 
-		var coordIndex = mouseCoordY + mouseCoordX*level.height;
-		var getcell = level.getCell(coordIndex);
-		if (getcell.equals(glyphmask)) {
+		const coordIndex = editor_layout.hovered_level_cell[3] + editor_layout.hovered_level_cell[2]*level.height;
+		const getcell = level.getCell(coordIndex);
+		if (getcell.equals(glyphmask))
 			return;
-		} else {
-			if (anyEditsSinceMouseDown===false) {
-				anyEditsSinceMouseDown=true;				
-        		backups.push(backupLevel());
-			}
-			level.setCell(coordIndex, glyphmask);
-			redraw();
+		if (anyEditsSinceMouseDown === false)
+		{
+			anyEditsSinceMouseDown = true;				
+    		backups.push(backupLevel());
 		}
-	}
-	else if (click) {
-		if (mouseCoordX===-1) {
-			//add a left row to the map
-			addLeftColumn();			
-			canvasResize();
-		} else if (mouseCoordX===screenwidth-2) {
-			addRightColumn();
-			canvasResize();
-		} 
-		if (mouseCoordY===-1) {
-			addTopRow();
-			canvasResize();
-		} else if (mouseCoordY===screenheight-2-editorRowCount) {
-			addBottomRow();
-			canvasResize();
-		}
-	}
-}
-
-function levelEditorRightClick(event,click) {
-	if (mouseCoordY===-2) {
-		if (mouseCoordX<=glyphImages.length) {
-			glyphSelectedIndex=mouseCoordX;
-			redraw();
-		}
-	} else if (mouseCoordX>-1&&mouseCoordY>-1&&mouseCoordX<screenwidth-2&&mouseCoordY<screenheight-2-editorRowCount	) {
-		var coordIndex = mouseCoordY + mouseCoordX*level.height;
-		var glyphmask = new BitVec(STRIDE_OBJ);
-		glyphmask.ibitset(state.backgroundid);
 		level.setCell(coordIndex, glyphmask);
 		redraw();
-	}
-	else if (click) {
-		if (mouseCoordX===-1) {
-			//add a left row to the map
-			removeLeftColumn();			
-			canvasResize();
-		} else if (mouseCoordX===screenwidth-2) {
-			removeRightColumn();
-			canvasResize();
-		} 
-		if (mouseCoordY===-1) {
-			removeTopRow();
-			canvasResize();
-		} else if (mouseCoordY===screenheight-2-editorRowCount) {
-			removeBottomRow();
-			canvasResize();
-		}
-	}
-}
-
-var anyEditsSinceMouseDown = false;
-
-function onMouseDown(event) {
-
-	if (event.handled){
 		return;
 	}
+
+	if ( ( ! click ) || (editor_layout.hovered_level_resize === null) )
+		return;
+
+	const [w, h] = editor_layout.content.get_nb_tiles()
+
+	if (editor_layout.hovered_level_resize[2] == -1)
+	{
+		addLeftColumn();			
+	}
+	else if (editor_layout.hovered_level_resize[2] == w)
+	{
+		addRightColumn();
+	}
+
+	if (editor_layout.hovered_level_resize[3] == -1)
+	{
+		addTopRow();
+	}
+	else if (editor_layout.hovered_level_resize[3] == h)
+	{
+		addBottomRow();
+	}
+
+	canvasResize()
+	setMouseCoord(event)
+	redraw()
+}
+
+function levelEditorRightClick(event, click)
+{
+	const editor_layout = screen_layout.content
+	
+	// TODO: [ClementSparrow] This doesn't make sense to me... shouldn't it be the same code than in levelEditorClick?
+	if ( click && (editor_layout.hovered_glyph_index !== null) )
+	{
+		glyphSelectedIndex = mouseCoordX;
+		redraw();
+		return;
+	}
+
+	if (editor_layout.hovered_level_cell !== null)
+	{
+		const coordIndex = editor_layout.hovered_level_cell[3] + editor_layout.hovered_level_cell[2]*level.height;
+		var glyphmask = new BitVec(STRIDE_OBJ);
+		glyphmask.ibitset(state.backgroundid); // TODO: shouldn't it be the same code than in levelEditorClick?
+		level.setCell(coordIndex, glyphmask);
+		redraw();
+		return;
+	}
+
+	if ( ( ! click ) || (editor_layout.hovered_level_resize === null) )
+		return;
+
+	const [w, h] = editor_layout.content.get_nb_tiles()
+
+	if (editor_layout.hovered_level_resize[2] == -1)
+	{
+		//add a left row to the map
+		removeLeftColumn();			
+	}
+	else if (editor_layout.hovered_level_resize[2] == w)
+	{
+		removeRightColumn();
+	} 
+
+	if (editor_layout.hovered_level_resize[3] == -1)
+	{
+		removeTopRow();
+	}
+	else if (editor_layout.hovered_level_resize[3] == h)
+	{
+		removeBottomRow();
+	}
+
+	canvasResize()
+	setMouseCoord(event)
+	redraw()
+}
+
+
+
+// GENERIC EVENT HANDLER
+// =====================
+
+var lastDownTarget;
+
+function onMouseDown(event)
+{
+	if (event.handled)
+		return;
 
 	ULBS();
 	
 	var lmb = event.button===0;
 	var rmb = event.button===2 ;
-	if (event.type=="touchstart"){
+	if (event.type=="touchstart")
+	{
 		lmb=true;
 	}
-	if (lmb && (event.ctrlKey||event.metaKey)){
+	if (lmb && (event.ctrlKey||event.metaKey))
+	{
 		lmb=false;
 		rmb=true;
 	}
 	
-	if (lmb ) {
+	if (lmb)
+	{
         lastDownTarget = event.target;
         keybuffer=[];
         if (event.target===canvas || event.target.className==="tapFocusIndicator") {
-        	setMouseCoord(event);
-        	dragging=true;
-        	rightdragging=false;
-        	if (levelEditorOpened) {
+        	if (screen_layout.content === levelEditor_Screen)
+        	{
+				setMouseCoord(event);
+				dragging=true;
+	        	rightdragging=false;
         		anyEditsSinceMouseDown=false;
         		return levelEditorClick(event,true);
         	}
         }
         dragging=false;
         rightdragging=false; 
-    } else if (rmb) {
+    }
+    else if (rmb)
+    {
     	if (event.target===canvas || event.target.className==="tapFocusIndicator") {
-			setMouseCoord(event);
 		    dragging=false;
 		    rightdragging=true;
-        	if (levelEditorOpened) {
+        	if (screen_layout.content === levelEditor_Screen)
+        	{
+				setMouseCoord(event);
         		return levelEditorRightClick(event,true);
         	}
         }
 	}
 	
 	event.handled=true;
-
 }
 
 function rightClickCanvas(event) {
@@ -400,32 +511,6 @@ function onKeyDown(event) {
 	}
 }
 
-function relMouseCoords(event){
-    var totalOffsetX = 0;
-    var totalOffsetY = 0;
-    var canvasX = 0;
-    var canvasY = 0;
-    var currentElement = this;
-
-    do{
-        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
-        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
-    }
-    while(currentElement = currentElement.offsetParent)
-
-	if (event.touches==null){
-    	canvasX = event.pageX - totalOffsetX;
-		canvasY = event.pageY - totalOffsetY;
-	} else {
-    	canvasX = event.touches[0].pageX - totalOffsetX;
-		canvasY = event.touches[0].pageY - totalOffsetY;
-
-	}
-
-    return {x:canvasX, y:canvasY}
-}
-HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
-
 function onKeyUp(event) {
 	event = event || window.event;
 	var index=keybuffer.indexOf(event.keyCode);
@@ -449,24 +534,13 @@ function onMyBlur(event) {
 	keyRepeatTimer = 0;
 }
 
-var mouseCoordX=0;
-var mouseCoordY=0;
-
-function setMouseCoord(e)
-{
-    var coords = canvas.relMouseCoords(e);
-    mouseCoordX = coords.x - xoffset;
-	mouseCoordY = coords.y - yoffset;
-	mouseCoordX = Math.floor(mouseCoordX/cellwidth);
-	mouseCoordY = Math.floor(mouseCoordY/cellheight);
-}
-
 function mouseMove(event) {
 	
 	if (event.handled)
 		return;
 
-    if (levelEditorOpened) {
+    if (screen_layout.content === levelEditor_Screen)
+    {
     	setMouseCoord(event);  
     	if (dragging) { 	
     		levelEditorClick(event,false);
@@ -593,7 +667,7 @@ function checkKey(e,justPressed) {
         	if (titleScreen===false) {
 				goToTitleScreen();	
 		    	tryPlayTitleSound();
-				canvasResize();			
+				canvasResize();
 				return prevent(e)
         	}
         	break;
@@ -608,11 +682,12 @@ function checkKey(e,justPressed) {
         					nextLevel();
         				}
         			}
-        			levelEditorOpened=!levelEditorOpened;
-        			if (levelEditorOpened===false){
+        			levelEditorOpened = ! levelEditorOpened;
+        			if (levelEditorOpened === false)
+        			{
         				printLevel();
         			}
-        			restartTarget=backupLevel();
+        			restartTarget = backupLevel();
         			canvasResize();
         		}
         		return prevent(e);
@@ -630,7 +705,8 @@ function checkKey(e,justPressed) {
 		case 56://8
 		case 57://9
 		{
-        	if (levelEditorOpened&&justPressed) {
+        	if ( (screen_layout.content === levelEditor_Screen) && justPressed )
+        	{
         		var num=9;
         		if (e.keyCode>=49)  {
         			num = e.keyCode-49;
@@ -649,7 +725,8 @@ function checkKey(e,justPressed) {
         }
 		case 189://-
 		{
-        	if (levelEditorOpened&&justPressed) {
+        	if ( (screen_layout.content === levelEditor_Screen) && justPressed)
+        	{
 				if (glyphSelectedIndex>0) {
 					glyphSelectedIndex--;
 					canvasResize();
@@ -660,7 +737,8 @@ function checkKey(e,justPressed) {
 		}
 		case 187://+
 		{
-        	if (levelEditorOpened&&justPressed) {
+        	if ( (screen_layout.content === levelEditor_Screen) && justPressed)
+        	{
 				if (glyphSelectedIndex+1<glyphImages.length) {
 					glyphSelectedIndex++;
 					canvasResize();
@@ -799,7 +877,8 @@ function update() {
 	    }
 	}
 
-    if (autotickinterval>0&&!textMode&&!levelEditorOpened&&!againing&&!winning) {
+    if ( ! ( (autotickinterval <= 0) || textMode || (screen_layout.content === levelEditor_Screen) || againing || winning ) )
+    {
         autotick+=deltatime;
         if (autotick>autotickinterval) {
             autotick=0;

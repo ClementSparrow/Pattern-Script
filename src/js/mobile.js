@@ -165,13 +165,12 @@ Mobile.log = function (message) {
         }
     };
 
-    proto.onTouchMove = function (event) {
-        if (!this.isFocused) {
+    proto.onTouchMove = function (event)
+    {
+        if (!this.isFocused)
             return;
-        }
-        if (levelEditorOpened){
+        if (screen_layout.content === levelEditor_Screen)
             return;
-        }
         if (this.isSuccessfulSwipe()) {
             this.handleSwipe(this.swipeDirection, this.touchCount);
             this.gestured = true;
