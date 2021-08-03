@@ -169,7 +169,7 @@ Mobile.log = function (message) {
     {
         if (!this.isFocused)
             return;
-        if (screen_layout.content === levelEditor_Screen)
+        if (screen_layout.noSwipe())
             return;
         if (this.isSuccessfulSwipe()) {
             this.handleSwipe(this.swipeDirection, this.touchCount);

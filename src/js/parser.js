@@ -78,8 +78,7 @@ function PuzzleScriptParser()
 	this.sprite_transforms = []
 
 	// data for the LEGEND section.
-	this.abbrevNames = [] // TODO: This is only used in this file to parse levels, and is deleted in compiler.js, which is not very smart as it gets recomputed there.
-	                      // Plus, we don't need it, as we only check if a single character is in the array, which could also be done (slightly slower) using this.identifiers.names.
+	this.abbrevNames = []
 
 	// data for the MAPPINGS section
 	this.current_mapping_startset = new Set();

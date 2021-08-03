@@ -128,3 +128,12 @@ function verboseToggle()
 		consolePrint("Once your game is running, you can use this button to toggle Verbose Logging", true);
 	}
 }
+
+
+var highlighted_cell = null;
+function highlightCell(coords)
+{
+	highlighted_cell = coords;
+	redraw()
+}
+

@@ -1,157 +1,130 @@
+
+var all_screen_types = []
+
+function forceRegenImages()
+{
+	all_screen_types.forEach( s => {s.last_magnification = null} )
+}
+
+// Base class, implements an empty screen
+function EmptyScreen(screen_type = 'empty')
+{
+	this.last_magnification = null
+	this.screen_type = screen_type
+	this.noAutoTick = true
+	this.noSwipe = false
+	this.alwaysAllowUndo = false
+	this.dontDoWin = false
+	all_screen_types.push(this)
+}
+EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
+EmptyScreen.prototype.redraw = () => null
+EmptyScreen.prototype.updateResources = function(magnification)
+{
+	if (this.last_magnification !== magnification)
+	{
+		this.regenResources.call(this, magnification)
+	}
+	this.last_magnification = magnification
+}
+EmptyScreen.prototype.regenResources = (m) => null
+EmptyScreen.prototype.leftMouseClick = (e) => false
+EmptyScreen.prototype.rightMouseClick = (e) => false
+EmptyScreen.prototype.mouseMove = (e) => null
+EmptyScreen.prototype.checkKey = (e, inputdir) => false
+EmptyScreen.prototype.checkRepeatableKey = (e, inputdir) => false
+var empty_screen = new EmptyScreen()
+
+
+// Text screen
+function TextModeScreen() { EmptyScreen.call(this, 'text') }
+TextModeScreen.prototype = Object.create(EmptyScreen.prototype)
+TextModeScreen.prototype.get_nb_tiles = () => [ titleWidth, titleHeight ]
+TextModeScreen.prototype.get_virtual_screen_size = () => [ titleWidth*(font_width+1), titleHeight*(font_height+1) ]
+var textmode_screen = new TextModeScreen()
+
+
+// Level screen, also base class for flickscreen and zoomscreen
+function LevelScreen(screen_type = 'level')
+{
+	EmptyScreen.call(this, screen_type)
+	this.noAutoTick = false
+	this.spriteimages = []
+}
+LevelScreen.prototype = Object.create(EmptyScreen.prototype)
+LevelScreen.prototype.get_nb_tiles = () => [ level.width, level.height ]
+LevelScreen.prototype.get_virtual_screen_size = function()
+{
+	const [w,h] = this.get_nb_tiles()
+	return [ w*sprite_width, h*sprite_height ];
+}
+LevelScreen.prototype.get_viewport = () => [0, 0, level.width, level.height]
+var level_screen = new LevelScreen()
+
+// Flick screen, also base class for zoomscreen (could be the reverse, it's just to reuse the methods)
+function TiledWorldScreen(screen_type = 'flickscreen') { LevelScreen.call(this, screen_type) }
+TiledWorldScreen.prototype = Object.create(LevelScreen.prototype)
+TiledWorldScreen.prototype.get_nb_tiles = () => state.metadata.flickscreen
+TiledWorldScreen.prototype.get_viewport = function()
+{
+	// TODO: oldflickscreendat is a global variable because it needs to be recorded for undos
+	const playerPositions = getPlayerPositions();
+	if (playerPositions.length == 0)
+		return oldflickscreendat;
+
+	const playerPosition = playerPositions[0];
+	const px = Math.floor(playerPosition/level.height);
+	const py = (playerPosition%level.height);
+
+	const [w, h] = this.get_nb_tiles()
+	const [mini, minj] = this.get_viewport_for_focus_point(px, py, w, h)
+	const maxi = Math.min(mini + w, level.width);
+	const maxj = Math.min(minj + h, level.height);
+	oldflickscreendat = [mini, minj, maxi, maxj];
+	return oldflickscreendat;
+}
+TiledWorldScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [ Math.floor(px/w) * w, Math.floor(py/h) * h ]
+var tiled_world_screen = new TiledWorldScreen()
+
+
+// Zoom screen
+function CameraOnPlayerScreen() { TiledWorldScreen.call(this, 'zoomscreen') }
+CameraOnPlayerScreen.prototype = Object.create(TiledWorldScreen.prototype)
+CameraOnPlayerScreen.prototype.get_nb_tiles = () => state.metadata.zoomscreen
+CameraOnPlayerScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [
+	Math.max( 0, Math.min(px - Math.floor(w/2), level.width  - w) ),
+	Math.max( 0, Math.min(py - Math.floor(h/2), level.height - h) )
+]
+var camera_on_player_screen = new CameraOnPlayerScreen()
+
+
+// Main screen: has a virtual screen for content, magnifies and centers it
 function ScreenLayout()
 {
 	// content of the virtual screen
-	this.content = empty_Screen
+	this.content = textmode_screen
 	// layout parameters
 	this.magnification = 0
 	this.margins = [ 0, 0]
 }
 
-var forceRegenImages = false;
-
-// Sets:
-// - all members of this.
-// - dirty state: forceRegenImages, oldcellheight, oldcellwidth, oldtextmode, oldfgcolor
-// Uses:
-// - level
-// - state.metadata
-// - state.abbrevNames
 ScreenLayout.prototype.resize = function(canvas_size)
 {
-	// Update content
-	// ==============
-
-	// TODO: it should not be the role of this class to update the content: it should be done by the game engine
-
-	this.content = empty_Screen
-	if (state !== undefined)
-	{
-		if (state.metadata.flickscreen !== undefined)
-		{
-			this.content = tiledWorld_Screen
-		}
-		else if (state.metadata.zoomscreen  !== undefined)
-		{
-			this.content = cameraOnPlayer_Screen
-		}
-		else
-		{
-			this.content = level_Screen
-		}
-		if (levelEditorOpened && this.content !== null)
-		{
-			levelEditor_Screen.content = this.content
-			this.content = levelEditor_Screen
-		}
-	}
-
-	if (textMode)
-	{
-		this.content = textMode_Screen
-	}
-
 	// Update layout parameters
-	// ========================
-
-	const virtual_screen_size = this.content.get_virtual_screen_size.call(this.content)
-	const pixel_sizes = virtual_screen_size.map( (s, i) => (canvas_size[i] / s) )
-	this.magnification = Math.max(1, Math.floor(Math.min(...pixel_sizes)) )
-	this.margins = canvas_size.map( (s, i) => Math.floor( (s - virtual_screen_size[i]*this.magnification)/2 ) )
+	[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), canvas_size)
 
 	// Should we update sprites?
-	// =========================
-
-	if ( (this.content.last_magnification !== this.magnification) || forceRegenImages)
-	{
-		forceRegenImages = false
-		regenSpriteImages() // TODO: I want to get rid of that by rendering the virtual screen in an offscreen canvas at 1:1 pixel ratio, and then scaling the resulting image
-		// TODO: call a content-specific regen function
-	}
-
-	this.content.last_magnification = this.magnification
+	this.content.updateResources(this.magnification)
 }
 
-// TODO: add pickup methods
-
-var empty_Screen = {
-	last_magnification: null,
-	screen_type: 'empty',
-	get_virtual_screen_size: () => [ 0, 0 ],
-	redraw: () => null
-}
-
-var textMode_Screen = {
-	last_magnification: null,
-	screen_type: 'text',
-	get_nb_tiles: () => [ titleWidth, titleHeight ],
-	get_virtual_screen_size: () => [ titleWidth*(font_width+1), titleHeight*(font_height+1) ],
-	redraw: redraw_textmode
-}
-
-// TODO: level_Screen, tiledWorld_Screen, and cameraOnPlayer_Screen should be the same object/class, with a member defining how the viewport is computed
-var level_Screen = {
-	last_magnification: null,
-	screen_type: 'level',
-	get_nb_tiles: () => [ level.width, level.height ],
-	get_virtual_screen_size: function()
-	{
-		const [w,h] = this.get_nb_tiles();
-		return [ w*sprite_width, h*sprite_height ];
-	},
-	get_viewport: () => [0, 0, level.width, level.height],
-	redraw: redraw_level_viewport
-}
-
-var tiledWorld_Screen = {
-	last_magnification: null,
-	screen_type: 'flickscreen',
-	get_nb_tiles: () => state.metadata.flickscreen,
-	get_virtual_screen_size: level_Screen.get_virtual_screen_size,
-	get_viewport: set_camera_on_player,
-	get_viewport_for_focus_point: function(px, py)
-	{
-		const [w, h] = this.get_nb_tiles()
-		return [ Math.floor(px/w) * w, Math.floor(py/h) * h ];
-	},
-	redraw: redraw_level_viewport
-}
-
-var cameraOnPlayer_Screen = {
-	last_magnification: null,
-	screen_type: 'zoomscreen',
-	get_nb_tiles: () => state.metadata.zoomscreen,
-	get_virtual_screen_size: level_Screen.get_virtual_screen_size,
-	get_viewport: set_camera_on_player,
-	get_viewport_for_focus_point: function(px, py)
-	{
-		const [w, h] = this.get_nb_tiles()
-		const result = [
-			Math.max( 0, Math.min(px - Math.floor(w/2), level.width  - w) ),
-			Math.max( 0, Math.min(py - Math.floor(h/2), level.height - h) )
-		]
-		return result;
-	},
-	redraw: redraw_level_viewport
-}
-
-// TODO: the level editor should be split into a legend_EditorScreen and a levelContent_EditorScreen
-var levelEditor_Screen = {
-	content: empty_Screen,
-	editorRowCount: 1,
-	hovered_level_cell: null,
-	hovered_glyph_index: null,
-	hovered_level_resize: null,
-	last_magnification: null,
-	screen_type: 'levelEditor',
-	get_nb_tiles: function()
-	{
-		const [w, h] = this.content.get_nb_tiles()
-		this.editorRowCount = Math.ceil( state.abbrevNames.length / (w+1) ) // we could do better than that and use more space horizontally
-		return [ w + 2, h + 2 + this.editorRowCount ];
-	},
-	get_virtual_screen_size: level_Screen.get_virtual_screen_size,
-	redraw: redraw_levelEditor
-}
+ScreenLayout.prototype.leftMouseClick = function(event) { return this.content.leftMouseClick(event); }
+ScreenLayout.prototype.rightMouseClick = function(event) { return this.content.rightMouseClick(event); }
+ScreenLayout.prototype.mouseMove = function(event) { return this.content.mouseMove(event); }
+ScreenLayout.prototype.checkKey = function(event, inputdir) { return this.content.checkKey(event, inputdir); }
+ScreenLayout.prototype.checkRepeatableKey = function(event, inputdir) { return this.content.checkRepeatableKey(event, inputdir); }
+ScreenLayout.prototype.noAutoTick = function() { return this.content.noAutoTick; }
+ScreenLayout.prototype.noSwipe = function() { return this.content.noSwipe; }
+ScreenLayout.prototype.alwaysAllowUndo = function() { return this.content.alwaysAllowUndo; }
+ScreenLayout.prototype.dontDoWin = function() { return this.content.dontDoWin; }
 
 var screen_layout = new ScreenLayout()
-

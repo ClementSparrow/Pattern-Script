@@ -25,7 +25,6 @@ function consoleError(str, lineNumber) { addErrorMessage(str) }
 
 var canSetHTMLColors=true;
 var canDump=false;
-var canOpenEditor=false;
 var canYoutube=true;
 var IDE=false;
 

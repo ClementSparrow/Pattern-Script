@@ -127,7 +127,6 @@ var titletemplate_select1_selected = [
 var titleImage=[];
 var titleWidth=titletemplate_select1[0].length;
 var titleHeight=titletemplate_select1.length;
-var textMode=true;
 var titleScreen=true;
 var titleMode=0;//1 means there are options
 var titleSelection=0;
@@ -253,7 +252,7 @@ var splitMessage=[];
 // uses messagetext, state, quittingMessageScreen
 function drawMessageScreen() {
 	titleMode=0;
-	textMode=true;
+	screen_layout.content = textmode_screen
 	titleImage = deepClone(messagecontainer_template);
 
 	for (var i=0;i<titleImage.length;i++)

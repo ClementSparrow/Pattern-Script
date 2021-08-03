@@ -3,7 +3,6 @@ var canDump=true;
 var canYoutube=false;
 var inputHistory=[];
 var compiledText;
-var canOpenEditor=true;
 var IDE=true;
 
 function convertLevelToString()

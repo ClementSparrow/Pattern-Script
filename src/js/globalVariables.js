@@ -2,7 +2,6 @@ var unitTesting=false;
 var curlevel=0;
 var curlevelTarget=null;
 var hasUsedCheckpoint=false;
-var levelEditorOpened=false;
 var muted=0;
 var runrulesonlevelstart_phase=false;
 

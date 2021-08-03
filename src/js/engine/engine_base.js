@@ -84,7 +84,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	}
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
-	forceRegenImages=true;
+	forceRegenImages()
 	titleScreen=false;
 	titleMode=(curlevel>0||curlevelTarget!==null)?1:0;
 	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
@@ -97,7 +97,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	}
 	if (leveldat.message===undefined) {
 		titleMode=0;
-		textMode=false;
+		screen_layout.content = level_screen
 		level = leveldat.clone();
 		RebuildLevelArrays();
 
@@ -110,6 +110,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 					Math.min(state.metadata.flickscreen[0],level.width),
 					Math.min(state.metadata.flickscreen[1],level.height)
 				];
+				screen_layout.content = tiled_world_screen
 			} else if (state.metadata.zoomscreen!==undefined){
 				oldflickscreendat=[
 					0,
@@ -117,6 +118,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 					Math.min(state.metadata.zoomscreen[0],level.width),
 					Math.min(state.metadata.zoomscreen[1],level.height)
 				];
+				screen_layout.content = camera_on_player_screen
 			}
 		}
 
@@ -374,7 +376,7 @@ function setGameState(_state, command, randomseed) {
 			timer=0;
 			titleScreen=true;
 			tryPlayTitleSound();
-			textMode=true;
+			screen_layout.content = textmode_screen
 			titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 			titleSelected=false;
 			quittingMessageScreen=false;
@@ -397,19 +399,19 @@ function setGameState(_state, command, randomseed) {
 				if (state.levels[i].hasOwnProperty("message")){
 					continue;
 				}
+				// TODO: this is exactly the same code than for case 'loadLevel' below, so, factorize it! also same code than 'levelLine' except the loadLevelFromState line
 				var targetLevel = i;
 				curlevel=i;
 				winning=false;
 				timer=0;
 				titleScreen=false;
-				textMode=false;
 				titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 				titleSelected=false;
 				quittingMessageScreen=false;
 				quittingTitleScreen=false;
 				messageselected=false;
 				titleMode = 0;
-				loadLevelFromState(state,targetLevel,randomseed);
+				loadLevelFromState(state, targetLevel, randomseed)
 				break;
 			}
 			break;	
@@ -421,14 +423,13 @@ function setGameState(_state, command, randomseed) {
 			winning=false;
 			timer=0;
 			titleScreen=false;
-			textMode=false;
 			titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 			titleSelected=false;
 			quittingMessageScreen=false;
 			quittingTitleScreen=false;
 			messageselected=false;
 			titleMode = 0;
-			loadLevelFromState(state,targetLevel,randomseed);
+			loadLevelFromState(state, targetLevel, randomseed)
 			break;
 		}
 		case "levelline":
@@ -441,7 +442,6 @@ function setGameState(_state, command, randomseed) {
 					winning=false;
 					timer=0;
 					titleScreen=false;
-					textMode=false;
 					titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 					titleSelected=false;
 					quittingMessageScreen=false;
@@ -512,7 +512,7 @@ function RebuildLevelArrays() {
 	}
 }
 
-var messagetext="";
+var messagetext=""; // the text of a message command appearing in a rule only (not messages in LEVEL section !)
 function restoreLevel(lev) {
 	oldflickscreendat=lev.oldflickscreendat.concat([]);
 
@@ -594,7 +594,7 @@ function backupDiffers(){
 
 function DoUndo(force, ignoreDuplicates)
 {
-	if ( (screen_layout.content !== levelEditor_Screen) && ( ('noundo' in state.metadata) && (force !== true) ) )
+	if ( ( ! screen_layout.alwaysAllowUndo() ) && ('noundo' in state.metadata) && (force !== true) )
 		return;
 	if (verbose_logging) {
 		consolePrint("--- undoing ---",true);
@@ -1089,7 +1089,7 @@ function restorePreservationState(preservationState) {;
 
 function showTempMessage() {
 	keybuffer=[];
-	textMode=true;
+	screen_layout.content = textmode_screen
 	titleScreen=false;
 	quittingMessageScreen=false;
 	messageselected=false;
@@ -1504,7 +1504,8 @@ function processInput(dir, dontDoWin, dontModify)
 
 		processOutputCommands(level.commandQueue);
 
-		if (textMode===false) {
+		if (screen_layout.content != textmode_screen)
+		{
 			if (verbose_logging) { 
 				consolePrint('Checking win condition.');
 			}
@@ -1577,10 +1578,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 function checkWin(dontDoWin)
 {
-	if (screen_layout.content === levelEditor_Screen)
-	{
-		dontDoWin = true;
-	}
+	dontDoWin = screen_layout.dontDoWin()
 
 	if (level.commandQueue.indexOf('win')>=0)
 	{
@@ -1723,7 +1721,6 @@ function nextLevel() {
 		if (curlevel<(state.levels.length-1))
 		{			
 			curlevel++;
-			textMode=false;
 			titleScreen=false;
 			quittingMessageScreen=false;
 			messageselected=false;
@@ -1777,7 +1774,7 @@ function goToTitleScreen(){
 	againing=false;
 	messagetext="";
 	titleScreen=true;
-	textMode=true;
+	screen_layout.content = textmode_screen
 	doSetupTitleScreenLevelContinue();
 	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 	generateTitleScreen();

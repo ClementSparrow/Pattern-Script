@@ -183,16 +183,14 @@ loadDropdown.selectedIndex=0;
 
 function levelEditorClick_Fn()
 {
-	if (textMode || state.levels.length === 0)
+	if ( (screen_layout.content === textmode_screen) || (state.levels.length === 0) )
 	{
-		compile(["loadLevel",0]);
-		levelEditorOpened = true;
-	} else {
-		levelEditorOpened = !levelEditorOpened;
+		compile(['loadLevel', 0])
 	}
-	forceRegenImages = true
-	canvasResize();
-	lastDownTarget = canvas;	
+	level_editor_screen.toggle()
+	forceRegenImages()
+	canvasResize()
+	lastDownTarget = canvas
 }
 
 const HOSTPAGEURL = "https://clementsparrow.github.io/Pattern-Script/src"

@@ -1,22 +1,11 @@
-function makeGIF() {
+function makeGIF()
+{
 	var randomseed = RandomGen.seed;
-	levelEditorOpened=false;
-	var targetlevel=curlevel;
-	canvasResize()
-	var gifcanvas = document.createElement('canvas');
-	const [virtual_screen_w, virtual_screen_h] = screen_layout.content.get_virtual_screen_size.call(screen_layout.content)
-	gifcanvas.width  = gifcanvas.style.width  = virtual_screen_w * screen_layout.magnification
-	gifcanvas.height = gifcanvas.style.height = virtual_screen_h * screen_layout.magnification
-
-	var gifctx = gifcanvas.getContext('2d');
 
 	var inputDat = inputHistory.concat([]);
-	
 
 	unitTesting=true;
 	levelString=compiledText;
-
-
 
 	var encoder = new GIFEncoder();
 	encoder.setRepeat(0); //auto-loop
@@ -25,7 +14,14 @@ function makeGIF() {
 
 	compile(["loadLevel",curlevel],levelString,randomseed);
 	canvasResize();
-	redraw();
+	// redraw(); // already done by canvasResize
+
+	var gifcanvas = document.createElement('canvas');
+	const [virtual_screen_w, virtual_screen_h] = screen_layout.content.get_virtual_screen_size()
+	gifcanvas.width  = gifcanvas.style.width  = virtual_screen_w * screen_layout.magnification
+	gifcanvas.height = gifcanvas.style.height = virtual_screen_h * screen_layout.magnification
+	var gifctx = gifcanvas.getContext('2d');
+
 	gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
 	// gifctx.drawImage(canvas, 0, 0);
   	encoder.addFrame(gifctx);

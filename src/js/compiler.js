@@ -1092,7 +1092,7 @@ function loadFile(str)
 function compile(command, text, randomseed)
 {
 	matchCache={};
-	forceRegenImages=true;
+	forceRegenImages()
 	if (command===undefined) {
 		command = ["restart"];
 	}
