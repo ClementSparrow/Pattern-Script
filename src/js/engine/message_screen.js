@@ -7,22 +7,14 @@ const doted_terminal_line    = '..................................';
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
-const intro_template = [
-	doted_terminal_line,
-	doted_terminal_line,
-	doted_terminal_line,
-	centerText(' Pattern:Script Terminal ', doted_terminal_line),
-	centerText(' v 1.7 ', doted_terminal_line),
-	doted_terminal_line,
-	doted_terminal_line,
-	doted_terminal_line,
-	centerText(' insert cartridge ', doted_terminal_line),
-	doted_terminal_line,
-	doted_terminal_line,
-	doted_terminal_line,
-	doted_terminal_line
-];
 
+const intro_template = Array.from({
+	3: ' Pattern:Script Terminal ',
+	4: ' v 1.7 ',
+	8: ' insert cartridge ',
+	length:terminal_height
+}, l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
+)
 
 var titleImage = []
 var titleScreen = true
