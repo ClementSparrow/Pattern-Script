@@ -102,8 +102,6 @@ function generateTitleScreen()
 	titleImage.push( alignTextLeft( msgs.join(', ') ) )
 
 	titleImage.push(empty_terminal_line)
-
-	console.log(titleImage)
 }
 
 function centerText(txt, context=empty_terminal_line)
