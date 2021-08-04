@@ -1,7 +1,7 @@
 
 // uses: curlevel, curlevelTarget, state, messagetext, quittingMessageScreen
 
-var intro_template = [
+const intro_template = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -17,7 +17,7 @@ var intro_template = [
 	".................................."
 ];
 
-var messagecontainer_template = [
+const messagecontainer_template = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -33,7 +33,7 @@ var messagecontainer_template = [
 	".................................."
 ];
 
-var titletemplate_firstgo = [
+const titletemplate_firstgo = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -48,7 +48,7 @@ var titletemplate_firstgo = [
 	".Z to undo, R to restart..........",
 	".................................."];
 
-var titletemplate_select0 = [
+const titletemplate_select0 = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -63,7 +63,7 @@ var titletemplate_select0 = [
 	".Z to undo, R to restart..........",
 	".................................."];
 
-var titletemplate_select1 = [
+const titletemplate_select1 = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -79,7 +79,7 @@ var titletemplate_select1 = [
 	".................................."];
 
 
-var titletemplate_firstgo_selected = [
+const titletemplate_firstgo_selected = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -94,7 +94,7 @@ var titletemplate_firstgo_selected = [
 	".Z to undo, R to restart..........",
 	".................................."];
 
-var titletemplate_select0_selected = [
+const titletemplate_select0_selected = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -109,7 +109,7 @@ var titletemplate_select0_selected = [
 	".Z to undo, R to restart..........",
 	".................................."];
 
-var titletemplate_select1_selected = [
+const titletemplate_select1_selected = [
 	"..................................",
 	"..................................",
 	"..................................",
@@ -132,6 +132,11 @@ var titleMode=0;//1 means there are options
 var titleSelection=0;
 var titleSelected=false;
 
+function cloneTextTemplate(template)
+{
+	return Array.from(template);
+}
+
 // uses: curlevel, curlevelTarget, state
 function generateTitleScreen()
 {
@@ -146,22 +151,22 @@ function generateTitleScreen()
 
 	if (titleMode===0) {
 		if (titleSelected) {
-			titleImage = deepClone(titletemplate_firstgo_selected);		
+			titleImage = cloneTextTemplate(titletemplate_firstgo_selected);		
 		} else {
-			titleImage = deepClone(titletemplate_firstgo);					
+			titleImage = cloneTextTemplate(titletemplate_firstgo);					
 		}
 	} else {
 		if (titleSelection===0) {
 			if (titleSelected) {
-				titleImage = deepClone(titletemplate_select0_selected);		
+				titleImage = cloneTextTemplate(titletemplate_select0_selected);		
 			} else {
-				titleImage = deepClone(titletemplate_select0);					
+				titleImage = cloneTextTemplate(titletemplate_select0);					
 			}			
 		} else {
 			if (titleSelected) {
-				titleImage = deepClone(titletemplate_select1_selected);		
+				titleImage = cloneTextTemplate(titletemplate_select1_selected);		
 			} else {
-				titleImage = deepClone(titletemplate_select1);					
+				titleImage = cloneTextTemplate(titletemplate_select1);					
 			}						
 		}
 	}
@@ -253,7 +258,7 @@ var splitMessage=[];
 function drawMessageScreen() {
 	titleMode=0;
 	screen_layout.content = textmode_screen
-	titleImage = deepClone(messagecontainer_template);
+	titleImage = cloneTextTemplate(messagecontainer_template);
 
 	for (var i=0;i<titleImage.length;i++)
 	{

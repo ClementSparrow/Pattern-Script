@@ -1,7 +1,7 @@
 
 var RandomGen = new RNG();
 
-
+// TODO: this function is only called from the editor and should be moved out of the engine
 function unloadGame() {
 	state=introstate;
 	level = new Level(0, 5, 5, 2, null);
@@ -11,7 +11,7 @@ function unloadGame() {
 	redraw();
 }
 
-var introstate = {
+const introstate = {
 	title: "EMPTY GAME",
 	attribution: "increpare",
 	objectCount: 2,
@@ -19,61 +19,9 @@ var introstate = {
 	levels:[],
 	bgcolor:"#000000",
 	fgcolor:"#FFFFFF"
-};
-
-var state = introstate;
-
-function deepClone(item) {
-	if (!item) { return item; } // null, undefined values check
-
-	var types = [ Number, String, Boolean ], 
-		result;
-
-	// normalizing primitives if someone did new String('aaa'), or new Number('444');
-	types.forEach(function(type) {
-		if (item instanceof type) {
-			result = type( item );
-		}
-	});
-
-	if (typeof result == "undefined") {
-		if (Object.prototype.toString.call( item ) === "[object Array]") {
-			result = [];
-			item.forEach(function(child, index, array) { 
-				result[index] = deepClone( child );
-			});
-		} else if (typeof item == "object") {
-			// testing that this is DOM
-			if (item.nodeType && typeof item.cloneNode == "function") {
-				var result = item.cloneNode( true );    
-			} else if (!item.prototype) { // check that this is a literal
-				if (item instanceof Date) {
-					result = new Date(item);
-				} else {
-					// it is an object literal
-					result = {};
-					for (var i in item) {
-						result[i] = deepClone( item[i] );
-					}
-				}
-			} else {
-				// depending what you would like here,
-				// just keep the reference, or create new object
-/*                if (false && item.constructor) {
-					// would not advice to do that, reason? Read below
-					result = new item.constructor();
-				} else */{
-					result = item;
-				}
-			}
-		} else {
-			result = item;
-		}
-	}
-
-	return result;
 }
 
+var state = introstate;
 
 var loadedLevelSeed=0;
 
@@ -303,7 +251,23 @@ function tryActivateYoutube(){
 	}
 }
 
-function setGameState(_state, command, randomseed) {
+function goToLevel(i, ...parameters)
+{
+	curlevel = i
+	winning = false
+	timer = 0
+	titleScreen = false
+	titleSelection = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
+	titleSelected = false
+	quittingMessageScreen = false
+	quittingTitleScreen = false
+	messageselected = false
+	titleMode = 0
+	loadLevelFromState(...parameters)
+}
+
+function setGameState(_state, command, randomseed)
+{
 	oldflickscreendat=[];
 	timer=0;
 	autotick=0;
@@ -365,10 +329,12 @@ function setGameState(_state, command, randomseed) {
 	}
 	norepeat_action = state.metadata.norepeat_action!==undefined;
 	
-	switch(command[0]){
-		case "restart":
+	switch(command[0])
+	{
+		case 'restart':
 		{
-			if (restarting==true){
+			if (restarting == true)
+			{
 				logWarning('A "restart" command is being triggered in the "run_rules_on_level_start" section of level creation, which would cause an infinite loop if it was actually triggered, but it\'s being ignored, so it\'s not.');
 				break;
 			}
@@ -389,66 +355,35 @@ function setGameState(_state, command, randomseed) {
 			generateTitleScreen();
 			break;
 		}
-		case "rebuild":
+		case 'rebuild':
 		{
 			//do nothing
 			break;
 		}
-		case "loadFirstNonMessageLevel":{
-			for (var i=0;i<state.levels.length;i++){
+		case 'loadFirstNonMessageLevel':
+		{
+			for (var i=0; i<state.levels.length; i++)
+			{
 				if (state.levels[i].hasOwnProperty("message")){
 					continue;
 				}
-				// TODO: this is exactly the same code than for case 'loadLevel' below, so, factorize it! also same code than 'levelLine' except the loadLevelFromState line
-				var targetLevel = i;
-				curlevel=i;
-				winning=false;
-				timer=0;
-				titleScreen=false;
-				titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-				titleSelected=false;
-				quittingMessageScreen=false;
-				quittingTitleScreen=false;
-				messageselected=false;
-				titleMode = 0;
-				loadLevelFromState(state, targetLevel, randomseed)
+				goToLevel(i, state, i, randomseed)
 				break;
 			}
 			break;	
 		}
-		case "loadLevel":
+		case 'loadLevel':
 		{
-			var targetLevel = command[1];
-			curlevel=i;
-			winning=false;
-			timer=0;
-			titleScreen=false;
-			titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-			titleSelected=false;
-			quittingMessageScreen=false;
-			quittingTitleScreen=false;
-			messageselected=false;
-			titleMode = 0;
-			loadLevelFromState(state, targetLevel, randomseed)
+			goToLevel(i, state, command[1], randomseed)
 			break;
 		}
-		case "levelline":
+		case 'levelline':
 		{
 			var targetLine = command[1];
 			for (var i=state.levels.length-1;i>=0;i--) {
 				var level= state.levels[i];
 				if(level.lineNumber<=targetLine+1) {
-					curlevel=i;
-					winning=false;
-					timer=0;
-					titleScreen=false;
-					titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-					titleSelected=false;
-					quittingMessageScreen=false;
-					quittingTitleScreen=false;
-					messageselected=false;
-					titleMode = 0;
-					loadLevelFromState(state,i);
+					goToLevel(i, state, i)
 					break;
 				}
 			}
@@ -456,16 +391,20 @@ function setGameState(_state, command, randomseed) {
 		}
 	}
 	
-	if(command[0] !== "rebuild") {
+	if(command[0] !== 'rebuild')
+	{
 		clearInputHistory();
 	}
+
 	canvasResize();
 
-
-	if (state.sounds.length==0&&state.metadata.youtube==null){
-		killAudioButton();
-	} else {
-		showAudioButton();
+	if ( (state.sounds.length == 0) && (state.metadata.youtube == null) )
+	{
+		killAudioButton()
+	}
+	else
+	{
+		showAudioButton()
 	}
 	
 }
