@@ -252,7 +252,7 @@ function checkKey(e, justPressed)
         {
         	if (titleScreen===false) {
 				goToTitleScreen();	
-		    	tryPlayTitleSound();
+		    	tryPlaySimpleSound('titlescreen')
 				canvasResize();
 				return prevent(e)
         	}
@@ -310,7 +310,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 	{
 		if (titleSelected === false)
 		{
-			tryPlayStartGameSound()
+			tryPlaySimpleSound('startgame')
 			titleSelected = true
 			messageselected = false
 			timer = 0
@@ -339,7 +339,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		messageselected = true
 		timer = 0
 		quittingMessageScreen = true
-		tryPlayCloseMessageSound()
+		tryPlaySimpleSound('closemessage')
 		titleScreen = false
 		drawMessageScreen()
 	}

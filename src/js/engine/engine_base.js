@@ -81,7 +81,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 			runrulesonlevelstart_phase=false;
 		}
 	} else {
-		tryPlayShowMessageSound();
+		tryPlaySimpleSound('showmessage')
 		drawMessageScreen();
 		canvasResize();
 	}
@@ -94,11 +94,7 @@ function loadLevelFromStateTarget(state,levelindex,target,randomseed) {
 	curlevel=levelindex;
 	curlevelTarget=target;
 	if (leveldat.message===undefined) {
-		if (levelindex=== 0){ 
-			tryPlayStartLevelSound();
-		} else {
-			tryPlayStartLevelSound();			
-		}
+		tryPlaySimpleSound('startlevel')
 	}
 	loadLevelFromLevelDat(state,state.levels[levelindex],randomseed);
 	restoreLevel(target);
@@ -110,36 +106,32 @@ function loadLevelFromState(state,levelindex,randomseed) {
 	curlevel=levelindex;
 	curlevelTarget=null;
 	if (leveldat!==undefined && leveldat.message===undefined) {
-		if (levelindex=== 0){ 
-			tryPlayStartLevelSound();
-		} else {
-			tryPlayStartLevelSound();			
-		}
+		tryPlaySimpleSound('startlevel')
 	}
 	loadLevelFromLevelDat(state,leveldat,randomseed);
 }
 
 var sprites = [
-{
-	color: '#423563',
-	dat: [
-		[1, 1, 1, 1, 1],
-		[1, 0, 0, 0, 1],
-		[1, 0, 0, 0, 1],
-		[1, 0, 0, 0, 1],
-		[1, 1, 1, 1, 1]
-	]
-},
-{
-	color: '#252342',
-	dat: [
-		[0, 0, 1, 0, 0],
-		[1, 1, 1, 1, 1],
-		[0, 0, 1, 0, 0],
-		[0, 1, 1, 1, 0],
-		[0, 1, 0, 1, 0]
-	]
-}
+// {
+// 	color: '#423563',
+// 	dat: [
+// 		[1, 1, 1, 1, 1],
+// 		[1, 0, 0, 0, 1],
+// 		[1, 0, 0, 0, 1],
+// 		[1, 0, 0, 0, 1],
+// 		[1, 1, 1, 1, 1]
+// 	]
+// },
+// {
+// 	color: '#252342',
+// 	dat: [
+// 		[0, 0, 1, 0, 0],
+// 		[1, 1, 1, 1, 1],
+// 		[0, 0, 1, 0, 0],
+// 		[0, 1, 1, 1, 0],
+// 		[0, 1, 0, 1, 0]
+// 	]
+// }
 ];
 
 
@@ -150,73 +142,33 @@ if (titleMode>0){
 
 canvasResize();
 
-function tryPlaySimpleSound(soundname) {
-	if (state.sfx_Events[soundname]!==undefined) {
-		var seed = state.sfx_Events[soundname];
-		playSound(seed);
+function tryPlaySimpleSound(soundname)
+{
+	if (state.sfx_Events[soundname] !== undefined)
+	{
+		playSound(state.sfx_Events[soundname])
 	}
-}
-function tryPlayTitleSound() {
-	tryPlaySimpleSound("titlescreen");
-}
-
-function tryPlayStartGameSound() {
-	tryPlaySimpleSound("startgame");
-}
-
-function tryPlayEndGameSound() {
-	tryPlaySimpleSound("endgame");
-}
-
-function tryPlayCancelSound() {
-	tryPlaySimpleSound("cancel");
-}
-
-function tryPlayStartLevelSound() {
-	tryPlaySimpleSound("startlevel");
-}
-
-function tryPlayEndLevelSound() {
-	tryPlaySimpleSound("endlevel");
-}
-
-function tryPlayUndoSound(){
-	tryPlaySimpleSound("undo");
-}
-
-function tryPlayRestartSound(){
-	tryPlaySimpleSound("restart");
-}
-
-function tryPlayShowMessageSound(){
-	tryPlaySimpleSound("showmessage");
-}
-
-function tryPlayCloseMessageSound(){
-	tryPlaySimpleSound("closemessage");
 }
 
 var backups=[];
 var restartTarget;
 
 function backupLevel() {
-	var ret = {
+	return {
 		dat : new Int32Array(level.objects),
 		width : level.width,
 		height : level.height,
 		oldflickscreendat: oldflickscreendat.concat([])
 	};
-	return ret;
 }
 
 function level4Serialization() {
-	var ret = {
+	return {
 		dat : Array.from(level.objects),
 		width : level.width,
 		height : level.height,
 		oldflickscreendat: oldflickscreendat.concat([])
 	};
-	return ret;
 }
 
 
@@ -341,17 +293,14 @@ function setGameState(_state, command, randomseed)
 			winning=false;
 			timer=0;
 			titleScreen=true;
-			tryPlayTitleSound();
+			tryPlaySimpleSound('titlescreen')
 			screen_layout.content = textmode_screen
 			titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 			titleSelected=false;
 			quittingMessageScreen=false;
 			quittingTitleScreen=false;
 			messageselected=false;
-			titleMode = 0;
-			if ((curlevel>0||curlevelTarget!==null)) {
-				titleMode=1;
-			}
+			titleMode=titleSelection;
 			generateTitleScreen();
 			break;
 		}
@@ -507,7 +456,7 @@ function DoRestart(force) {
 	}
 
 	restoreLevel(restartTarget);
-	tryPlayRestartSound();
+	tryPlaySimpleSound('restart')
 
 	if ('run_rules_on_level_start' in state.metadata) {
 		processInput(-1,true);
@@ -550,7 +499,7 @@ function DoUndo(force, ignoreDuplicates)
 		restoreLevel(torestore);
 		backups = backups.splice(0,backups.length-1);
 		if (! force) {
-			tryPlayUndoSound();
+			tryPlaySimpleSound('undo')
 		}
 	}
 }
@@ -1032,7 +981,7 @@ function showTempMessage() {
 	titleScreen=false;
 	quittingMessageScreen=false;
 	messageselected=false;
-	tryPlayShowMessageSound();
+	tryPlaySimpleSound('showmessage')
 	drawMessageScreen();
 	canvasResize();
 }
@@ -1265,33 +1214,7 @@ function processInput(dir, dontDoWin, dontModify)
 	var playerPositions=[];
 	if (dir<=4) {
 		if (dir>=0) {
-			switch(dir){
-				case 0://up
-				{
-					dir=parseInt('00001', 2);;
-					break;
-				}
-				case 1://left
-				{
-					dir=parseInt('00100', 2);;
-					break;
-				}
-				case 2://down
-				{
-					dir=parseInt('00010', 2);;
-					break;
-				}
-				case 3://right
-				{
-					dir=parseInt('01000', 2);;
-					break;
-				}
-				case 4://action
-				{
-					dir=parseInt('10000', 2);;
-					break;
-				}
-			}
+			dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits.
 			playerPositions = startMovement(dir);
 		}
 
@@ -1372,7 +1295,7 @@ function processInput(dir, dontDoWin, dontModify)
 			backups.push(bak);
 			messagetext = "";
 			DoUndo(true,false);
-			tryPlayCancelSound();
+			tryPlaySimpleSound('cancel')
 			return false;
 		} 
 
@@ -1612,7 +1535,7 @@ function DoWin() {
 		return;
 	}
 	againing=false;
-	tryPlayEndLevelSound();
+	tryPlaySimpleSound('endlevel')
 	if (unitTesting) {
 		nextLevel();
 		return;
@@ -1683,7 +1606,7 @@ function nextLevel() {
 			curlevel=0;
 			curlevelTarget=null;
 			goToTitleScreen();
-			tryPlayEndGameSound();
+			tryPlaySimpleSound('endgame')
 		}		
 		//continue existing game
 	}
