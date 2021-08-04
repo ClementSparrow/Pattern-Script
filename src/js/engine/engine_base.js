@@ -300,7 +300,6 @@ function setGameState(_state, command, randomseed)
 			quittingMessageScreen=false;
 			quittingTitleScreen=false;
 			messageselected=false;
-			titleMode=titleSelection;
 			generateTitleScreen();
 			break;
 		}
