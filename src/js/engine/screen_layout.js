@@ -39,8 +39,8 @@ var empty_screen = new EmptyScreen()
 // Text screen
 function TextModeScreen() { EmptyScreen.call(this, 'text') }
 TextModeScreen.prototype = Object.create(EmptyScreen.prototype)
-TextModeScreen.prototype.get_nb_tiles = () => [ titleWidth, titleHeight ]
-TextModeScreen.prototype.get_virtual_screen_size = () => [ titleWidth*(font_width+1), titleHeight*(font_height+1) ]
+TextModeScreen.prototype.get_nb_tiles = () => [ terminal_width, terminal_height ]
+TextModeScreen.prototype.get_virtual_screen_size = () => [ terminal_width*(font_width+1), terminal_height*(font_height+1) ]
 var textmode_screen = new TextModeScreen()
 
 

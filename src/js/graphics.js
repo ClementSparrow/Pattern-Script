@@ -88,9 +88,9 @@ TextModeScreen.prototype.redraw = function(magnification)
 	const char_height = magnification * font_height
 	const grid_width  = magnification * (1+font_width)
 	const grid_height = magnification * (1+font_height)
-	for (var j = 0; j < titleHeight; j++)
+	for (var j = 0; j < terminal_height; j++)
 	{
-		for (var i = 0; i < titleWidth; i++)
+		for (var i = 0; i < terminal_width; i++)
 		{
 			draw_char(ctx, f, titleImage[j].charAt(i), i*grid_width, j*grid_height, char_width, char_height)
 		}

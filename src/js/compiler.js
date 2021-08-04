@@ -315,8 +315,8 @@ function levelsToArray(state)
 			var o = {
 				message: level[1]
 			};
-			splitMessage = wordwrap(o.message, intro_template[0].length);
-			if (splitMessage.length > 12)
+			// TODO: we should keep the result of wordwrap so that we don't have to recompute it in drawMessageScreen
+			if (wordwrap(o.message, terminal_width).length > 12)
 			{
 				logWarning('Message too long to fit on screen.', level[2]);
 			}

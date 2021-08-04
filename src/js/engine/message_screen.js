@@ -1,316 +1,159 @@
 
 // uses: curlevel, curlevelTarget, state, messagetext, quittingMessageScreen
 
+const empty_terminal_line    = '                                  ';
+const selected_terminal_line = '##################################';
+const doted_terminal_line    = '..................................';
+const terminal_width = empty_terminal_line.length
+const terminal_height = 13
+
 const intro_template = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"......Pattern:Script Terminal.....",
-	"..............v 1.7...............",
-	"..................................",
-	"..................................",
-	"..................................",
-	".........insert cartridge.........",
-	"..................................",
-	"..................................",
-	"..................................",
-	".................................."
+	doted_terminal_line,
+	doted_terminal_line,
+	doted_terminal_line,
+	centerText(' Pattern:Script Terminal ', doted_terminal_line),
+	centerText(' v 1.7 ', doted_terminal_line),
+	doted_terminal_line,
+	doted_terminal_line,
+	doted_terminal_line,
+	centerText(' insert cartridge ', doted_terminal_line),
+	doted_terminal_line,
+	doted_terminal_line,
+	doted_terminal_line,
+	doted_terminal_line
 ];
 
-const messagecontainer_template = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..........X to continue...........",
-	"..................................",
-	".................................."
-];
 
-const titletemplate_firstgo = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..........#.start game.#..........",
-	"..................................",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	".................................."];
-
-const titletemplate_select0 = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"...........#.new game.#...........",
-	"..................................",
-	".............continue.............",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	".................................."];
-
-const titletemplate_select1 = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	".............new game.............",
-	"..................................",
-	"...........#.continue.#...........",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	".................................."];
-
-
-const titletemplate_firstgo_selected = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"###########.start game.###########",
-	"..................................",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	".................................."];
-
-const titletemplate_select0_selected = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"############.new game.############",
-	"..................................",
-	".............continue.............",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	".................................."];
-
-const titletemplate_select1_selected = [
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	"..................................",
-	".............new game.............",
-	"..................................",
-	"############.continue.############",
-	"..................................",
-	".arrow keys to move...............",
-	".X to action......................",
-	".Z to undo, R to restart..........",
-	"................................."];
-
-var titleImage=[];
-var titleWidth=titletemplate_select1[0].length;
-var titleHeight=titletemplate_select1.length;
-var titleScreen=true;
-var titleMode=0;//1 means there are options
-var titleSelection=0;
-var titleSelected=false;
-
-function cloneTextTemplate(template)
-{
-	return Array.from(template);
-}
+var titleImage = []
+var titleScreen = true
+var titleMode = 0 //1 means there are options
+var titleSelection = 0 //which item is currently highlighted/selected
+var titleSelected = false //only highlighted. Will be set to true when action key is pressed.
 
 // uses: curlevel, curlevelTarget, state
 function generateTitleScreen()
 {
-	titleMode=(curlevel>0||curlevelTarget!==null)?1:0;
+	titleMode = ( (curlevel>0) || (curlevelTarget !== null) ) ? 1 : 0
 
-	if (state.levels.length===0) {
-		titleImage=intro_template;
+	if (state.levels.length === 0)
+	{
+		titleImage = intro_template
 		return;
 	}
 
 	const title = (state.metadata.title !== undefined) ? state.metadata.title : "Pattern:Script Game";
 
-	if (titleMode===0) {
-		if (titleSelected) {
-			titleImage = cloneTextTemplate(titletemplate_firstgo_selected);		
-		} else {
-			titleImage = cloneTextTemplate(titletemplate_firstgo);					
-		}
-	} else {
-		if (titleSelection===0) {
-			if (titleSelected) {
-				titleImage = cloneTextTemplate(titletemplate_select0_selected);		
-			} else {
-				titleImage = cloneTextTemplate(titletemplate_select0);					
-			}			
-		} else {
-			if (titleSelected) {
-				titleImage = cloneTextTemplate(titletemplate_select1_selected);		
-			} else {
-				titleImage = cloneTextTemplate(titletemplate_select1);					
-			}						
-		}
-	}
+	const title_bottomline = 3
+	const author_bottomline = 5
+	titleImage = [ empty_terminal_line ]
 
-	var noAction = 'noaction' in state.metadata;	
-	var noUndo = 'noundo' in state.metadata;
-	var noRestart = 'norestart' in state.metadata;
-	if (noUndo && noRestart) {
-		titleImage[11]="..............................................";
-	} else if (noUndo) {
-		titleImage[11]=".......R to restart...........................";
-	} else if (noRestart) {
-		titleImage[11]=".Z to undo.....................";
-	}
-	if (noAction) {
-		titleImage[10]=".......X to select............................";
-	}
-	for (var i=0;i<titleImage.length;i++)
+	// Add title
+	const max_title_height = (state.metadata.author === undefined) ? author_bottomline : title_bottomline
+	var titlelines = wordwrap(title, terminal_width)
+	if (titlelines.length > max_title_height)
 	{
-		titleImage[i]=titleImage[i].replace(/\./g, ' ');
+		titlelines.splice(max_title_height)
+		logWarning('Game title is too long to fit on screen, truncating to '+max_title_height+' lines.', undefined, true)
 	}
+	titleImage.push(...titlelines.map( l => centerText(l) ), ...Array(max_title_height - titlelines.length - 1).fill(empty_terminal_line))
 
-	var width = titleImage[0].length;
-	var titlelines=wordwrap(title,titleImage[0].length);
+	// Add author(s)
 	if (state.metadata.author !== undefined)
 	{
-		if (titlelines.length > 3)
-		{
-			titlelines.splice(3);
-			logWarning("Game title is too long to fit on screen, truncating to three lines.",undefined,true);
-		}
-	} else {
-		if (titlelines.length > 5)
-		{
-			titlelines.splice(5);
-			logWarning("Game title is too long to fit on screen, truncating to five lines.",undefined,true);
-		}
-	}
-	for (var i=0;i<titlelines.length;i++) {
-		var titleline=titlelines[i];
-		var titleLength=titleline.length;
-		var lmargin = ((width-titleLength)/2)|0;
-		var rmargin = width-titleLength-lmargin;
-		var row = titleImage[1+i];
-		titleImage[1+i]=row.slice(0,lmargin)+titleline+row.slice(lmargin+titleline.length);
-	}
-	if (state.metadata.author!==undefined) {
-		var attribution="by "+state.metadata.author;
-		var attributionsplit = wordwrap(attribution,titleImage[0].length);
-		if (attributionsplit[0].length < titleImage[0].length)
+		var attributionsplit = wordwrap('by ' + state.metadata.author, terminal_width)
+		if (attributionsplit[0].length < terminal_width)
 		{
 			attributionsplit[0] = " " + attributionsplit[0];
 		}
-		if (attributionsplit.length>3)
+		if (attributionsplit.length > author_bottomline - title_bottomline)
 		{
-			attributionsplit.splice(3);
-			logWarning("Author list too long to fit on screen, truncating to three lines.", undefined, true);
+			attributionsplit.splice(author_bottomline - title_bottomline)
+			logWarning("Author list too long to fit on screen, truncating to three lines.", undefined, true)
 		}
-		for (var i=0;i<attributionsplit.length;i++) {
-			var line = attributionsplit[i]+" ";
-			if (line.length>width){
-				line=line.slice(0,width);
-			}
-			var row = titleImage[3+i];
-			titleImage[3+i]=row.slice(0,width-line.length)+line;
-		}
+		titleImage.push(...attributionsplit.map( l => alignTextRight(l, Math.max(l.length - terminal_width, 1)) ))
+		// I prefer them centered:
+		// titleImage.push(...attributionsplit.map( l => centerText(l) ))
 	}
+	titleImage.push( ...Array(author_bottomline - titleImage.length).fill(empty_terminal_line) )
 
+	// Add menu options
+	if (titleMode == 0)
+	{
+		titleImage.push( empty_terminal_line, centerText('# start game #', titleSelected ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
+	}
+	else
+	{
+		titleImage.push(
+			centerText( (titleSelection == 0) ? '# new game #' : 'new game' , (titleSelected && (titleSelection == 0)) ? selected_terminal_line : empty_terminal_line),
+			empty_terminal_line,
+			centerText( (titleSelection == 1) ? '# continue #' : 'continue', (titleSelected && (titleSelection == 1)) ? selected_terminal_line : empty_terminal_line)
+		)
+	}
+	titleImage.push(empty_terminal_line)
+
+	// Add key configuration info:
+	titleImage.push( alignTextLeft('arrow keys to move') )
+	titleImage.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to action') )
+	var msgs = []
+	if ( ! ('noundo' in state.metadata) )
+		msgs.push('Z to undo')
+	if ( ! ('norestart' in state.metadata) )
+		msgs.push('R to restart')
+	titleImage.push( alignTextLeft( msgs.join(', ') ) )
+
+	titleImage.push(empty_terminal_line)
+
+	console.log(titleImage)
 }
 
+function centerText(txt, context=empty_terminal_line)
+{
+	return alignTextLeft(txt, Math.max(0, Math.floor((terminal_width - txt.length)/2)), context)
+}
 
+function alignTextLeft(txt, lmargin=7, context=empty_terminal_line)
+{
+	return context.slice(0, lmargin) + txt + context.slice(txt.length + lmargin)
+}
 
-function wordwrap( str, width ) {
- 
-	width = width || 75;
-	var cut = true;
+function alignTextRight(txt, rmargin=1, context=empty_terminal_line)
+{
+	return context.slice(0, -rmargin - txt.length) + txt + context.slice(context.length - rmargin)
+}
+
+function wordwrap(str, width)
+{
+	width = width || 75
  
 	if (!str) { return str; }
  
-	var regex = '.{1,' +width+ '}(\\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\\S+?(\\s|$)');
- 
+	const regex = '.{1,'+width+'}(\\s|$)|.{'+width+'}|.+$'
+	// cont regex = '.{1,'+width+'}(\\s|$)|\\S+?(\\s|$)'
 	return str.match( RegExp(regex, 'g') );
- 
 }
 
-var splitMessage=[];
 
 // uses messagetext, state, quittingMessageScreen
-function drawMessageScreen() {
-	titleMode=0;
+function drawMessageScreen()
+{
+	titleMode = 0
 	screen_layout.content = textmode_screen
-	titleImage = cloneTextTemplate(messagecontainer_template);
 
-	for (var i=0;i<titleImage.length;i++)
+	titleImage = Array(terminal_height).fill(empty_terminal_line)
+
+	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext, terminal_width)
+
+	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(splitMessage.length/2) )
+
+	const count = Math.min(splitMessage.length, terminal_height - 1)
+	for (var i=0; i<count; i++)
 	{
-		titleImage[i]=titleImage[i].replace(/\./g, ' ');
+		titleImage[offset+i] = centerText(splitMessage[i])
 	}
 
-	var emptyLineStr = titleImage[9];
-	var xToContinueStr = titleImage[10];
-
-	titleImage[10]=emptyLineStr;
-
-	var width = titleImage[0].length;
-
-	var message;
-	if (messagetext==="") {
-		var leveldat = state.levels[curlevel];
-		message = leveldat.message.trim();
-	} else {
-		message = messagetext;
-	}
-	
-	splitMessage = wordwrap(message,titleImage[0].length);
-
-
-	var offset = 5-((splitMessage.length/2)|0);
-	if (offset<0){
-		offset=0;
-	}
-
-	var count = Math.min(splitMessage.length,12);
-	for (var i=0;i<count;i++) {
-		var m = splitMessage[i];
-		var row = offset+i;	
-		var messageLength=m.length;
-		var lmargin = ((width-messageLength)/2)|0;
-		var rmargin = width-messageLength-lmargin;
-		var rowtext = titleImage[row];
-		titleImage[row]=rowtext.slice(0,lmargin)+m+rowtext.slice(lmargin+m.length);		
-	}
-
-	var endPos = 10;
-	if (count>=10) {
-		if (count<12){
-			endPos = count + 1;
-		} else {
-			endPos = 12;
-		}
-		}
-	if (quittingMessageScreen) {
-		titleImage[endPos]=emptyLineStr;
-	} else {
-		titleImage[endPos]=xToContinueStr;
+	if ( ! quittingMessageScreen)
+	{
+		titleImage[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
 	}
 	
 	canvasResize();
