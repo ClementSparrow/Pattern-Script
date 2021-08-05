@@ -6,7 +6,7 @@ function unloadGame() {
 	state=introstate;
 	level = new Level(0, 5, 5, 2, null);
 	level.objects = new Int32Array(0);
-	generateTitleScreen();
+	textmode_screen.makeTitle();
 	canvasResize();
 	redraw();
 }
@@ -82,7 +82,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		}
 	} else {
 		tryPlaySimpleSound('showmessage')
-		drawMessageScreen();
+		textmode_screen.doMessage();
 		canvasResize();
 	}
 
@@ -114,7 +114,7 @@ function loadLevelFromState(state,levelindex,randomseed) {
 var sprites = [ ]
 
 
-generateTitleScreen();
+textmode_screen.makeTitle();
 if (titleMode>0){
 	titleSelection=1;
 }
@@ -276,7 +276,7 @@ function setGameState(_state, command, randomseed)
 			quittingMessageScreen=false;
 			quittingTitleScreen=false;
 			messageselected=false;
-			generateTitleScreen();
+			textmode_screen.makeTitle();
 			break;
 		}
 		case 'rebuild':
@@ -956,7 +956,7 @@ function showTempMessage() {
 	quittingMessageScreen=false;
 	messageselected=false;
 	tryPlaySimpleSound('showmessage')
-	drawMessageScreen();
+	textmode_screen.doMessage();
 	canvasResize();
 }
 
@@ -1613,7 +1613,7 @@ function goToTitleScreen(){
 	screen_layout.content = textmode_screen
 	doSetupTitleScreenLevelContinue();
 	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-	generateTitleScreen();
+	textmode_screen.makeTitle()
 }
 
 

@@ -92,7 +92,7 @@ TextModeScreen.prototype.redraw = function(magnification)
 	{
 		for (var i = 0; i < terminal_width; i++)
 		{
-			draw_char(ctx, f, titleImage[j].charAt(i), i*grid_width, j*grid_height, char_width, char_height)
+			draw_char(ctx, f, this.text[j].charAt(i), i*grid_width, j*grid_height, char_width, char_height)
 		}
 	}
 }

@@ -315,7 +315,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 			messageselected = false
 			timer = 0
 			quittingTitleScreen = true
-			generateTitleScreen()
+			this.makeTitle()
 			if (titleMode === 0)
 			{
 				canvasResize();
@@ -340,7 +340,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		timer = 0
 		quittingMessageScreen = true
 		tryPlaySimpleSound('closemessage')
-		drawMessageScreen()
+		this.doMessage()
 	}
 	return false;
 }
@@ -353,7 +353,7 @@ TextModeScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	if (titleScreen && (titleMode !== 0) && ( (inputdir === 0) || (inputdir === 2) ) )
 	{
 		titleSelection = (inputdir === 0) ? 0 : 1
-		generateTitleScreen()
+		this.makeTitle()
 		redraw()
 	}
 	return false;
