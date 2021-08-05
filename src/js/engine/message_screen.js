@@ -8,14 +8,6 @@ const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
 
-const intro_template = Array.from({
-	3: ' Pattern:Script Terminal ',
-	4: ' v 1.7 ',
-	8: ' insert cartridge ',
-	length:terminal_height
-}, l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
-)
-
 var titleImage = []
 var titleScreen = true
 var titleMode = 0 //1 means there are options
@@ -29,11 +21,19 @@ function generateTitleScreen()
 
 	if (state.levels.length === 0)
 	{
-		titleImage = intro_template
+		titleImage = Array.from(
+			{
+				3: ' Pattern:Script Terminal ',
+				4: ' v 1.7 ',
+				8: ' insert cartridge ',
+				length:terminal_height
+			},
+			l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
+		)
 		return;
 	}
 
-	const title = (state.metadata.title !== undefined) ? state.metadata.title : "Pattern:Script Game";
+	const title = (state.metadata.title !== undefined) ? state.metadata.title : 'Pattern:Script Game';
 
 	const title_bottomline = 3
 	const author_bottomline = 5
@@ -60,7 +60,7 @@ function generateTitleScreen()
 		if (attributionsplit.length > author_bottomline - title_bottomline)
 		{
 			attributionsplit.splice(author_bottomline - title_bottomline)
-			logWarning("Author list too long to fit on screen, truncating to three lines.", undefined, true)
+			logWarning('Author list too long to fit on screen, truncating to three lines.', undefined, true)
 		}
 		titleImage.push(...attributionsplit.map( l => alignTextRight(l, Math.max(l.length - terminal_width, 1)) ))
 		// I prefer them centered:
@@ -127,6 +127,7 @@ function wordwrap(str, width)
 function drawMessageScreen()
 {
 	titleMode = 0
+	titleScreen = false
 	screen_layout.content = textmode_screen
 
 	titleImage = Array(terminal_height).fill(empty_terminal_line)

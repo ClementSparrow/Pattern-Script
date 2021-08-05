@@ -33,14 +33,13 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
 	forceRegenImages()
-	titleScreen=false;
 	titleMode=(curlevel>0||curlevelTarget!==null)?1:0;
 	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
 	titleSelected=false;
 	againing=false;
 	if (leveldat===undefined) {
-		consolePrint("Trying to access a level that doesn't exist.",true);
-	goToTitleScreen();
+		consolePrint("Trying to access a level that doesn't exist.", true)
+		goToTitleScreen();
 		return;
 	}
 	if (leveldat.message===undefined) {
@@ -977,7 +976,6 @@ function restorePreservationState(preservationState) {;
 function showTempMessage() {
 	keybuffer=[];
 	screen_layout.content = textmode_screen
-	titleScreen=false;
 	quittingMessageScreen=false;
 	messageselected=false;
 	tryPlaySimpleSound('showmessage')

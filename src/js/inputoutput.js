@@ -340,7 +340,6 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		timer = 0
 		quittingMessageScreen = true
 		tryPlaySimpleSound('closemessage')
-		titleScreen = false
 		drawMessageScreen()
 	}
 	return false;
