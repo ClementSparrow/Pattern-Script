@@ -318,11 +318,10 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		return;
 	}
 
-	if (messageselected === false)
+	if (this.done === false)
 	{
-		messageselected = true
 		timer = 0
-		quittingMessageScreen = true
+		this.done = true
 		tryPlaySimpleSound('closemessage')
 		this.doMessage()
 	}
@@ -335,17 +334,16 @@ MenuScreen.prototype.checkKey = function(e, inputdir)
 		return false;
 
 	tryPlaySimpleSound('startgame')
-	messageselected = false
 	timer = 0
 	this.done = true
 	this.makeTitle()
 	if (this.nb_items === 1)
 	{
-		canvasResize();
+		canvasResize()
 	}
 	else
 	{
-		redraw();
+		redraw()
 	}
 	return false;
 }
@@ -414,40 +412,36 @@ function update()
         menu_screen.done = false
         nextLevel();
     }
-    if (againing) {
-        if (timer>againinterval&&messagetext.length==0) {
-            if (processInput(-1)) {
-                redraw();
-                keyRepeatTimer=0;
-                autotick=0;
-            }
-        }
+    if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(-1) )
+    {
+		redraw()
+		keyRepeatTimer = 0
+		autotick = 0
     }
-    if (quittingMessageScreen) {
-        if (timer/1000>0.15) {
-            quittingMessageScreen=false;
-            if (messagetext==="") {
-            	nextLevel();
-            } else {
-            	messagetext="";
-				if (state.metadata.flickscreen !== undefined)
-				{
-					screen_layout.content = tiled_world_screen
-				}
-				else if (state.metadata.zoomscreen  !== undefined)
-				{
-					screen_layout.content = camera_on_player_screen
-				}
-				else
-				{
-					screen_layout.content = level_screen
-				}
-				menu_screen.nb_items = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 2 : 1
-				menu_screen.done = false
-				menu_screen.item = 0
-    			canvasResize()
-    			checkWin()
-            }
+    if ( msg_screen.done && (timer/1000 > 0.15) )
+    {
+        msg_screen.done = false
+        if (messagetext==="") {
+        	nextLevel();
+        } else {
+        	messagetext="";
+			if (state.metadata.flickscreen !== undefined)
+			{
+				screen_layout.content = tiled_world_screen
+			}
+			else if (state.metadata.zoomscreen  !== undefined)
+			{
+				screen_layout.content = camera_on_player_screen
+			}
+			else
+			{
+				screen_layout.content = level_screen
+			}
+			menu_screen.nb_items = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 2 : 1
+			menu_screen.done = false
+			menu_screen.item = 0
+			canvasResize()
+			checkWin()
         }
     }
     if (winning) {

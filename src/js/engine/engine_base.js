@@ -2,13 +2,13 @@
 var RandomGen = new RNG();
 
 // TODO: this function is only called from the editor and should be moved out of the engine
-function unloadGame() {
-	state=introstate;
-	level = new Level(0, 5, 5, 2, null);
-	level.objects = new Int32Array(0);
-	textmode_screen.makeTitle();
-	canvasResize();
-	redraw();
+function unloadGame()
+{
+	state = introstate
+	level = new Level(0, 5, 5, 2, null)
+	level.objects = new Int32Array(0)
+	menu_screen.makeTitle()
+	canvasResize()
 }
 
 const introstate = {
@@ -78,7 +78,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		}
 	} else {
 		tryPlaySimpleSound('showmessage')
-		textmode_screen.doMessage();
+		msg_screen.doMessage();
 		canvasResize();
 	}
 
@@ -184,9 +184,8 @@ function goToLevel(i, ...parameters)
 	curlevel = i
 	winning = false
 	timer = 0
-	quittingMessageScreen = false
 	menu_screen.done = false
-	messageselected = false
+	msg_screen.done = false
 	loadLevelFromState(...parameters)
 }
 
@@ -197,7 +196,7 @@ function setGameState(_state, command, randomseed)
 	autotick=0;
 	winning=false;
 	againing=false;
-	messageselected=false;
+	msg_screen.done = false
 	STRIDE_MOV=_state.STRIDE_MOV;
 	STRIDE_OBJ=_state.STRIDE_OBJ;
 	
@@ -265,10 +264,9 @@ function setGameState(_state, command, randomseed)
 			winning=false;
 			timer=0;
 			tryPlaySimpleSound('titlescreen')
-			quittingMessageScreen=false;
-			messageselected=false;
+			msg_screen.done = false
 			screen_layout.content = menu_screen
-			menu_screen.item = (curlevel>0||curlevelTarget!==null) ? 1 : 0
+			menu_screen.item = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
 			menu_screen.done = false
 			menu_screen.makeTitle();
 			break;
@@ -944,14 +942,13 @@ function restorePreservationState(preservationState) {;
 
 
 
-function showTempMessage() {
-	keybuffer=[];
-	screen_layout.content = textmode_screen
-	quittingMessageScreen=false;
-	messageselected=false;
+function showTempMessage()
+{
+	keybuffer = []
 	tryPlaySimpleSound('showmessage')
-	textmode_screen.doMessage();
-	canvasResize();
+	msg_screen.done = false
+	msg_screen.doMessage()
+	canvasResize()
 }
 
 function processOutputCommands(commands)
@@ -1334,7 +1331,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 		processOutputCommands(level.commandQueue);
 
-		if (screen_layout.content != textmode_screen)
+		if (screen_layout.content != msg_screen)
 		{
 			if (verbose_logging) { 
 				consolePrint('Checking win condition.');
@@ -1554,8 +1551,7 @@ function nextLevel() {
 		if (curlevel<(state.levels.length-1))
 		{			
 			curlevel++;
-			quittingMessageScreen=false;
-			messageselected=false;
+			msg_screen.done = false
 
 			if (curlevelTarget!==null){			
 				loadLevelFromStateTarget(state,curlevel,curlevelTarget);

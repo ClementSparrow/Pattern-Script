@@ -183,7 +183,7 @@ loadDropdown.selectedIndex=0;
 
 function levelEditorClick_Fn()
 {
-	if ( (screen_layout.content === textmode_screen) || (state.levels.length === 0) )
+	if ( (screen_layout.content === msg_screen) || (state.levels.length === 0) )
 	{
 		compile(['loadLevel', 0])
 	}

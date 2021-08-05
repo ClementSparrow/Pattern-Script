@@ -33,7 +33,6 @@ doSetupTitleScreenLevelContinue();
 var verbose_logging=false;
 var throttle_movement=false;
 var cache_console_messages=false;
-var quittingMessageScreen=false;
 var deltatime=17;
 var timer=0;
 var repeatinterval=150;
@@ -47,8 +46,6 @@ var oldflickscreendat=[];//used for buffering old flickscreen/scrollscreen posit
 var keybuffer = [];
 
 var restarting=false;
-
-var messageselected=false;
 
 var level = { // TODO: do we really need an initial value?
     width: 5,

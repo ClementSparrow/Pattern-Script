@@ -41,11 +41,12 @@ function TextModeScreen()
 {
 	EmptyScreen.call(this, 'text')
 	this.text = []
+	this.done = false // not yet pressed the key that would leave the screen
 }
 TextModeScreen.prototype = Object.create(EmptyScreen.prototype)
 TextModeScreen.prototype.get_nb_tiles = () => [ terminal_width, terminal_height ]
 TextModeScreen.prototype.get_virtual_screen_size = () => [ terminal_width*(font_width+1), terminal_height*(font_height+1) ]
-var textmode_screen = new TextModeScreen()
+var msg_screen = new TextModeScreen()
 
 // Menu screen, based on TextModeScreen
 function MenuScreen()
@@ -53,7 +54,6 @@ function MenuScreen()
 	TextModeScreen.call(this, 'menu')
 	this.nb_items = 1
 	this.item = 0 //which item is currently highlighted/selected
-	this.done = false //only highlighted. Will be set to true when action key is pressed.
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)
 var menu_screen = new MenuScreen()

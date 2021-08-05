@@ -1,5 +1,5 @@
 
-// uses: curlevel, curlevelTarget, state, messagetext, quittingMessageScreen
+// uses: curlevel, curlevelTarget, state, messagetext
 
 const empty_terminal_line    = '                                  ';
 const selected_terminal_line = '##################################';
@@ -7,12 +7,6 @@ const doted_terminal_line    = '..................................';
 
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
-
-
-// var titleScreen = true
-// var titleMode = 0 //1 means there are options
-// var titleSelection = 0 //which item is currently highlighted/selected
-// var titleSelected = false //only highlighted. Will be set to true when action key is pressed.
 
 // uses: curlevel, curlevelTarget, state
 // sets: this.nb_items, this.text
@@ -124,11 +118,10 @@ function wordwrap(str, width)
 }
 
 
-// uses messagetext, state, quittingMessageScreen
+// uses messagetext, state
 TextModeScreen.prototype.doMessage = function()
 {
-	menu_screen.nb_items = 1
-	screen_layout.content = textmode_screen
+	screen_layout.content = this
 
 	this.text = Array(terminal_height).fill(empty_terminal_line)
 
@@ -142,7 +135,7 @@ TextModeScreen.prototype.doMessage = function()
 		this.text[offset+i] = centerText(splitMessage[i])
 	}
 
-	if ( ! quittingMessageScreen )
+	if ( ! this.done )
 	{
 		this.text[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
 	}
