@@ -269,24 +269,7 @@ function checkKey(e, justPressed)
         	{
         		if (justPressed)
         		{
-        			if (screen_layout.content === menu_screen)
-        			{
-        				if (state.title === 'EMPTY GAME')
-        				{
-        					compile(["loadFirstNonMessageLevel"])
-        				}
-        				else
-        				{
-        					nextLevel()
-        				}
-        			}
-        			else if (screen_layout.content instanceof LevelEditorScreen)
-        			{
-        				printLevel()
-        			}
 					level_editor_screen.toggle()
-        			restartTarget = backupLevel()
-        			canvasResize()
         		}
         		return prevent(e);
         	}

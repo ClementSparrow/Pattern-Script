@@ -29,6 +29,22 @@ LevelEditorScreen.prototype.get_nb_tiles = function()
 
 LevelEditorScreen.prototype.toggle = function()
 {
+	if ( ! (screen_layout.content instanceof LevelScreen) )
+	{
+		if (state.title === 'EMPTY GAME')
+		{
+			compile(["loadFirstNonMessageLevel"])
+		}
+		else
+		{
+			nextLevel() // TODO: we should actually skip all message 'levels' until a playable one is found or we reach the end of the game (then, create a new level)
+		}
+	}
+	else if (screen_layout.content instanceof LevelEditorScreen)
+	{
+		printLevel()
+	}
+
 	if (screen_layout.content instanceof LevelEditorScreen)
 	{
 		// close
@@ -39,6 +55,9 @@ LevelEditorScreen.prototype.toggle = function()
 		this.content = screen_layout.content
 		screen_layout.content = this
 	}
+
+	restartTarget = backupLevel()
+	canvasResize()
 }
 
 var level_editor_screen = new LevelEditorScreen()

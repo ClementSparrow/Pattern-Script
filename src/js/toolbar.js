@@ -183,13 +183,13 @@ loadDropdown.selectedIndex=0;
 
 function levelEditorClick_Fn()
 {
-	if ( (screen_layout.content === msg_screen) || (state.levels.length === 0) )
-	{
-		compile(['loadLevel', 0])
-	}
+	// if ( (screen_layout.content === msg_screen) || (state.levels.length === 0) )
+	// {
+	// 	compile(['loadLevel', 0])
+	// }
 	level_editor_screen.toggle()
-	forceRegenImages()
-	canvasResize()
+	// forceRegenImages()
+	// canvasResize()
 	lastDownTarget = canvas
 }
 
