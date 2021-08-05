@@ -128,11 +128,8 @@ function loadDropDownChange()
 	    if (key == this.value)
 	    {
 	    	const saveText = sd.text;
-			editor.setValue(saveText);
-			setEditorClean();
 			document.getElementById('loadDropDown').selectedIndex = 0;
-			unloadGame();
-			compile(["restart"]);
+			loadText(saveText)
 			return;
 	    }
 	}		

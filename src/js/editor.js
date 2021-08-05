@@ -197,17 +197,30 @@ function tryLoadGist(id)
 		}
 		else
 		{
-			var code = result["files"]["script.txt"]["content"];
-			editor.setValue(code);
+			loadText( result["files"]["script.txt"]["content"] )
 			editor.clearHistory();
 			setEditorCleanForGithub()
-			setEditorClean();
-			unloadGame();
-			compile(["restart"],code);
 		}
 	}
 	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	githubHTTPClient.send();
+}
+
+function unloadGame()
+{
+	state = introstate
+	level = new Level(0, 5, 5, 2, null)
+	level.objects = new Int32Array(0)
+	menu_screen.makeTitle()
+	canvasResize()
+}
+
+function loadText(txt)
+{
+	editor.setValue(txt)
+	setEditorClean()
+	unloadGame()
+	compile(["restart"], txt)
 }
 
 function tryLoadFile(fileName)
@@ -216,13 +229,8 @@ function tryLoadFile(fileName)
 	fileOpenClient.open('GET', 'demo/'+fileName+".txt");
 	fileOpenClient.onreadystatechange = function()
 	{		
-  		if(fileOpenClient.readyState !=4 )
-  			return;
-  		
-		editor.setValue(fileOpenClient.responseText);
-		setEditorClean();
-		unloadGame();
-		compile(["restart"]);
+		if(fileOpenClient.readyState == 4)
+			loadText(fileOpenClient.responseText)
 	}
 	fileOpenClient.send();
 }

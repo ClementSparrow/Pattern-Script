@@ -1,16 +1,6 @@
 
 var RandomGen = new RNG();
 
-// TODO: this function is only called from the editor and should be moved out of the engine
-function unloadGame()
-{
-	state = introstate
-	level = new Level(0, 5, 5, 2, null)
-	level.objects = new Int32Array(0)
-	menu_screen.makeTitle()
-	canvasResize()
-}
-
 const introstate = {
 	title: "EMPTY GAME",
 	attribution: "increpare",
