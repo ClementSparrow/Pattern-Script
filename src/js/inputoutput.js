@@ -352,12 +352,7 @@ TextModeScreen.prototype.checkRepeatableKey = function(e, inputdir)
 
 	if (titleScreen && (titleMode !== 0) && ( (inputdir === 0) || (inputdir === 2) ) )
 	{
-		if (inputdir === 0)
-		{
-			titleSelection = 0
-		} else {
-			titleSelection = 1
-		}
+		titleSelection = (inputdir === 0) ? 0 : 1
 		generateTitleScreen()
 		redraw()
 	}
