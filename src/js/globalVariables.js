@@ -47,30 +47,7 @@ var keybuffer = [];
 
 var restarting=false;
 
-var level = { // TODO: do we really need an initial value?
-    width: 5,
-    height: 5,
-    layerCount: 2,
-    dat: [
-    1, 3, 3, 1, 1, 2, 2, 3, 3, 1,
-    2, 1, 2, 2, 3, 3, 1, 1, 2, 2,
-    3, 2, 1, 3, 2, 1, 3, 2, 1, 3,
-    1, 3, 3, 1, 1, 2, 2, 3, 3, 1,
-    2, 1, 2, 2, 3, 3, 1, 1, 2, 2
-    ],
-    movementMask:[
-    1, 3, 3, 1, 1, 2, 2, 3, 3, 1,
-    2, 1, 2, 2, 3, 3, 1, 1, 2, 2,
-    3, 2, 1, 3, 2, 1, 3, 2, 1, 3,
-    1, 3, 3, 1, 1, 2, 2, 3, 3, 1,
-    2, 1, 2, 2, 3, 3, 1, 1, 2, 2
-    ],
-    rigidGroupIndexMask:[],//[indexgroupNumber, masked by layer arrays]
-    rigidMovementAppliedMask:[],//[indexgroupNumber, masked by layer arrays]
-    bannedGroup:[],
-    colCellContents:[],
-    rowCellContents:[]
-}
+var level
 
 var sprite_width = 5
 var sprite_height = 5
