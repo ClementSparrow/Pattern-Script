@@ -142,7 +142,7 @@ function drawMessageScreen()
 		titleImage[offset+i] = centerText(splitMessage[i])
 	}
 
-	if ( ! quittingMessageScreen)
+	if ( ! quittingMessageScreen )
 	{
 		titleImage[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
 	}

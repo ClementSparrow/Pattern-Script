@@ -428,7 +428,6 @@ function update()
             	nextLevel();
             } else {
             	messagetext="";
-            	// textMode=false;
 				if (state.metadata.flickscreen !== undefined)
 				{
 					screen_layout.content = tiled_world_screen

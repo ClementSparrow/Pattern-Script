@@ -33,9 +33,9 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
 	forceRegenImages()
-	titleMode=(curlevel>0||curlevelTarget!==null)?1:0;
-	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-	titleSelected=false;
+	titleMode = (curlevel>0||curlevelTarget!==null)?1:0
+	titleSelection = titleMode
+	titleSelected = false
 	againing=false;
 	if (leveldat===undefined) {
 		consolePrint("Trying to access a level that doesn't exist.", true)
@@ -110,28 +110,7 @@ function loadLevelFromState(state,levelindex,randomseed) {
 	loadLevelFromLevelDat(state,leveldat,randomseed);
 }
 
-var sprites = [
-// {
-// 	color: '#423563',
-// 	dat: [
-// 		[1, 1, 1, 1, 1],
-// 		[1, 0, 0, 0, 1],
-// 		[1, 0, 0, 0, 1],
-// 		[1, 0, 0, 0, 1],
-// 		[1, 1, 1, 1, 1]
-// 	]
-// },
-// {
-// 	color: '#252342',
-// 	dat: [
-// 		[0, 0, 1, 0, 0],
-// 		[1, 1, 1, 1, 1],
-// 		[0, 0, 1, 0, 0],
-// 		[0, 1, 1, 1, 0],
-// 		[0, 1, 0, 1, 0]
-// 	]
-// }
-];
+var sprites = [ ]
 
 
 generateTitleScreen();
@@ -208,12 +187,9 @@ function goToLevel(i, ...parameters)
 	winning = false
 	timer = 0
 	titleScreen = false
-	titleSelection = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
-	titleSelected = false
 	quittingMessageScreen = false
 	quittingTitleScreen = false
 	messageselected = false
-	titleMode = 0
 	loadLevelFromState(...parameters)
 }
 
