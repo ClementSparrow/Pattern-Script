@@ -118,14 +118,14 @@ function clearConsole() {
 
 function verboseToggle()
 {
-	if (!titleScreen)
+	if (screen_layout.content === menu_screen)
 	{
-		verbose_logging = !verbose_logging;
-		consolePrint("Verbose logging is now " + (verbose_logging ? "ENABLED" : "DISABLED"), true);
+		consolePrint("Once your game is running, you can use this button to toggle Verbose Logging", true)
 	}
 	else
 	{
-		consolePrint("Once your game is running, you can use this button to toggle Verbose Logging", true);
+		verbose_logging = ! verbose_logging
+		consolePrint("Verbose logging is now " + (verbose_logging ? "ENABLED" : "DISABLED"), true)
 	}
 }
 

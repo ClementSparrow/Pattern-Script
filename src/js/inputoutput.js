@@ -246,15 +246,21 @@ function checkKey(e, justPressed)
             } else {
             	return;
             }
-        break;
+			break;
         }
         case 27://escape
         {
-        	if (titleScreen===false) {
-				goToTitleScreen();	
+        	if (screen_layout.content !== menu_screen)
+        	{
+        		menu_screen.selected = false
+				goToTitleScreen()
 		    	tryPlaySimpleSound('titlescreen')
-				canvasResize();
+				canvasResize()
 				return prevent(e)
+        	}
+        	else
+        	{
+        		// TODO: should select option 'continue', which should not restart the level
         	}
         	break;
         }
@@ -263,21 +269,24 @@ function checkKey(e, justPressed)
         	{
         		if (justPressed)
         		{
-        			if (titleScreen)
+        			if (screen_layout.content === menu_screen)
         			{
-        				if (state.title==="EMPTY GAME"){
-        					compile(["loadFirstNonMessageLevel"]);
-        				} else {
-        					nextLevel();
+        				if (state.title === 'EMPTY GAME')
+        				{
+        					compile(["loadFirstNonMessageLevel"])
+        				}
+        				else
+        				{
+        					nextLevel()
         				}
         			}
-        			if (screen_layout.content instanceof LevelEditorScreen)
+        			else if (screen_layout.content instanceof LevelEditorScreen)
         			{
-        				printLevel();
+        				printLevel()
         			}
 					level_editor_screen.toggle()
-        			restartTarget = backupLevel();
-        			canvasResize();
+        			restartTarget = backupLevel()
+        			canvasResize()
         		}
         		return prevent(e);
         	}
@@ -300,33 +309,8 @@ function checkKey(e, justPressed)
 
 TextModeScreen.prototype.checkKey = function(e, inputdir)
 {
-	if (state.levels.length === 0)
+	if ( (state.levels.length === 0)|| (inputdir != 4) )
 		return false;
-
-	if (inputdir != 4)
-		return false;
-
-	if (titleScreen)
-	{
-		if (titleSelected === false)
-		{
-			tryPlaySimpleSound('startgame')
-			titleSelected = true
-			messageselected = false
-			timer = 0
-			quittingTitleScreen = true
-			this.makeTitle()
-			if (titleMode === 0)
-			{
-				canvasResize();
-			}
-			else
-			{
-				redraw();
-			}
-		}
-		return false;
-	}
 
 	if (unitTesting)
 	{
@@ -345,19 +329,44 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 	return false;
 }
 
-TextModeScreen.prototype.checkRepeatableKey = function(e, inputdir)
+MenuScreen.prototype.checkKey = function(e, inputdir)
+{
+	if ( (state.levels.length === 0)|| (inputdir != 4) | (this.selected === true) )
+		return false;
+
+	tryPlaySimpleSound('startgame')
+	messageselected = false
+	timer = 0
+	quittingTitleScreen = true
+	this.selected = true
+	this.makeTitle()
+	if (this.nb_items === 1)
+	{
+		canvasResize();
+	}
+	else
+	{
+		redraw();
+	}
+	return false;
+}
+
+
+MenuScreen.prototype.checkRepeatableKey = function(e, inputdir)
 {
 	if (state.levels.length === 0)
 		return false;
 
-	if (titleScreen && (titleMode !== 0) && ( (inputdir === 0) || (inputdir === 2) ) )
+	if ( ( (inputdir === 0) || (inputdir === 2) ) )
 	{
-		titleSelection = (inputdir === 0) ? 0 : 1
+		this.item = Math.max(0, Math.min( this.item + (inputdir === 0) ? -1 : 1, this.nb_items - 1))
 		this.makeTitle()
 		redraw()
 	}
 	return false;
 }
+
+
 
 LevelScreen.prototype.checkKey = function(e, inputdir)
 {
@@ -435,12 +444,11 @@ function update()
 				{
 					screen_layout.content = level_screen
 				}
-				titleScreen=false;
-				titleMode=(curlevel>0||curlevelTarget!==null)?1:0;
-				titleSelected=false;
-				titleSelection=0;
-    			canvasResize();  
-    			checkWin();          	
+				menu_screen.nb_items = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 2 : 1
+				menu_screen.selected = false
+				menu_screen.item = 0
+    			canvasResize()
+    			checkWin()
             }
         }
     }

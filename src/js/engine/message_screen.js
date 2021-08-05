@@ -4,24 +4,25 @@
 const empty_terminal_line    = '                                  ';
 const selected_terminal_line = '##################################';
 const doted_terminal_line    = '..................................';
+
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
 
-var titleImage = []
-var titleScreen = true
-var titleMode = 0 //1 means there are options
-var titleSelection = 0 //which item is currently highlighted/selected
-var titleSelected = false //only highlighted. Will be set to true when action key is pressed.
+// var titleScreen = true
+// var titleMode = 0 //1 means there are options
+// var titleSelection = 0 //which item is currently highlighted/selected
+// var titleSelected = false //only highlighted. Will be set to true when action key is pressed.
 
 // uses: curlevel, curlevelTarget, state
-function generateTitleScreen()
+// sets: this.nb_items, this.text
+MenuScreen.prototype.makeTitle = function()
 {
-	titleMode = ( (curlevel>0) || (curlevelTarget !== null) ) ? 1 : 0
+	this.nb_items = ( (curlevel>0) || (curlevelTarget !== null) ) ? 2 : 1
 
 	if (state.levels.length === 0)
 	{
-		titleImage = Array.from(
+		this.text = Array.from(
 			{
 				3: ' Pattern:Script Terminal ',
 				4: ' v 1.7 ',
@@ -37,7 +38,7 @@ function generateTitleScreen()
 
 	const title_bottomline = 3
 	const author_bottomline = 5
-	titleImage = [ empty_terminal_line ]
+	this.text = [ empty_terminal_line ]
 
 	// Add title
 	const max_title_height = (state.metadata.author === undefined) ? author_bottomline : title_bottomline
@@ -47,7 +48,7 @@ function generateTitleScreen()
 		titlelines.splice(max_title_height)
 		logWarning('Game title is too long to fit on screen, truncating to '+max_title_height+' lines.', undefined, true)
 	}
-	titleImage.push(...titlelines.map( l => centerText(l) ), ...Array(max_title_height - titlelines.length - 1).fill(empty_terminal_line))
+	this.text.push(...titlelines.map( l => centerText(l) ), ...Array(max_title_height - titlelines.length - 1).fill(empty_terminal_line))
 
 	// Add author(s)
 	if (state.metadata.author !== undefined)
@@ -62,38 +63,38 @@ function generateTitleScreen()
 			attributionsplit.splice(author_bottomline - title_bottomline)
 			logWarning('Author list too long to fit on screen, truncating to three lines.', undefined, true)
 		}
-		titleImage.push(...attributionsplit.map( l => alignTextRight(l, Math.max(l.length - terminal_width, 1)) ))
+		this.text.push(...attributionsplit.map( l => alignTextRight(l, Math.max(l.length - terminal_width, 1)) ))
 		// I prefer them centered:
-		// titleImage.push(...attributionsplit.map( l => centerText(l) ))
+		// this.text.push(...attributionsplit.map( l => centerText(l) ))
 	}
-	titleImage.push( ...Array(author_bottomline - titleImage.length).fill(empty_terminal_line) )
+	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_terminal_line) )
 
 	// Add menu options
-	if (titleMode == 0)
+	if (this.nb_items == 1)
 	{
-		titleImage.push( empty_terminal_line, centerText('# start game #', titleSelected ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
+		this.text.push( empty_terminal_line, centerText('# start game #', this.selected ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
 	}
 	else
 	{
-		titleImage.push(
-			centerText( (titleSelection == 0) ? '# new game #' : 'new game' , (titleSelected && (titleSelection == 0)) ? selected_terminal_line : empty_terminal_line),
+		this.text.push(
+			centerText( (this.item == 0) ? '# new game #' : 'new game', (this.selected && (this.item == 0)) ? selected_terminal_line : empty_terminal_line),
 			empty_terminal_line,
-			centerText( (titleSelection == 1) ? '# continue #' : 'continue', (titleSelected && (titleSelection == 1)) ? selected_terminal_line : empty_terminal_line)
+			centerText( (this.item == 1) ? '# continue #' : 'continue', (this.selected && (this.item == 1)) ? selected_terminal_line : empty_terminal_line)
 		)
 	}
-	titleImage.push(empty_terminal_line)
+	this.text.push(empty_terminal_line)
 
 	// Add key configuration info:
-	titleImage.push( alignTextLeft('arrow keys to move') )
-	titleImage.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to action') )
+	this.text.push( alignTextLeft('arrow keys to move') )
+	this.text.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to action') )
 	var msgs = []
 	if ( ! ('noundo' in state.metadata) )
 		msgs.push('Z to undo')
 	if ( ! ('norestart' in state.metadata) )
 		msgs.push('R to restart')
-	titleImage.push( alignTextLeft( msgs.join(', ') ) )
+	this.text.push( alignTextLeft( msgs.join(', ') ) )
 
-	titleImage.push(empty_terminal_line)
+	this.text.push(empty_terminal_line)
 }
 
 function centerText(txt, context=empty_terminal_line)
@@ -124,13 +125,12 @@ function wordwrap(str, width)
 
 
 // uses messagetext, state, quittingMessageScreen
-function drawMessageScreen()
+TextModeScreen.prototype.doMessage = function()
 {
-	titleMode = 0
-	titleScreen = false
+	menu_screen.nb_items = 1
 	screen_layout.content = textmode_screen
 
-	titleImage = Array(terminal_height).fill(empty_terminal_line)
+	this.text = Array(terminal_height).fill(empty_terminal_line)
 
 	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext, terminal_width)
 
@@ -139,12 +139,12 @@ function drawMessageScreen()
 	const count = Math.min(splitMessage.length, terminal_height - 1)
 	for (var i=0; i<count; i++)
 	{
-		titleImage[offset+i] = centerText(splitMessage[i])
+		this.text[offset+i] = centerText(splitMessage[i])
 	}
 
 	if ( ! quittingMessageScreen )
 	{
-		titleImage[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
+		this.text[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
 	}
 	
 	canvasResize();

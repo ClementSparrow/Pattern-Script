@@ -33,9 +33,6 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
 	forceRegenImages()
-	titleMode = (curlevel>0||curlevelTarget!==null)?1:0
-	titleSelection = titleMode
-	titleSelected = false
 	againing=false;
 	if (leveldat===undefined) {
 		consolePrint("Trying to access a level that doesn't exist.", true)
@@ -43,8 +40,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		return;
 	}
 	if (leveldat.message===undefined) {
-		titleMode = 0
-		titleScreen = false
+		menu_screen.nb_items = 1
 		screen_layout.content = level_screen
 		level = leveldat.clone();
 		RebuildLevelArrays();
@@ -114,9 +110,10 @@ function loadLevelFromState(state,levelindex,randomseed) {
 var sprites = [ ]
 
 
-textmode_screen.makeTitle();
-if (titleMode>0){
-	titleSelection=1;
+menu_screen.makeTitle()
+if (menu_screen.nb_items > 1)
+{
+	menu_screen.item = 1 // defaults to 'continue'
 }
 
 canvasResize();
@@ -187,7 +184,6 @@ function goToLevel(i, ...parameters)
 	curlevel = i
 	winning = false
 	timer = 0
-	titleScreen = false
 	quittingMessageScreen = false
 	quittingTitleScreen = false
 	messageselected = false
@@ -268,15 +264,14 @@ function setGameState(_state, command, randomseed)
 			}
 			winning=false;
 			timer=0;
-			titleScreen=true;
 			tryPlaySimpleSound('titlescreen')
-			screen_layout.content = textmode_screen
-			titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-			titleSelected=false;
 			quittingMessageScreen=false;
 			quittingTitleScreen=false;
 			messageselected=false;
-			textmode_screen.makeTitle();
+			screen_layout.content = menu_screen
+			menu_screen.item = (curlevel>0||curlevelTarget!==null) ? 1 : 0
+			menu_screen.selected = false
+			menu_screen.makeTitle();
 			break;
 		}
 		case 'rebuild':
@@ -320,7 +315,7 @@ function setGameState(_state, command, randomseed)
 		clearInputHistory();
 	}
 
-	canvasResize();
+	canvasResize()
 
 	if ( (state.sounds.length == 0) && (state.metadata.youtube == null) )
 	{
@@ -1538,16 +1533,19 @@ function nextLevel() {
 		curlevel=state.levels.length-1;
 	}
 	
-	if (titleScreen) {
-		if (titleSelection===0) {
+	if (screen_layout.content === menu_screen) // TODO: this should not be in this function
+	{
+		if (menu_screen.item === 0)
+		{
 			//new game
-			curlevel=0;
-			curlevelTarget=null;
+			curlevel = 0
+			curlevelTarget = null
 		} 			
-		if (curlevelTarget!==null){			
-			loadLevelFromStateTarget(state,curlevel,curlevelTarget);
+		if (curlevelTarget !== null)
+		{
+			loadLevelFromStateTarget(state, curlevel, curlevelTarget)
 		} else {
-			loadLevelFromState(state,curlevel);
+			loadLevelFromState(state, curlevel)
 		}
 	} else {	
 		if (hasUsedCheckpoint){
@@ -1557,7 +1555,6 @@ function nextLevel() {
 		if (curlevel<(state.levels.length-1))
 		{			
 			curlevel++;
-			titleScreen=false;
 			quittingMessageScreen=false;
 			messageselected=false;
 
@@ -1609,11 +1606,10 @@ function nextLevel() {
 function goToTitleScreen(){
 	againing=false;
 	messagetext="";
-	titleScreen=true;
-	screen_layout.content = textmode_screen
-	doSetupTitleScreenLevelContinue();
-	titleSelection=(curlevel>0||curlevelTarget!==null)?1:0;
-	textmode_screen.makeTitle()
+	screen_layout.content = menu_screen
+	doSetupTitleScreenLevelContinue()
+	menu_screen.item = (curlevel>0||curlevelTarget!==null) ? 1 : 0
+	menu_screen.makeTitle()
 }
 
 
