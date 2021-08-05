@@ -476,7 +476,4 @@ function update()
     }
 }
 
-// Lights, camera…function!
-setInterval(function() {
-    update();
-}, deltatime);
+setInterval(update, deltatime)

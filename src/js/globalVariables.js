@@ -33,7 +33,7 @@ doSetupTitleScreenLevelContinue();
 var verbose_logging=false;
 var throttle_movement=false;
 var cache_console_messages=false;
-var deltatime=17;
+const deltatime = 17
 var timer=0;
 var repeatinterval=150;
 var autotick=0;
