@@ -391,10 +391,6 @@ function parseRuleString(rule, state, curRules)
 		}
 	}
 
-	// if (lhs_cells.length == 0) {
-	// 	logError('This rule refers to nothing.  What the heck? :O', lineNumber);
-	// }
-
 	var rule_line = {
 		lineNumber: lineNumber,
 		groupNumber: groupNumber,

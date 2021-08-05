@@ -1118,7 +1118,6 @@ function compile(command, text, randomseed)
 	try
 	{
 		var state = loadFile(text);
-//		consolePrint(JSON.stringify(state));
 	} finally {
 		compiling = false;
 	}
@@ -1127,15 +1126,8 @@ function compile(command, text, randomseed)
 		logError('No levels found. Add some levels!', undefined, true);
 	}
 
-	if (errorCount>MAX_ERRORS) {
+	if (errorCount>MAX_ERRORS)
 		return;
-	}
-	/*catch(err)
-	{
-		if (anyErrors===false) {
-			logErrorNoLine(err.toString());
-		}
-	}*/
 
 	if (errorCount>0) {
 		consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>');
@@ -1152,7 +1144,6 @@ function compile(command, text, randomseed)
 			consolePrint('<span class="systemMessage">Successful Compilation, generated ' + ruleCount + ' instructions.</span>');
 		} else {
 			consolePrint('<span class="systemMessage">Successful live recompilation, generated ' + ruleCount + ' instructions.</span>');
-
 		}
 	}
 	setGameState(state,command,randomseed);
