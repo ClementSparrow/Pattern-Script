@@ -43,7 +43,8 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		return;
 	}
 	if (leveldat.message===undefined) {
-		titleMode=0;
+		titleMode = 0
+		titleScreen = false
 		screen_layout.content = level_screen
 		level = leveldat.clone();
 		RebuildLevelArrays();
