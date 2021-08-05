@@ -292,7 +292,7 @@ function checkKey(e, justPressed)
 
 TextModeScreen.prototype.checkKey = function(e, inputdir)
 {
-	if ( (state.levels.length === 0)|| (inputdir != 4) )
+	if ( (state.levels.length === 0) || (inputdir != 4) )
 		return false;
 
 	if (unitTesting)
@@ -313,7 +313,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 
 MenuScreen.prototype.checkKey = function(e, inputdir)
 {
-	if ( (state.levels.length === 0)|| (inputdir != 4) | (this.done === true) )
+	if ( (state.levels.length === 0) || (inputdir != 4) || (this.done === true) )
 		return false;
 
 	tryPlaySimpleSound('startgame')
