@@ -53,7 +53,7 @@ function MenuScreen()
 	TextModeScreen.call(this, 'menu')
 	this.nb_items = 1
 	this.item = 0 //which item is currently highlighted/selected
-	this.selected = false //only highlighted. Will be set to true when action key is pressed.
+	this.done = false //only highlighted. Will be set to true when action key is pressed.
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)
 var menu_screen = new MenuScreen()

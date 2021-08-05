@@ -40,7 +40,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		return;
 	}
 	if (leveldat.message===undefined) {
-		menu_screen.nb_items = 1
+		menu_screen.nb_items = 1 // TODO: this should not be here
 		screen_layout.content = level_screen
 		level = leveldat.clone();
 		RebuildLevelArrays();
@@ -185,7 +185,7 @@ function goToLevel(i, ...parameters)
 	winning = false
 	timer = 0
 	quittingMessageScreen = false
-	quittingTitleScreen = false
+	menu_screen.done = false
 	messageselected = false
 	loadLevelFromState(...parameters)
 }
@@ -266,11 +266,10 @@ function setGameState(_state, command, randomseed)
 			timer=0;
 			tryPlaySimpleSound('titlescreen')
 			quittingMessageScreen=false;
-			quittingTitleScreen=false;
 			messageselected=false;
 			screen_layout.content = menu_screen
 			menu_screen.item = (curlevel>0||curlevelTarget!==null) ? 1 : 0
-			menu_screen.selected = false
+			menu_screen.done = false
 			menu_screen.makeTitle();
 			break;
 		}

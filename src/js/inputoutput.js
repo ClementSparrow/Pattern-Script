@@ -252,7 +252,7 @@ function checkKey(e, justPressed)
         {
         	if (screen_layout.content !== menu_screen)
         	{
-        		menu_screen.selected = false
+        		menu_screen.done = false
 				goToTitleScreen()
 		    	tryPlaySimpleSound('titlescreen')
 				canvasResize()
@@ -331,14 +331,13 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 
 MenuScreen.prototype.checkKey = function(e, inputdir)
 {
-	if ( (state.levels.length === 0)|| (inputdir != 4) | (this.selected === true) )
+	if ( (state.levels.length === 0)|| (inputdir != 4) | (this.done === true) )
 		return false;
 
 	tryPlaySimpleSound('startgame')
 	messageselected = false
 	timer = 0
-	quittingTitleScreen = true
-	this.selected = true
+	this.done = true
 	this.makeTitle()
 	if (this.nb_items === 1)
 	{
@@ -410,11 +409,10 @@ function update()
 {
     timer+=deltatime;
     input_throttle_timer+=deltatime;
-    if (quittingTitleScreen) {
-        if (timer/1000>0.3) {
-            quittingTitleScreen=false;
-            nextLevel();
-        }
+    if (menu_screen.done && (timer/1000>0.3) )
+    {
+        menu_screen.done = false
+        nextLevel();
     }
     if (againing) {
         if (timer>againinterval&&messagetext.length==0) {
@@ -445,7 +443,7 @@ function update()
 					screen_layout.content = level_screen
 				}
 				menu_screen.nb_items = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 2 : 1
-				menu_screen.selected = false
+				menu_screen.done = false
 				menu_screen.item = 0
     			canvasResize()
     			checkWin()

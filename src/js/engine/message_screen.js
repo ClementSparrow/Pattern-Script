@@ -72,14 +72,14 @@ MenuScreen.prototype.makeTitle = function()
 	// Add menu options
 	if (this.nb_items == 1)
 	{
-		this.text.push( empty_terminal_line, centerText('# start game #', this.selected ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
+		this.text.push( empty_terminal_line, centerText('# start game #', this.done ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
 	}
 	else
 	{
 		this.text.push(
-			centerText( (this.item == 0) ? '# new game #' : 'new game', (this.selected && (this.item == 0)) ? selected_terminal_line : empty_terminal_line),
+			centerText( (this.item == 0) ? '# new game #' : 'new game', (this.done && (this.item == 0)) ? selected_terminal_line : empty_terminal_line),
 			empty_terminal_line,
-			centerText( (this.item == 1) ? '# continue #' : 'continue', (this.selected && (this.item == 1)) ? selected_terminal_line : empty_terminal_line)
+			centerText( (this.item == 1) ? '# continue #' : 'continue', (this.done && (this.item == 1)) ? selected_terminal_line : empty_terminal_line)
 		)
 	}
 	this.text.push(empty_terminal_line)
