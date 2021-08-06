@@ -42,7 +42,7 @@ MenuScreen.prototype.makeTitle = function()
 		titlelines.splice(max_title_height)
 		logWarning('Game title is too long to fit on screen, truncating to '+max_title_height+' lines.', undefined, true)
 	}
-	this.text.push(...titlelines.map( l => centerText(l) ), ...Array(max_title_height - titlelines.length - 1).fill(empty_terminal_line))
+	this.text.push(...titlelines.map( l => centerText(l) ), ...Array(Math.max(0, max_title_height - titlelines.length - 1)).fill(empty_terminal_line))
 
 	// Add author(s)
 	if (state.metadata.author !== undefined)
