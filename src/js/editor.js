@@ -209,8 +209,7 @@ function tryLoadGist(id)
 function unloadGame()
 {
 	state = introstate
-	level = new Level(0, 5, 5, 2, null)
-	level.objects = new Int32Array(0)
+	level = new Level(0, 5, 5, 2, new Int32Array(0))
 	menu_screen.makeTitle()
 	canvasResize()
 }

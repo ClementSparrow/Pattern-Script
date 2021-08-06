@@ -247,8 +247,7 @@ function levelFromString(state, level)
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	var o = new Level(level[0], level[1].length, level.length-1, state.collisionLayers.length, null);
-	o.objects = new Int32Array(o.width * o.height * STRIDE_OBJ);
+	var o = new Level(level[0], level[1].length, level.length-1, state.collisionLayers.length, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ));
 
 	for (var i = 0; i < o.width; i++)
 	{

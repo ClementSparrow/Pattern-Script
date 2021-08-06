@@ -20,9 +20,7 @@ function Level(lineNumber, width, height, layerCount, objects)
 
 Level.prototype.clone = function()
 {
-	var clone = new Level(this.lineNumber, this.width, this.height, this.layerCount, null);
-	clone.objects = new Int32Array(this.objects);
-	return clone;
+	return new Level(this.lineNumber, this.width, this.height, this.layerCount, new Int32Array(this.objects));
 }
 
 Level.prototype.getCell = function(index)
