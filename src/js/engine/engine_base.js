@@ -13,7 +13,7 @@ const introstate = {
 
 var state = introstate;
 
-var loadedLevelSeed=0;
+var loadedLevelSeed = 0
 
 function loadLevelFromLevelDat(state, leveldat, randomseed)
 {
@@ -73,27 +73,39 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	clearInputHistory();
 }
 
-function loadLevelFromStateTarget(state,levelindex,target,randomseed) {	
-	var leveldat = target;    
-	curlevel=levelindex;
-	curlevelTarget=target;
-	if (leveldat.message===undefined) {
+function loadLevelFromState(state, levelindex, target, randomseed)
+{
+	if (target === undefined) taget = null
+	const leveldat = (target === null) ? state.levels[levelindex] : target
+	curlevel = levelindex
+	curlevelTarget = target
+	if ( (leveldat !== undefined) && (leveldat.message === undefined) )
+	{
 		tryPlaySimpleSound('startlevel')
 	}
-	loadLevelFromLevelDat(state,state.levels[levelindex],randomseed);
-	restoreLevel(target);
-	restartTarget=target;
+	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
+	if (target !== null)
+	{
+		restoreLevel(target)
+		restartTarget = target
+	}
 }
 
-function loadLevelFromState(state,levelindex,randomseed) {	
-	var leveldat = state.levels[levelindex];    
-	curlevel=levelindex;
-	curlevelTarget=null;
-	if (leveldat!==undefined && leveldat.message===undefined) {
-		tryPlaySimpleSound('startlevel')
-	}
-	loadLevelFromLevelDat(state,leveldat,randomseed);
+function goToLevel(i, state, levelindex, target, randomseed)
+{
+	curlevel = i
+	winning = false
+	timer = 0
+	menu_screen.done = false
+	msg_screen.done = false
+	loadLevelFromState(state, levelindex, target, randomseed)
 }
+
+
+
+
+
+
 
 var sprites = [ ]
 
@@ -165,16 +177,6 @@ function tryActivateYoutube(){
 			document.body.appendChild(ifrm);
 		}
 	}
-}
-
-function goToLevel(i, ...parameters)
-{
-	curlevel = i
-	winning = false
-	timer = 0
-	menu_screen.done = false
-	msg_screen.done = false
-	loadLevelFromState(...parameters)
 }
 
 function setGameState(_state, command, randomseed)
@@ -271,14 +273,14 @@ function setGameState(_state, command, randomseed)
 				if (state.levels[i].hasOwnProperty("message")){
 					continue;
 				}
-				goToLevel(i, state, i, randomseed)
+				goToLevel(i, state, i, null, randomseed)
 				break;
 			}
 			break;	
 		}
 		case 'loadLevel':
 		{
-			goToLevel(i, state, command[1], randomseed)
+			goToLevel(i, state, command[1], null, randomseed)
 			break;
 		}
 		case 'levelline':
@@ -1524,7 +1526,7 @@ function nextLevel() {
 		} 			
 		if (curlevelTarget !== null)
 		{
-			loadLevelFromStateTarget(state, curlevel, curlevelTarget)
+			loadLevelFromState(state, curlevel, curlevelTarget)
 		} else {
 			loadLevelFromState(state, curlevel)
 		}
@@ -1539,9 +1541,9 @@ function nextLevel() {
 			msg_screen.done = false
 
 			if (curlevelTarget!==null){			
-				loadLevelFromStateTarget(state,curlevel,curlevelTarget);
+				loadLevelFromState(state, curlevel, curlevelTarget)
 			} else {
-				loadLevelFromState(state,curlevel);
+				loadLevelFromState(state, curlevel)
 			}
 		} else {
 			try{
