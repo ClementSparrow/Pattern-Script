@@ -82,8 +82,8 @@ var glyphHighlightResize;
 var glyphPrintButton;
 var glyphMouseOver;
 
+
 // uses state.glyphDict and state.identifiers
-// function generateGlyphImages()
 LevelEditorScreen.prototype.regenResources = function(magnification)
 {
 	if (magnification === 0)
@@ -388,17 +388,16 @@ function selectText(containerid,e)
 	}
 }
 
+// find mask with closest match
 function matchGlyph(inputmask, glyphAndMask)
 {
-	// find mask with closest match
 	var highestbitcount=-1;
 	var highestmask;
-	for (var i=0; i<glyphAndMask.length; ++i) {
-		var glyphname = glyphAndMask[i][0];
-		var glyphmask = glyphAndMask[i][1];
-		var glyphbits = glyphAndMask[i][2];
+	for (const [glyphname, glyphmask, glyphbits] of glyphAndMask)
+	{
 		//require all bits of glyph to be in input
-		if (glyphmask.bitsSetInArray(inputmask.data)) {
+		if (glyphmask.bitsSetInArray(inputmask.data))
+		{
 			var bitcount = 0;
 			for (var bit=0;bit<32*STRIDE_OBJ;++bit) {
 				if (glyphbits.get(bit) && inputmask.get(bit))
@@ -429,7 +428,7 @@ const htmlEntityMap = {
 	"/": '&#x2F;'
 };
 
-var selectableint  = 0;
+var selectableint = 0
 
 function printLevel()
 {
@@ -439,7 +438,6 @@ function printLevel()
 		const glyphName = state.identifiers.names[identifier_index];
 		if ( (glyphName.length === 1) && [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
 		{
-			// var glyph = state.glyphDict[glyphName];
 			var glyphmask = makeMaskFromGlyph(glyph);
 			var glyphbits = glyphmask.clone();
 			//register the same - backgroundmask with the same name
@@ -449,13 +447,12 @@ function printLevel()
 		}
 	}
 	selectableint++;
-	var tag = 'selectable'+selectableint;
+	const tag = 'selectable'+selectableint;
 	var output="Printing level contents:<br><br><span id=\""+tag+"\" onclick=\"selectText('"+tag+"',event)\">";
 	for (var j=0;j<level.height;j++) {
 		for (var i=0;i<level.width;i++) {
-			var cellIndex = j+i*level.height;
-			var cellMask = level.getCell(cellIndex);
-			var glyph = matchGlyph(cellMask,glyphMasks);
+			const cellMask = level.getCell(j + i*level.height)
+			var glyph = matchGlyph(cellMask, glyphMasks);
 			if (glyph in htmlEntityMap) {
 				glyph = htmlEntityMap[glyph]; 
 			}
@@ -466,7 +463,7 @@ function printLevel()
 		}
 	}
 	output+="</span><br><br>"
-	consolePrint(output,true);
+	consolePrint(output, true)
 }
 
 
@@ -608,12 +605,12 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 
 LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 {	
-	// TODO: [ClementSparrow] This doesn't make sense to me... shouldn't it be the same code than in levelEditorClick?
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
-		glyphSelectedIndex = mouseCoordX;
-		redraw();
-		return;
+		// TODO: shouldn't this be the same code than in levelEditorClick?
+		glyphSelectedIndex = this.hovered_glyph_index
+		redraw()
+		return
 	}
 
 	if (this.hovered_level_cell !== null)
