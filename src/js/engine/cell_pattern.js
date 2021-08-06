@@ -101,11 +101,10 @@ var _o1,_o2,_o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
 var _m1,_m2,_m3;
 
 CellPattern.prototype.replace = function(rule, currentIndex) {
-	var replace = this.replacement;
+	var replace = this.replacement; // TODO: this function only uses 'this' here, so it should probably be a method of CellReplacement, applied on a static clone of this.replacement
 
-	if (replace === null) {
+	if (replace === null)
 		return false;
-	}
 
 	const replace_RandomEntityMask = replace.randomEntityMask;
 	const replace_RandomDirMask = replace.randomDirMask;
@@ -174,32 +173,27 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 		}
 	}
 
-	var result = false;
-
 	//check if it's changed
-	if (!oldCellMask.equals(curCellMask) || !oldMovementMask.equals(curMovementMask) || rigidchange) { 
-		result=true;
-		if (rigidchange) {
-			level.rigidGroupIndexMask[currentIndex] = curRigidGroupIndexMask;
-			level.rigidMovementAppliedMask[currentIndex] = curRigidMovementAppliedMask;
-		}
+	if ( ( ! rigidchange) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
+		return false
 
-		var created = curCellMask.cloneInto(_o4);
-		created.iclear(oldCellMask);
-		sfxCreateMask.ior(created);
-		var destroyed = oldCellMask.cloneInto(_o5);
-		destroyed.iclear(curCellMask);
-		sfxDestroyMask.ior(destroyed);
-
-		level.setCell(currentIndex, curCellMask);
-		level.setMovements(currentIndex, curMovementMask);
-
-		var colIndex=(currentIndex/level.height)|0;
-		var rowIndex=(currentIndex%level.height);
-		level.colCellContents[colIndex].ior(curCellMask);
-		level.rowCellContents[rowIndex].ior(curCellMask);
-		level.mapCellContents.ior(curCellMask);
+	if (rigidchange) {
+		level.rigidGroupIndexMask[currentIndex] = curRigidGroupIndexMask;
+		level.rigidMovementAppliedMask[currentIndex] = curRigidMovementAppliedMask;
 	}
 
-	return result;
+	var created = curCellMask.cloneInto(_o4);
+	created.iclear(oldCellMask);
+	sfxCreateMask.ior(created);
+	var destroyed = oldCellMask.cloneInto(_o5);
+	destroyed.iclear(curCellMask);
+	sfxDestroyMask.ior(destroyed);
+
+	level.setCell(currentIndex, curCellMask);
+	level.setMovements(currentIndex, curMovementMask);
+
+	level.colCellContents[ (currentIndex/level.height)|0 ].ior(curCellMask);
+	level.rowCellContents[ (currentIndex%level.height) ].ior(curCellMask);
+	level.mapCellContents.ior(curCellMask);
+	return true
 }
