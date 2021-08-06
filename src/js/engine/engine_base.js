@@ -1,4 +1,16 @@
 
+var sprites = [ ]
+
+
+menu_screen.makeTitle()
+if (menu_screen.nb_items > 1)
+{
+	menu_screen.item = 1 // defaults to 'continue'
+}
+
+canvasResize()
+
+
 var RandomGen = new RNG();
 
 const introstate = {
@@ -12,6 +24,20 @@ const introstate = {
 }
 
 var state = introstate;
+
+function tryPlaySimpleSound(soundname)
+{
+	if (state.sfx_Events[soundname] !== undefined)
+	{
+		playSound(state.sfx_Events[soundname])
+	}
+}
+
+
+
+
+// LOADING LEVELS
+// ==============
 
 var loadedLevelSeed = 0
 
@@ -106,26 +132,6 @@ function goToLevel(i, state, levelindex, target, randomseed)
 
 
 
-
-var sprites = [ ]
-
-
-menu_screen.makeTitle()
-if (menu_screen.nb_items > 1)
-{
-	menu_screen.item = 1 // defaults to 'continue'
-}
-
-canvasResize();
-
-function tryPlaySimpleSound(soundname)
-{
-	if (state.sfx_Events[soundname] !== undefined)
-	{
-		playSound(state.sfx_Events[soundname])
-	}
-}
-
 var backups=[];
 var restartTarget;
 
@@ -209,6 +215,7 @@ function setGameState(_state, command, randomseed)
 	if (command[0]!=="rebuild"){
 		backups=[];
 	}
+
 	//set sprites
 	sprites = [];
 	for (var object of state.identifiers.objects)
@@ -218,6 +225,7 @@ function setGameState(_state, command, randomseed)
 			dat: object.spritematrix
 		}
 	}
+
 	if (state.metadata.realtime_interval!==undefined) {
 		autotick=0;
 		autotickinterval=state.metadata.realtime_interval*1000;
