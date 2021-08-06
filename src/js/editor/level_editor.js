@@ -280,82 +280,83 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 // CHANGE LEVEL'S SIZE
 // ===================
 
-function adjustLevel(level, widthdelta, heightdelta)
+// TODO: the new Level function should be in a new file named editor/level.js
+Level.prototype.adjust = function(widthdelta, heightdelta)
 {
 	backups.push(backupLevel());
-	var oldlevel = level.clone();
-	level.width += widthdelta;
-	level.height += heightdelta;
-	level.n_tiles = level.width * level.height;
-	level.objects = new Int32Array(level.n_tiles * STRIDE_OBJ);
+	const oldlevel = this.clone();
+	this.width += widthdelta;
+	this.height += heightdelta;
+	this.n_tiles = this.width * this.height;
+	this.objects = new Int32Array(this.n_tiles * STRIDE_OBJ);
 	var bgMask = new BitVec(STRIDE_OBJ);
 	bgMask.ibitset(state.backgroundid);
-	for (var i=0; i<level.n_tiles; ++i) 
-		level.setCell(i, bgMask);
-	level.movements = new Int32Array(level.objects.length);
-	RebuildLevelArrays();
+	for (var i=0; i<this.n_tiles; ++i) 
+		this.setCell(i, bgMask);
+	this.movements = new Int32Array(this.objects.length);
+	this.rebuildArrays();
 	return oldlevel;
 }
 
-function copyLevelRegion(oldlevel, level, dx, dy)
+Level.prototype.copyRegion = function(oldlevel, dx, dy)
 {
 	const xmin = Math.max(0, dx) // x >= 0 and x-dx >= 0
-	const xmax = Math.min(level.width, oldlevel.width+dx) // x < level.width and x-dx < oldlevel.width
+	const xmax = Math.min(this.width, oldlevel.width+dx) // x < this.width and x-dx < oldlevel.width
 	const ymin = Math.max(0, dy) // y >= 0 and y-dy >= 0
-	const ymax = Math.min(level.height, oldlevel.height+dy) // y < level.height and y-dy < oldlevel.height
+	const ymax = Math.min(this.height, oldlevel.height+dy) // y < this.height and y-dy < oldlevel.height
 	for (var x=xmin; x<xmax; ++x)
 	{
 		for (var y=ymin; y<ymax; ++y)
 		{
-			const index = x*level.height + y;
+			const index = x*this.height + y;
 			const old_index = (x-dx)*oldlevel.height + y-dy
-			level.setCell(index, oldlevel.getCell(old_index))
+			this.setCell(index, oldlevel.getCell(old_index))
 		}
 	}
 }
 
 function addLeftColumn()
 {
-	copyLevelRegion(adjustLevel(level, 1, 0), level, 1, 0)
+	level.copyRegion(level.adjust(1, 0), 1, 0)
 }
 
 function addRightColumn()
 {
-	copyLevelRegion(adjustLevel(level, 1, 0), level, 0, 0)
+	level.copyRegion(level.adjust(1, 0), 0, 0)
 }
 
 function addTopRow()
 {
-	copyLevelRegion(adjustLevel(level, 0, 1), level, 0, 1)
+	level.copyRegion(level.adjust(0, 1), 0, 1)
 }
 
 function addBottomRow()
 {
-	copyLevelRegion(adjustLevel(level, 0, 1), level, 0, 0)
+	level.copyRegion(level.adjust(0, 1), 0, 0)
 }
 
 function removeLeftColumn()
 {
 	if (level.width > 1)
-		copyLevelRegion(adjustLevel(level, -1, 0), level, -1, 0)
+		level.copyRegion(level.adjust(-1, 0), -1, 0)
 }
 
 function removeRightColumn()
 {
 	if (level.width > 1)
-		copyLevelRegion(adjustLevel(level, -1, 0), level, 0, 0)
+		level.copyRegion(level.adjust(-1, 0), 0, 0)
 }
 
 function removeTopRow()
 {
 	if (level.height > 1)
-		copyLevelRegion(adjustLevel(level, 0, -1), level, 0, -1)
+		level.copyRegion(level.adjust(0, -1), 0, -1)
 }
 
 function removeBottomRow()
 {
 	if (level.height > 1)
-		copyLevelRegion(adjustLevel(level, 0, -1), level, 0, 0)
+		level.copyRegion(level.adjust(0, -1), 0, 0)
 }
 
 

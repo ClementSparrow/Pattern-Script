@@ -58,7 +58,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		menu_screen.nb_items = 1 // TODO: this should not be here
 		screen_layout.content = level_screen
 		level = leveldat.clone();
-		RebuildLevelArrays();
+		level.rebuildArrays();
 
 
 		if (state!==undefined) {
@@ -111,7 +111,7 @@ function loadLevelFromState(state, levelindex, target, randomseed)
 	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
 	if (target !== null)
 	{
-		restoreLevel(target)
+		level.restore(target)
 		restartTarget = target
 	}
 }
@@ -322,85 +322,8 @@ function setGameState(_state, command, randomseed)
 // MORE LEVEL STUFF
 // ================
 
-function RebuildLevelArrays() {
-	level.movements = new Int32Array(level.n_tiles * STRIDE_MOV);
-
-	level.rigidMovementAppliedMask = [];
-	level.rigidGroupIndexMask = [];
-	level.rowCellContents = [];
-	level.colCellContents = [];
-	level.mapCellContents = new BitVec(STRIDE_OBJ);
-	_movementVecs = [new BitVec(STRIDE_MOV),new BitVec(STRIDE_MOV),new BitVec(STRIDE_MOV)];
-
-	_o1 = new BitVec(STRIDE_OBJ);
-	_o2 = new BitVec(STRIDE_OBJ);
-	_o2_5 = new BitVec(STRIDE_OBJ);
-	_o3 = new BitVec(STRIDE_OBJ);
-	_o4 = new BitVec(STRIDE_OBJ);
-	_o5 = new BitVec(STRIDE_OBJ);
-	_o6 = new BitVec(STRIDE_OBJ);
-	_o7 = new BitVec(STRIDE_OBJ);
-	_o8 = new BitVec(STRIDE_OBJ);
-	_o9 = new BitVec(STRIDE_OBJ);
-	_o10 = new BitVec(STRIDE_OBJ);
-	_o11 = new BitVec(STRIDE_OBJ);
-	_o12 = new BitVec(STRIDE_OBJ);
-	_m1 = new BitVec(STRIDE_MOV);
-	_m2 = new BitVec(STRIDE_MOV);
-	_m3 = new BitVec(STRIDE_MOV);
-	
-
-	for (var i=0;i<level.height;i++) {
-		level.rowCellContents[i]=new BitVec(STRIDE_OBJ);	    	
-	}
-	for (var i=0;i<level.width;i++) {
-		level.colCellContents[i]=new BitVec(STRIDE_OBJ);	    	
-	}
-
-	for (var i=0;i<level.n_tiles;i++)
-	{
-		level.rigidMovementAppliedMask[i]=new BitVec(STRIDE_MOV);
-		level.rigidGroupIndexMask[i]=new BitVec(STRIDE_MOV);
-	}
-}
 
 var messagetext=""; // the text of a message command appearing in a rule only (not messages in LEVEL section !)
-function restoreLevel(lev) {
-	oldflickscreendat=lev.oldflickscreendat.concat([]);
-
-	level.objects = new Int32Array(lev.dat);
-
-	if (level.width !== lev.width || level.height !== lev.height) {
-		level.width = lev.width;
-		level.height = lev.height;
-		level.n_tiles = lev.width * lev.height;
-		RebuildLevelArrays();
-		//regenerate all other stride-related stuff
-	}
-	else 
-	{
-	// layercount doesn't change
-
-		for (var i=0;i<level.n_tiles;i++) {
-			level.movements[i]=0;
-			level.rigidMovementAppliedMask[i]=0;
-			level.rigidGroupIndexMask[i]=0;
-		}	
-
-		for (var i=0;i<level.height;i++) {
-			var rcc = level.rowCellContents[i];
-			rcc.setZero();
-		}
-		for (var i=0;i<level.width;i++) {
-			var ccc = level.colCellContents[i];
-			ccc.setZero();
-		}
-	}
-
-	againing=false;
-	level.commandQueue=[];
-	level.commandQueueSourceRules=[];
-}
 
 function DoRestart(force) {
 	if (restarting===true){
@@ -419,7 +342,7 @@ function DoRestart(force) {
 		consolePrint("--- restarting ---",true);
 	}
 
-	restoreLevel(restartTarget);
+	level.restore(restartTarget);
 	tryPlaySimpleSound('restart')
 
 	if ('run_rules_on_level_start' in state.metadata) {
@@ -458,9 +381,9 @@ function DoUndo(force, ignoreDuplicates)
 		}
 	}
 
-	if (backups.length>0) {
-		var torestore = backups[backups.length-1];
-		restoreLevel(torestore);
+	if (backups.length > 0)
+	{
+		level.restore(backups[backups.length-1]);
 		backups = backups.splice(0,backups.length-1);
 		if (! force) {
 			tryPlaySimpleSound('undo')
