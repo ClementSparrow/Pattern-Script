@@ -1,16 +1,6 @@
 
 var sprites = [ ]
 
-
-menu_screen.makeTitle()
-if (menu_screen.nb_items > 1)
-{
-	menu_screen.item = 1 // defaults to 'continue'
-}
-
-canvasResize()
-
-
 var RandomGen = new RNG();
 
 const introstate = {
@@ -24,6 +14,15 @@ const introstate = {
 }
 
 var state = introstate;
+
+menu_screen.makeTitle()
+if (menu_screen.nb_items > 1)
+{
+	menu_screen.item = 1 // defaults to 'continue'
+}
+
+canvasResize()
+
 
 function tryPlaySimpleSound(soundname)
 {
@@ -101,7 +100,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 function loadLevelFromState(state, levelindex, target, randomseed)
 {
-	if (target === undefined) taget = null
+	if (target === undefined) { target = null }
 	const leveldat = (target === null) ? state.levels[levelindex] : target
 	curlevel = levelindex
 	curlevelTarget = target
