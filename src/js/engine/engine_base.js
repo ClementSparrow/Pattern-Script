@@ -129,7 +129,8 @@ function goToLevel(i, state, levelindex, target, randomseed)
 
 
 
-
+// Backup levels
+// =============
 
 var backups=[];
 var restartTarget;
@@ -152,6 +153,9 @@ function level4Serialization() {
 	};
 }
 
+
+// Youtube
+// =======
 
 function tryDeactivateYoutube(){
 	var youtubeFrame = document.getElementById("youtubeFrame");
@@ -184,6 +188,11 @@ function tryActivateYoutube(){
 	}
 }
 
+
+// GAME STATE
+// ==========
+
+// Only called at the end of compile()
 function setGameState(_state, command, randomseed)
 {
 	oldflickscreendat=[];
@@ -225,29 +234,16 @@ function setGameState(_state, command, randomseed)
 		}
 	}
 
-	if (state.metadata.realtime_interval!==undefined) {
-		autotick=0;
-		autotickinterval=state.metadata.realtime_interval*1000;
-	} else {
-		autotick=0;
-		autotickinterval=0;
-	}
+	autotick = 0
+	autotickinterval = (state.metadata.realtime_interval !== undefined) ? state.metadata.realtime_interval*1000 : 0
+	repeatinterval = (state.metadata.key_repeat_interval !== undefined) ? state.metadata.key_repeat_interval*1000 : 150
+	againinterval = (state.metadata.again_interval !== undefined) ? state.metadata.again_interval*1000 : 150
 
-	if (state.metadata.key_repeat_interval!==undefined) {
-		repeatinterval=state.metadata.key_repeat_interval*1000;
-	} else {
-		repeatinterval=150;
-	}
-
-	if (state.metadata.again_interval!==undefined) {
-		againinterval=state.metadata.again_interval*1000;
-	} else {
-		againinterval=150;
-	}
-	if (throttle_movement && autotickinterval===0) {
+	if ( throttle_movement && (autotickinterval === 0) )
+	{
 		logWarning("throttle_movement is designed for use in conjunction with realtime_interval. Using it in other situations makes games gross and unresponsive, broadly speaking.  Please don't.");
 	}
-	norepeat_action = state.metadata.norepeat_action!==undefined;
+	norepeat_action = (state.metadata.norepeat_action !== undefined)
 	
 	switch(command[0])
 	{
@@ -321,6 +317,10 @@ function setGameState(_state, command, randomseed)
 	}
 	
 }
+
+
+// MORE LEVEL STUFF
+// ================
 
 function RebuildLevelArrays() {
 	level.movements = new Int32Array(level.n_tiles * STRIDE_MOV);
@@ -1597,7 +1597,7 @@ function goToTitleScreen(){
 	messagetext="";
 	screen_layout.content = menu_screen
 	doSetupTitleScreenLevelContinue()
-	menu_screen.item = (curlevel>0||curlevelTarget!==null) ? 1 : 0
+	menu_screen.item = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
 	menu_screen.makeTitle()
 }
 
