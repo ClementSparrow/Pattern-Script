@@ -31,9 +31,25 @@ Level.prototype.getCell = function(index)
 Level.prototype.getCellInto = function(index, targetarray)
 {
 	for (var i=0;i<STRIDE_OBJ;i++) {
-		targetarray.data[i] = this.objects[index*STRIDE_OBJ+i];	
+		targetarray.data[i] = this.objects[index*STRIDE_OBJ+i];
 	}
 	return targetarray;
+}
+
+Level.prototype.mapCellObjects = function(index, func)
+{
+	for (var i=0; i<STRIDE_OBJ; i++)
+	{
+		var bits = this.objects[index*STRIDE_OBJ+i]
+		for (k=0; bits != 0; k++)
+		{
+			if (bits & 1)
+			{
+				func(i*32+k)
+			}
+			bits >>>= 1
+		}
+	}
 }
 
 Level.prototype.setCell = function(index, vec)
@@ -94,7 +110,6 @@ Level.prototype.rebuildArrays = function()
 	_o9 = new BitVec(STRIDE_OBJ);
 	_o10 = new BitVec(STRIDE_OBJ);
 	_o11 = new BitVec(STRIDE_OBJ);
-	_o12 = new BitVec(STRIDE_OBJ);
 	_m1 = new BitVec(STRIDE_MOV);
 	_m2 = new BitVec(STRIDE_MOV);
 	_m3 = new BitVec(STRIDE_MOV);

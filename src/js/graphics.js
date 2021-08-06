@@ -113,14 +113,9 @@ LevelScreen.prototype.redraw = function(magnification)
 	{
 		for (var j = minj; j < maxj; j++)
 		{
-			const posMask = level.getCellInto(j + i*level.height, _o12);
-			for (var k = 0; k < state.objectCount; k++)
-			{
-				if (posMask.get(k) != 0)
-				{
-					ctx.drawImage(this.spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
-				}
-			}
+			level.mapCellObjects( j + i*level.height,
+				k => ctx.drawImage(this.spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
+			)
 		}
 	}
 }

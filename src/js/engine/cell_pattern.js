@@ -97,7 +97,7 @@ CellPattern.prototype.toJSON = function() {
 	];
 };
 
-var _o1,_o2,_o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11,_o12;
+var _o1,_o2,_o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
 var _m1,_m2,_m3;
 
 CellPattern.prototype.replace = function(rule, currentIndex) {

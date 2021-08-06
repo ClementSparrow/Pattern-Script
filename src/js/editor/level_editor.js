@@ -238,8 +238,8 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 	// prepare tooltip: content of a level's cell
 	else if ( this.hovered_level_cell !== null )
 	{
-		const posMask = level.getCellInto((this.hovered_level_cell[3]+minj) + (this.hovered_level_cell[2]+mini)*level.height, _o12);
-		tooltip_objects = state.idDict.filter( (x,k) => (posMask.get(k) != 0) )
+		tooltip_objects = []
+		level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*level.height, k => tooltip_objects.push(state.idDict[k]) )
 	}
 	// prepare tooltip: object names
 	if (tooltip_objects !== null)
