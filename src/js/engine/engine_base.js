@@ -67,9 +67,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 			runrulesonlevelstart_phase=false;
 		}
 	} else {
-		tryPlaySimpleSound('showmessage')
-		msg_screen.doMessage();
-		canvasResize();
+		showTempMessage()
 	}
 
 	clearInputHistory();
@@ -934,9 +932,7 @@ function restorePreservationState(preservationState) {;
 
 function showTempMessage()
 {
-	keybuffer = []
 	tryPlaySimpleSound('showmessage')
-	msg_screen.done = false
 	msg_screen.doMessage()
 	canvasResize()
 }
@@ -953,7 +949,9 @@ function processOutputCommands(commands)
 		{
 			if (command === 'message')
 			{
-				showTempMessage();
+				keybuffer = []
+				msg_screen.done = false
+				showTempMessage()
 			}
 		}
 	}
@@ -1228,8 +1226,7 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 			if (somemoved===false) {
 				if (verbose_logging){
-					consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.');
-					consoleCacheDump();
+					consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true)
 				}
 				backups.push(bak);
 				DoUndo(true,false);
@@ -1241,10 +1238,9 @@ function processInput(dir, dontDoWin, dontModify)
 
 
 		if (level.commandQueue.indexOf('cancel')>=0) {
-			if (verbose_logging) { 
-				consoleCacheDump();
+			if (verbose_logging) {
 				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('cancel')];
-				consolePrintFromRule('CANCEL command executed, cancelling turn.',r,true);
+				consolePrintFromRule('CANCEL command executed, cancelling turn.', r, true)
 			}
 			processOutputCommands(level.commandQueue);
 			backups.push(bak);
@@ -1257,8 +1253,7 @@ function processInput(dir, dontDoWin, dontModify)
 		if (level.commandQueue.indexOf('restart')>=0) {
 			if (verbose_logging) { 
 				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('restart')];
-				consolePrintFromRule('RESTART command executed, reverting to restart state.',r);
-				consoleCacheDump();
+				consolePrintFromRule('RESTART command executed, reverting to restart state.', r, true)
 			}
 			processOutputCommands(level.commandQueue);
 			backups.push(bak);

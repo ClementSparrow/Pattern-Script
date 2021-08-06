@@ -28,35 +28,21 @@ function jumpToLine(i) {
 var consolecache = [];
 
 
-function consolePrintFromRule(text,rule,urgent) {
-
-	if (urgent===undefined) {
-		urgent=false;
-	}
-
-
-	var ruleDirection = dirMaskName[rule.direction];
-
-	var logString = '<font color="green">Rule <a onclick="jumpToLine(' + rule.lineNumber + ');"  href="javascript:void(0);">' + 
-			rule.lineNumber + '</a> ' + ruleDirection + " : "  + text + '</font>';
-
-	if (cache_console_messages&&urgent==false) {		
-		consolecache.push(logString);
-	} else {
-		addToConsole(logString);
-	}
+function consolePrintFromRule(text, rule, urgent)
+{
+	consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + ' ' + dirMaskName[rule.direction] + ": "  + text + '</font>', urgent)
 }
 
-function consolePrint(text,urgent) {
-
-	if (urgent===undefined) {
-		urgent=false;
+function consolePrint(text, urgent = ! cache_console_messages)
+{
+	if (urgent)
+	{
+		consoleCacheDump()
+		addToConsole(text)
 	}
-	if (cache_console_messages&&urgent==false) {		
-		consolecache.push(text);
-	} else {
-		consoleCacheDump();
-		addToConsole(text);
+	else
+	{
+		consolecache.push(text)
 	}
 }
 
