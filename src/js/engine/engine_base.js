@@ -604,32 +604,33 @@ function applyRandomRuleGroup(ruleGroup)
 	return modified
 }
 
-function applyRuleGroup(ruleGroup) {
-	if (ruleGroup[0].isRandom) {
-		return applyRandomRuleGroup(ruleGroup);
-	}
+const max_loop_count = 200
 
-	var loopPropagated=false;
-	var propagated=true;
-	var loopcount=0;
-	while(propagated) {
-		loopcount++;
-		if (loopcount>200) 
+function applyRuleGroup(ruleGroup)
+{
+	if (ruleGroup[0].isRandom)
+		return applyRandomRuleGroup(ruleGroup)
+
+	var loopPropagated = false
+	var propagated = true
+	var loopcount = 0
+	while (propagated)
+	{
+		loopcount++
+		if (loopcount > max_loop_count)
 		{
-			logErrorCacheable("Got caught looping lots in a rule group :O",ruleGroup[0].lineNumber,true);
-			break;
+			logErrorCacheable("Got caught looping lots in a rule group :O", ruleGroup[0].lineNumber, true)
+			break
 		}
-		propagated=false;
-		for (var ruleIndex=0;ruleIndex<ruleGroup.length;ruleIndex++) {
-			var rule = ruleGroup[ruleIndex];            
-			propagated = rule.tryApply() || propagated;
+		propagated = false
+		for (var rule of ruleGroup)
+		{
+			propagated |= rule.tryApply()
 		}
-		if (propagated) {
-			loopPropagated=true;
-		}
+		loopPropagated |= propagated
 	}
 
-	return loopPropagated;
+	return loopPropagated
 }
 
 function applyRules(rules, loopPoint, startRuleGroupindex, bannedGroup){
