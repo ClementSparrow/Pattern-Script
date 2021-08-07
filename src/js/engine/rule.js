@@ -237,14 +237,11 @@ function DoesCellRowMatch(delta_index, cellRow, start_cell_index)
 	return true
 }
 
-Rule.prototype.applyAt = function(delta, tuple, check)
+Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(this.direction))
 {
-	//have to double check they apply
-	//Q: why?
+	//have to double check they apply because the first check only tested individual cell rows and called this function for all possible tuples, but the application of one rule can invalidate the next ones
 	if (check)
 	{
-		const [dx, dy] = dirMasksDelta[this.direction]
-		const delta_index = dx*level.height + dy
 		for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 		{
 			if (this.isEllipsis[cellRowIndex]) //if ellipsis
@@ -261,7 +258,6 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 	var result=false;
 	
 	//APPLY THE RULE
-	const d = delta[0]*level.height + delta[1];
 	for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 	{
 		var preRow = this.patterns[cellRowIndex];
@@ -272,11 +268,11 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 			if (preCell === ellipsisPattern)
 			{
 				var k = tuple[cellRowIndex][1];
-				currentIndex += d*k
+				currentIndex += delta_index*k
 				continue;
 			}
 			result = preCell.replace(this, currentIndex) || result;
-			currentIndex += d;
+			currentIndex += delta_index
 		}
 	}
 
@@ -292,7 +288,7 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 	return result
 }
 
-function generateTuples(lists)
+function generateTuples(lists) // returns all the possible tuples that can be formed by taking a first value in the first tuple of lists, a second value in the second tuple, etc.
 {
 	var tuples = [ [] ]
 
@@ -311,31 +307,29 @@ function generateTuples(lists)
 	return tuples
 }
 
-Rule.prototype.tryApply = function() {
-	var delta = dirMasksDelta[this.direction];
+Rule.prototype.tryApply = function()
+{
+	const delta = level.delta_index(this.direction)
 
 	//get all cellrow matches
-	var matches = this.findMatches();
-	if (matches.length===0) {
-		return false;
-	}
+	const matches = this.findMatches()
+	if (matches.length === 0)
+		return false
 
-	var result=false;	
-	if (this.hasReplacements) {
-		var tuples = generateTuples(matches);
-		for (var tupleIndex=0;tupleIndex<tuples.length;tupleIndex++) {
-			var tuple = tuples[tupleIndex];
-			var shouldCheck=tupleIndex>0;
-			var success = this.applyAt(delta,tuple,shouldCheck);
-			result = success || result;
+	var result = false
+	if (this.hasReplacements)
+	{
+		var chk = false
+		for (const tuple of generateTuples(matches))
+		{
+			result = this.applyAt(tuple, chk, delta) || result
+			chk = true
 		}
 	}
 
-	if (matches.length>0) {
-		this.queueCommands();
-	}
-	return result;
-};
+	this.queueCommands()
+	return result
+}
 
 Rule.prototype.queueCommands = function() {
 	var commands = this.commands;

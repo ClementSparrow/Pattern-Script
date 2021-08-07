@@ -174,3 +174,9 @@ Level.prototype.restore = function(lev)
 	this.commandQueue=[];
 	this.commandQueueSourceRules=[];
 }
+
+Level.prototype.delta_index = function(direction)
+{
+	const [dx, dy] = dirMasksDelta[direction]
+	return dx*level.height + dy
+}

@@ -701,10 +701,9 @@ function applyRandomRuleGroup(ruleGroup) {
 	var match = matches[Math.floor(RandomGen.uniform()*matches.length)];
 	var ruleIndex=match[0];
 	var rule=ruleGroup[ruleIndex];
-	var delta = dirMasksDelta[rule.direction];
 	var tuple=match[1];
 	var check=false;
-	var modified = rule.applyAt(delta,tuple,check);
+	var modified = rule.applyAt(tuple, check)
 
 	rule.queueCommands();
 
