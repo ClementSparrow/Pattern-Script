@@ -388,26 +388,24 @@ Rule.prototype.tryApply = function()
 	return result
 }
 
-Rule.prototype.queueCommands = function() {
-	var commands = this.commands;
-	for(var i=0;i<commands.length;i++) {
-		var command=commands[i];
-		var already=false;
-		if (level.commandQueue.indexOf(command[0])>=0) {
-			continue;
-		}
-		level.commandQueue.push(command[0]);
-		level.commandQueueSourceRules.push(this);
+Rule.prototype.queueCommands = function()
+{
+	for(const command of this.commands)
+	{
+		if (level.commandQueue.indexOf(command[0]) >= 0)
+			continue
 
-		if (verbose_logging){
-			var lineNumber = this.lineNumber;
-			var ruleDirection = dirMaskName[this.direction];
-			var logString = '<font color="green">Rule <a onclick="jumpToLine(' + lineNumber.toString() + ');"  href="javascript:void(0);">' + lineNumber.toString() + '</a> triggers command '+command[0]+'.</font>';
-			consolePrint(logString,true);
+		level.commandQueue.push(command[0])
+		level.commandQueueSourceRules.push(this)
+
+		if (verbose_logging)
+		{
+			consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + ' triggers command ' + command[0] + '.</font>', true)
 		}
 
-		if (command[0]==='message') {			
-			messagetext=command[1];
-		}		
+		if (command[0] === 'message')
+		{
+			messagetext = command[1]
+		}
 	}
 }
