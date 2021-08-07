@@ -292,6 +292,25 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 	return result
 }
 
+function generateTuples(lists)
+{
+	var tuples = [ [] ]
+
+	for (const row of lists)
+	{
+		var newtuples = []
+		for (const valtoappend of row)
+		{
+			for (const tuple of tuples)
+			{
+				newtuples.push( tuple.concat([valtoappend]) )
+			}
+		}
+		tuples = newtuples
+	}
+	return tuples
+}
+
 Rule.prototype.tryApply = function() {
 	var delta = dirMasksDelta[this.direction];
 

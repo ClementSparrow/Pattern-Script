@@ -615,28 +615,10 @@ function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask)
 	return result
 }
 
-function generateTuples(lists)
+var rigidBackups = []
+
+function commitPreservationState(ruleGroupIndex)
 {
-	var tuples = [ [] ]
-
-	for (const row of lists)
-	{
-		var newtuples = []
-		for (const valtoappend of row)
-		{
-			for (const tuple of tuples)
-			{
-				newtuples.push( tuple.concat([valtoappend]) )
-			}
-		}
-		tuples = newtuples
-	}
-	return tuples
-}
-
-var rigidBackups=[]
-
-function commitPreservationState(ruleGroupIndex) {
 	var propagationState = {
 		ruleGroupIndex:ruleGroupIndex,
 		objects:new Int32Array(level.objects),
