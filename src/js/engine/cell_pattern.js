@@ -97,24 +97,52 @@ CellPattern.prototype.toJSON = function() {
 	];
 };
 
+function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
+{
+	if ( ! rule.isRigid )
+		return false
+
+	var rigidGroupIndex = state.groupNumber_to_RigidGroupIndex[rule.groupNumber]
+	rigidGroupIndex++;//don't forget to -- it when decoding :O
+
+	var rigidMask = new BitVec(STRIDE_MOV); // TODO: use a static variable
+	for (var layer = 0; layer < level.layerCount; layer++) {
+		rigidMask.ishiftor(rigidGroupIndex, layer * 5);
+	}
+	rigidMask.iand(replacementMovementLayerMask);
+
+	var curRigidGroupIndexMask = level.rigidGroupIndexMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
+	var curRigidMovementAppliedMask = level.rigidMovementAppliedMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
+
+	if ( rigidMask.bitsSetInArray(curRigidGroupIndexMask.data) || replacementMovementLayerMask.bitsSetInArray(curRigidMovementAppliedMask.data) )
+		return false
+
+	curRigidGroupIndexMask.ior(rigidMask);
+	curRigidMovementAppliedMask.ior(replacementMovementLayerMask);
+	level.rigidGroupIndexMask[cell_index] = curRigidGroupIndexMask;
+	level.rigidMovementAppliedMask[cell_index] = curRigidMovementAppliedMask;
+	return true
+}
+
 var _o1,_o2,_o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
 var _m1,_m2,_m3;
 
-CellPattern.prototype.replace = function(rule, currentIndex) {
-	var replace = this.replacement; // TODO: this function only uses 'this' here, so it should probably be a method of CellReplacement, applied on a static clone of this.replacement
+CellPattern.prototype.replace = function(rule, currentIndex)
+{
+	// TODO: this function only uses 'this' here, so it should probably be a method of CellReplacement, applied on a static clone of this.replacement
 
-	if (replace === null)
+	if (this.replacement === null)
 		return false;
 
-	const replace_RandomEntityMask = replace.randomEntityMask;
-	const replace_RandomDirMask = replace.randomDirMask;
+	const replace_RandomEntityMask = this.replacement.randomEntityMask;
+	const replace_RandomDirMask = this.replacement.randomDirMask;
 
-	var objectsSet = replace.objectsSet.cloneInto(_o1);
-	var objectsClear = replace.objectsClear.cloneInto(_o2);
+	var objectsSet = this.replacement.objectsSet.cloneInto(_o1);
+	var objectsClear = this.replacement.objectsClear.cloneInto(_o2);
 
-	var movementsSet = replace.movementsSet.cloneInto(_m1);
-	var movementsClear = replace.movementsClear.cloneInto(_m2);
-	movementsClear.ior(replace.movementsLayerMask);
+	var movementsSet = this.replacement.movementsSet.cloneInto(_m1);
+	var movementsClear = this.replacement.movementsClear.cloneInto(_m2);
+	movementsClear.ior(this.replacement.movementsLayerMask);
 
 	if (!replace_RandomEntityMask.iszero()) {
 		var choices=[];
@@ -150,37 +178,9 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 	curMovementMask.iclear(movementsClear);
 	curMovementMask.ior(movementsSet);
 
-	var rigidchange=false;
-	var curRigidGroupIndexMask =0;
-	var curRigidMovementAppliedMask =0;
-	if (rule.isRigid) {
-		var rigidGroupIndex = state.groupNumber_to_RigidGroupIndex[rule.groupNumber];
-		rigidGroupIndex++;//don't forget to -- it when decoding :O
-		var rigidMask = new BitVec(STRIDE_MOV);
-		for (var layer = 0; layer < level.layerCount; layer++) {
-			rigidMask.ishiftor(rigidGroupIndex, layer * 5);
-		}
-		rigidMask.iand(replace.movementsLayerMask);
-		curRigidGroupIndexMask = level.rigidGroupIndexMask[currentIndex] || new BitVec(STRIDE_MOV);
-		curRigidMovementAppliedMask = level.rigidMovementAppliedMask[currentIndex] || new BitVec(STRIDE_MOV);
-
-		if (!rigidMask.bitsSetInArray(curRigidGroupIndexMask.data) &&
-			!replace.movementsLayerMask.bitsSetInArray(curRigidMovementAppliedMask.data) ) {
-			curRigidGroupIndexMask.ior(rigidMask);
-			curRigidMovementAppliedMask.ior(replace.movementsLayerMask);
-			rigidchange=true;
-
-		}
-	}
-
-	//check if it's changed
-	if ( ( ! rigidchange) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
+	// Rigid + check if something changed
+	if ( ( ! replaceRigid(rule, level, currentIndex, this.replacement.movementsLayerMask) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
 		return false
-
-	if (rigidchange) {
-		level.rigidGroupIndexMask[currentIndex] = curRigidGroupIndexMask;
-		level.rigidMovementAppliedMask[currentIndex] = curRigidMovementAppliedMask;
-	}
 
 	// Sfx
 	var created = curCellMask.cloneInto(_o4);
