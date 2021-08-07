@@ -174,8 +174,6 @@ var _m3;
 
 CellPattern.prototype.replace = function(rule, currentIndex)
 {
-	// TODO: this function only uses 'this' here, so it should probably be a method of CellReplacement, applied on a static clone of this.replacement
-
 	if (this.replacement === null)
 		return false;
 

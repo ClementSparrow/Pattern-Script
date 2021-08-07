@@ -406,35 +406,24 @@ function getPlayerPositions()
 	return result;
 }
 
-function getLayersOfMask(cellMask) {
-	var layers=[];
-	for (var i=0;i<state.objectCount;i++) {
-		if (cellMask.get(i)) {
-			layers.push( state.identifiers.objects[ state.idDict[i] ].layer )
+function startMovement(dir)
+{
+	const playerPositions = getPlayerPositions()
+	for (const playerPosIndex of playerPositions)
+	{
+		var cellMask = level.getCell(playerPosIndex)
+		var movementMask = level.getMovements(playerPosIndex);
+
+		cellMask.iand(state.playerMask)
+
+		for (var i=0; i<state.objectCount; i++)
+		{
+			if (cellMask.get(i)) {
+				movementMask.ishiftor(dir, 5 * state.identifiers.objects[ state.idDict[i] ].layer);
+			}
 		}
-	}
-	return layers;
-}
 
-function moveEntitiesAtIndex(positionIndex, entityMask, dirMask) {
-	var cellMask = level.getCell(positionIndex);
-	cellMask.iand(entityMask);
-	var layers = getLayersOfMask(cellMask);
-
-	var movementMask = level.getMovements(positionIndex);
-	for (var i=0;i<layers.length;i++) {
-		movementMask.ishiftor(dirMask, 5 * layers[i]);
-	}
-	level.setMovements(positionIndex, movementMask);
-}
-
-
-function startMovement(dir) {
-	var movedany=false;
-	var playerPositions = getPlayerPositions();
-	for (var i=0;i<playerPositions.length;i++) {
-		var playerPosIndex = playerPositions[i];
-		moveEntitiesAtIndex(playerPosIndex,state.playerMask,dir);
+		level.setMovements(playerPosIndex, movementMask);
 	}
 	return playerPositions;
 }
