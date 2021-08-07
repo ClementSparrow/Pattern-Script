@@ -107,8 +107,7 @@ Level.prototype.rebuildArrays = function()
 	this.mapCellContents = new BitVec(STRIDE_OBJ);
 	_movementVecs = [ new BitVec(STRIDE_MOV), new BitVec(STRIDE_MOV), new BitVec(STRIDE_MOV) ]
 
-	_o1 = new BitVec(STRIDE_OBJ);
-	_o2 = new BitVec(STRIDE_OBJ);
+	static_CellReplacement = make_static_CellReplacement()
 	_o2_5 = new BitVec(STRIDE_OBJ);
 	_o3 = new BitVec(STRIDE_OBJ);
 	_o4 = new BitVec(STRIDE_OBJ);
@@ -119,8 +118,6 @@ Level.prototype.rebuildArrays = function()
 	_o9 = new BitVec(STRIDE_OBJ);
 	_o10 = new BitVec(STRIDE_OBJ);
 	_o11 = new BitVec(STRIDE_OBJ);
-	_m1 = new BitVec(STRIDE_MOV);
-	_m2 = new BitVec(STRIDE_MOV);
 	_m3 = new BitVec(STRIDE_MOV);
 
 	for (var i=0; i<this.height; i++) {

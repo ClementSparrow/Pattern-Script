@@ -13,14 +13,24 @@ function CellPattern(row) {
 };
 
 function CellReplacement(row) {
-	this.objectsClear = row[0];
-	this.objectsSet = row[1];
-	this.movementsClear = row[2];
-	this.movementsSet = row[3];
-	this.movementsLayerMask = row[4];
-	this.randomEntityMask = row[5];
-	this.randomDirMask = row[6];
+	[ this.objectsClear, this.objectsSet, this.movementsClear, this.movementsSet, this.movementsLayerMask, this.randomEntityMask, this.randomDirMask ] = row
 };
+
+CellReplacement.prototype.cloneInto = function(dest)
+{
+	this.objectsClear.cloneInto(dest.objectsClear)
+	this.objectsSet  .cloneInto(dest.objectsSet)
+
+	this.movementsClear.cloneInto(dest.movementsClear)
+	this.movementsSet  .cloneInto(dest.movementsSet)
+	dest.movementsLayerMask = this.movementsLayerMask
+
+	dest.randomEntityMask = this.randomEntityMask
+	dest.randomDirMask    = this.randomDirMask
+}
+
+var make_static_CellReplacement = () => new CellReplacement(Array.from(([1,1,0,0,0,1,0]), x => new BitVec(x ? STRIDE_OBJ : STRIDE_MOV) ))
+var static_CellReplacement = make_static_CellReplacement()
 
 
 var matchCache = {};
@@ -124,8 +134,8 @@ function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
 	return true
 }
 
-var _o1,_o2,_o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
-var _m1,_m2,_m3;
+var _o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
+var _m3;
 
 CellPattern.prototype.replace = function(rule, currentIndex)
 {
@@ -134,34 +144,28 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 	if (this.replacement === null)
 		return false;
 
-	const replace_RandomEntityMask = this.replacement.randomEntityMask;
-	const replace_RandomDirMask = this.replacement.randomDirMask;
+	this.replacement.cloneInto(static_CellReplacement)
 
-	var objectsSet = this.replacement.objectsSet.cloneInto(_o1);
-	var objectsClear = this.replacement.objectsClear.cloneInto(_o2);
+	static_CellReplacement.movementsClear.ior(this.replacement.movementsLayerMask);
 
-	var movementsSet = this.replacement.movementsSet.cloneInto(_m1);
-	var movementsClear = this.replacement.movementsClear.cloneInto(_m2);
-	movementsClear.ior(this.replacement.movementsLayerMask);
-
-	if (!replace_RandomEntityMask.iszero()) {
+	if (!static_CellReplacement.randomEntityMask.iszero()) {
 		var choices=[];
 		for (var i=0;i<32*STRIDE_OBJ;i++) {
-			if (replace_RandomEntityMask.get(i)) {
+			if (static_CellReplacement.randomEntityMask.get(i)) {
 				choices.push(i);
 			}
 		}
 		const rand = choices[Math.floor(RandomGen.uniform() * choices.length)];
 		const layer = state.identifiers.objects[state.idDict[rand]].layer;
-		objectsSet.ibitset(rand);
-		objectsClear.ior(state.layerMasks[layer]);
-		movementsClear.ishiftor(0x1f, 5 * layer);
+		static_CellReplacement.objectsSet.ibitset(rand);
+		static_CellReplacement.objectsClear.ior(state.layerMasks[layer]);
+		static_CellReplacement.movementsClear.ishiftor(0x1f, 5 * layer);
 	}
-	if (!replace_RandomDirMask.iszero()) {
+	if (!static_CellReplacement.randomDirMask.iszero()) {
 		for (var layerIndex=0;layerIndex<level.layerCount;layerIndex++){
-			if (replace_RandomDirMask.get(5*layerIndex)) {
+			if (static_CellReplacement.randomDirMask.get(5*layerIndex)) {
 				var randomDir = Math.floor(RandomGen.uniform()*4);
-				movementsSet.ibitset(randomDir + 5 * layerIndex);
+				static_CellReplacement.movementsSet.ibitset(randomDir + 5 * layerIndex);
 			}
 		}
 	}
@@ -172,11 +176,11 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 	var oldCellMask = curCellMask.cloneInto(_o3);
 	var oldMovementMask = curMovementMask.cloneInto(_m3);
 
-	curCellMask.iclear(objectsClear);
-	curCellMask.ior(objectsSet);
+	curCellMask.iclear(static_CellReplacement.objectsClear);
+	curCellMask.ior(static_CellReplacement.objectsSet);
 
-	curMovementMask.iclear(movementsClear);
-	curMovementMask.ior(movementsSet);
+	curMovementMask.iclear(static_CellReplacement.movementsClear);
+	curMovementMask.ior(static_CellReplacement.movementsSet);
 
 	// Rigid + check if something changed
 	if ( ( ! replaceRigid(rule, level, currentIndex, this.replacement.movementsLayerMask) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
