@@ -83,6 +83,20 @@ var glyphPrintButton;
 var glyphMouseOver;
 
 
+LevelEditorScreen.prototype.regenHighlight = function(name, color, sprite_w, sprite_h, border_width=1)
+{
+	var result = makeSpriteCanvas(name)
+	var spritectx = result.getContext('2d')
+	spritectx.fillStyle = color
+
+	spritectx.fillRect(0, 0,  sprite_w, border_width)
+	spritectx.fillRect(0, 0,  border_width, sprite_h)
+	spritectx.fillRect(0, sprite_h-border_width,  sprite_w, border_width)
+	spritectx.fillRect(sprite_w-border_width, 0,  border_width, sprite_h)
+	return result;
+}
+
+
 // uses state.glyphDict and state.identifiers
 LevelEditorScreen.prototype.regenResources = function(magnification)
 {
@@ -116,17 +130,9 @@ LevelEditorScreen.prototype.regenResources = function(magnification)
 	const sprite_w = sprite_width  * magnification
 	const sprite_h = sprite_height * magnification
 
-	{ // TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-		//make highlight thingy for hovering the level's cells
-		glyphHighlight = makeSpriteCanvas("highlight");
-		var spritectx = glyphHighlight.getContext('2d');
-		spritectx.fillStyle = '#FFFFFF';
-
-		spritectx.fillRect(0, 0,  sprite_w, 1)
-		spritectx.fillRect(0, 0,  1, sprite_h)
-		spritectx.fillRect(0, sprite_h-1,  sprite_w, 1)
-		spritectx.fillRect(sprite_w-1, 0,  1, sprite_h)
-	}
+	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
+	//make highlight thingy for hovering the level's cells
+	glyphHighlight = this.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
 
 	{ // TODO: should be an icon loaded from an image
 		const [mag, margins] = centerAndMagnify([5, 5], [sprite_width, sprite_height])
@@ -147,17 +153,9 @@ LevelEditorScreen.prototype.regenResources = function(magnification)
 		spritectx.fillRect(0, miny,  sprite_w, ysize)
 	}
 
-	{ // TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-		//make highlight thingy. This one is for the mouse hover on legend glyphs
-		glyphMouseOver = makeSpriteCanvas();
-		var spritectx = glyphMouseOver.getContext('2d');
-		spritectx.fillStyle = 'yellow';
-		
-		spritectx.fillRect(0, 0,  sprite_w, 2)
-		spritectx.fillRect(0, 0,  2, sprite_h)
-		spritectx.fillRect(0, sprite_h-2,  sprite_w, 2)
-		spritectx.fillRect(sprite_w-2, 0,  2, sprite_h)
-	}
+	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
+	//make highlight thingy. This one is for the mouse hover on legend glyphs
+	glyphMouseOver = this.regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
 }
 
 LevelEditorScreen.prototype.updateResources = function(magnification)
@@ -184,7 +182,7 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 
 	if (glyphImages === undefined)
 	{
-		generateGlyphImages()
+		this.regenResources(magnification)
 	}
 
 	const [ mini, minj, maxi, maxj ] = this.content.get_viewport.call(this.content)
@@ -266,13 +264,26 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 		// highlight cell in level
 		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * sprite_w, this.hovered_level_cell[1] * sprite_h)
 	}
-	else if (highlighted_cell !== null)
-	{
-		// highlight the cell hovered in the output of verbose_logging.
-		ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_w, (highlighted_cell[1]-minj) * sprite_h)
-	}
 }
 
+// highlight the cell hovered in the output of verbose_logging.
+const level_redraw = LevelScreen.prototype.redraw
+LevelScreen.prototype.redraw = function(magnification)
+{
+	level_redraw.call(this, magnification)
+	if (highlighted_cell === null)
+		return
+
+	const [ sprite_w, sprite_h ] = [ sprite_width*magnification, sprite_height*magnification ]
+
+	if ( (glyphHighlight === undefined) || (level_editor_screen.last_magnification !== magnification) )
+	{
+		glyphHighlight = level_editor_screen.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+	}
+
+	const [ mini, minj, maxi, maxj ] = this.get_viewport()
+	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_w, (highlighted_cell[1]-minj) * sprite_h)
+}
 
 
 
