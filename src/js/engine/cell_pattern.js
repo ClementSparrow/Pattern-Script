@@ -182,6 +182,7 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 		level.rigidMovementAppliedMask[currentIndex] = curRigidMovementAppliedMask;
 	}
 
+	// Sfx
 	var created = curCellMask.cloneInto(_o4);
 	created.iclear(oldCellMask);
 	sfxCreateMask.ior(created);
@@ -189,11 +190,7 @@ CellPattern.prototype.replace = function(rule, currentIndex) {
 	destroyed.iclear(curCellMask);
 	sfxDestroyMask.ior(destroyed);
 
-	level.setCell(currentIndex, curCellMask);
-	level.setMovements(currentIndex, curMovementMask);
-
-	level.colCellContents[ (currentIndex/level.height)|0 ].ior(curCellMask);
-	level.rowCellContents[ (currentIndex%level.height) ].ior(curCellMask);
-	level.mapCellContents.ior(curCellMask);
+	// Update the level
+	level.updateCellContent(currentIndex, curCellMask, curMovementMask)
 	return true
 }

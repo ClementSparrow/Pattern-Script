@@ -86,6 +86,15 @@ Level.prototype.setMovements = function(index, vec)
 	}
 }
 
+Level.prototype.updateCellContent = function(cell_index, cellMask, movMask)
+{
+	this.setCell(cell_index, cellMask)
+	this.setMovements(cell_index, movMask)
+
+	this.colCellContents[ (cell_index / this.height)|0 ].ior(cellMask)
+	this.rowCellContents[ (cell_index % this.height) ].ior(cellMask)
+	this.mapCellContents.ior(cellMask)
+}
 
 Level.prototype.rebuildArrays = function()
 {
