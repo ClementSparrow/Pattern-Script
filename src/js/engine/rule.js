@@ -124,25 +124,25 @@ Rule.prototype.toJSON = function() {
 
 
 
-Rule.prototype.findMatches = function() {
-	var matches=[];
-	var cellRowMasks=this.cellRowMasks;
-	for (var cellRowIndex=0;cellRowIndex<this.patterns.length;cellRowIndex++) {
-		var cellRow = this.patterns[cellRowIndex];
-		var matchFunction = this.cellRowMatches[cellRowIndex];
-		if (this.isEllipsis[cellRowIndex]) {//if ellipsis     
-			var match = matchCellRowWildCard(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);  
+Rule.prototype.findMatches = function()
+{
+	var matches = []
+	const cellRowMasks = this.cellRowMasks
+	for (const [cellRowIndex, cellRow] of this.patterns.entries())
+	{
+		const matchFunction = this.cellRowMatches[cellRowIndex];
+		if (this.isEllipsis[cellRowIndex])
+		{
+			var match = matchCellRowWildCard(this.direction, matchFunction, cellRow, cellRowMasks[cellRowIndex])
 		} else {
-			var match = matchCellRow(this.direction,matchFunction,cellRow,cellRowMasks[cellRowIndex]);               	
+			var match = matchCellRow(this.direction, matchFunction, cellRow, cellRowMasks[cellRowIndex])
 		}
-		if (match.length===0) {
-			return [];
-		} else {
-			matches.push(match);
-		}
+		if (match.length === 0)
+			return []
+		matches.push(match)
 	}
-	return matches;
-};
+	return matches
+}
 
 Rule.prototype.directional = function()
 {
