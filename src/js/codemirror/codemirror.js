@@ -1015,7 +1015,7 @@
 
   // Most of the external API clips given positions to make sure they
   // actually exist within the document.
-  function clipLine(doc, n) {return Math.max(doc.first, Math.min(n, doc.first + doc.size - 1));}
+  function clipLine(doc, n) {return clamp(doc.first, n, doc.first + doc.size - 1)}
   function clipPos(doc, pos) {
     if (pos.line < doc.first) return Pos(doc.first, 0);
     var last = doc.first + doc.size - 1;
@@ -1238,10 +1238,8 @@
     if (cm.options.moveInputWithCursor) {
       var headPos = cursorCoords(cm, doc.sel.primary().head, "div");
       var wrapOff = display.wrapper.getBoundingClientRect(), lineOff = display.lineDiv.getBoundingClientRect();
-      var top = Math.max(0, Math.min(display.wrapper.clientHeight - 10,
-                                     headPos.top + lineOff.top - wrapOff.top));
-      var left = Math.max(0, Math.min(display.wrapper.clientWidth - 10,
-                                      headPos.left + lineOff.left - wrapOff.left));
+      var top = clamp(0, display.wrapper.clientHeight - 10, headPos.top + lineOff.top - wrapOff.top);
+      var left = clamp(0, display.wrapper.clientWidth - 10, headPos.left + lineOff.left - wrapOff.left);
       display.inputDiv.style.top = top + "px";
       display.inputDiv.style.left = left + "px";
     }
@@ -1901,11 +1899,11 @@
 
     // Propagate the scroll position to the actual DOM scroller
     if (op.scrollTop != null && display.scroller.scrollTop != op.scrollTop) {
-      var top = Math.max(0, Math.min(display.scroller.scrollHeight - display.scroller.clientHeight, op.scrollTop));
+      var top = clamp(0, display.scroller.scrollHeight - display.scroller.clientHeight, op.scrollTop);
       display.scroller.scrollTop = display.scrollbarV.scrollTop = doc.scrollTop = top;
     }
     if (op.scrollLeft != null && display.scroller.scrollLeft != op.scrollLeft) {
-      var left = Math.max(0, Math.min(display.scroller.scrollWidth - display.scroller.clientWidth, op.scrollLeft));
+      var left = clamp(0, display.scroller.scrollWidth - display.scroller.clientWidth, op.scrollLeft);
       display.scroller.scrollLeft = display.scrollbarH.scrollLeft = doc.scrollLeft = left;
       alignHorizontally(cm);
     }
@@ -2865,8 +2863,8 @@
     // better than glitching out.
     if (dx && !gecko && !presto && wheelPixelsPerUnit != null) {
       if (dy)
-        setScrollTop(cm, Math.max(0, Math.min(scroll.scrollTop + dy * wheelPixelsPerUnit, scroll.scrollHeight - scroll.clientHeight)));
-      setScrollLeft(cm, Math.max(0, Math.min(scroll.scrollLeft + dx * wheelPixelsPerUnit, scroll.scrollWidth - scroll.clientWidth)));
+        setScrollTop(cm, clamp(0, scroll.scrollTop + dy * wheelPixelsPerUnit, scroll.scrollHeight - scroll.clientHeight));
+      setScrollLeft(cm, clamp(0, scroll.scrollLeft + dx * wheelPixelsPerUnit, scroll.scrollWidth - scroll.clientWidth));
       e_preventDefault(e);
       display.wheelStartX = null; // Abort measurement, if in progress
       return;

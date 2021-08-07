@@ -86,9 +86,8 @@ TiledWorldScreen.prototype.get_viewport = function()
 	if (playerPositions.length == 0)
 		return oldflickscreendat;
 
-	const playerPosition = playerPositions[0];
-	const px = Math.floor(playerPosition/level.height);
-	const py = (playerPosition%level.height);
+	const playerPosition = playerPositions[0]
+	const [px, py] = level.cellCoord(playerPosition)
 
 	const [w, h] = this.get_nb_tiles()
 	const [mini, minj] = this.get_viewport_for_focus_point(px, py, w, h)
@@ -106,8 +105,8 @@ function CameraOnPlayerScreen() { TiledWorldScreen.call(this, 'zoomscreen') }
 CameraOnPlayerScreen.prototype = Object.create(TiledWorldScreen.prototype)
 CameraOnPlayerScreen.prototype.get_nb_tiles = () => state.metadata.zoomscreen
 CameraOnPlayerScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [
-	Math.max( 0, Math.min(px - Math.floor(w/2), level.width  - w) ),
-	Math.max( 0, Math.min(py - Math.floor(h/2), level.height - h) )
+	clamp(0, px - Math.floor(w/2), level.width  - w),
+	clamp(0, py - Math.floor(h/2), level.height - h)
 ]
 var camera_on_player_screen = new CameraOnPlayerScreen()
 

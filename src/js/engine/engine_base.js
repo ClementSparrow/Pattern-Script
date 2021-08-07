@@ -395,7 +395,7 @@ function getPlayerPositions()
 {
 	var result=[];
 	var playerMask = state.playerMask;
-	for (i=0; i<level.n_tiles; i++)
+	for (i=0; i<level.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
 	{
 		level.getCellInto(i,_o11);
 		if (playerMask.anyBitsInCommon(_o11))
@@ -451,26 +451,20 @@ var dirMaskName = {
 var seedsToPlay_CanMove=[];
 var seedsToPlay_CantMove=[];
 
-function repositionEntitiesOnLayer(positionIndex,layer,dirMask) 
+function repositionEntitiesOnLayer(positionIndex, layer, dirMask) 
 {
-	var delta = dirMasksDelta[dirMask];
+	const [dx, dy] = dirMasksDelta[dirMask]
+	const [sx, sy] = level.cellCoord(positionIndex)
+	const [tx, ty] = [sx+dx, sy+dy]
 
-	var dx = delta[0];
-	var dy = delta[1];
-	var tx = ((positionIndex/level.height)|0);
-	var ty = ((positionIndex%level.height));
-	var maxx = level.width-1;
-	var maxy = level.height-1;
-
-	if ( (tx===0&&dx<0) || (tx===maxx&&dx>0) || (ty===0&&dy<0) || (ty===maxy&&dy>0)) {
+	if ( (clamp(0, tx, level.width-1) != tx) || (clamp(0, ty, level.height-1) != ty) )
 		return false;
-	}
 
-	var targetIndex = (positionIndex+delta[1]+delta[0]*level.height);
+	const targetIndex = ty + tx*level.height
 
-	var layerMask = state.layerMasks[layer];
-	var targetMask = level.getCellInto(targetIndex,_o7);
-	var sourceMask = level.getCellInto(positionIndex,_o8);
+	const layerMask = state.layerMasks[layer]
+	var targetMask = level.getCellInto(targetIndex, _o7)
+	var sourceMask = level.getCellInto(positionIndex, _o8)
 
 	if (layerMask.anyBitsInCommon(targetMask) && (dirMask!=16)) {
 		return false;
@@ -496,8 +490,7 @@ function repositionEntitiesOnLayer(positionIndex,layer,dirMask)
 	level.setCell(positionIndex, sourceMask);
 	level.setCell(targetIndex, targetMask);
 
-	var colIndex=(targetIndex/level.height)|0;
-	var rowIndex=(targetIndex%level.height);
+	const [colIndex, rowIndex] = level.cellCoord(targetIndex)
 	level.colCellContents[colIndex].ior(movingEntities);
 	level.rowCellContents[rowIndex].ior(movingEntities);
 	level.mapCellContents.ior(movingEntities);

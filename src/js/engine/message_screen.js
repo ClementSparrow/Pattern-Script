@@ -137,7 +137,7 @@ TextModeScreen.prototype.doMessage = function()
 
 	if ( ! this.done )
 	{
-		this.text[ Math.max(10, Math.min(count+1, 12)) ] = centerText("X to continue")
+		this.text[clamp(10, count+1, 12)] = centerText('X to continue')
 	}
 	
 	canvasResize();

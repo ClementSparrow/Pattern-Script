@@ -23,6 +23,11 @@ Level.prototype.clone = function()
 	return new Level(this.lineNumber, this.width, this.height, this.layerCount, new Int32Array(this.objects));
 }
 
+Level.prototype.cellCoord = function(cell_index)
+{
+	return [ (cell_index/this.height)|0, (cell_index%this.height) ]
+}
+
 Level.prototype.getCell = function(index)
 {
 	return new BitVec(this.objects.subarray(index * STRIDE_OBJ, index * STRIDE_OBJ + STRIDE_OBJ));
@@ -91,8 +96,9 @@ Level.prototype.updateCellContent = function(cell_index, cellMask, movMask)
 	this.setCell(cell_index, cellMask)
 	this.setMovements(cell_index, movMask)
 
-	this.colCellContents[ (cell_index / this.height)|0 ].ior(cellMask)
-	this.rowCellContents[ (cell_index % this.height) ].ior(cellMask)
+	const [x, y] = level.cellCoord(cell_index)
+	this.colCellContents[x].ior(cellMask)
+	this.rowCellContents[y].ior(cellMask)
 	this.mapCellContents.ior(cellMask)
 }
 

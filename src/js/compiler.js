@@ -488,11 +488,9 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if (object_dir === 'random')
 				{
-					// if (object.name in state.objectMasks)
 					if (state.identifiers.comptype[identifier_index] !== identifier_type_aggregate)
 					{
-						var mask = state.objectMasks[identifier_index];
-						randomMask_r.ior(mask);
+						randomMask_r.ior(state.objectMasks[identifier_index]);
 						const values = Array.from( state.identifiers.getObjectsForIdentifier(identifier_index), p => [p, state.identifiers.objects[p]] );
 						for (const [subobject_index, subobject] of values)
 						{

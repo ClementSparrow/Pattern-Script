@@ -218,7 +218,7 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 	{
 		const ruleDirection = rule.directional() ? ' '+dirMaskName[rule.direction]+'ward' : '';
 		const rule_expansion = (rule.parameter_expansion_string.length > 0) ? ' '+rule.parameter_expansion_string : ''
-		const cell_positions = tuple.map( (x,i) => rule.isEllipsis[i] ? x[0] : x ).map(x => [Math.trunc(x/level.height).toString(), (x%level.height).toString()])
+		const cell_positions = tuple.map( (x,i) => rule.isEllipsis[i] ? x[0] : x ).map( i => level.cellCoord(i).map(c => c.toString()) )
 		const position = cell_positions.map(([x,y]) => '<a class="cellhighlighter" onmouseleave="highlightCell(null);" onmouseenter="highlightCell(['+x+','+y+'])">('+x+';'+y+')</a>').join(', ')
 		consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + rule_expansion + ' applied' + ruleDirection + ' at ' + position + '.</font>');
 	}

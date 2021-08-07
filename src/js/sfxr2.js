@@ -140,7 +140,7 @@ if (typeof AUDIO_CONTEXT == 'undefined')
 			for (var i = 0; i < this._buffer.length; i++)
 			{
 				// bit_depth is always 8, rescale [-1.0, 1.0) to [0, 256)
-				this._buffer[i] = 255 & Math.floor(128 * Math.max(0, Math.min(this._buffer[i] + 1, 2)));
+				this._buffer[i] = 255 & Math.floor(128 * clamp(0, this._buffer[i] + 1, 2));
 			}
 			var wav = MakeRiff(this._sample_rate, BIT_DEPTH, this._buffer);
 			this._audioElement = new Audio();
@@ -157,7 +157,7 @@ if (typeof AUDIO_CONTEXT == 'undefined')
 
 // ----- TONE -----
 
-/* Sets a variable base period for the genertor */
+/* Sets a variable base period for the generator */
 function ToneEffect(sound_params)
 {
 	// parameters
@@ -280,7 +280,7 @@ WaveFunction.prototype.generateNoiseBuffer = function()
 // TODO: once again it should be a modification of the 'square_duty' parameter
 WaveFunction.prototype.tick = function()
 {
-	this.square_duty = Math.max(0.0, Math.min(this.square_duty + this.square_slide, 0.5))
+	this.square_duty = clamp(0.0, this.square_duty + this.square_slide, 0.5)
 }
 
 WaveFunction.prototype.subtick = function(period)
@@ -387,19 +387,24 @@ PhaserEffect.prototype.subtick = function(sub_sample)
 
 function FrequencyFilterEffect(sound_params)
 {
-	this.p = 0.0
-	this.dp = 0.0
+	// Parameters of the low-pass filter
 	this.w = Math.pow(sound_params.p_lpf_freq, 3.0) * 0.1;
 	this.dmp = Math.min(0.8, 5.0 / (1.0 + Math.pow(sound_params.p_lpf_resonance, 2.0) * 20.0) * (0.01 + this.w) )
+
+	// state of the low-pass filter
+	this.p = 0.0
+	this.dp = 0.0
+
+	// Parameters of the high-pass filter
+	this.hp = Math.pow(sound_params.p_hpf_freq, 2.0) * 0.1;
+
+	// state of the high-pass filter
 	this.php = 0.0;
 
-	// parameters
+	// parameters for the variation of the actual parameters (should be treated as an effect affecting the parameters)
 	this.w_d = 1.0 + sound_params.p_lpf_ramp * 0.0001;
 	this.hp_d = 1.0 + sound_params.p_hpf_ramp * 0.0003;
 	this.do_lowpass = (sound_params.p_lpf_freq != 1.0)
-
-	// state
-	this.hp = Math.pow(sound_params.p_hpf_freq, 2.0) * 0.1;
 }
 
 // increases or decreases the high pass filter strength. Should actually probably be a different effect affecting the parameter 'hp' of the FrequencyFilterEffect.
@@ -408,15 +413,16 @@ FrequencyFilterEffect.prototype.tick = function()
 {
 	if (this.hp_d != 0.0)
 	{
-		this.hp = Math.max(0.00001, Math.min(this.hp*this.hp_d, 0.1))
+		this.hp = clamp(0.00001, this.hp*this.hp_d, 0.1)
 	}
 }
 
 FrequencyFilterEffect.prototype.subtick = function(sub_sample)
 {
-	// Low-pass filter
 	const pp = this.p
-	this.w = Math.max(0.0, Math.min(this.w * this.w_d, 0.1));
+
+	// Low-pass filter
+	this.w = clamp(0.0, this.w * this.w_d, 0.1)
 	if (this.do_lowpass)
 	{
 		this.dp += (sub_sample - this.p) * this.w

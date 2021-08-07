@@ -339,7 +339,7 @@ MenuScreen.prototype.checkRepeatableKey = function(e, inputdir)
 
 	if ( ( (inputdir === 0) || (inputdir === 2) ) )
 	{
-		this.item = Math.max(0, Math.min( this.item + (inputdir === 0) ? -1 : 1, this.nb_items - 1))
+		this.item = clamp(0, this.item + (inputdir === 0) ? -1 : 1, this.nb_items - 1)
 		this.makeTitle()
 		redraw()
 	}
