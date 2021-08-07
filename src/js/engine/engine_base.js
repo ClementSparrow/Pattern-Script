@@ -440,16 +440,16 @@ var dirMasksDelta = {
 
 var dirMaskName = {
 	 1:'up',
-	 2:'down'  ,
-	 4:'left'  , 
-	 8:'right',  
-	 15:'?' ,
+	 2:'down',
+	 4:'left',
+	 8:'right',
+	 15:'?',
 	 16:'action',
 	 3:'no'
 };
 
-var seedsToPlay_CanMove=[];
-var seedsToPlay_CantMove=[];
+var seedsToPlay_CanMove = []
+var seedsToPlay_CantMove = []
 
 function repositionEntitiesOnLayer(positionIndex, layer, dirMask) 
 {
@@ -615,24 +615,23 @@ function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask)
 	return result
 }
 
-function generateTuples(lists) {
-	var tuples=[[]];
+function generateTuples(lists)
+{
+	var tuples = [ [] ]
 
-	for (var i=0;i<lists.length;i++)
+	for (const row of lists)
 	{
-		var row = lists[i];
-		var newtuples=[];
-		for (var j=0;j<row.length;j++) {
-			var valtoappend = row[j];
-			for (var k=0;k<tuples.length;k++) {
-				var tuple=tuples[k];
-				var newtuple = tuple.concat([valtoappend]);
-				newtuples.push(newtuple);
+		var newtuples = []
+		for (const valtoappend of row)
+		{
+			for (const tuple of tuples)
+			{
+				newtuples.push( tuple.concat([valtoappend]) )
 			}
 		}
-		tuples=newtuples;
+		tuples = newtuples
 	}
-	return tuples;
+	return tuples
 }
 
 var rigidBackups=[]
