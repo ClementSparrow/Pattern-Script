@@ -74,15 +74,15 @@ var matchCache = {};
 
 CellPattern.prototype.generateMatchString = function()
 {
-	var fn = "(true";
+	var fn = '(true'
 	for (var i = 0; i < Math.max(STRIDE_OBJ, STRIDE_MOV); ++i)
 	{
-		var co = 'cellObjects' + i;
-		var cm = 'cellMovements' + i;
-		var op = this.objectsPresent.data[i];
-		var om = this.objectsMissing.data[i];
-		var mp = this.movementsPresent.data[i];
-		var mm = this.movementsMissing.data[i];
+		var co = 'cellObjects' + i
+		var cm = 'cellMovements' + i
+		var op = this.objectsPresent.data[i]
+		var om = this.objectsMissing.data[i]
+		var mp = this.movementsPresent.data[i]
+		var mm = this.movementsMissing.data[i]
 		if (op)
 		{
 			if (op&(op-1))
@@ -115,23 +115,25 @@ CellPattern.prototype.generateMatchString = function()
 	return fn;
 }
 
-CellPattern.prototype.generateMatchFunction = function() {
-	var i;
-	var fn = '';
-	var mul = STRIDE_OBJ === 1 ? '' : '*'+STRIDE_OBJ;	
-	for (var i = 0; i < STRIDE_OBJ; ++i) {
-		fn += '\tvar cellObjects' + i + ' = level.objects[i' + mul + (i ? '+'+i: '') + '];\n';
+CellPattern.prototype.generateMatchFunction = function()
+{
+	var i
+	var fn = ''
+	var mul = STRIDE_OBJ === 1 ? '' : '*'+STRIDE_OBJ
+	for (var i = 0; i < STRIDE_OBJ; ++i)
+	{
+		fn += '\tvar cellObjects' + i + ' = level.objects[i' + mul + (i ? '+'+i : '') + '];\n'
 	}
-	mul = STRIDE_MOV === 1 ? '' : '*'+STRIDE_MOV;
-	for (var i = 0; i < STRIDE_MOV; ++i) {
+	mul = STRIDE_MOV === 1 ? '' : '*'+STRIDE_MOV
+	for (var i = 0; i < STRIDE_MOV; ++i)
+	{
 		fn += '\tvar cellMovements' + i + ' = level.movements[i' + mul + (i ? '+'+i: '') + '];\n';
 	}
-	fn += "return " + this.generateMatchString()+';';
-	if (fn in matchCache) {
-		return matchCache[fn];
-	}
+	fn += 'return ' + this.generateMatchString()+';';
+	if (fn in matchCache)
+		return matchCache[fn]
 	// console.log(fn.replace(/\s+/g, ' '));
-	return matchCache[fn] = new Function("i",fn);
+	return matchCache[fn] = new Function('i', fn);
 }
 
 CellPattern.prototype.toJSON = function() {

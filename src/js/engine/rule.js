@@ -181,21 +181,12 @@ function cellRowMatchesWildcardFunctionGenerate(direction,cellRow,i, maxk, mink)
 }
 */
 
-function DoesCellRowMatchWildCard(direction, cellRow, i, maxk, mink=0)
+function DoesCellRowMatchWildCard(delta_index, cellRow, start_cell_index, maxk, mink=0)
 {
-	var cellPattern = cellRow[0];
+	var targetIndex = start_cell_index
 
-	if ( ! cellPattern.matches(i) )
-		return false
-
-	const [dx, dy] = dirMasksDelta[direction]
-	const d = dx*level.height + dy
-
-	var targetIndex = i
-
-	for (var j=1; j<cellRow.length; j++)
+	for (var j=0; j<cellRow.length; j++)
 	{
-		targetIndex += d
 
 		var cellPattern = cellRow[j]
 		if (cellPattern === ellipsisPattern)
@@ -203,13 +194,13 @@ function DoesCellRowMatchWildCard(direction, cellRow, i, maxk, mink=0)
 			//BAM inner loop time
 			for (var k=mink; k<maxk; k++)
 			{
-				var targetIndex2 = (targetIndex + d*k + level.n_tiles) % level.n_tiles
+				var targetIndex2 = (targetIndex + delta_index*k + level.n_tiles) % level.n_tiles
 				for (var j2=j+1; j2<cellRow.length; j2++)
 				{
 					cellPattern = cellRow[j2];
-					if (!cellPattern.matches(targetIndex2))
+					if ( ! cellPattern.matches(targetIndex2) )
 						break;
-					targetIndex2 += d
+					targetIndex2 += delta_index
 				}
 
 				if (j2 >= cellRow.length)
@@ -219,6 +210,7 @@ function DoesCellRowMatchWildCard(direction, cellRow, i, maxk, mink=0)
 		}
 		else if (!cellPattern.matches(targetIndex))
 			break
+		targetIndex += delta_index
 	}
 	return false
 }
@@ -233,29 +225,15 @@ function cellRowMatchesFunctionGenerate(direction,cellRow,i) {
 }
 */
 
-function DoesCellRowMatch(direction, cellRow, i, ellipsis_length)
+function DoesCellRowMatch(delta_index, cellRow, start_cell_index)
 {
-	var cellPattern = cellRow[0]
-
-	if ( ! cellPattern.matches(i) )
-		return false
-
-	const [dx, dy] = dirMasksDelta[direction]
-	const d = dx*level.height + dy
-	const cr_l = cellRow.length;
-
-	var targetIndex = i
-	for (var j=1; j<cr_l; j++)
+	var targetIndex = start_cell_index
+	for (const cellPattern of cellRow)
 	{
-		targetIndex += d
-		cellPattern = cellRow[j]
-		if (cellPattern === ellipsisPattern) {
-				//only for once off verifications
-			targetIndex += d*ellipsis_length
-		}
 		if ( ! cellPattern.matches(targetIndex) )
 			return false
-	}   	
+		targetIndex += delta_index
+	}
 	return true
 }
 
@@ -265,15 +243,17 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 	//Q: why?
 	if (check)
 	{
+		const [dx, dy] = dirMasksDelta[this.direction]
+		const delta_index = dx*level.height + dy
 		for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 		{
 			if (this.isEllipsis[cellRowIndex]) //if ellipsis
 			{
-				if (DoesCellRowMatchWildCard(this.direction, this.patterns[cellRowIndex], tuple[cellRowIndex][0],
+				if (DoesCellRowMatchWildCard(delta_index, this.patterns[cellRowIndex], tuple[cellRowIndex][0],
 						tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1]) === false) /* pass mink to specify */
 					return false
 			}
-			else if (DoesCellRowMatch(this.direction, this.patterns[cellRowIndex], tuple[cellRowIndex]) === false)
+			else if (DoesCellRowMatch(delta_index, this.patterns[cellRowIndex], tuple[cellRowIndex]) === false)
 				return false
 		}
 	}
@@ -360,4 +340,4 @@ Rule.prototype.queueCommands = function() {
 			messagetext=command[1];
 		}		
 	}
-};
+}

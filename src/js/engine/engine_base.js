@@ -518,167 +518,102 @@ function repositionEntitiesAtCell(positionIndex)
 }
 
 
-function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask) {	
-	var result=[];
+function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask)
+{
+	if ( ! cellRowMask.bitsSetInArray(level.mapCellContents.data) )
+		return []
+
+	const len = cellRow.length - 1
+
+	const xmin = (direction === 4) ? len : 0
+	const xmax = level.width - ((direction === 8) ? len : 0)
+	const ymin = (direction === 1) ? len : 0
+	const ymax = level.height - ((direction === 2) ? len : 0)
+
+	var result = []
 	
-	if ((!cellRowMask.bitsSetInArray(level.mapCellContents.data))) {
-		return result;
-	}
-
-	var xmin=0;
-	var xmax=level.width;
-	var ymin=0;
-	var ymax=level.height;
-
-	var len=cellRow.length;
-
-	switch(direction) {
-		case 1://up
+	if (direction>2)
+	{ // horizontal
+		for (var y=ymin; y<ymax; y++)
 		{
-			ymin+=(len-1);
-			break;
-		}
-		case 2: //down 
-		{
-			ymax-=(len-1);
-			break;
-		}
-		case 4: //left
-		{
-			xmin+=(len-1);
-			break;
-		}
-		case 8: //right
-		{
-			xmax-=(len-1);	
-			break;
-		}
-		default:
-		{
-			window.console.log("EEEP "+direction);
-		}
-	}
+			if ( ! cellRowMask.bitsSetInArray(level.rowCellContents[y].data) )
+				continue
 
-	var horizontal=direction>2;
-	if (horizontal) {
-		for (var y=ymin;y<ymax;y++) {
-			if (!cellRowMask.bitsSetInArray(level.rowCellContents[y].data)) {
-				continue;
-			}
-
-			for (var x=xmin;x<xmax;x++) {
-				var i = x*level.height+y;
+			for (var x=xmin; x<xmax; x++)
+			{
+				const i = x*level.height + y
 				if (cellRowMatch(cellRow,i))
 				{
-					result.push(i);
+					result.push(i)
 				}
 			}
 		}
-	} else {
-		for (var x=xmin;x<xmax;x++) {
-			if (!cellRowMask.bitsSetInArray(level.colCellContents[x].data)) {
-				continue;
-			}
+	}
+	else
+	{
+		for (var x=xmin; x<xmax; x++)
+		{
+			if ( ! cellRowMask.bitsSetInArray(level.colCellContents[x].data) )
+				continue
 
-			for (var y=ymin;y<ymax;y++) {
-				var i = x*level.height+y;
-				if (cellRowMatch(	cellRow,i))
+			for (var y=ymin; y<ymax; y++)
+			{
+				const i = x*level.height + y
+				if (cellRowMatch(cellRow,i))
 				{
-					result.push(i);
+					result.push(i)
 				}
 			}
 		}		
 	}
-
-	return result;
+	return result
 }
 
 
-function matchCellRowWildCard(direction, cellRowMatch, cellRow,cellRowMask) {
-	var result=[];
-	if ((!cellRowMask.bitsSetInArray(level.mapCellContents.data))) {
-		return result;
-	}
-	var xmin=0;
-	var xmax=level.width;
-	var ymin=0;
-	var ymax=level.height;
+function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask)
+{
+	if ( ! cellRowMask.bitsSetInArray(level.mapCellContents.data) )
+		return []
 
-	var len=cellRow.length-1;//remove one to deal with wildcard
-	switch(direction) {
-		case 1://up
+	const len = cellRow.length - 2//remove one to deal with wildcard
+
+	const xmin = (direction === 4) ? len : 0
+	const xmax = level.width - ((direction === 8) ? len : 0)
+	const ymin = (direction === 1) ? len : 0
+	const ymax = level.height - ((direction === 2) ? len : 0)
+
+	var result = []
+
+	if (direction > 2)
+	{ // horizontal
+		for (var y=ymin; y<ymax; y++)
 		{
-			ymin+=(len-1);
-			break;
-		}
-		case 2: //down 
-		{
-			ymax-=(len-1);
-			break;
-		}
-		case 4: //left
-		{
-			xmin+=(len-1);
-			break;
-		}
-		case 8: //right
-		{
-			xmax-=(len-1);	
-			break;
-		}
-		default:
-		{
-			window.console.log("EEEP2 "+direction);
+			if ( ! cellRowMask.bitsSetInArray(level.rowCellContents[y].data) )
+				continue
+
+			for (var x=xmin; x<xmax; x++)
+			{
+				const kmax = (direction === 4) ? 1+x-xmin : (xmax-x)
+				result.push.apply(result, cellRowMatch(cellRow, x*level.height + y, kmax, 0))
+			}
 		}
 	}
+	else
+	{
+		for (var x=xmin; x<xmax; x++)
+		{
+			if ( ! cellRowMask.bitsSetInArray(level.colCellContents[x].data) )
+				continue
 
-
-
-	var horizontal=direction>2;
-	if (horizontal) {
-		for (var y=ymin;y<ymax;y++) {
-			if (!cellRowMask.bitsSetInArray(level.rowCellContents[y].data)) {
-				continue;
-			}
-
-			for (var x=xmin;x<xmax;x++) {
-				var i = x*level.height+y;
-				var kmax;
-
-				if (direction === 4) { //left
-					kmax=x-len+2;
-				} else if (direction === 8) { //right
-					kmax=level.width-(x+len)+1;	
-				} else {
-					window.console.log("EEEP2 "+direction);					
-				}
-
-				result.push.apply(result, cellRowMatch(cellRow,i,kmax,0));
-			}
-		}
-	} else {
-		for (var x=xmin;x<xmax;x++) {
-			if (!cellRowMask.bitsSetInArray(level.colCellContents[x].data)) {
-				continue;
-			}
-
-			for (var y=ymin;y<ymax;y++) {
-				var i = x*level.height+y;
-				var kmax;
-
-				if (direction === 2) { // down
-					kmax=level.height-(y+len)+1;
-				} else if (direction === 1) { // up
-					kmax=y-len+2;					
-				} else {
-					window.console.log("EEEP2 "+direction);
-				}
-				result.push.apply(result, cellRowMatch(cellRow,i,kmax,0));
+			for (var y=ymin; y<ymax; y++)
+			{
+				const kmax = (direction === 2) ? ymax-y : (1+y-ymin)
+				result.push.apply(result, cellRowMatch(cellRow, x*level.height + y, kmax, 0))
 			}
 		}		
 	}
 
-	return result;
+	return result
 }
 
 function generateTuples(lists) {
