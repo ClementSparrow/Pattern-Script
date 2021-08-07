@@ -584,12 +584,12 @@ function applyRandomRuleGroup(ruleGroup) {
 	var matches=[];
 	for (var ruleIndex=0;ruleIndex<ruleGroup.length;ruleIndex++) {
 		var rule=ruleGroup[ruleIndex];
-		var ruleMatches = rule.findMatches();
-		if (ruleMatches.length>0) {
-			var tuples  = generateTuples(ruleMatches);
-			for (var j=0;j<tuples.length;j++) {
-				var tuple=tuples[j];
-				matches.push([ruleIndex,tuple]);
+		const ruleMatches = rule.findMatches()
+		if (ruleMatches.length > 0)
+		{
+			for (const tuple of cartesian_product(...ruleMatches))
+			{
+				matches.push([ruleIndex, tuple])
 			}
 		}		
 	}

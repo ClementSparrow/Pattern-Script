@@ -364,25 +364,6 @@ Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(
 	return result
 }
 
-function generateTuples(lists) // returns all the possible tuples that can be formed by taking a first value in the first tuple of lists, a second value in the second tuple, etc.
-{
-	var tuples = [ [] ]
-
-	for (const row of lists)
-	{
-		var newtuples = []
-		for (const valtoappend of row)
-		{
-			for (const tuple of tuples)
-			{
-				newtuples.push( tuple.concat([valtoappend]) )
-			}
-		}
-		tuples = newtuples
-	}
-	return tuples
-}
-
 Rule.prototype.tryApply = function()
 {
 	const delta = level.delta_index(this.direction)
@@ -396,7 +377,7 @@ Rule.prototype.tryApply = function()
 	if (this.hasReplacements)
 	{
 		var chk = false
-		for (const tuple of generateTuples(matches))
+		for (const tuple of cartesian_product(...matches))
 		{
 			result = this.applyAt(tuple, chk, delta) || result
 			chk = true
