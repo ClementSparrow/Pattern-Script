@@ -458,21 +458,20 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 	const [tx, ty] = [sx+dx, sy+dy]
 
 	if ( (clamp(0, tx, level.width-1) != tx) || (clamp(0, ty, level.height-1) != ty) )
-		return false;
+		return false
 
 	const targetIndex = ty + tx*level.height
 
 	const layerMask = state.layerMasks[layer]
 	var targetMask = level.getCellInto(targetIndex, _o7)
 	var sourceMask = level.getCellInto(positionIndex, _o8)
-	const movementMask = level.getMovements(positionIndex)
 
 	if (layerMask.anyBitsInCommon(targetMask) && (dirMask != 16))
 		return false
 
 	for (const o of state.sfx_MovementMasks)
 	{
-		if ( o.objectMask.anyBitsInCommon(sourceMask) && movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
+		if ( o.objectMask.anyBitsInCommon(sourceMask) && level.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 		{
 			seedsToPlay_CanMove.push(o.seed)
 		}
@@ -490,7 +489,7 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 	level.colCellContents[colIndex].ior(movingEntities);
 	level.rowCellContents[rowIndex].ior(movingEntities);
 	level.mapCellContents.ior(movingEntities);
-	return true;
+	return true
 }
 
 function repositionEntitiesAtCell(positionIndex)

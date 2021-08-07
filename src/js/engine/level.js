@@ -66,19 +66,18 @@ Level.prototype.setCell = function(index, vec)
 }
 
 
-// What is this?
+// a set of static movement bitvecs to use as needed.
+var _movementVecs
+var _movementVecIndex = 0
 
-var _movementVecs;
-var _movementVecIndex = 0;
-
-Level.prototype.getMovements = function(index)
+Level.prototype.getMovements = function(index) // !!! increments _movementVecIndex !
 {
-	var _movementsVec=_movementVecs[_movementVecIndex];
-	_movementVecIndex=(_movementVecIndex+1)%_movementVecs.length;
+	var _movementsVec =_movementVecs[_movementVecIndex]
+	_movementVecIndex = (_movementVecIndex+1) % _movementVecs.length
 
 	for (var i=0; i<STRIDE_MOV; i++)
 	{
-		_movementsVec.data[i]=this.movements[index*STRIDE_MOV+i];	
+		_movementsVec.data[i] = this.movements[index*STRIDE_MOV + i];	
 	}
 	return _movementsVec;
 }
