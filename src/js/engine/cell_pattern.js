@@ -29,8 +29,43 @@ CellReplacement.prototype.cloneInto = function(dest)
 	dest.randomDirMask    = this.randomDirMask
 }
 
+CellReplacement.prototype.applyRandoms = function()
+{
+	// replace random entities
+	if ( ! this.randomEntityMask.iszero() )
+	{
+		var choices=[]
+		for (var i=0; i<32*STRIDE_OBJ; i++)
+		{
+			if (this.randomEntityMask.get(i))
+			{
+				choices.push(i)
+			}
+		}
+		const rand = choices[Math.floor(RandomGen.uniform() * choices.length)]
+		const layer = state.identifiers.objects[state.idDict[rand]].layer
+		this.objectsSet.ibitset(rand)
+		this.objectsClear.ior(state.layerMasks[layer])
+		this.movementsClear.ishiftor(0x1f, 5*layer)
+	}
+	
+	// replace random dirs
+	if ( ! this.randomDirMask.iszero() )
+	{
+		for (var layerIndex=0; layerIndex<level.layerCount; layerIndex++)
+		{
+			if (this.randomDirMask.get(5*layerIndex))
+			{
+				const randomDir = Math.floor(RandomGen.uniform()*4)
+				this.movementsSet.ibitset(randomDir + 5*layerIndex)
+			}
+		}
+	}
+}
+
 var make_static_CellReplacement = () => new CellReplacement(Array.from(([1,1,0,0,0,1,0]), x => new BitVec(x ? STRIDE_OBJ : STRIDE_MOV) ))
 var static_CellReplacement = make_static_CellReplacement()
+
 
 
 var matchCache = {};
@@ -148,27 +183,7 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 
 	static_CellReplacement.movementsClear.ior(this.replacement.movementsLayerMask);
 
-	if (!static_CellReplacement.randomEntityMask.iszero()) {
-		var choices=[];
-		for (var i=0;i<32*STRIDE_OBJ;i++) {
-			if (static_CellReplacement.randomEntityMask.get(i)) {
-				choices.push(i);
-			}
-		}
-		const rand = choices[Math.floor(RandomGen.uniform() * choices.length)];
-		const layer = state.identifiers.objects[state.idDict[rand]].layer;
-		static_CellReplacement.objectsSet.ibitset(rand);
-		static_CellReplacement.objectsClear.ior(state.layerMasks[layer]);
-		static_CellReplacement.movementsClear.ishiftor(0x1f, 5 * layer);
-	}
-	if (!static_CellReplacement.randomDirMask.iszero()) {
-		for (var layerIndex=0;layerIndex<level.layerCount;layerIndex++){
-			if (static_CellReplacement.randomDirMask.get(5*layerIndex)) {
-				var randomDir = Math.floor(RandomGen.uniform()*4);
-				static_CellReplacement.movementsSet.ibitset(randomDir + 5 * layerIndex);
-			}
-		}
-	}
+	static_CellReplacement.applyRandoms()
 	
 	var curCellMask = level.getCellInto(currentIndex,_o2_5);
 	var curMovementMask = level.getMovements(currentIndex);
