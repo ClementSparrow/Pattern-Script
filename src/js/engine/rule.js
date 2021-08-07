@@ -240,25 +240,6 @@ Rule.prototype.findMatches = function()
 	return matches
 }
 
-Rule.prototype.directional = function()
-{
-	//Check if other rules in its rulegroup with the same line number.
-	for (const rg of state.rules)
-	{
-		var copyCount = 0;
-		for (const rule of rg)
-		{
-			if (this.lineNumber === rule.lineNumber)
-			{
-				copyCount++;
-			}
-			if (copyCount>1)
-				return true;
-		}
-	}
-	return false;
-}
-
 
 //say cellRow has length 5, with a split in the middle
 /*
@@ -374,11 +355,10 @@ Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(
 
 	if (verbose_logging && result)
 	{
-		const ruleDirection = this.directional() ? ' '+dirMaskName[this.direction]+'ward' : '';
 		const rule_expansion = (this.parameter_expansion_string.length > 0) ? ' '+this.parameter_expansion_string : ''
 		const cell_positions = tuple.map( (x,i) => this.isEllipsis[i] ? x[0] : x ).map( i => level.cellCoord(i).map(c => c.toString()) )
 		const position = cell_positions.map(([x,y]) => '<a class="cellhighlighter" onmouseleave="highlightCell(null);" onmouseenter="highlightCell(['+x+','+y+'])">('+x+';'+y+')</a>').join(', ')
-		consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + rule_expansion + ' applied' + ruleDirection + ' at ' + position + '.</font>');
+		consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + rule_expansion + ' applied at ' + position + '.</font>');
 	}
 
 	return result
