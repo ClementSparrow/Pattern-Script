@@ -465,20 +465,16 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 	const layerMask = state.layerMasks[layer]
 	var targetMask = level.getCellInto(targetIndex, _o7)
 	var sourceMask = level.getCellInto(positionIndex, _o8)
+	const movementMask = level.getMovements(positionIndex)
 
-	if (layerMask.anyBitsInCommon(targetMask) && (dirMask!=16)) {
-		return false;
-	}
+	if (layerMask.anyBitsInCommon(targetMask) && (dirMask != 16))
+		return false
 
-	for (var i=0;i<state.sfx_MovementMasks.length;i++) {
-		var o = state.sfx_MovementMasks[i];
-		var objectMask = o.objectMask;
-		if (objectMask.anyBitsInCommon(sourceMask)) {
-			var movementMask = level.getMovements(positionIndex);
-			var directionMask = o.directionMask;
-			if (movementMask.anyBitsInCommon(directionMask) && seedsToPlay_CanMove.indexOf(o.seed)===-1) {
-				seedsToPlay_CanMove.push(o.seed);
-			}
+	for (const o of state.sfx_MovementMasks)
+	{
+		if ( o.objectMask.anyBitsInCommon(sourceMask) && movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
+		{
+			seedsToPlay_CanMove.push(o.seed)
 		}
 	}
 
@@ -497,30 +493,29 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 	return true;
 }
 
-function repositionEntitiesAtCell(positionIndex) {
-	var movementMask = level.getMovements(positionIndex);
+function repositionEntitiesAtCell(positionIndex)
+{
+	var movementMask = level.getMovements(positionIndex)
 	if (movementMask.iszero())
-		return false;
+		return false
 
-	var moved=false;
-	for (var layer=0;layer<level.layerCount;layer++) {
-		var layerMovement = movementMask.getshiftor(0x1f, 5*layer);
-		if (layerMovement!==0) {
-			var thismoved = repositionEntitiesOnLayer(positionIndex,layer,layerMovement);
-			if (thismoved) {
-				movementMask.ishiftclear(layerMovement, 5*layer);
-				moved = true;
+	var moved = false
+	for (var layer=0; layer<level.layerCount; layer++)
+	{
+		const layerMovement = movementMask.getshiftor(0x1f, 5*layer)
+		if (layerMovement !== 0)
+		{
+			if ( repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
+			{
+				movementMask.ishiftclear(layerMovement, 5*layer)
+				moved = true
 			}
 		}
 	}
 
-	level.setMovements(positionIndex, movementMask);
-
-	return moved;
+	level.setMovements(positionIndex, movementMask)
+	return moved
 }
-
-
-
 
 
 
@@ -541,50 +536,46 @@ function cellRowMatchesWildcardFunctionGenerate(direction,cellRow,i, maxk, mink)
 }
 */
 
-function DoesCellRowMatchWildCard(direction,cellRow,i,maxk,mink) {
-	if (mink === undefined) {
-		mink = 0;
-	}
-
+function DoesCellRowMatchWildCard(direction, cellRow, i, maxk, mink=0)
+{
 	var cellPattern = cellRow[0];
 
-	//var result=[];
+	if ( ! cellPattern.matches(i) )
+		return false
 
-	if (cellPattern.matches(i)){
-		var delta = dirMasksDelta[direction];
-		var d0 = delta[0]*level.height;
-		var d1 = delta[1];
-		var targetIndex = i;
+	const [dx, dy] = dirMasksDelta[direction]
+	const d = dx*level.height + dy
 
-		for (var j=1;j<cellRow.length;j+=1) {
-			targetIndex = (targetIndex+d1+d0);
+	var targetIndex = i
 
-			var cellPattern = cellRow[j]
-			if (cellPattern === ellipsisPattern) {
-				//BAM inner loop time
-				for (var k=mink;k<maxk;k++) {
-					var targetIndex2=targetIndex;
-					targetIndex2 = (targetIndex2+(d1+d0)*(k)+level.n_tiles)%level.n_tiles;
-					for (var j2=j+1;j2<cellRow.length;j2++) {
-						cellPattern = cellRow[j2];
-						if (!cellPattern.matches(targetIndex2)) {
-							break;
-						}
-						targetIndex2 = (targetIndex2+d1+d0);
-					}
+	for (var j=1; j<cellRow.length; j++)
+	{
+		targetIndex += d
 
-					if (j2>=cellRow.length) {
-						return true;
-						//result.push([i,k]);
-					}
+		var cellPattern = cellRow[j]
+		if (cellPattern === ellipsisPattern)
+		{
+			//BAM inner loop time
+			for (var k=mink; k<maxk; k++)
+			{
+				var targetIndex2 = (targetIndex + d*k + level.n_tiles) % level.n_tiles
+				for (var j2=j+1; j2<cellRow.length; j2++)
+				{
+					cellPattern = cellRow[j2];
+					if (!cellPattern.matches(targetIndex2))
+						break;
+					targetIndex2 += d
 				}
-				break;
-			} else if (!cellPattern.matches(targetIndex)) {
-				break;
+
+				if (j2 >= cellRow.length)
+					return true
 			}
-		}               
-	}  
-	return false;
+			break
+		}
+		else if (!cellPattern.matches(targetIndex))
+			break
+	}
+	return false
 }
 
 //say cellRow has length 3
@@ -597,34 +588,30 @@ function cellRowMatchesFunctionGenerate(direction,cellRow,i) {
 }
 */
 
-function DoesCellRowMatch(direction,cellRow,i,k) {
-	var cellPattern = cellRow[0];
-	if (cellPattern.matches(i)) {
+function DoesCellRowMatch(direction, cellRow, i, ellipsis_length)
+{
+	var cellPattern = cellRow[0]
 
-		var delta = dirMasksDelta[direction];
-		var d0 = delta[0]*level.height;
-		var d1 = delta[1];
-		var cr_l = cellRow.length;
+	if ( ! cellPattern.matches(i) )
+		return false
 
-		var targetIndex = i;
-		for (var j=1;j<cr_l;j++) {
-			targetIndex = (targetIndex+d1+d0);
-			cellPattern = cellRow[j];
-			if (cellPattern === ellipsisPattern) {
-					//only for once off verifications
-				targetIndex = (targetIndex+(d1+d0)*k); 					
-			}
-			if (!cellPattern.matches(targetIndex)) {
-				break;
-			}
-		}   
-		
-		if (j>=cellRow.length) {
-			return true;
+	const [dx, dy] = dirMasksDelta[direction]
+	const d = dx*level.height + dy
+	const cr_l = cellRow.length;
+
+	var targetIndex = i
+	for (var j=1; j<cr_l; j++)
+	{
+		targetIndex += d
+		cellPattern = cellRow[j]
+		if (cellPattern === ellipsisPattern) {
+				//only for once off verifications
+			targetIndex += d*ellipsis_length
 		}
-
-	}  
-	return false;
+		if ( ! cellPattern.matches(targetIndex) )
+			return false
+	}   	
+	return true
 }
 
 function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask) {	

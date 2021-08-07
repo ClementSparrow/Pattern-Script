@@ -165,42 +165,32 @@ Rule.prototype.directional = function()
 
 Rule.prototype.applyAt = function(delta, tuple, check)
 {
-	const rule = this;
 	//have to double check they apply
 	//Q: why?
 	if (check)
 	{
-		var ruleMatches = true;
-		for (var cellRowIndex=0; cellRowIndex<rule.patterns.length; cellRowIndex++)
+		for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 		{
-			if (rule.isEllipsis[cellRowIndex]) //if ellipsis
+			if (this.isEllipsis[cellRowIndex]) //if ellipsis
 			{
-				if (DoesCellRowMatchWildCard(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex][0],
-					tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1])===false) /* pass mink to specify */
-				{
-					ruleMatches=false;
-					break;
-				}
-			} else {
-				if (DoesCellRowMatch(rule.direction,rule.patterns[cellRowIndex],tuple[cellRowIndex])===false) {
-					ruleMatches=false;
-					break;
-				}
+				if (DoesCellRowMatchWildCard(this.direction, this.patterns[cellRowIndex], tuple[cellRowIndex][0],
+						tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1]) === false) /* pass mink to specify */
+					return false
 			}
-		}
-		if (ruleMatches === false ) {
-			return false;
+			else if (DoesCellRowMatch(this.direction, this.patterns[cellRowIndex], tuple[cellRowIndex]) === false)
+				return false
 		}
 	}
+
 	var result=false;
 	
 	//APPLY THE RULE
 	const d = delta[0]*level.height + delta[1];
-	for (var cellRowIndex=0; cellRowIndex<rule.patterns.length; cellRowIndex++)
+	for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 	{
-		var preRow = rule.patterns[cellRowIndex];
+		var preRow = this.patterns[cellRowIndex];
 		
-		var currentIndex = rule.isEllipsis[cellRowIndex] ? tuple[cellRowIndex][0] : tuple[cellRowIndex];
+		var currentIndex = this.isEllipsis[cellRowIndex] ? tuple[cellRowIndex][0] : tuple[cellRowIndex];
 		for (const preCell of preRow)
 		{
 			if (preCell === ellipsisPattern)
@@ -209,22 +199,22 @@ Rule.prototype.applyAt = function(delta, tuple, check)
 				currentIndex += d*k
 				continue;
 			}
-			result = preCell.replace(rule, currentIndex) || result;
+			result = preCell.replace(this, currentIndex) || result;
 			currentIndex += d;
 		}
 	}
 
 	if (verbose_logging && result)
 	{
-		const ruleDirection = rule.directional() ? ' '+dirMaskName[rule.direction]+'ward' : '';
-		const rule_expansion = (rule.parameter_expansion_string.length > 0) ? ' '+rule.parameter_expansion_string : ''
-		const cell_positions = tuple.map( (x,i) => rule.isEllipsis[i] ? x[0] : x ).map( i => level.cellCoord(i).map(c => c.toString()) )
+		const ruleDirection = this.directional() ? ' '+dirMaskName[this.direction]+'ward' : '';
+		const rule_expansion = (this.parameter_expansion_string.length > 0) ? ' '+this.parameter_expansion_string : ''
+		const cell_positions = tuple.map( (x,i) => this.isEllipsis[i] ? x[0] : x ).map( i => level.cellCoord(i).map(c => c.toString()) )
 		const position = cell_positions.map(([x,y]) => '<a class="cellhighlighter" onmouseleave="highlightCell(null);" onmouseenter="highlightCell(['+x+','+y+'])">('+x+';'+y+')</a>').join(', ')
-		consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + rule_expansion + ' applied' + ruleDirection + ' at ' + position + '.</font>');
+		consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + rule_expansion + ' applied' + ruleDirection + ' at ' + position + '.</font>');
 	}
 
-	return result;
-};
+	return result
+}
 
 Rule.prototype.tryApply = function() {
 	var delta = dirMasksDelta[this.direction];
