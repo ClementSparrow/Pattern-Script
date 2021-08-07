@@ -163,6 +163,102 @@ Rule.prototype.directional = function()
 	return false;
 }
 
+
+//say cellRow has length 5, with a split in the middle
+/*
+function cellRowMatchesWildcardFunctionGenerate(direction,cellRow,i, maxk, mink) {
+
+	var result = [];
+	var matchfirsthalf = cellRow[0].matches(i)&&cellRow[1].matches((i+d)%level.n_tiles);
+	if (matchfirsthalf) {
+		for (var k=mink,kmaxk;k++) {
+			if (cellRow[2].matches((i+d*(k+0))%level.n_tiles)&&cellRow[2].matches((i+d*(k+1))%level.n_tiles)) {
+				result.push([i,k]);
+			}
+		}
+	}
+	return result;
+}
+*/
+
+function DoesCellRowMatchWildCard(direction, cellRow, i, maxk, mink=0)
+{
+	var cellPattern = cellRow[0];
+
+	if ( ! cellPattern.matches(i) )
+		return false
+
+	const [dx, dy] = dirMasksDelta[direction]
+	const d = dx*level.height + dy
+
+	var targetIndex = i
+
+	for (var j=1; j<cellRow.length; j++)
+	{
+		targetIndex += d
+
+		var cellPattern = cellRow[j]
+		if (cellPattern === ellipsisPattern)
+		{
+			//BAM inner loop time
+			for (var k=mink; k<maxk; k++)
+			{
+				var targetIndex2 = (targetIndex + d*k + level.n_tiles) % level.n_tiles
+				for (var j2=j+1; j2<cellRow.length; j2++)
+				{
+					cellPattern = cellRow[j2];
+					if (!cellPattern.matches(targetIndex2))
+						break;
+					targetIndex2 += d
+				}
+
+				if (j2 >= cellRow.length)
+					return true
+			}
+			break
+		}
+		else if (!cellPattern.matches(targetIndex))
+			break
+	}
+	return false
+}
+
+//say cellRow has length 3
+/*
+CellRow Matches can be specialized to look something like:
+function cellRowMatchesFunctionGenerate(direction,cellRow,i) {
+	var delta = dirMasksDelta[direction];
+	var d = delta[1]+delta[0]*level.height;
+	return cellRow[0].matches(i)&&cellRow[1].matches((i+d)%level.n_tiles)&&cellRow[2].matches((i+2*d)%level.n_tiles);
+}
+*/
+
+function DoesCellRowMatch(direction, cellRow, i, ellipsis_length)
+{
+	var cellPattern = cellRow[0]
+
+	if ( ! cellPattern.matches(i) )
+		return false
+
+	const [dx, dy] = dirMasksDelta[direction]
+	const d = dx*level.height + dy
+	const cr_l = cellRow.length;
+
+	var targetIndex = i
+	for (var j=1; j<cr_l; j++)
+	{
+		targetIndex += d
+		cellPattern = cellRow[j]
+		if (cellPattern === ellipsisPattern) {
+				//only for once off verifications
+			targetIndex += d*ellipsis_length
+		}
+		if ( ! cellPattern.matches(targetIndex) )
+			return false
+	}   	
+	return true
+}
+
 Rule.prototype.applyAt = function(delta, tuple, check)
 {
 	//have to double check they apply
