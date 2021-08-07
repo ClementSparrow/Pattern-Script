@@ -564,7 +564,7 @@ function processOutputCommands(commands)
 	{
 		if (command.charAt(1)==='f') //identifies sfxN
 		{
-			tryPlaySimpleSound(command);
+			tryPlaySimpleSound(command)
 		}  	
 		if (unitTesting === false)
 		{
@@ -578,37 +578,30 @@ function processOutputCommands(commands)
 	}
 }
 
-function applyRandomRuleGroup(ruleGroup) {
-	var propagated=false;
+function applyRandomRuleGroup(ruleGroup)
+{
+	var propagated = false
 
-	var matches=[];
-	for (var ruleIndex=0;ruleIndex<ruleGroup.length;ruleIndex++) {
-		var rule=ruleGroup[ruleIndex];
+	var matches = []
+	for (const [ruleIndex, rule] of ruleGroup.entries())
+	{
 		const ruleMatches = rule.findMatches()
 		if (ruleMatches.length > 0)
 		{
 			for (const tuple of cartesian_product(...ruleMatches))
 			{
-				matches.push([ruleIndex, tuple])
+				matches.push([rule, tuple])
 			}
 		}		
 	}
 
-	if (matches.length===0)
-	{
-		return false;
-	} 
+	if (matches.length === 0)
+		return false
 
-	var match = matches[Math.floor(RandomGen.uniform()*matches.length)];
-	var ruleIndex=match[0];
-	var rule=ruleGroup[ruleIndex];
-	var tuple=match[1];
-	var check=false;
-	var modified = rule.applyAt(tuple, check)
-
-	rule.queueCommands();
-
-	return modified;
+	const [rule, tuple] = matches[Math.floor(RandomGen.uniform()*matches.length)];
+	const modified = rule.applyAt(tuple, false)
+	rule.queueCommands()
+	return modified
 }
 
 function applyRuleGroup(ruleGroup) {
