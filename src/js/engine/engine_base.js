@@ -736,35 +736,6 @@ function resolveMovements(dir)
 var sfxCreateMask = null
 var sfxDestroyMask = null
 
-function calculateRowColMasks()
-{
-	for(var i=0; i<level.mapCellContents.length; i++)
-	{
-		level.mapCellContents[i] = 0
-	}
-
-	for (var i=0; i<level.width; i++)
-	{
-		level.colCellContents[i].setZero()
-	}
-
-	for (var i=0; i<level.height; i++)
-	{
-		level.rowCellContents[i].setZero()
-	}
-
-	for (var i=0; i<level.width; i++)
-	{
-		for (var j=0; j<level.height; j++)
-		{
-			const cellContents = level.getCellInto(j + i*level.height, _o9)
-			level.mapCellContents.ior(cellContents)
-			level.rowCellContents[j].ior(cellContents)
-			level.colCellContents[i].ior(cellContents)
-		}
-	}
-}
-
 /* returns a bool indicating if anything changed */
 function processInput(dir, dontDoWin, dontModify)
 {
@@ -801,7 +772,7 @@ function processInput(dir, dontDoWin, dontModify)
 		seedsToPlay_CanMove=[];
 		seedsToPlay_CantMove=[];
 
-		calculateRowColMasks();
+		level.calculateRowColMasks()
 
 		do {
 			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration

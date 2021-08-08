@@ -86,7 +86,36 @@ Level.prototype.setMovements = function(index, vec)
 {
 	for (var i = 0; i < vec.data.length; ++i)
 	{
-		this.movements[index * STRIDE_MOV + i] = vec.data[i];
+		this.movements[index*STRIDE_MOV + i] = vec.data[i]
+	}
+}
+
+Level.prototype.calculateRowColMasks = function()
+{
+	for(var i=0; i<this.mapCellContents.length; i++)
+	{
+		this.mapCellContents[i] = 0
+	}
+
+	for (var i=0; i<this.width; i++)
+	{
+		this.colCellContents[i].setZero()
+	}
+
+	for (var i=0; i<this.height; i++)
+	{
+		this.rowCellContents[i].setZero()
+	}
+
+	for (var i=0; i<this.width; i++)
+	{
+		for (var j=0; j<this.height; j++)
+		{
+			const cellContents = this.getCellInto(j + i*this.height, _o9)
+			this.mapCellContents.ior(cellContents)
+			this.rowCellContents[j].ior(cellContents)
+			this.colCellContents[i].ior(cellContents)
+		}
 	}
 }
 
