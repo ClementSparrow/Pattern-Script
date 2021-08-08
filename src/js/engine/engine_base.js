@@ -87,9 +87,9 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 		if ('run_rules_on_level_start' in state.metadata)
 		{
-			runrulesonlevelstart_phase=true;
-			processInput(-1,true);
-			runrulesonlevelstart_phase=false;
+			runrulesonlevelstart_phase = true
+			processInput(-1, true)
+			runrulesonlevelstart_phase = false
 		}
 	} else {
 		showTempMessage()
@@ -346,7 +346,7 @@ function DoRestart(force) {
 	tryPlaySimpleSound('restart')
 
 	if ('run_rules_on_level_start' in state.metadata) {
-		processInput(-1,true);
+		processInput(-1, true)
 	}
 	
 	level.commandQueue=[];
@@ -736,242 +736,235 @@ function resolveMovements(dir)
 var sfxCreateMask = null
 var sfxDestroyMask = null
 
+const max_rigid_loops = 50
+
 /* returns a bool indicating if anything changed */
 function processInput(dir, dontDoWin, dontModify)
 {
-	againing = false;
+	againing = false
 
-	if (verbose_logging) { 
-		if (dir===-1) {
+	if (verbose_logging)
+	{
+		if (dir === -1) 
+		{
 			consolePrint('Turn starts with no input.')
-		} else {
+		}
+		else
+		{
 			consolePrint('=======================');
 			consolePrint('Turn starts with input of ' + ['up','left','down','right','action'][dir]+'.');
 		}
 	}
 
-	var bak = backupLevel();
+	var bak = backupLevel()
 
-	var playerPositions=[];
-	if (dir<=4) {
-		if (dir>=0) {
-			dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits.
-			playerPositions = startMovement(dir);
+	var playerPositions = []
+	if (dir <= 4)
+	{
+		if (dir >= 0)
+		{
+			dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
+			playerPositions = startMovement(dir)
 		}
 
-		var i=0;
-		level.bannedGroup = [];
-		rigidBackups = [];
-		level.commandQueue=[];
-		level.commandQueueSourceRules=[];
-		var rigidloop=false;
-		var startState = commitPreservationState();
-		sfxCreateMask.setZero();
-		sfxDestroyMask.setZero();
+		rigidBackups = []
+		level.bannedGroup = []
+		level.commandQueue = []
+		level.commandQueueSourceRules = []
 
-		seedsToPlay_CanMove=[];
-		seedsToPlay_CantMove=[];
+		var i = max_rigid_loops
+		const startState = commitPreservationState()
+
+		sfxCreateMask.setZero()
+		sfxDestroyMask.setZero()
+
+		seedsToPlay_CanMove = []
+		seedsToPlay_CantMove = []
 
 		level.calculateRowColMasks()
 
-		do {
-			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
-			rigidloop=false
-			i++
-			
+		while (true)
+		{
 			if (verbose_logging) { consolePrint('applying rules') }
-
 			applyRules(state.rules, state.loopPoint, level.bannedGroup)
-			if ( resolveMovements() )
-			{
-				rigidloop = true
-				restorePreservationState(startState)
-			}
-			else
+
+			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
+			if ( ! resolveMovements() )
 			{
 				if (verbose_logging) { consolePrint('applying late rules') }
 				applyRules(state.lateRules, state.lateLoopPoint)
+				break
 			}
-		} while (i < 50 && rigidloop)
 
-		if (i >= 50) { consolePrint('looped through 50 times, gave up.  too many loops!') }
-
-
-		if (playerPositions.length>0 && state.metadata.require_player_movement!==undefined) {
-			var somemoved=false;
-			for (var i=0;i<playerPositions.length;i++) {
-				var pos = playerPositions[i];
-				var val = level.getCell(pos);
-				if (state.playerMask.bitsClearInArray(val.data)) {
-					somemoved=true;
-					break;
-				}
+			restorePreservationState(startState)
+			i--
+			if (i <= 0)
+			{
+				consolePrint('Cancelled '+max_rigid_loops+' rigid rules, gave up. Too many loops!')
+				break
 			}
-			if (somemoved===false) {
-				if (verbose_logging){
-					consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true)
-				}
-				backups.push(bak);
-				DoUndo(true,false);
-				return false;
+		}
+
+		// require_player_movement
+		if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
+		{
+			// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
+			if ( playerPositions.every( pos => ! state.playerMask.bitsClearInArray(level.getCell(pos).data) ) )
+			{
+				if (verbose_logging) { consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true) }
+				backups.push(bak)
+				DoUndo(true, false)
+				return false
 			}
 			//play player cantmove sounds here
 		}
 
 
-
-		if (level.commandQueue.indexOf('cancel')>=0) {
-			if (verbose_logging) {
-				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('cancel')];
-				consolePrintFromRule('CANCEL command executed, cancelling turn.', r, true)
+		// CANCEL command
+		if (level.commandQueue.indexOf('cancel') >= 0)
+		{
+			if (verbose_logging)
+			{
+				consolePrintFromRule('CANCEL command executed, cancelling turn.', level.commandQueueSourceRules[level.commandQueue.indexOf('cancel')], true)
 			}
-			processOutputCommands(level.commandQueue);
-			backups.push(bak);
-			messagetext = "";
-			DoUndo(true,false);
+			processOutputCommands(level.commandQueue)
 			tryPlaySimpleSound('cancel')
-			return false;
+			messagetext = ''
+			backups.push(bak)
+			DoUndo(true, false)
+			return false
 		} 
 
-		if (level.commandQueue.indexOf('restart')>=0) {
-			if (verbose_logging) { 
-				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('restart')];
-				consolePrintFromRule('RESTART command executed, reverting to restart state.', r, true)
+		// RESTART command
+		if (level.commandQueue.indexOf('restart') >= 0)
+		{
+			if (verbose_logging)
+			{
+				consolePrintFromRule('RESTART command executed, reverting to restart state.', level.commandQueueSourceRules[level.commandQueue.indexOf('restart')], true)
 			}
-			processOutputCommands(level.commandQueue);
-			backups.push(bak);
-			messagetext = "";
-			DoRestart(true);
-			return true;
+			processOutputCommands(level.commandQueue)
+			messagetext = ''
+			backups.push(bak)
+			DoRestart(true)
+			return true
 		} 
 
-		var modified=false;
-		for (var i=0;i<level.objects.length;i++) {
-			if (level.objects[i]!==bak.dat[i]) {
-				if (dontModify) {
-					if (verbose_logging) {
-						consoleCacheDump();
-					}
-					backups.push(bak);
-					DoUndo(true,false);
-					return true;
-				} else {
-					if (dir!==-1) {
-						backups.push(bak);
-					}
-					modified=true;
+		var modified = false
+		for (var i=0; i<level.objects.length; i++)
+		{
+			if (level.objects[i] !== bak.dat[i])
+			{
+				if (dontModify)
+				{
+					if (verbose_logging) { consoleCacheDump() }
+					backups.push(bak)
+					DoUndo(true, false)
+					return true
 				}
-				break;
+				if (dir !== -1)
+				{
+					backups.push(bak)
+				}
+				modified = true
+				break
 			}
 		}
 
-		if (dontModify && level.commandQueue.indexOf('win') >= 0)
-			return true;
+		if (dontModify)
+		{
+			if (level.commandQueue.indexOf('win') >= 0)
+				return true
 
-		if (dontModify) {		
-			if (verbose_logging) {
-				consoleCacheDump();
-			}
-			return false;
+			if (verbose_logging) { consoleCacheDump() }
+			return false
 		}
 
-		for (var i=0;i<seedsToPlay_CantMove.length;i++) {
-				playSound(seedsToPlay_CantMove[i]);
+		for (const seed of seedsToPlay_CantMove)
+		{
+			playSound(seed)
 		}
 
-		for (var i=0;i<seedsToPlay_CanMove.length;i++) {
-				playSound(seedsToPlay_CanMove[i]);
+		for (const seed of seedsToPlay_CanMove)
+		{
+			playSound(seed)
 		}
 
-		for (var i=0;i<state.sfx_CreationMasks.length;i++) {
-			var entry = state.sfx_CreationMasks[i];
-			if (sfxCreateMask.anyBitsInCommon(entry.objectMask)) {
-				playSound(entry.seed);
-			}
-		}
-
-		for (var i=0;i<state.sfx_DestructionMasks.length;i++) {
-			var entry = state.sfx_DestructionMasks[i];
-			if (sfxDestroyMask.anyBitsInCommon(entry.objectMask)) {
-				playSound(entry.seed);
+		for (const entry of state.sfx_CreationMasks)
+		{
+			if (sfxCreateMask.anyBitsInCommon(entry.objectMask))
+			{
+				playSound(entry.seed)
 			}
 		}
 
-		processOutputCommands(level.commandQueue);
+		for (const entry of state.sfx_DestructionMasks)
+		{
+			if (sfxDestroyMask.anyBitsInCommon(entry.objectMask))
+			{
+				playSound(entry.seed)
+			}
+		}
+
+		processOutputCommands(level.commandQueue)
 
 		if (screen_layout.content != msg_screen)
 		{
-			if (verbose_logging) { 
-				consolePrint('Checking win condition.');
-			}
-			if (dontDoWin===undefined){
-				dontDoWin = false;
-			}
-			checkWin( dontDoWin );
+			if (verbose_logging) { consolePrint('Checking win condition.') }
+			checkWin(dontDoWin)
 		}
 
-		if (!winning) {
-			if (level.commandQueue.indexOf('checkpoint')>=0) {
-				if (verbose_logging) { 
-					var r = level.commandQueueSourceRules[level.commandQueue.indexOf('checkpoint')];
-					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.',r);
+		if ( ! winning )
+		{
+			if (level.commandQueue.indexOf('checkpoint') >= 0)
+			{
+				if (verbose_logging)
+				{ 
+					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', level.commandQueueSourceRules[level.commandQueue.indexOf('checkpoint')])
 				}
-				restartTarget=level4Serialization();
-				hasUsedCheckpoint=true;
-				var backupStr = JSON.stringify(restartTarget);
+				restartTarget = level4Serialization()
+				hasUsedCheckpoint = true
 				if ( !!window.localStorage )
 				{
-					localStorage[document.URL+'_checkpoint']=backupStr;
-					localStorage[document.URL]=curlevel;
+					localStorage[document.URL+'_checkpoint'] = JSON.stringify(restartTarget)
+					localStorage[document.URL] = curlevel
 				}
 			}	 
 
-			if (level.commandQueue.indexOf('again')>=0 && modified) {
-
-				var r = level.commandQueueSourceRules[level.commandQueue.indexOf('again')];
+			if ( modified && (level.commandQueue.indexOf('again') >= 0) )
+			{
+				const r = level.commandQueueSourceRules[level.commandQueue.indexOf('again')]
 
 				//first have to verify that something's changed
-				var old_verbose_logging=verbose_logging;
-				var oldmessagetext = messagetext;
-				verbose_logging=false;
-				if (processInput(-1,true,true)) {
-					verbose_logging=old_verbose_logging;
-
-					if (verbose_logging) { 
-						consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.',r);
-					}
-
-					againing=true;
-					timer=0;
-				} else {		    	
-					verbose_logging=old_verbose_logging;
-					if (verbose_logging) { 
-						consolePrintFromRule('AGAIN command not executed, it wouldn\'t make any changes.',r);
-					}
+				var old_verbose_logging = verbose_logging
+				var oldmessagetext = messagetext
+				verbose_logging = false
+				if (processInput(-1, true, true))
+				{
+					if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
+					againing = true
+					timer = 0
 				}
-				verbose_logging=old_verbose_logging;
-				messagetext = oldmessagetext;
-			}   
+				else
+				{
+					if (old_verbose_logging) { consolePrintFromRule('AGAIN command not executed, it wouldn\'t make any changes.', r) }
+				}
+				verbose_logging = old_verbose_logging
+				messagetext = oldmessagetext
+			}
 		}
-			
 
-		level.commandQueue=[];
-		level.commandQueueSourceRules=[];
-
+		level.commandQueue = []
+		level.commandQueueSourceRules = []
 	}
 
-	if (verbose_logging) {
-		consoleCacheDump();
-	}
+	if (verbose_logging) { consoleCacheDump() }
 
-	if (winning) {
-		againing=false;
-	}
+	againing &&= ! winning
 
-	return modified;
+	return modified
 }
 
-function checkWin(dontDoWin)
+function checkWin(dontDoWin = false)
 {
 	dontDoWin = screen_layout.dontDoWin()
 
