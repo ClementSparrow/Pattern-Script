@@ -1020,38 +1020,29 @@ function checkWin(dontDoWin = false)
 	}
 }
 
-function DoWin() {
-	if (winning) {
-		return;
-	}
-	againing=false;
+function DoWin()
+{
+	if (winning)
+		return
+	againing = false
 	tryPlaySimpleSound('endlevel')
-	if (unitTesting) {
-		nextLevel();
-		return;
+	if (unitTesting)
+	{
+		nextLevel()
+		return
 	}
 
-	winning=true;
-	timer=0;
+	winning = true
+	timer = 0
 }
 
-/*
-//this function isn't valid after refactoring, but also isn't used.
-function anyMovements() {	
-	for (var i=0;i<level.movementMask.length;i++) {
-		if (level.movementMask[i]!==0) {
-			return true;
-		}
-	}
-	return false;
-}*/
-
-
-function nextLevel() {
-	againing=false;
-	messagetext="";
-	if (state && state.levels && (curlevel>state.levels.length) ){
-		curlevel=state.levels.length-1;
+function nextLevel()
+{
+	againing = false
+	messagetext = ''
+	if (state && state.levels && (curlevel > state.levels.length) )
+	{
+		curlevel = state.levels.length-1
 	}
 	
 	if (screen_layout.content === menu_screen) // TODO: this should not be in this function
@@ -1062,70 +1053,64 @@ function nextLevel() {
 			curlevel = 0
 			curlevelTarget = null
 		} 			
-		if (curlevelTarget !== null)
+		loadLevelFromState(state, curlevel, curlevelTarget)
+	}
+	else
+	{
+		if (hasUsedCheckpoint)
 		{
-			loadLevelFromState(state, curlevel, curlevelTarget)
-		} else {
-			loadLevelFromState(state, curlevel)
+			curlevelTarget = null
+			hasUsedCheckpoint = false
 		}
-	} else {	
-		if (hasUsedCheckpoint){
-			curlevelTarget=null;
-			hasUsedCheckpoint=false;
-		}
-		if (curlevel<(state.levels.length-1))
+		if (curlevel < state.levels.length-1)
 		{			
-			curlevel++;
+			curlevel++
 			msg_screen.done = false
-
-			if (curlevelTarget!==null){			
-				loadLevelFromState(state, curlevel, curlevelTarget)
-			} else {
-				loadLevelFromState(state, curlevel)
-			}
-		} else {
-			try{
-				if (!!window.localStorage) {
-	
-					localStorage.removeItem(document.URL);
-					localStorage.removeItem(document.URL+'_checkpoint');
+			loadLevelFromState(state, curlevel, curlevelTarget)
+		}
+		else
+		{
+			try {
+				if (!!window.localStorage)
+				{
+					localStorage.removeItem(document.URL)
+					localStorage.removeItem(document.URL+'_checkpoint')
 				}
-			} catch(ex){
-					
-			}
+			} catch(ex) { }
 			
-			curlevel=0;
-			curlevelTarget=null;
-			goToTitleScreen();
+			curlevel = 0
+			curlevelTarget = null
+			goToTitleScreen()
 			tryPlaySimpleSound('endgame')
 		}		
 		//continue existing game
 	}
 	try {
-		if (!!window.localStorage) {
-			localStorage[document.URL]=curlevel;
-			if (curlevelTarget!==null){
-				restartTarget=level4Serialization();
-				var backupStr = JSON.stringify(restartTarget);
-				localStorage[document.URL+'_checkpoint']=backupStr;
+		if (!!window.localStorage)
+		{
+			localStorage[document.URL] = curlevel
+			if (curlevelTarget !== null)
+			{
+				restartTarget = level4Serialization()
+				localStorage[document.URL+'_checkpoint'] = JSON.stringify(restartTarget)
 			} else {
-				localStorage.removeItem(document.URL+"_checkpoint");
+				localStorage.removeItem(document.URL+"_checkpoint")
 			}		
 		}
-	} catch (ex) {
+	} catch (ex) { }
 
+	if ( (state !== undefined) && (state.metadata.flickscreen !== undefined) )
+	{
+		oldflickscreendat = [0, 0, Math.min(state.metadata.flickscreen[0], level.width), Math.min(state.metadata.flickscreen[1], level.height)]
 	}
-
-	if (state!==undefined && state.metadata.flickscreen!==undefined){
-		oldflickscreendat=[0,0,Math.min(state.metadata.flickscreen[0],level.width),Math.min(state.metadata.flickscreen[1],level.height)];
-	}
-	canvasResize();	
-	clearInputHistory();
+	canvasResize()
+	clearInputHistory()
 }
 
-function goToTitleScreen(){
-	againing=false;
-	messagetext="";
+function goToTitleScreen()
+{
+	againing = false
+	messagetext = ''
 	screen_layout.content = menu_screen
 	doSetupTitleScreenLevelContinue()
 	menu_screen.item = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0

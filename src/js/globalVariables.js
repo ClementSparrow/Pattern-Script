@@ -5,26 +5,28 @@ var hasUsedCheckpoint=false;
 var muted=0;
 var runrulesonlevelstart_phase=false;
 
-function doSetupTitleScreenLevelContinue(){
+function doSetupTitleScreenLevelContinue()
+{
     try {
-     	if (!!window.localStorage) { 
-    		if (localStorage[document.URL]!==undefined) {
-                if (localStorage[document.URL+'_checkpoint']!==undefined){
-                    var backupStr = localStorage[document.URL+'_checkpoint'];
-                    curlevelTarget = JSON.parse(backupStr);
+     	if (!!window.localStorage)
+        {
+    		if (localStorage[document.URL] !== undefined)
+            {
+                if (localStorage[document.URL+'_checkpoint'] !== undefined)
+                {
+                    curlevelTarget = JSON.parse(localStorage[document.URL+'_checkpoint'])
                     
                     var arr = [];
-                    for(var p in Object.keys(curlevelTarget.dat)) {
-                        arr[p] = curlevelTarget.dat[p];
+                    for(var p in Object.keys(curlevelTarget.dat))
+                    {
+                        arr[p] = curlevelTarget.dat[p]
                     }
-                    curlevelTarget.dat = new Int32Array(arr);
-
+                    curlevelTarget.dat = new Int32Array(arr)
                 }
-    	        curlevel = localStorage[document.URL];            
+    	        curlevel = localStorage[document.URL]
     		}
-    	}		 
-    } catch(ex) {
-    }
+    	}
+    } catch(ex) { }
 }
 
 doSetupTitleScreenLevelContinue();
