@@ -244,4 +244,4 @@
 }
 
 
-span.test-message { font-family: monospace; }
+span.test-message { font-family: monospace; white-space: pre; }

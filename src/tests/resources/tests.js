@@ -1,10 +1,8 @@
 
 
-var inputVals = {0 : "UP",1: "LEFT",2:"DOWN",3:"RIGHT",4:"ACTION",tick:"TICK",undo:"UNDO",restart:"RESTART"};
+var inputVals = {0 : 'U', 1: 'L', 2:'D', 3:'R', 4:' ACTION ', tick:' TICK ', undo:' UNDO ', restart:' RESTART '}
 
-function testFunction(td)
-{
-}
+function testFunction(td) { }
 
 for (const [testname, td] of testdata)
 {
@@ -15,7 +13,7 @@ for (const [testname, td] of testdata)
 			return function()
 			{
 				const [testcode, testinput, testresult] = tdat;
-				const input = testinput.map( j => inputVals[j] ).join(', ');
+				const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
 				var errormessage =  testcode+"\n\n\nlevel: "+(tdat[4]||0)+"\n\n\ninput: "+input;
 				ok(runTest(tdat),errormessage);
 			};
