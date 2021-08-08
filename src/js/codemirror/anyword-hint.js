@@ -128,7 +128,8 @@
                 --start;
             var curWord = (start != end) && curLine.slice(start, end);
 
-            var state = editor.getTokenAt(cur).state;
+            var current_token = editor.getTokenAt(cur)
+            var state = current_token.state
 
             // ignore empty word
             if (!curWord || state.commentLevel>0)
@@ -265,13 +266,14 @@
                 {
                     if ([identifier_type_tag, identifier_type_tagset].includes(state.identifiers.deftype[identifier_index]))
                     {
-                        const matchWord = w.toLowerCase();
+                        const matchWord = curTagPrefix.toLowerCase()+w.toLowerCase();
                         // if (matchWord === curTag) continue;
-                        if ((!curTag || matchWord.lastIndexOf(curTag, 0) == 0) && !(matchWord in seen))
+                        if ((!curTag || matchWord.lastIndexOf(curTag, 0) == 0) && !seen.has(matchWord))
                         {
                             seen.add(matchWord);
                             const hint = curTagPrefix+state.identifiers.original_case_names[identifier_index];
-                            list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
+	                        console.log('adding '+matchWord+' as tag -> '+hint)
+                            list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
                         }
                     }
                 }
@@ -285,11 +287,12 @@
                     const w = o.name;
                     var matchWord = w.toLowerCase();
                     // if (matchWord === curWord) continue;
-                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen))
+                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord))
                     {
                         seen.add(matchWord);
-                        var hint = state.identifiers.original_case_names[o.identifier_index];
-                        list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
+                        console.log('adding '+matchWord+' as object')
+                        const hint = state.identifiers.original_case_names[o.identifier_index]
+                        list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
                     }
                 }
 
@@ -310,8 +313,9 @@
                     {
                         const matchWord = w.toLowerCase();
                         // if (matchWord === curWord) continue;
-                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen)) {
+                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord)) {
                             seen.add(matchWord);
+	                        console.log('adding '+matchWord+' as derived object')
                             const hint = state.identifiers.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
@@ -323,33 +327,51 @@
             // go through random names
             for (const candlist of candlists)
             {
-                var tag = candlist[0];
-                for (var j = 1; j < candlist.length; j++) {
-                    var m = candlist[j];
-                    var orig = m;
-                    var extra=""
-                    if (typeof m !== 'string'){
-                        if (m.length>1){
-                            extra=m[1]
+                const tag = candlist[0]
+                for (var j = 1; j < candlist.length; j++)
+                {
+                    var m = candlist[j]
+                    var extra = ''
+                    if (typeof m !== 'string')
+                    {
+                        if (m.length > 1)
+                        {
+                            extra = m[1]
                         }
-                        m=m[0];
+                        m = m[0]
                     }
-                    var matchWord=m;
-                    var matchWord = matchWord.toLowerCase();
-                    // if (matchWord === curWord) continue;
-                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !(matchWord in seen)) {
-                        seen.add(matchWord);
-
-                        var mytag = tag;
-                        if (mytag==="COLOR"){
-                            mytag = "COLOR-"+m.toUpperCase();
-                        }                    
-
-                        list.push({text:m,extra:extra,tag:mytag,render:renderHint});
-                    }
+                    const matchWord = m.toLowerCase()
+                    if ( (curWord && matchWord.lastIndexOf(curWord, 0) != 0) || seen.has(matchWord) )
+                    	continue
+                    seen.add(matchWord)
+                    console.log('adding "'+matchWord+'" as random name for "'+curWord+'" '+(!curWord)+' '+matchWord.lastIndexOf(curWord, 0))
+                    const mytag = (tag === 'COLOR') ? 'COLOR-' + m.toUpperCase() : tag
+                    list.push({text:m, extra:extra, tag:mytag, render:renderHint})
                 }
             }
-            
+
+			//if list is a single word and that matches what the current word is, don't show hint
+			if ( (list.length === 1) && (list[0].text.toLowerCase() === curWord) )
+			{
+				list = []
+			}
+			//if list contains the word that you've typed, put it to top of autocomplete list
+			for (var i=1; i<list.length; i++)
+			{
+				if (list[i].text.toLowerCase() === curWord)
+				{
+					const newhead = list[i]
+					list.splice(i, 1)
+					list.unshift(newhead)
+					break
+				}
+			}
+			//if you're editing mid-word rather than at the end, no hints.
+			if (current_token.string.trim().length > curWord.length)
+			{
+				list = []
+			}
+
             return {
                 list: list,
                 from: CodeMirror.Pos(cur.line, start),
