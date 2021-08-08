@@ -968,7 +968,7 @@ function checkWin(dontDoWin = false)
 {
 	dontDoWin |= screen_layout.dontDoWin()
 
-	if (level.commandQueue.indexOf('win')>=0)
+	if (level.commandQueue.indexOf('win') >= 0)
 	{
 		if (runrulesonlevelstart_phase)
 		{
@@ -976,83 +976,47 @@ function checkWin(dontDoWin = false)
 		} else {
 			consolePrint("Win Condition Satisfied");
 		}
-		if( !dontDoWin )
+		if( ! dontDoWin )
 		{
-			DoWin();
+			DoWin()
 		}
-		return;
+		return
 	}
 
-	var won= false;
-	if (state.winconditions.length>0)  {
-		var passed=true;
-		for (var wcIndex=0;wcIndex<state.winconditions.length;wcIndex++) {
-			var wincondition = state.winconditions[wcIndex];
-			var filter1 = wincondition[1];
-			var filter2 = wincondition[2];
-			var rulePassed=true;
-			switch(wincondition[0]) {
-				case -1://NO
-				{
-					for (var i=0;i<level.n_tiles;i++) {
-						var cell = level.getCellInto(i,_o10);
-						if ( (!filter1.bitsClearInArray(cell.data)) &&  
-							 (!filter2.bitsClearInArray(cell.data)) ) {
-							rulePassed=false;
-							break;
-						}
-					}
+	if (state.winconditions.length == 0)
+		return
 
-					break;
-				}
-				case 0://SOME
-				{
-					var passedTest=false;
-					for (var i=0;i<level.n_tiles;i++) {
-						var cell = level.getCellInto(i,_o10);
-						if ( (!filter1.bitsClearInArray(cell.data)) &&  
-							 (!filter2.bitsClearInArray(cell.data)) ) {
-							passedTest=true;
-							break;
-						}
-					}
-					if (passedTest===false) {
-						rulePassed=false;
-					}
-					break;
-				}
-				case 1://ALL
-				{
-					for (var i=0;i<level.n_tiles;i++) {
-						var cell = level.getCellInto(i,_o10);
-						if ( (!filter1.bitsClearInArray(cell.data)) &&  
-							 (filter2.bitsClearInArray(cell.data)) ) {
-							rulePassed=false;
-							break;
-						}
-					}
-					break;
-				}
-			}
-			if (rulePassed===false) {
-				passed=false;
-			}
-		}
-		won=passed;
-	}
-
-	if (won)
+	for (const [quantifier, filter1, filter2] of state.winconditions)
 	{
-		if (runrulesonlevelstart_phase)
+		// TODO: can we use level.mapCellContents to optimize this?
+		// "no"   FAILS    if we find an x WITH    an y
+		// "some" SUCCEEDS if we find an x WITH    an y
+		// "all"  FAILS    if we find an x WITHOUT an y
+		var rulePassed = (quantifier != 0)
+		const search_WITH = (quantifier < 1)
+		for (var i=0; i<level.n_tiles; i++)
 		{
-			consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");		
-		} else {
-			consolePrint("Win Condition Satisfied");
+			const cell = level.getCellInto(i,_o10)
+			if ( ( ! filter1.bitsClearInArray(cell.data) ) && (search_WITH ^ filter2.bitsClearInArray(cell.data)) )
+			{
+				rulePassed = ! rulePassed
+				break
+			}
 		}
-		if ( !dontDoWin )
-		{
-			DoWin();
-		}
+		if ( ! rulePassed )
+			return
+	}
+
+	// won
+	if (runrulesonlevelstart_phase)
+	{
+		consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");		
+	} else {
+		consolePrint("Win Condition Satisfied");
+	}
+	if ( ! dontDoWin )
+	{
+		DoWin()
 	}
 }
 
