@@ -122,7 +122,7 @@ function onKeyDown(event) {
         } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
 			canvas.focus();
 			editor.display.input.blur();
-            if (event.shifKey) {
+            if (event.shiftKey) {
 				runClick()
 			} else {
 				rebuildClick()
