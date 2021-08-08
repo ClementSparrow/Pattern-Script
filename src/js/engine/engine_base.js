@@ -966,7 +966,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 function checkWin(dontDoWin = false)
 {
-	dontDoWin = screen_layout.dontDoWin()
+	dontDoWin |= screen_layout.dontDoWin()
 
 	if (level.commandQueue.indexOf('win')>=0)
 	{
