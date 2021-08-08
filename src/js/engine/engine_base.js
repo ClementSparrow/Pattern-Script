@@ -619,7 +619,7 @@ function applyRuleGroup(ruleGroup)
 		loopcount++
 		if (loopcount > max_loop_count)
 		{
-			logErrorCacheable("Got caught looping lots in a rule group :O", ruleGroup[0].lineNumber, true)
+			logErrorCacheable('Got caught looping lots in a rule group :O', ruleGroup[0].lineNumber, true)
 			break
 		}
 		propagated = false
@@ -633,51 +633,46 @@ function applyRuleGroup(ruleGroup)
 	return loopPropagated
 }
 
-function applyRules(rules, loopPoint, startRuleGroupindex, bannedGroup){
-	//for each rule
-	//try to match it
-
+//for each rule, try to match it
+function applyRules(rules, loopPoint, bannedGroup)
+{
 	//when we're going back in, let's loop, to be sure to be sure
-	var loopPropagated = startRuleGroupindex>0;
-	var loopCount = 0;
-	for (var ruleGroupIndex = startRuleGroupindex; ruleGroupIndex < rules.length ;)
+	var loopCount = 0
+	var ruleGroupIndex = 0
+	var loopPropagated = false
+	while (ruleGroupIndex < rules.length)
 	{
-		if (bannedGroup && bannedGroup[ruleGroupIndex]) {
-			//do nothing
-		} else {
-			var ruleGroup=rules[ruleGroupIndex];
-			loopPropagated = applyRuleGroup(ruleGroup) || loopPropagated;
+		while (true)
+		{
+			if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) )
+			{
+				loopPropagated |= applyRuleGroup(rules[ruleGroupIndex])
+			}
+			if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
+				break
+			ruleGroupIndex++
+			if (ruleGroupIndex === rules.length)
+			{
+				if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
+					break
+				return
+			}
 		}
-		if (loopPropagated && loopPoint[ruleGroupIndex]!==undefined) {
-			ruleGroupIndex = loopPoint[ruleGroupIndex];
-			loopPropagated=false;
-			loopCount++;
-			if (loopCount > 200) {
-				var ruleGroup=rules[ruleGroupIndex];
-				logErrorCacheable("got caught in an endless startloop...endloop vortex, escaping!", ruleGroup[0].lineNumber,true);
-				break;
-			}
-		} else {
-			ruleGroupIndex++;
-			if (ruleGroupIndex===rules.length) {
-				if (loopPropagated && loopPoint[ruleGroupIndex]!==undefined) {
-					ruleGroupIndex = loopPoint[ruleGroupIndex];
-					loopPropagated=false;
-					loopCount++;
-					if (loopCount > 200) {
-						var ruleGroup=rules[ruleGroupIndex];
-						logErrorCacheable("got caught in an endless startloop...endloop vortex, escaping!", ruleGroup[0].lineNumber,true);
-						break;
-					}
-				} 
-			}
+		ruleGroupIndex = loopPoint[ruleGroupIndex]
+		loopPropagated = false
+		loopCount++
+		if (loopCount > max_loop_count)
+		{
+			logErrorCacheable('got caught in an endless startloop...endloop vortex, escaping!', rules[ruleGroupIndex][0].lineNumber, true)
+			return
 		}
 	}
 }
 
 
 //if this returns!=null, need to go back and reprocess
-function resolveMovements(dir){
+function resolveMovements(dir)
+{
 	var moved=true;
 	while(moved){
 		moved=false;
@@ -790,7 +785,6 @@ function processInput(dir, dontDoWin, dontModify)
 		rigidBackups = [];
 		level.commandQueue=[];
 		level.commandQueueSourceRules=[];
-		var startRuleGroupIndex=0;
 		var rigidloop=false;
 		var startState = commitPreservationState();
 		sfxCreateMask.setZero();
@@ -802,30 +796,26 @@ function processInput(dir, dontDoWin, dontModify)
 		calculateRowColMasks();
 
 		do {
-		//not particularly elegant, but it'll do for now - should copy the world state and check
-		//after each iteration
-			rigidloop=false;
-			i++;
+			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
+			rigidloop=false
+			i++
 			
-			if (verbose_logging){consolePrint('applying rules');}
+			if (verbose_logging) { consolePrint('applying rules') }
 
-			applyRules(state.rules, state.loopPoint, startRuleGroupIndex, level.bannedGroup);
-			var shouldUndo = resolveMovements();
-
-			if (shouldUndo) {
-				rigidloop=true;
-				restorePreservationState(startState);
-				startRuleGroupIndex=0;//rigidGroupUndoDat.ruleGroupIndex+1;
-			} else {
-				if (verbose_logging){consolePrint('applying late rules');}
-				applyRules(state.lateRules, state.lateLoopPoint, 0);
-				startRuleGroupIndex=0;
+			applyRules(state.rules, state.loopPoint, level.bannedGroup)
+			if ( resolveMovements() )
+			{
+				rigidloop = true
+				restorePreservationState(startState)
 			}
-		} while (i < 50 && rigidloop);
+			else
+			{
+				if (verbose_logging) { consolePrint('applying late rules') }
+				applyRules(state.lateRules, state.lateLoopPoint)
+			}
+		} while (i < 50 && rigidloop)
 
-		if (i>=50) {
-			consolePrint("looped through 50 times, gave up.  too many loops!");
-		}
+		if (i >= 50) { consolePrint('looped through 50 times, gave up.  too many loops!') }
 
 
 		if (playerPositions.length>0 && state.metadata.require_player_movement!==undefined) {
