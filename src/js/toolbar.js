@@ -2,11 +2,22 @@
 // The “callback URL” of that app points to https://www.puzzlescript.net/auth.html.
 // If you’re running from another host name, sharing might not work.
 
+const HOSTPAGEURL = 'https://clementsparrow.github.io/Pattern-Script/src'
+const PSFORKNAME = 'Pattern:Script'
+
+function setPageTitle()
+{
+	if (state.metadata.title !== undefined)
+	{
+		document.title = PSFORKNAME + ' - ' + state.metadata.title
+	}
+}
 
 function runClick()
 {
-	clearConsole();
-	compile(["restart"]);
+	clearConsole()
+	compile(["restart"])
+	setPageTitle()
 }
 
 function dateToReadable(title, time)
@@ -190,9 +201,6 @@ function levelEditorClick_Fn()
 	lastDownTarget = canvas
 }
 
-const HOSTPAGEURL = "https://clementsparrow.github.io/Pattern-Script/src"
-const PSFORKNAME = "Pattern:Script"
-
 /* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,
    which is to create a personal identification token. */
 function getAuthURL()
@@ -332,8 +340,9 @@ function githubLogOut()
 
 function rebuildClick()
 {
-	clearConsole();
-	compile(["rebuild"]);
+	clearConsole()
+	compile(["rebuild"])
+	setPageTitle()
 }
 
 function exportClick()
