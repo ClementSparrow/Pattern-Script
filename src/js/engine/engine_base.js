@@ -673,86 +673,94 @@ function applyRules(rules, loopPoint, bannedGroup)
 //if this returns!=null, need to go back and reprocess
 function resolveMovements(dir)
 {
-	var moved=true;
-	while(moved){
-		moved=false;
-		for (var i=0;i<level.n_tiles;i++) {
-			moved = repositionEntitiesAtCell(i) || moved;
+	var moved = true
+	while(moved)
+	{
+		moved = false
+		for (var i=0; i<level.n_tiles; i++)
+		{
+			moved |= repositionEntitiesAtCell(i)
 		}
 	}
-	var doUndo=false;
+	var doUndo = false
 
-	for (var i=0;i<level.n_tiles;i++) {
-		var cellMask = level.getCellInto(i,_o6);
-		var movementMask = level.getMovements(i);
-		if (!movementMask.iszero()) {
-			var rigidMovementAppliedMask = level.rigidMovementAppliedMask[i];
-			if (rigidMovementAppliedMask !== 0) {
-				movementMask.iand(rigidMovementAppliedMask);
-				if (!movementMask.iszero()) {
+	for (var i=0; i<level.n_tiles; i++)
+	{
+		const cellMask = level.getCellInto(i, _o6)
+		var movementMask = level.getMovements(i)
+		if ( ! movementMask.iszero() )
+		{
+			const rigidMovementAppliedMask = level.rigidMovementAppliedMask[i]
+			if (rigidMovementAppliedMask !== 0)
+			{
+				movementMask.iand(rigidMovementAppliedMask)
+				if ( ! movementMask.iszero() )
+				{
 					//find what layer was restricted
-					for (var j=0;j<level.layerCount;j++) {
-						var layerSection = movementMask.getshiftor(0x1f, 5*j);
-						if (layerSection!==0) {
+					for (var j=0; j<level.layerCount; j++)
+					{
+						if (movementMask.getshiftor(0x1f, 5*j) !== 0)
+						{
 							//this is our layer!
-							var rigidGroupIndexMask = level.rigidGroupIndexMask[i];
-							var rigidGroupIndex = rigidGroupIndexMask.getshiftor(0x1f, 5*j);
-							rigidGroupIndex--;//group indices start at zero, but are incremented for storing in the bitfield
-							var groupIndex = state.rigidGroupIndex_to_GroupIndex[rigidGroupIndex];
-							level.bannedGroup[groupIndex]=true;
-							//backtrackTarget = rigidBackups[rigidGroupIndex];
-							doUndo=true;
-							break;
+							var rigidGroupIndex = level.rigidGroupIndexMask[i].getshiftor(0x1f, 5*j)
+							rigidGroupIndex-- //group indices start at zero, but are incremented for storing in the bitfield
+							level.bannedGroup[ state.rigidGroupIndex_to_GroupIndex[rigidGroupIndex] ] = true
+							doUndo = true
+							break
 						}
 					}
 				}
 			}
-			for (var j=0;j<state.sfx_MovementFailureMasks.length;j++) {
-				var o = state.sfx_MovementFailureMasks[j];
-				var objectMask = o.objectMask;
-				if (objectMask.anyBitsInCommon(cellMask)) {
-					var directionMask = o.directionMask;
-					if (movementMask.anyBitsInCommon(directionMask) && seedsToPlay_CantMove.indexOf(o.seed)===-1) {
-						seedsToPlay_CantMove.push(o.seed);
+			for (const o of state.sfx_MovementFailureMasks)
+			{				
+				if (o.objectMask.anyBitsInCommon(cellMask))
+				{
+					if ( movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CantMove.indexOf(o.seed) === -1) )
+					{
+						seedsToPlay_CantMove.push(o.seed)
 					}
 				}
 			}
 		}
 
-		for (var j=0;j<STRIDE_MOV;j++) {
-			level.movements[j+i*STRIDE_MOV]=0;
+		for (var j=0; j<STRIDE_MOV; j++)
+		{
+			level.movements[i*STRIDE_MOV + j] = 0
 		}
-		level.rigidGroupIndexMask[i]=0;
-		level.rigidMovementAppliedMask[i]=0;
+		level.rigidGroupIndexMask[i] = 0
+		level.rigidMovementAppliedMask[i] = 0
 	}
-	return doUndo;
+	return doUndo
 }
 
-var sfxCreateMask=null;
-var sfxDestroyMask=null;
+var sfxCreateMask = null
+var sfxDestroyMask = null
 
-function calculateRowColMasks() {
-	for(var i=0;i<level.mapCellContents.length;i++) {
-		level.mapCellContents[i]=0;
+function calculateRowColMasks()
+{
+	for(var i=0; i<level.mapCellContents.length; i++)
+	{
+		level.mapCellContents[i] = 0
 	}
 
-	for (var i=0;i<level.width;i++) {
-		var ccc = level.colCellContents[i];
-		ccc.setZero();
+	for (var i=0; i<level.width; i++)
+	{
+		level.colCellContents[i].setZero()
 	}
 
-	for (var i=0;i<level.height;i++) {
-		var rcc = level.rowCellContents[i];
-		rcc.setZero();
+	for (var i=0; i<level.height; i++)
+	{
+		level.rowCellContents[i].setZero()
 	}
 
-	for (var i=0;i<level.width;i++) {
-		for (var j=0;j<level.height;j++) {
-			var index = j+i*level.height;
-			var cellContents=level.getCellInto(index,_o9);
-			level.mapCellContents.ior(cellContents);
-			level.rowCellContents[j].ior(cellContents);
-			level.colCellContents[i].ior(cellContents);
+	for (var i=0; i<level.width; i++)
+	{
+		for (var j=0; j<level.height; j++)
+		{
+			const cellContents = level.getCellInto(j + i*level.height, _o9)
+			level.mapCellContents.ior(cellContents)
+			level.rowCellContents[j].ior(cellContents)
+			level.colCellContents[i].ior(cellContents)
 		}
 	}
 }
