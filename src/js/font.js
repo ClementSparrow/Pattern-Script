@@ -20,51 +20,53 @@ font.asDataURL = function()
 	return canvas.toDataURL("image/png")
 }
 // <-- FONT END -->
-
-font.colored_fonts = { '#ffffffff': font }
-
-font.colored_font = function(css_color)
+font.addEventListener('load', function()
 {
-	if (css_color in this.colored_fonts)
-		return this.colored_fonts[css_color]
+	var canvas = document.createElement('canvas')
+	canvas.width = font.width
+	canvas.height = font.height
+	var fctx = canvas.getContext('2d')
+	fctx.drawImage(font, 0, 0)
+	font.pixels = fctx.getImageData(0, 0, canvas.width, canvas.height).data
 
-	if (this.width === 0) // image is not loaded yet
+	redraw()
+})
+
+font.colored_fonts = { '1-#FFFFFFFF': font }
+
+font.colored_font = function(css_color, magnification = 1)
+{
+	const key = magnification.toString() + '-' + css_color
+	if (key in this.colored_fonts)
+		return this.colored_fonts[key]
+
+	if (font.pixels === undefined) // image is not loaded yet
+		return null
+
+	const color = Array.from( [1,3,5], i => parseInt(css_color.substr(i,2), 16) )
+	const f_alpha = parseInt(css_color.substr(7,2), 16) || 255
+
+	var canvas = document.createElement('canvas')
+	canvas.width = this.width * magnification
+	canvas.height = this.height * magnification
+	var fctx = canvas.getContext('2d')
+
+	for (var i = 0; i < this.pixels.length; i += 4)
 	{
-		font.addEventListener('load', () => redraw() )
-		return null;
+		const alpha = this.pixels[i+3]/255 // alpha channel. 0=transparent, 255=opaque
+		if (alpha === 0)
+			continue
+		fctx.fillStyle = 'rgba(' + color.map(x => Math.round(x*alpha)).join() + ',' + f_alpha + ')'
+		fctx.fillRect( ((i/4) % this.width) * magnification, Math.floor((i/4) / this.width) * magnification, magnification, magnification)
 	}
-
-	var color = [ parseInt(css_color.substr(1,2),16), parseInt(css_color.substr(3,2),16), parseInt(css_color.substr(5,2),16), parseInt(css_color.substr(7,2),16) ]
-	if (isNaN(color[3]))
-		color[3] = 255
-
-	var canvas = document.createElement('canvas');
-	canvas.width = this.width;
-	canvas.height = this.height;
-	var fctx = canvas.getContext('2d');
-
-	fctx.drawImage(this, 0, 0);
-
-	const imageData = fctx.getImageData(0, 0, canvas.width, canvas.height);
-	const data = imageData.data;
-	for (var i = 0; i < data.length; i += 4)
-	{
-		const alpha = data[i+3]/255 // alpha channel. 0=transparent, 255=opaque
-		data[i]   = color[0]*alpha; // red
-		data[i+1] = color[1]*alpha; // green
-		data[i+2] = color[2]*alpha; // blue
-		data[i+3] *= (color[3]/255)
-	}
-	fctx.putImageData(imageData, 0, 0)
-	this.colored_fonts[css_color] = canvas
-	return canvas;
+	this.colored_fonts[key] = canvas
+	return canvas
 }
 
 function draw_char(ctx, colored_font_image, ch, x, y, w, h) // draws char ch at position (x,y) in the canvas ctx with width w and height h
 {
 	const ch_index = chars_in_font.indexOf(ch)
 	if (ch_index < 0)
-		return;
-	ctx.imageSmoothingEnabled = false
-	ctx.drawImage(colored_font_image, ch_index*font_width, 0, font_width, font_height, x, y, w, h)
+		return
+	ctx.drawImage(colored_font_image, ch_index*w, 0, w, h, x, y, w, h)
 }

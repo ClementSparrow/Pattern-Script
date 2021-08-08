@@ -80,7 +80,7 @@ var ctx = canvas.getContext('2d');
 
 TextModeScreen.prototype.redraw = function(magnification)
 {
-	const f = font.colored_font(state.fgcolor)
+	const f = font.colored_font(state.fgcolor, magnification)
 	if (f === null)
 		return;
 
