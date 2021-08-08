@@ -81,22 +81,6 @@ function saveClick()
 	setEditorClean();
 
 	consolePrint("saved file to local storage",true);
-	// removeHackParam()
-}
-
-function removeHackParam()
-{
-	//clear parameters from url bar if any present
-	if (window.location.href.indexOf("?hack") >= 0)
-	{
-		const currURL = window.location.href; 
-		const afterDomain = currURL.substring(currURL.lastIndexOf('/') + 1);
-		const params =  afterDomain.split("?");
-		const beforeQueryString =params[0];  
- 
-		window.history.pushState({}, document.title, "./" + beforeQueryString);
-		consolePrint('The game is now disconnected from the original saved on cloud.')
-	}
 }
 
 window.addEventListener("pageshow", function (event)
