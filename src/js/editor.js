@@ -220,6 +220,7 @@ function loadText(txt)
 	setEditorClean()
 	unloadGame()
 	compile(["restart"], txt)
+	setPageTitle()
 }
 
 function tryLoadFile(fileName)
