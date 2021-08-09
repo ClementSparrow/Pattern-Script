@@ -65,8 +65,9 @@ function saveClick()
 		var curSaveArray = JSON.parse(storage_get('saves'))
 	}
 
-	if (curSaveArray.length>19) {
-		curSaveArray.splice(0,1);
+	if (curSaveArray.length > 20)
+	{
+		curSaveArray.splice(0, 1)
 	}
 	curSaveArray.push(saveDat);
 	var savesDatStr = JSON.stringify(curSaveArray);
@@ -79,7 +80,11 @@ function saveClick()
 
 	setEditorClean();
 
-	consolePrint("saved file to local storage",true);
+	consolePrint("saved file to local storage", true)
+	if (curSaveArray.length === 20)
+	{
+		consolePrint('WARNING: your <i>locally saved file list</i> has reached its maximum capacity of 20 files - older saved files will be deleted when you save in future. You should consider using the "SHARE ON CLOUD" button!', true)
+	}
 }
 
 window.addEventListener("pageshow", function (event)
