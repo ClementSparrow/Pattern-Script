@@ -37,6 +37,7 @@ CommandsSet.prototype.reset = function()
 	this.setZero()
 	this.message = null
 }
+
 CommandsSet.prototype.get_representation = function()
 {
 	return CommandsSet.commandwords.filter( (k,i) => this.get(i) ).join(' ').replace('message', '(message, "'+this.message+'")')

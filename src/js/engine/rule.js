@@ -416,7 +416,7 @@ Rule.prototype.queueCommands = function()
 
 	if (this.commands.message !== null)
 	{
-		level.commandQueue.message = this.commands.message
+		messagetext = level.commandQueue.message = this.commands.message
 	}
 
 	if (verbose_logging)

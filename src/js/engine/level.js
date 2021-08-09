@@ -200,7 +200,7 @@ Level.prototype.restore = function(lev)
 	}
 
 	againing=false;
-	this.commandQueue.setZero()
+	this.commandQueue.reset()
 	this.commandQueue.sourceRules = []
 }
 

@@ -349,7 +349,7 @@ function DoRestart(force) {
 		processInput(-1, true)
 	}
 	
-	level.commandQueue.setZero()
+	level.commandQueue.reset()
 	level.commandQueue.sourceRules = []
 	restarting=false;
 }
@@ -766,7 +766,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 		rigidBackups = []
 		level.bannedGroup = []
-		level.commandQueue.setZero()
+		level.commandQueue.reset()
 		level.commandQueue.sourceRules = []
 
 		var i = max_rigid_loops
@@ -948,7 +948,7 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 		}
 
-		level.commandQueue.setZero()
+		level.commandQueue.reset()
 		level.commandQueue.sourceRules = []
 	}
 
