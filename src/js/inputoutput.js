@@ -463,4 +463,18 @@ function update()
     }
 }
 
-setInterval(update, deltatime)
+function loop()
+{
+	update()
+	setTimeout(loop, deltatime)
+}
+loop.ing = true
+
+document.addEventListener('visibilitychange', function()
+{
+	const old_looping = loop.ing
+	loop.ing = (document.visibilityState == 'visible')
+	if (loop.ing && ! old_looping) loop()
+})
+
+loop()
