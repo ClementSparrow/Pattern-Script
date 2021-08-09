@@ -390,11 +390,35 @@ Rule.prototype.tryApply = function()
 
 Rule.prototype.queueCommands = function()
 {
-	level.commandQueue.ior(this.commands)
+
+	// priority cancel > restart > everything else + sfx and message commands allowed after a cancel / restart
+
+	// if cancel is the queue from other rules, ignore everything
+	const preexisting_cancel = level.commandQueue.get(CommandsSet.command_keys.cancel)
+	if (preexisting_cancel)
+		return
+
+	// if restart is in the queue from other rules, only apply if there's a cancel present here
+	const preexisting_restart = level.commandQueue.get(CommandsSet.command_keys.restart)
+	const currule_cancel = this.commands.get(CommandsSet.command_keys.cancel)
+	if ( preexisting_restart && ( ! currule_cancel ) )
+		return
+
+	//if you are writing a cancel or restart, clear the current queue
+	if ( this.commands.get(CommandsSet.command_keys.restart) || currule_cancel )
+	{
+		this.commands.cloneInto(level.commandQueue)
+	}
+	else
+	{
+		level.commandQueue.ior(this.commands)
+	}
+
 	if (this.commands.message !== null)
 	{
 		level.commandQueue.message = this.commands.message
 	}
+
 	if (verbose_logging)
 	{
 		for(const command of CommandsSet.commandwords.filter( (k,i) => this.commands.get(i) ) )
