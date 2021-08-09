@@ -21,7 +21,7 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 */
 
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
-const logicWords = ['all', 'no', 'on', 'some'];
+const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
 const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
@@ -1331,7 +1331,12 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 		case 0: // expect a quantifier word ('all', 'any', 'some', 'no')
 			return (reg_winconditionquantifiers.exec(candword)) ? 'LOGICWORD' : 'ERROR';
 		case 2: // expect a 'on'
-			return (candword != 'on') ? 'ERROR' : 'LOGICWORD';
+			if ( (candword != 'on') && (candword != 'in') )
+			{
+				logError('Expecting the words "ON" or "IN" but got "'+candword.toUpperCase()+"'.", state.lineNumber)
+				return 'ERROR'
+			}
+			return 'LOGICWORD'
 		case 1: // expect an identifier
 		case 3:
 			if (this.identifiers.checkKnownIdentifier(candword, false, this) === -1)
