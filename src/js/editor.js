@@ -96,6 +96,16 @@ CodeMirror.commands.moveSelectedLinesDown = function(cm)
 	moveSelectedLines(cm, 1)
 }
 
+CodeMirror.commands.selectLine = function(cm)
+{
+	cm.setSelections( cm.listSelections().map( function(range) {
+		return {
+			anchor: CodeMirror.Pos(range.from().line, 0),
+			head: CodeMirror.Pos(range.to().line + 1, 0)
+		}
+	}))
+}
+
 
 var editor = window.CodeMirror.fromTextArea(code, {
 //	viewportMargin: Infinity,
@@ -107,7 +117,11 @@ var editor = window.CodeMirror.fromTextArea(code, {
 		'Cmd-/': 'toggleComment',
 		'Esc': CodeMirror.commands.clearSearch,
 		'Shift-Ctrl-Up': 'moveSelectedLinesUp',
+		// 'Shift-Cmd-Up':  'moveSelectedLinesUp', // conflicts with "select to the beginning/end of the document", and Ctrl works on mac.
 		'Shift-Ctrl-Down': 'moveSelectedLinesDown',
+		// 'Shift-Cmd-Down':  'moveSelectedLinesDown',
+		// 'Ctrl-L': 'selectLine', // shortcut conflicts with URL bar activation in many browsers.
+		// 'Cmd-L': 'selectLine',
 	}
 })
 	
