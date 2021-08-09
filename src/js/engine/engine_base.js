@@ -826,7 +826,6 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 			processOutputCommands(level.commandQueue)
 			tryPlaySimpleSound('cancel')
-			messagetext = ''
 			backups.push(bak)
 			DoUndo(true, false)
 			return false
@@ -840,7 +839,6 @@ function processInput(dir, dontDoWin, dontModify)
 				consolePrintFromRule('RESTART command executed, reverting to restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
 			}
 			processOutputCommands(level.commandQueue)
-			messagetext = ''
 			backups.push(bak)
 			DoRestart(true)
 			return true
