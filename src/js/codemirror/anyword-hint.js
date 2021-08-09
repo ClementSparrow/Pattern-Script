@@ -272,7 +272,7 @@
                         {
                             seen.add(matchWord);
                             const hint = curTagPrefix+state.identifiers.original_case_names[identifier_index];
-	                        console.log('adding '+matchWord+' as tag -> '+hint)
+	                        // console.log('adding '+matchWord+' as tag -> '+hint)
                             list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
                         }
                     }
@@ -290,7 +290,7 @@
                     if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord))
                     {
                         seen.add(matchWord);
-                        console.log('adding '+matchWord+' as object')
+                        // console.log('adding '+matchWord+' as object')
                         const hint = state.identifiers.original_case_names[o.identifier_index]
                         list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
                     }
@@ -315,7 +315,7 @@
                         // if (matchWord === curWord) continue;
                         if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord)) {
                             seen.add(matchWord);
-	                        console.log('adding '+matchWord+' as derived object')
+	                        // console.log('adding '+matchWord+' as derived object')
                             const hint = state.identifiers.original_case_names[identifier_index];
                             list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
                         }
@@ -344,7 +344,7 @@
                     if ( (curWord && matchWord.lastIndexOf(curWord, 0) != 0) || seen.has(matchWord) )
                     	continue
                     seen.add(matchWord)
-                    console.log('adding "'+matchWord+'" as random name for "'+curWord+'" '+(!curWord)+' '+matchWord.lastIndexOf(curWord, 0))
+                    // console.log('adding "'+matchWord+'" as random name for "'+curWord+'" '+(!curWord)+' '+matchWord.lastIndexOf(curWord, 0))
                     const mytag = (tag === 'COLOR') ? 'COLOR-' + m.toUpperCase() : tag
                     list.push({text:m, extra:extra, tag:mytag, render:renderHint})
                 }
