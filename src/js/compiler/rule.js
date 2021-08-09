@@ -84,16 +84,8 @@ function cacheRuleStringRep(identifiers, rule)
 	for (const cellRow of rule.rhs) {
 		result = result + printCellRow(identifiers, cellRow);
 	}
-	for (const command of rule.commands)
-	{
-		if (command.length===1) {
-			result = result + command[0].toString();
-		} else {
-			result = result + '('+command[0].toString()+", "+command[1].toString()+') ';			
-		}
-	}
-	//print commands next
-	rule.stringRep = result;
+	result += rule.commands.get_representation()
+	rule.stringRep = result
 }
 
 function cacheAllRuleNames(state)

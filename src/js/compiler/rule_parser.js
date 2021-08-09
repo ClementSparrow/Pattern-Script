@@ -211,7 +211,7 @@ function parseRuleString(rule, state, curRules)
 	var rhs = false;
 	var lhs_cells = [];
 	var rhs_cells = [];
-	var commands = [];
+	var commands = new CommandsSet()
 
 	var curcell = [];
 	var curobjcond = [];
@@ -293,7 +293,7 @@ function parseRuleString(rule, state, curRules)
 			{
 				should_add_ellipses = true;
 			}
-		} else if (commandwords.indexOf(token) >= 0) {
+		} else if (CommandsSet.prototype.is_command(token)) {
 			if (rhs === false) {
 				logError("Commands cannot appear on the left-hand side of the arrow.", lineNumber);
 			}
@@ -310,10 +310,10 @@ function parseRuleString(rule, state, curRules)
 					messageStr = ' ';
 					//needs to be nonempty or the system gets confused and thinks it's a whole level message rather than an interstitial.
 				}
-				commands.push([token, messageStr]);
+				commands.setMessage(messageStr)
 				i=tokens.length;
 			} else {
-				commands.push([token]);
+				commands.addCommand(token)
 			}
 		} else {
 			logError('Error, malformed cell rule - was looking for cell contents, but found "' + token + '".  What am I supposed to do with this, eh, please tell me that.', lineNumber);
@@ -376,7 +376,7 @@ function parseRuleString(rule, state, curRules)
 
 	// Check the coherence between LHS and RHS
 	if (lhs_cells.length != rhs_cells.length) {
-		if (commands.length > 0 && rhs_cells.length == 0) {
+		if (commands.nb_commands > 0 && rhs_cells.length == 0) {
 			//ok
 		} else {
 			logError('Error, when specifying a rule, the number of matches (square bracketed bits) on the left hand side of the arrow must equal the number on the right', lineNumber);

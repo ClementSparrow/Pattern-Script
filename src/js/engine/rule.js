@@ -390,22 +390,17 @@ Rule.prototype.tryApply = function()
 
 Rule.prototype.queueCommands = function()
 {
-	for(const command of this.commands)
+	level.commandQueue.ior(this.commands)
+	if (this.commands.message !== null)
 	{
-		if (level.commandQueue.indexOf(command[0]) >= 0)
-			continue
-
-		level.commandQueue.push(command[0])
-		level.commandQueueSourceRules.push(this)
-
-		if (verbose_logging)
+		level.commandQueue.message = this.commands.message
+	}
+	if (verbose_logging)
+	{
+		for(const command of CommandsSet.commandwords.filter( (k,i) => this.commands.get(i) ) )
 		{
-			consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + ' triggers command ' + command[0] + '.</font>', true)
-		}
-
-		if (command[0] === 'message')
-		{
-			messagetext = command[1]
+			consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + ' triggers command ' + command + '.</font>', true)
+			level.commandQueue.sourceRules[CommandsSet.command_keys[command]] = this
 		}
 	}
 }

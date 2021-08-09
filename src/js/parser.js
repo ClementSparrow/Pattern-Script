@@ -23,7 +23,6 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
-const commandwords = ["sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10","cancel","checkpoint","restart","win","message","again"];
 
 const reg_commands = /[\p{Separator}\s]*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)[\p{Separator}\s]*/u;
 const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}\s]*/u;
@@ -1287,7 +1286,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 		return 'DIRECTION';
 	if (m === 'random')
 		return 'DIRECTION';
-	if (commandwords.indexOf(m) >= 0)
+	if (CommandsSet.prototype.is_command(m))
 	{
 		if (m === 'message')
 		{

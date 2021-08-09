@@ -14,8 +14,8 @@ function Level(lineNumber, width, height, layerCount, objects)
 	// This is both the initial state of the level (constant) and the current state (mutable).
 	this.objects = objects;
 	// These are game state object (undo history) related to the level but not set or read by this class, and should thus probably be moved out of the class.
-	this.commandQueue = [];
-	this.commandQueueSourceRules = [];
+	this.commandQueue = new CommandsSet()
+	this.commandQueue.sourceRules = []
 }
 
 Level.prototype.clone = function()
@@ -200,8 +200,8 @@ Level.prototype.restore = function(lev)
 	}
 
 	againing=false;
-	this.commandQueue=[];
-	this.commandQueueSourceRules=[];
+	this.commandQueue.setZero()
+	this.commandQueue.sourceRules = []
 }
 
 Level.prototype.delta_index = function(direction)

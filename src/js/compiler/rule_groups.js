@@ -1,32 +1,33 @@
 
+// TODO: the only role of this function is to convert the format for rules used during compilation into a Rule object, which has almost the same structure.
+// the function could thus probably be removed if we used Rule objects sooner in the pipeline.
 function collapseRules(groups)
 {
 	for (var rules of groups)
 	{
 		for (const [i, oldrule] of rules.entries())
 		{
-			var newrule = [0, [], oldrule.rhs.length>0, oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/];
-			var ellipses = Array(oldrule.lhs.length).fill(false);
+			var newrule = [0, [], oldrule.rhs.length>0, oldrule.lineNumber/*ellipses,group number,rigid,commands,randomrule,[cellrowmasks]*/]
+			var ellipses = Array(oldrule.lhs.length).fill(false)
 
-			newrule[0] = dirMasks[oldrule.direction];
-			for (var j=0; j<oldrule.lhs.length; j++)
+			newrule[0] = dirMasks[oldrule.direction]
+			newrule[1] = Array.from(oldrule.lhs)
+			for (const [j, cellrow_l] of oldrule.lhs.entries())
 			{
-				var cellrow_l = oldrule.lhs[j];
 				for (const cell of cellrow_l)
 				{
 					if (cell === ellipsisPattern)
 					{
 						if (ellipses[j])
 						{
-							logError("You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :) ", oldrule.lineNumber);
+							logError("You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :) ", oldrule.lineNumber)
 						} 
-						ellipses[j] = true;
+						ellipses[j] = true
 					}
 				}
-				newrule[1][j] = cellrow_l;
 			}
 			newrule.push(ellipses, oldrule.groupNumber, oldrule.rigid, oldrule.commands, oldrule.randomRule, cellRowMasks(newrule), oldrule.parameter_expansion_string);
-			rules[i] = new Rule(newrule);
+			rules[i] = new Rule(newrule)
 		}
 	}
 	matchCache = {}; // clear match cache so we don't slowly leak memory
@@ -39,7 +40,7 @@ function ruleGroupRandomnessTest(ruleGroup)
 	const firstLineNumber = ruleGroup[0].lineNumber;
 	for (var i=1;i<ruleGroup.length;i++)
 	{
-		var rule=ruleGroup[i];
+		const rule = ruleGroup[i]
 		if (rule.lineNumber === firstLineNumber) // random [A | B] gets turned into 4 rules, skip
 			continue;
 		if (rule.randomRule)
@@ -49,6 +50,7 @@ function ruleGroupRandomnessTest(ruleGroup)
 	}
 }
 
+// remove from a group the rules that have a 'discard' field
 function ruleGroupDiscardOverlappingTest(ruleGroup)
 {
 	var firstLineNumber = ruleGroup[0].lineNumber;
@@ -56,12 +58,12 @@ function ruleGroupDiscardOverlappingTest(ruleGroup)
 	var example = null;
 	for (var i=0; i<ruleGroup.length; i++)
 	{
-		var rule = ruleGroup[i];
+		const rule = ruleGroup[i]
 		if (rule.hasOwnProperty('discard'))
 		{
-			example = rule['discard'];
-			ruleGroup.splice(i,1);
-			i--;
+			example = rule['discard']
+			ruleGroup.splice(i, 1)
+			i--
 		} else {
 			allbad = false;
 		}
@@ -99,9 +101,9 @@ function arrangeRulesByGroupNumber(state)
 	{
 		var targetArray = rule.late ? aggregates_late : aggregates;
 
-		if (targetArray[rule.groupNumber] == undefined)
+		if (targetArray[rule.groupNumber] === undefined)
 		{
-			targetArray[rule.groupNumber] = [];
+			targetArray[rule.groupNumber] = []
 		}
 		targetArray[rule.groupNumber].push(rule);
 	}

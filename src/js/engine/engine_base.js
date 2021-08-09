@@ -349,8 +349,8 @@ function DoRestart(force) {
 		processInput(-1, true)
 	}
 	
-	level.commandQueue=[];
-	level.commandQueueSourceRules=[];
+	level.commandQueue.setZero()
+	level.commandQueue.sourceRules = []
 	restarting=false;
 }
 
@@ -527,8 +527,8 @@ function commitPreservationState(ruleGroupIndex)
 		rigidGroupIndexMask:level.rigidGroupIndexMask.concat([]),
 		rigidMovementAppliedMask:level.rigidMovementAppliedMask.concat([]),
 		bannedGroup:level.bannedGroup.concat([]),
-		commandQueue:level.commandQueue.concat([]),
-		commandQueueSourceRules:level.commandQueueSourceRules.concat([])
+		commandQueue:level.commandQueue.clone(),
+		commandQueueSourceRules:level.commandQueue.sourceRules.concat([])
 	};
 	rigidBackups[ruleGroupIndex]=propagationState;
 	return propagationState;
@@ -540,8 +540,8 @@ function restorePreservationState(preservationState) {;
 	level.movements = new Int32Array(preservationState.movements);
 	level.rigidGroupIndexMask = preservationState.rigidGroupIndexMask.concat([]);
 	level.rigidMovementAppliedMask = preservationState.rigidMovementAppliedMask.concat([]);
-	level.commandQueue = preservationState.commandQueue.concat([]);
-	level.commandQueueSourceRules = preservationState.commandQueueSourceRules.concat([]);
+	preservationState.commandQueue.cloneInto(level.commandQueue)
+	level.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
 	sfxCreateMask.setZero();
 	sfxDestroyMask.setZero();
 	consolePrint("Rigid movement application failed, rolling back");
@@ -560,21 +560,18 @@ function showTempMessage()
 
 function processOutputCommands(commands)
 {
-	for (var command of commands)
+	for (var k = CommandsSet.command_keys['sfx0']; k <= CommandsSet.command_keys['sfx10']; k++)
 	{
-		if (command.charAt(1)==='f') //identifies sfxN
+		if (commands.get(k))
 		{
-			tryPlaySimpleSound(command)
-		}  	
-		if (unitTesting === false)
-		{
-			if (command === 'message')
-			{
-				keybuffer = []
-				msg_screen.done = false
-				showTempMessage()
-			}
+			tryPlaySimpleSound(CommandsSet.commandwords[k])
 		}
+	}
+	if ( (unitTesting === false) && (commands.message !== null) )
+	{
+		keybuffer = []
+		msg_screen.done = false
+		showTempMessage()
 	}
 }
 
@@ -769,8 +766,8 @@ function processInput(dir, dontDoWin, dontModify)
 
 		rigidBackups = []
 		level.bannedGroup = []
-		level.commandQueue = []
-		level.commandQueueSourceRules = []
+		level.commandQueue.setZero()
+		level.commandQueue.sourceRules = []
 
 		var i = max_rigid_loops
 		const startState = commitPreservationState()
@@ -821,11 +818,11 @@ function processInput(dir, dontDoWin, dontModify)
 
 
 		// CANCEL command
-		if (level.commandQueue.indexOf('cancel') >= 0)
+		if (level.commandQueue.get(CommandsSet.command_keys.cancel))
 		{
 			if (verbose_logging)
 			{
-				consolePrintFromRule('CANCEL command executed, cancelling turn.', level.commandQueueSourceRules[level.commandQueue.indexOf('cancel')], true)
+				consolePrintFromRule('CANCEL command executed, cancelling turn.', level.commandQueue.sourceRules[CommandsSet.command_keys.cancel], true)
 			}
 			processOutputCommands(level.commandQueue)
 			tryPlaySimpleSound('cancel')
@@ -836,11 +833,11 @@ function processInput(dir, dontDoWin, dontModify)
 		} 
 
 		// RESTART command
-		if (level.commandQueue.indexOf('restart') >= 0)
+		if (level.commandQueue.get(CommandsSet.command_keys.restart))
 		{
 			if (verbose_logging)
 			{
-				consolePrintFromRule('RESTART command executed, reverting to restart state.', level.commandQueueSourceRules[level.commandQueue.indexOf('restart')], true)
+				consolePrintFromRule('RESTART command executed, reverting to restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
 			}
 			processOutputCommands(level.commandQueue)
 			messagetext = ''
@@ -872,7 +869,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 		if (dontModify)
 		{
-			if (level.commandQueue.indexOf('win') >= 0)
+			if (level.commandQueue.get(CommandsSet.command_keys.win))
 				return true
 
 			if (verbose_logging) { consoleCacheDump() }
@@ -915,11 +912,11 @@ function processInput(dir, dontDoWin, dontModify)
 
 		if ( ! winning )
 		{
-			if (level.commandQueue.indexOf('checkpoint') >= 0)
+			if (level.commandQueue.get(CommandsSet.command_keys.checkpoint))
 			{
 				if (verbose_logging)
 				{ 
-					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', level.commandQueueSourceRules[level.commandQueue.indexOf('checkpoint')])
+					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 				}
 				restartTarget = level4Serialization()
 				hasUsedCheckpoint = true
@@ -930,9 +927,9 @@ function processInput(dir, dontDoWin, dontModify)
 				}
 			}	 
 
-			if ( modified && (level.commandQueue.indexOf('again') >= 0) )
+			if ( modified && level.commandQueue.get(CommandsSet.command_keys.again) )
 			{
-				const r = level.commandQueueSourceRules[level.commandQueue.indexOf('again')]
+				const r = level.commandQueue.sourceRules[CommandsSet.command_keys.again]
 
 				//first have to verify that something's changed
 				var old_verbose_logging = verbose_logging
@@ -953,8 +950,8 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 		}
 
-		level.commandQueue = []
-		level.commandQueueSourceRules = []
+		level.commandQueue.setZero()
+		level.commandQueue.sourceRules = []
 	}
 
 	if (verbose_logging) { consoleCacheDump() }
@@ -968,7 +965,7 @@ function checkWin(dontDoWin = false)
 {
 	dontDoWin |= screen_layout.dontDoWin()
 
-	if (level.commandQueue.indexOf('win') >= 0)
+	if (level.commandQueue.get(CommandsSet.command_keys.win))
 	{
 		if (runrulesonlevelstart_phase)
 		{
