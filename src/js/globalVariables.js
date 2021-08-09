@@ -5,28 +5,30 @@ var hasUsedCheckpoint=false;
 var muted=0;
 var runrulesonlevelstart_phase=false;
 
+const storage_get = (key) => localStorage.getItem(key)
+const storage_has = (key) => (localStorage.getItem(key) !== null)
+const storage_set = (key, value) => localStorage.setItem(key, value)
+const storage_remove = (key) => localStorage.removeItem(key)
+
 function doSetupTitleScreenLevelContinue()
 {
-    try {
-     	if (!!window.localStorage)
-        {
-    		if (localStorage[document.URL] !== undefined)
-            {
-                if (localStorage[document.URL+'_checkpoint'] !== undefined)
-                {
-                    curlevelTarget = JSON.parse(localStorage[document.URL+'_checkpoint'])
-                    
-                    var arr = [];
-                    for(var p in Object.keys(curlevelTarget.dat))
-                    {
-                        arr[p] = curlevelTarget.dat[p]
-                    }
-                    curlevelTarget.dat = new Int32Array(arr)
-                }
-    	        curlevel = localStorage[document.URL]
-    		}
-    	}
-    } catch(ex) { }
+	try {
+		if (storage_has(document.URL))
+		{
+			if (storage_has(document.URL+'_checkpoint'))
+			{
+				curlevelTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
+
+				var arr = []
+				for(var p in Object.keys(curlevelTarget.dat))
+				{
+					arr[p] = curlevelTarget.dat[p]
+				}
+				curlevelTarget.dat = new Int32Array(arr)
+			}
+			curlevel = storage_get(document.URL)
+		}
+	} catch(ex) { }
 }
 
 doSetupTitleScreenLevelContinue();

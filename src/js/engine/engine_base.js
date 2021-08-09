@@ -918,11 +918,8 @@ function processInput(dir, dontDoWin, dontModify)
 				}
 				restartTarget = level4Serialization()
 				hasUsedCheckpoint = true
-				if ( !!window.localStorage )
-				{
-					localStorage[document.URL+'_checkpoint'] = JSON.stringify(restartTarget)
-					localStorage[document.URL] = curlevel
-				}
+				storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
+				storage_set(document.URL, curlevel)
 			}	 
 
 			if ( modified && level.commandQueue.get(CommandsSet.command_keys.again) )
@@ -1066,11 +1063,8 @@ function nextLevel()
 		else
 		{
 			try {
-				if (!!window.localStorage)
-				{
-					localStorage.removeItem(document.URL)
-					localStorage.removeItem(document.URL+'_checkpoint')
-				}
+				storage_remove(document.URL)
+				storage_remove(document.URL+'_checkpoint')
 			} catch(ex) { }
 			
 			curlevel = 0
@@ -1081,17 +1075,14 @@ function nextLevel()
 		//continue existing game
 	}
 	try {
-		if (!!window.localStorage)
+		storage_set(document.URL, curlevel)
+		if (curlevelTarget !== null)
 		{
-			localStorage[document.URL] = curlevel
-			if (curlevelTarget !== null)
-			{
-				restartTarget = level4Serialization()
-				localStorage[document.URL+'_checkpoint'] = JSON.stringify(restartTarget)
-			} else {
-				localStorage.removeItem(document.URL+"_checkpoint")
-			}		
-		}
+			restartTarget = level4Serialization()
+			storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
+		} else {
+			storage_remove(document.URL+'_checkpoint')
+		}		
 	} catch (ex) { }
 
 	if ( (state !== undefined) && (state.metadata.flickscreen !== undefined) )

@@ -60,10 +60,9 @@ function saveClick()
 	}
 
 	var curSaveArray = [];
-	if (localStorage['saves']===undefined) {
-
-	} else {
-		var curSaveArray = JSON.parse(localStorage.saves);
+	if ( ! storage_has('saves'))
+	{
+		var curSaveArray = JSON.parse(storage_get('saves'))
 	}
 
 	if (curSaveArray.length>19) {
@@ -71,7 +70,7 @@ function saveClick()
 	}
 	curSaveArray.push(saveDat);
 	var savesDatStr = JSON.stringify(curSaveArray);
-	localStorage['saves']=savesDatStr;
+	storage_set('saves', savesDatStr)
 
 	repopulateSaveDropdown(curSaveArray);
 
@@ -109,8 +108,8 @@ function loadDropDownChange()
  		return;
  	}
 
-	const saveString = localStorage['saves'];
-	if (saveString === undefined)
+	const saveString = storage_get('saves')
+	if (saveString === null)
 	{
 		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!",true);
 	} 
@@ -142,9 +141,9 @@ function repopulateSaveDropdown(saves)
 	{
 		try
 		{
-			if (localStorage['saves'] === undefined)
+			if ( ! storage_has('saves') )
 				return;
-			saves = JSON.parse(localStorage["saves"]);
+			saves = JSON.parse(storage_get('saves'))
 		}
 		catch (ex)
 		{
@@ -214,7 +213,7 @@ function cloudSaveClick()
 
 function shareOnGitHub(is_public, should_fork=false)
 {
-	const oauthAccessToken = window.localStorage.getItem("oauth_access_token");
+	const oauthAccessToken = storage_get('oauth_access_token')
 	if (typeof oauthAccessToken !== "string")
 	{
 		// Generates 32 letters of random data, like "liVsr/e+luK9tC02fUob75zEKaL4VpQn".
@@ -259,7 +258,7 @@ function shareOnGitHub(is_public, should_fork=false)
 		{
 			if (githubHTTPClient.statusText==="Unauthorized"){
 				consoleError("Authorization check failed.  You have to log back into GitHub (or give it permission again or something).");
-				window.localStorage.removeItem("oauth_access_token");
+				storage_remove('oauth_access_token')
 			} else {
 				consoleError("HTTP Error "+ githubHTTPClient.status + ' - ' + githubHTTPClient.statusText);
 				consoleError("Try giving "+PSFORKNAME+" permission again, that might fix things...");
@@ -311,7 +310,7 @@ function shareOnGitHub(is_public, should_fork=false)
 
 function githubLogOut()
 {
-	window.localStorage.removeItem("oauth_access_token");
+	storage_remove('oauth_access_token')
 
 	const authUrl = getAuthURL();
 	consolePrint(

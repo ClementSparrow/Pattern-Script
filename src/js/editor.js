@@ -13,32 +13,35 @@ window.CodeMirror.defineMode('puzzle', function()
 );
 
 
-var code = document.getElementById('code');
-var _editorDirty = false;
-var _editorCleanState = "";
+var code = document.getElementById('code')
+var _editorDirty = false
+var _editorCleanState = ''
 
-var fileToOpen=getParameterByName("demo");
-if (fileToOpen!==null&&fileToOpen.length>0) {
-	tryLoadFile(fileToOpen);
-	code.value = "loading...";
-} else {
-	var gistToLoad=getParameterByName("hack");
-	if (gistToLoad!==null&&gistToLoad.length>0) {
-		var id = gistToLoad.replace(/[\\\/]/,"");
-		tryLoadGist(id);
-		code.value = "loading...";
-	} else {
+const fileToOpen = getParameterByName('demo')
+if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
+{
+	tryLoadFile(fileToOpen)
+	code.value = 'loading...'
+}
+else
+{
+	const gistToLoad = getParameterByName('hack')
+	if ( (gistToLoad !== null) && (gistToLoad.length > 0) )
+	{
+		var id = gistToLoad.replace(/[\\\/]/,"")
+		tryLoadGist(id)
+		code.value = 'loading...'
+	}
+	else
+	{
 		try {
-			if (localStorage!==undefined && localStorage['saves']!==undefined) {
-					var curSaveArray = JSON.parse(localStorage['saves']);
-					var sd = curSaveArray[curSaveArray.length-1];
-					code.value = sd.text;
-					var loadDropdown = document.getElementById('loadDropDown');
-					loadDropdown.selectedIndex=0;
+			if (storage_has('saves'))
+			{
+				const curSaveArray = JSON.parse(storage_get('saves'))
+				code.value = curSaveArray[curSaveArray.length-1].text
+				document.getElementById('loadDropDown').selectedIndex = 0
 			}
-		} catch(ex) {
-			
-		}
+		} catch(ex) { }
 	}
 }
 
@@ -216,13 +219,13 @@ editor.on("beforeChange", function(instance, change) {
 function setEditorLightMode(new_mode) // 0 for dark, 1 for light
 {
 	const mode = (new_mode === null) ? 1 : parseInt(new_mode)
-	window.localStorage.setItem('light_mode', mode)
+	storage_set('light_mode', mode)
 	editor.setOption('theme', (['midnight', 'midday'])[mode]);
 	document.getElementById('switchModeClickLink').innerHTML = (['LIGHT MODE', 'DARK MODE'])[mode]
 }
 
 code.editorreference = editor;
-setEditorLightMode(window.localStorage.getItem('light_mode'))
+setEditorLightMode(storage_get('light_mode'))
 
 
 function getParameterByName(name)
@@ -235,18 +238,19 @@ function getParameterByName(name)
 
 function tryLoadGist(id)
 {
-	var githubURL = 'https://api.github.com/gists/'+id;
+	const githubURL = 'https://api.github.com/gists/'+id
 
-	consolePrint("Contacting GitHub", true);
-	var githubHTTPClient = new XMLHttpRequest();
-	githubHTTPClient.open('GET', githubURL);
-  if (window.localStorage!==undefined && localStorage['oauth_access_token']!==undefined)
-  {
-    var oauthAccessToken = window.localStorage.getItem("oauth_access_token");
-    if (typeof oauthAccessToken === "string") {
-      githubHTTPClient.setRequestHeader("Authorization","token "+oauthAccessToken);
-    }
-  }
+	consolePrint("Contacting GitHub", true)
+	var githubHTTPClient = new XMLHttpRequest()
+	githubHTTPClient.open('GET', githubURL)
+	if (storage_has('oauth_access_token'))
+	{
+		var oauthAccessToken = storage_get('oauth_access_token')
+		if (typeof oauthAccessToken === 'string')
+		{
+			githubHTTPClient.setRequestHeader('Authorization', 'token '+oauthAccessToken)
+		}
+	}
 	githubHTTPClient.onreadystatechange = function() {
 	
 		if(githubHTTPClient.readyState != 4)
