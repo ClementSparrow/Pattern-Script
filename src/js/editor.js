@@ -42,6 +42,60 @@ if (fileToOpen!==null&&fileToOpen.length>0) {
 	}
 }
 
+moveSelectedLines = function(cm, dir)
+{
+	var selected_line_ranges = cm.listSelections().map( range => [ Math.min(range.anchor.line, range.head.line), Math.max(range.head.line, range.anchor.line) ] )
+	// fuse ranges
+	var i=1
+	while (i<selected_line_ranges.length)
+	{
+		if (selected_line_ranges[i][0] <= selected_line_ranges[i-1][1] + 1)
+		{
+			selected_line_ranges[i-1][1] = selected_line_ranges[i][1]
+			selected_line_ranges.splice(i, 1)
+		}
+		else i++
+	}
+	// extend document if needed
+	if (selected_line_ranges[selected_line_ranges.length-1][1] >= cm.lastLine() )
+	{
+		// console.log('Adding new line at the end of the document')
+		const initial_selections = cm.listSelections() // by default, CodeMirror would extend the selection to include the new line
+		cm.replaceRange('\n', CodeMirror.Pos(cm.lastLine()+1), null, '+swapLine')
+		cm.setSelections(initial_selections, undefined, '+swapLine')
+	}
+	if (selected_line_ranges[0][0] + dir < cm.firstLine())
+	{
+		// console.log('Adding new line at the beginning of the document')
+		cm.replaceRange('\n', CodeMirror.Pos(cm.firstLine(), 0), null, '+swapLine')
+		selected_line_ranges = selected_line_ranges.map( ([f,t]) => [f+1, t+1])
+	}
+	// perform all cut/paste operations as a single operation for the editor
+	cm.operation(function()
+	{
+		for (const [start, end] of selected_line_ranges)
+		{
+			const [from, to] = (dir<0) ? [start-1, end] : [end+1, start]
+			// cut the line before/after the range
+			const line = cm.getLine(from)
+			cm.replaceRange('', CodeMirror.Pos(from, 0), CodeMirror.Pos(from+1, 0), '+swapLine')
+			// and past it after/before the range
+			cm.replaceRange(line + '\n', CodeMirror.Pos(to, 0), null, '+swapLine')
+		}
+		cm.scrollIntoView()
+	})
+}
+
+CodeMirror.commands.moveSelectedLinesUp = function(cm)
+{
+	moveSelectedLines(cm, -1)
+}
+
+CodeMirror.commands.moveSelectedLinesDown = function(cm)
+{
+	moveSelectedLines(cm, 1)
+}
+
 
 var editor = window.CodeMirror.fromTextArea(code, {
 //	viewportMargin: Infinity,
@@ -49,11 +103,13 @@ var editor = window.CodeMirror.fromTextArea(code, {
 	lineNumbers: true,
 	styleActiveLine: true,
 	extraKeys: {
-		"Ctrl-/": "toggleComment",
-		"Cmd-/": "toggleComment",
-		"Esc":CodeMirror.commands.clearSearch
-		}
-	});
+		'Ctrl-/': 'toggleComment',
+		'Cmd-/': 'toggleComment',
+		'Esc': CodeMirror.commands.clearSearch,
+		'Shift-Ctrl-Up': 'moveSelectedLinesUp',
+		'Shift-Ctrl-Down': 'moveSelectedLinesDown',
+	}
+})
 	
 editor.on('mousedown', function(cm, event) {
   if (event.target.className == 'cm-SOUND') {
