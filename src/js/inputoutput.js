@@ -74,36 +74,43 @@ function onMouseUp(event) {
 	event.handled=true;
 }
 
-function onKeyDown(event) {
+function onKeyDown(event)
+{
+	ULBS()
 
-	ULBS();
-	
-    event = event || window.event;
+    event = event || window.event
 
 	// Prevent arrows/space from scrolling page
-	if ((!IDE) && ([32, 37, 38, 39, 40].indexOf(event.keyCode) > -1)) {
-		if (event&&(event.ctrlKey || event.metaKey)){
-		} else {
-			prevent(event);
+	if ( ( ! IDE ) && ([32, 37, 38, 39, 40]).includes(event.keyCode) )
+	{
+		if ( event && (event.ctrlKey || event.metaKey) )
+		{
+		}
+		else
+		{
+			prevent(event)
 		}
 	}
 
-	if ((!IDE) && event.keyCode===77){//m
-		toggleMute();		
+	if ( ( ! IDE) && (event.keyCode === 77) ) // M
+	{
+		toggleMute()
 	}
 
-	
-    if (keybuffer.indexOf(event.keyCode)>=0) {
-    	return;
-    }
+    if (keybuffer.includes(event.keyCode))
+    	return
 
-    if(lastDownTarget === canvas || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) ){
-    	if (keybuffer.indexOf(event.keyCode)===-1) {
-    		if (event&&(event.ctrlKey || event.metaKey)){
-		    } else {
-    		    keybuffer.splice(keyRepeatIndex,0,event.keyCode);
-	    	    keyRepeatTimer=0;
-	    	    checkKey(event,true);
+    if( (lastDownTarget === canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
+    {
+    	if ( ! keybuffer.includes(event.keyCode) )
+    	{
+    		if ( event && (event.ctrlKey || event.metaKey || event.repeat) )
+    		{
+		    } else
+		    {
+    		    keybuffer.splice(keyRepeatIndex, 0, event.keyCode)
+	    	    keyRepeatTimer = 0
+	    	    checkKey(event, true)
 		    }
 		}
 	}
@@ -132,37 +139,42 @@ function onKeyDown(event) {
 	}
 }
 
-function onKeyUp(event) {
-	event = event || window.event;
-	var index=keybuffer.indexOf(event.keyCode);
-	if (index>=0){
-    	keybuffer.splice(index,1);
-    	if (keyRepeatIndex>=index){
-    		keyRepeatIndex--;
-    	}
+function onKeyUp(event)
+{
+	event = event || window.event
+	var index = keybuffer.indexOf(event.keyCode)
+	if (index >= 0)
+	{
+		keybuffer.splice(index, 1)
+		if (keyRepeatIndex >= index)
+		{
+			keyRepeatIndex--
+		}
     }
 }
 
-function onMyFocus(event) {	
-	keybuffer=[];
-	keyRepeatIndex = 0;
-	keyRepeatTimer = 0;
+function onMyFocus(event)
+{
+	keybuffer = []
+	keyRepeatIndex = 0
+	keyRepeatTimer = 0
 }
 
-function onMyBlur(event) {
-	keybuffer=[];
-	keyRepeatIndex = 0;
-	keyRepeatTimer = 0;
+function onMyBlur(event)
+{
+	keybuffer = []
+	keyRepeatIndex = 0
+	keyRepeatTimer = 0
 }
 
-function mouseMove(event) {
-	
+function mouseMove(event)
+{	
 	if (event.handled)
-		return;
+		return
 
 	screen_layout.mouseMove(event)
 
-	event.handled=true;
+	event.handled = true
     //window.console.log("showcoord ("+ canvas.width+","+canvas.height+") ("+x+","+y+")");
 }
 
@@ -194,7 +206,7 @@ function prevent(e) {
 
 function checkKey(e, justPressed)
 {
-	ULBS();
+	ULBS()
 	
     if (winning) {
     	return;
@@ -209,30 +221,26 @@ function checkKey(e, justPressed)
         case 65://a
         case 37: //left
         {
-//            window.console.log("LEFT");
             inputdir=1;
-        break;
+	        break
         }
         case 38: //up
         case 87: //w
         {
-//            window.console.log("UP");
             inputdir=0;
-        break;
+	        break
         }
         case 68://d
         case 39: //right
         {
-//            window.console.log("RIGHT");
             inputdir=3;
-        break;
+	        break
         }
         case 83://s
         case 40: //down
         {
-//            window.console.log("DOWN");
             inputdir=2;
-        break;
+	        break
         }
         case 80://p
         {
@@ -244,13 +252,12 @@ function checkKey(e, justPressed)
         case 67://c
         case 88://x
         {
-//            window.console.log("ACTION");
-			if (norepeat_action===false || justPressed) {
-            	inputdir=4;
-            } else {
-            	return;
+			if ( justPressed || (norepeat_action === false) )
+			{
+				inputdir = 4
+				break
             }
-			break;
+			return
         }
         case 27://escape
         {
@@ -296,13 +303,13 @@ function checkKey(e, justPressed)
 
 TextModeScreen.prototype.checkKey = function(e, inputdir)
 {
-	if ( (state.levels.length === 0) || (inputdir != 4) )
-		return false;
+	if ( (inputdir != 4) || (state.levels.length === 0) )
+		return false
 
 	if (unitTesting)
 	{
 		nextLevel()
-		return;
+		return
 	}
 
 	if (this.done === false)
@@ -311,6 +318,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		this.done = true
 		tryPlaySimpleSound('closemessage')
 		this.doMessage()
+		keybuffer = []
 	}
 	return false;
 }
@@ -324,6 +332,7 @@ MenuScreen.prototype.checkKey = function(e, inputdir)
 	timer = 0
 	this.done = true
 	this.makeTitle()
+	keybuffer = []
 	if (this.nb_items === 1)
 	{
 		canvasResize()
@@ -437,15 +446,16 @@ function update()
             nextLevel();
         }
     }
-    if (keybuffer.length>0) {
-	    keyRepeatTimer+=deltatime;
-	    var ticklength = throttle_movement ? repeatinterval : repeatinterval/(Math.sqrt(keybuffer.length));
-	    if (keyRepeatTimer>ticklength) {
-	    	keyRepeatTimer=0;	
-	    	keyRepeatIndex = (keyRepeatIndex+1)%keybuffer.length;
-	    	var key = keybuffer[keyRepeatIndex];
-	        checkKey({keyCode:key},false);
-	    }
+    if (keybuffer.length > 0)
+    {
+	    keyRepeatTimer += deltatime
+	    var ticklength = throttle_movement ? repeatinterval : repeatinterval/(Math.sqrt(keybuffer.length))
+	    if (keyRepeatTimer > ticklength)
+		{
+			keyRepeatTimer = 0	
+			keyRepeatIndex = (keyRepeatIndex+1) % keybuffer.length
+			checkKey( { keyCode: keybuffer[keyRepeatIndex] }, false )
+		}
 	}
 
     if ( ! ( (autotickinterval <= 0) || screen_layout.noAutoTick() || againing || winning ) )

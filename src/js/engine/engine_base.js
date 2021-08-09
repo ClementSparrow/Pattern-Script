@@ -83,7 +83,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 		backups=[]
 		restartTarget=backupLevel();
-		keybuffer=[];
+		keybuffer = []
 
 		if ('run_rules_on_level_start' in state.metadata)
 		{
