@@ -44,8 +44,8 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 	applyRuleParametersMappings(identifiers, rule);
 //	Optional: replace up/left rules with their down/right equivalents
 	// rewriteUpLeftRules(rule);
-//	Replace aggregates and synonyms with what they mean
-	atomizeAggregatesAndSynonyms(identifiers, rule);
+//	Replace aggregates and synonyms with what they mean, replace "no [property]" with "no obj1 no obj2 etc"
+	atomizeLegendObjects(identifiers, rule);
 	return rule;
 }
 
@@ -137,19 +137,15 @@ function rewriteUpLeftRules(rule)
 		rule.direction = 'right';
 	}
 	else
-	{
-		return;
-	}
+		return
 
 	for (var cellrow of rule.lhs)
 	{
-		cellrow.reverse();
+		cellrow.reverse()
 	}
-	if (rule.rhs.length === 0) // TODO: I guess reversing an empty array works well, so this test should not be necessary
-		return
 	for (var cellrow of rule.rhs)
 	{
-		cellrow.reverse();
+		cellrow.reverse()
 	}
 }
 
@@ -207,31 +203,6 @@ function concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, 
 	}
 }
 
-// TODO: this function does something very similar to what atomizeCellAggregatesAndSynonyms does, so the two functions should be merged
-function expandNoPrefixedProperties(identifiers, cell)
-{
-	var expanded = [];
-	for (const [dir, identifier_index] of cell)
-	{
-		if ( (dir === 'no') && (identifiers.comptype[identifier_index] === identifier_type_property) )
-		{
-			expanded.push(...Array.from(identifiers.getObjectsForIdentifier(identifier_index), object_index => [dir, identifiers.objects[object_index].identifier_index] ) );
-		}
-		else
-		{
-			expanded.push( [dir, identifier_index] );
-		} 
-	}
-	return expanded;
-}
-
-function expandNoPrefixedPropertiesForCellRow(identifiers, cellrows)
-{
-	for (const [i, cur_cellrow] of cellrows.entries())
-	{
-		cellrows[i] = cur_cellrow.map( cur_cell => expandNoPrefixedProperties(identifiers, cur_cell) )
-	}
-}
 
 // TODO: this function and concretizeMovingRule have a very similar structure and should probably be merged.
 /* Expands the properties on the LHS of a rule and disambiguates those on the RHS.
@@ -248,10 +219,6 @@ function expandNoPrefixedPropertiesForCellRow(identifiers, cellrows)
  */
 function concretizePropertyRule(state, rule, lineNumber)
 {	
-	//step 1, rephrase rule to change "no flying" to "no cat no bat"
-	expandNoPrefixedPropertiesForCellRow(state.identifiers, rule.lhs);
-	expandNoPrefixedPropertiesForCellRow(state.identifiers, rule.rhs);
-
 	//are there any properties we could avoid processing?
 	// e.g. [> player | movable] -> [> player | > movable],
 	// 		doesn't need to be split up (assuming single-layer player/block aggregates)
@@ -565,46 +532,42 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 // replaces aggregates and synonyms appearing in a rule by the list of all objects they are aggregates/synonyms of, i.e. objects they must be.
 // each new objects has the same motion/action words than the replaced one.
 // -> a possible generalization could be to use more qualifier words beyond motion/action words, and then replace the aggregate/synonym by a list, propagating the qualifier to the objects of the list that support them.
-function atomizeAggregatesAndSynonyms(identifiers, rule)
+function atomizeLegendObjects(identifiers, rule)
 {
-	atomizeHSAggregatesAndSynonyms(identifiers, rule.lhs, rule.lineNumber)
-	atomizeHSAggregatesAndSynonyms(identifiers, rule.rhs, rule.lineNumber)
+	atomizeLegendObjectsInHS(identifiers, rule.lhs, rule.lineNumber)
+	atomizeLegendObjectsInHS(identifiers, rule.rhs, rule.lineNumber)
 }
 
-function atomizeHSAggregatesAndSynonyms(identifiers, hs, lineNumber)
+function atomizeLegendObjectsInHS(identifiers, hs, lineNumber)
 {
 	for (const cellrow of hs)
 	{
 		for (const cell of cellrow)
 		{
-			atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber);
+			atomizeLegendObjectsInCell(identifiers, cell, lineNumber);
 		}
 	}
 }
 
-function atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber)
+function atomizeLegendObjectsInCell(identifiers, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 1)
 	{
-		const [dir, c] = cell[i];
+		const [dir, c] = cell[i]
 
 		if (dir === '...')
 			continue;
 
-		const identifier_comptype = identifiers.comptype[c];
-		if (identifier_comptype != identifier_type_object) // not an object nor the synonym of an object
+		const identifier_comptype = identifiers.comptype[c]
+		if ( (identifier_comptype == identifier_type_property) && (dir !== 'no') )
+			continue // this case requires a rule expansion and will be dealt with in concretizePropertyRule
+		if ( (identifier_comptype == identifier_type_aggregate) && (dir === 'no') )
 		{
-			if (identifier_comptype != identifier_type_aggregate) // not an aggregate or the synonym of an aggregate
-				continue;
-			// aggregate or synonym of an aggregate
-			if (dir === 'no')
-			{
-				logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber);
-			}
+			logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber)
 		}
 
-		const equivs = Array.from( identifiers.getObjectsForIdentifier(c), p => [dir, identifiers.objects[p].identifier_index] );
-		cell.splice(i, 1, ...equivs);
-		i += equivs.length-1;
+		const equivs = Array.from( identifiers.getObjectsForIdentifier(c), p => [dir, identifiers.objects[p].identifier_index] )
+		cell.splice(i, 1, ...equivs)
+		i += equivs.length-1
 	}
 }
