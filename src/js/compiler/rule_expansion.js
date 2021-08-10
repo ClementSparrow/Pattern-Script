@@ -20,6 +20,7 @@ function* generateRulesExpansions(identifiers, rules)
 		const parameter_sets = identifiers.make_expansion_parameter([...rule.tag_classes, ...rule.parameter_properties])
 		for (const parameters of cartesian_product(directions, ...parameter_sets))
 		{
+			// console.log('generateRulesExpansions', rule.toString(), parameters.toString())
 			yield [rule, ...parameters];
 		}
 	}
@@ -27,6 +28,7 @@ function* generateRulesExpansions(identifiers, rules)
 
 function expandRule(identifiers, original_rule, dir, ...parameters)
 {
+	// console.log('expandRule', original_rule.toString(), dir.toString(), parameters.toString())
 	var rule = deepCloneRule(original_rule);
 	// Also clone the non-directional rule parameters (shallow copy because they should not be modified)
 	rule.tag_classes = original_rule.tag_classes
@@ -38,10 +40,8 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 	const parameter_names = ( (rule.is_directional) ? [dir] : [] ).concat( parameters.map(ii => identifiers.names[ii]) )
 	rule.parameter_expansion_string =  (parameter_names.length > 0) ? '(' + parameter_names.join(' ') + ')' : ''
 
-//	Remove relative directions
-	convertRelativeDirsToAbsolute(identifiers, rule);
-//	Replace mappings of the parameters with what they map to.
-	applyRuleParamatersMappings(identifiers, rule);
+//	Replace mappings of the parameters with what they map to, including directions
+	applyRuleParametersMappings(identifiers, rule);
 //	Optional: replace up/left rules with their down/right equivalents
 	// rewriteUpLeftRules(rule);
 //	Replace aggregates and synonyms with what they mean
@@ -49,8 +49,9 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 	return rule;
 }
 
-function applyRuleParamatersMappings(identifiers, rule)
+function applyRuleParametersMappings(identifiers, rule)
 {
+	const forward = rule.direction
 	for (const hs of [rule.lhs, rule.rhs])
 	{
 		for (const cellrow of hs)
@@ -59,15 +60,19 @@ function applyRuleParamatersMappings(identifiers, rule)
 			{
 				for (var objcond of cell)
 				{
-					var identifier_index = objcond[1]
-					if (identifier_index !== '...')
+					const identifier_index = objcond[1]
+					if (identifier_index === '...')
+						continue
+					const dir_index = relativeDirs.indexOf(objcond[0])
+					if (dir_index >= 0)
 					{
-						objcond[1] = identifiers.replace_parameters(
-							identifier_index,
-							[...rule.tag_classes, ...rule.parameter_properties],
-							[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
-						)
+						objcond[0] = relativeDict[forward][dir_index]
 					}
+					objcond[1] = identifiers.replace_parameters(
+						identifiers.replace_directional_tag_mappings(forward, identifier_index),
+						[...rule.tag_classes, ...rule.parameter_properties],
+						[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
+					)
 				}
 			}
 		}
@@ -82,19 +87,19 @@ function rulesToArray(state)
 	for (const oldrule of oldrules)
 	{
 		var lineNumber = oldrule[1];
-		var newrule = parseRuleString(oldrule, state, rules);
+		var newrule = parseRuleString(oldrule, state, rules)
 		if (newrule === null)
-			continue;
+			continue
 		if (newrule.bracket !== undefined)
 		{
-			loops.push( [lineNumber, newrule.bracket] );
-			continue;
+			loops.push( [lineNumber, newrule.bracket] )
+			continue
 		}
 		rules.push(newrule);
 	}
 	state.loops = loops;
 
-	//now expand out rules with multiple directions
+	//now expand out rules with multiple directions or rule parameters
 	const rules2 = Array.from( generateRulesExpansions(state.identifiers, rules), rule_expansion => expandRule(state.identifiers, ...rule_expansion) );
 
 	var rules3 = [];
@@ -120,7 +125,7 @@ function containsEllipsis(rule)
 
 function rewriteUpLeftRules(rule)
 {
-	if (containsEllipsis(rule)) // TODO: What's wrong with reversing a rule that contains ellipses?
+	if (containsEllipsis(rule))
 		return;
 
 	if (rule.direction == 'up')
@@ -413,7 +418,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 
 //	Generate rules in which "directionaggregate identifier" instances are replaced with concrete directions for all occurences of the same directionaggregate and identifier
 	
-	// Note that 'parallel' and 'perpendicular' have already been replaced by 'horizontal'/'vertical' in convertRelativeDirsToAbsolute,
+	// Note that 'parallel' and 'perpendicular' have already been replaced by 'horizontal'/'vertical' in applyRuleParametersMappings,
 	// so the directionaggregates here can only be 'horizontal', 'vertical', 'moving', or 'orthogonal'.
 	// Similarly, identifiers that are aggregates or synonyms have already been replaced with objects in atomizeAggregatesAndSynonyms,
 	// so the identifiers here can only be objects or properties.
@@ -601,38 +606,5 @@ function atomizeCellAggregatesAndSynonyms(identifiers, cell, lineNumber)
 		const equivs = Array.from( identifiers.getObjectsForIdentifier(c), p => [dir, identifiers.objects[p].identifier_index] );
 		cell.splice(i, 1, ...equivs);
 		i += equivs.length-1;
-	}
-}
-
-function convertRelativeDirsToAbsolute(identifiers, rule)
-{
-	const forward = rule.direction;
-	absolutifyRuleHS(identifiers, rule.lhs, forward);
-	absolutifyRuleHS(identifiers, rule.rhs, forward);
-}
-
-function absolutifyRuleHS(identifiers, hs, forward)
-{
-	for (const cellrow of hs)
-	{
-		for (const cell of cellrow)
-		{
-			absolutifyRuleCell(identifiers, forward, cell);
-		}
-	}
-}
-
-function absolutifyRuleCell(identifiers, forward, cell)
-{
-	for (var objcond of cell)
-	{
-		if (objcond[1] === '...')
-			continue;
-		const index = relativeDirs.indexOf(objcond[0]);
-		if (index >= 0)
-		{
-			objcond[0] = relativeDict[forward][index];
-		}
-		objcond[1] = identifiers.replace_directional_tag_mappings(forward, objcond[1])
 	}
 }

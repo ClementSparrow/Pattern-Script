@@ -1137,11 +1137,7 @@ function compile(command, text, randomseed)
 		for (const rule of state.lateRules) {
 			ruleCount += rule.length;
 		}
-		if (command[0]=="restart") {
-			consolePrint('<span class="systemMessage">Successful Compilation, generated ' + ruleCount + ' instructions.</span>');
-		} else {
-			consolePrint('<span class="systemMessage">Successful live recompilation, generated ' + ruleCount + ' instructions.</span>');
-		}
+		consolePrint('<span class="systemMessage">Successful ' + ((command[0] == 'restart')?'Compilation':'live recompilation') + ', generated '+ruleCount+' instructions.</span>')
 	}
 	setGameState(state,command,randomseed);
 
