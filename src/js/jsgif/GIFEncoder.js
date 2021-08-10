@@ -347,9 +347,8 @@
 			    usedEntry[index] = true;
 			    indexedPixels[j] = index;
 			}
-			var doConcat = function doConcat(prev, curr, cIndex, cArray) { return prev.concat((curr >>> 16),(curr >>> 8) & 0xff,curr & 0xff); }
-			colorTab = colorTab.reduce(doConcat, []);
-			palSize = Math.ceil(Math.log2(colorTab.length / 3)) - 1;
+			colorTab = colorTab.reduce( (prev, curr) => prev.concat((curr >>> 16),(curr >>> 8) & 0xff,curr & 0xff), [])
+			palSize = Math.max(0, Math.ceil(Math.log2(colorTab.length / 3)) - 1)
 		    }
 		    pixels = null;
 		    colorDepth = 8;
