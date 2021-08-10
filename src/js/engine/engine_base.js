@@ -464,16 +464,17 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 
 	const layerMask = state.layerMasks[layer]
 	var targetMask = level.getCellInto(targetIndex, _o7)
-	var sourceMask = level.getCellInto(positionIndex, _o8)
 
-	if (layerMask.anyBitsInCommon(targetMask) && (dirMask != 16))
+	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) )
 		return false
+
+	var sourceMask = level.getCellInto(positionIndex, _o8)
 
 	for (const o of state.sfx_MovementMasks)
 	{
 		if ( o.objectMask.anyBitsInCommon(sourceMask) && level.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 		{
-			seedsToPlay_CanMove.push(o.seed)
+			seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
 		}
 	}
 
@@ -674,6 +675,10 @@ function resolveMovements(dir)
 	while(moved)
 	{
 		moved = false
+		// TODO-OPTIMIZATION: this loops on each cell of the level and each layer in the cell, possibly multiple times if there is a long chain of dependencies
+		// (object A can only move after B has moved, which can only happen after C has moved, etc.) But most cells actually contain no object that can move.
+		// An optimization could be to maintain a chained list of cells that contain pending movements? However, some games rely on the scanning order, so the list
+		// would have to preserve that order.
 		for (var i=0; i<level.n_tiles; i++)
 		{
 			moved |= repositionEntitiesAtCell(i)
