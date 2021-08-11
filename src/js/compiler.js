@@ -354,6 +354,27 @@ var dirMasks = {
 	'' : parseInt('00000',2)
 };
 
+function setPostMovement(dir, layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
+{
+	if (dir.length > 0)
+	{
+		postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex);
+	}
+
+	if (dir === 'stationary')
+	{
+		movementsClear.ishiftor(0x1f, 5*layerIndex)
+	}
+	else if (dir === 'randomdir')
+	{
+		randomDirMask_r.ishiftor(dirMasks[dir], 5 * layerIndex);
+	}
+	else
+	{						
+		movementsSet.ishiftor(dirMasks[dir], 5 * layerIndex);
+	}
+}
+
 
 function ruleToMask(state, rule, layerTemplate, layerCount)
 {
@@ -373,15 +394,15 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 			var objectlayers_l = new BitVec(STRIDE_MOV);
 
-			for (const [object_dir, identifier_index] of cell_l)
+			for (const oc of cell_l)
 			{
-				if (object_dir === '...')
+				if (oc === null)
 				{
 					objectsPresent = ellipsisPattern;
 					if (rule.rhs.length > 0)
 					{
 						var rhscell = cellrow_r[k];
-						if (rhscell.length !==1 || rhscell[0][0] !== '...')
+						if (rhscell.length !==1 || rhscell[0] !== null)
 						{
 							// TODO: this should be catched earlier in the compilation pipeline
 							logError("An ellipsis on the left must be matched by one in the corresponding place on the right.", rule.lineNumber);								
@@ -389,26 +410,20 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					} 
 					break;
 				}
-				else if (object_dir === 'random')
-				{
-					// TODO: this should be catched earlier in the compilation pipeline
-					logError("'random' cannot be matched on the left-hand side, it can only appear on the right", rule.lineNumber);
-					continue;
-				}
 
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
-				const object = (state.identifiers.object_set[identifier_index].size > 1) ? null : state.identifiers.objects[state.identifiers.object_set[identifier_index].values().next().value];
+				const object = (state.identifiers.object_set[oc.ii].size > 1) ? null : state.identifiers.objects[state.identifiers.object_set[oc.ii].values().next().value];
 
-				const objectMask = state.objectMasks[identifier_index];
-				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
+				const objectMask = state.objectMasks[oc.ii];
+				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[oc.ii];
 
-				if (object_dir === 'no')
+				if (oc.no)
 				{
 					objectsMissing.ior(objectMask);
 				}
 				else if ((layerIndex === undefined) || (layerIndex < 0))
 				{
-					logError("Oops!  " +state.identifiers.names[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +state.identifiers.names[oc.ii].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
@@ -416,10 +431,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					if (existing_idindex !== null)
 					{
 						// TODO: don't use identifier names in rule.discard, just identifier_indexes
-						rule.discard = [state.identifiers.names[identifier_index].toUpperCase(), state.identifiers.names[existing_idindex].toUpperCase()];
+						rule.discard = [state.identifiers.names[oc.ii].toUpperCase(), state.identifiers.names[existing_idindex].toUpperCase()];
 					}
 
-					layersUsed_l[layerIndex] = identifier_index;
+					layersUsed_l[layerIndex] = oc.ii;
 
 					if (object)
 					{
@@ -431,13 +446,13 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 						anyObjectsPresent.push(objectMask);
 					}
 
-					if (object_dir === 'stationary')
+					if (oc.dir === 'stationary')
 					{
 						movementsMissing.ishiftor(0x1f, 5*layerIndex);
 					}
 					else
 					{
-						movementsPresent.ishiftor(dirMasks[object_dir], 5 * layerIndex);
+						movementsPresent.ishiftor(dirMasks[oc.dir], 5 * layerIndex);
 					}
 				}
 			}
@@ -468,19 +483,19 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 			var objectlayers_r = new BitVec(STRIDE_MOV);
 			var randomMask_r = new BitVec(STRIDE_OBJ);
-			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV);
+			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV); // set for the bits of layers such that a) an object in that layer appears in the (RHS) cell and has a movement direction or action (movement is set), b) an object in that layer appeared on the same cell in the LHS but no object in that layer appears in the (RHS) cell (objects deleted)
 			var randomDirMask_r = new BitVec(STRIDE_MOV);
-			for (const [object_dir, identifier_index] of cell_r)
+			for (const oc of cell_r)
 			{
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
-				const object = state.identifiers.getObjectsForIdentifier(identifier_index).size > 1 ? null : state.identifiers.objects[state.identifiers.getObjectsForIdentifier(identifier_index).values().next().value];
+				const object = state.identifiers.getObjectsForIdentifier(oc.ii).size > 1 ? null : state.identifiers.objects[state.identifiers.getObjectsForIdentifier(oc.ii).values().next().value];
 
-				if (object_dir === 'random')
+				if (oc.random)
 				{
-					if (state.identifiers.comptype[identifier_index] !== identifier_type_aggregate)
+					if (state.identifiers.comptype[oc.ii] !== identifier_type_aggregate)
 					{
-						randomMask_r.ior(state.objectMasks[identifier_index]);
-						const values = Array.from( state.identifiers.getObjectsForIdentifier(identifier_index), p => [p, state.identifiers.objects[p]] );
+						randomMask_r.ior(state.objectMasks[oc.ii]);
+						const values = Array.from( state.identifiers.getObjectsForIdentifier(oc.ii), p => [p, state.identifiers.objects[p]] );
 						for (const [subobject_index, subobject] of values)
 						{
 							// TODO: it would be simpler to precompute a layer mask for each identifier, then compare this mask with objectsSet?
@@ -493,25 +508,26 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 							}
 
 							layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
+							setPostMovement(oc.dir, subobj_layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
 						}                      
 					}
 					else
 					{
-						logError('You want to spawn a random "'+state.identifiers.names[identifier_index].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
+						logError('You want to spawn a random "'+state.identifiers.names[oc.ii].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
 					}
 					continue;
 				}
 
-				const objectMask = state.objectMasks[identifier_index];
-				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[identifier_index];
+				const objectMask = state.objectMasks[oc.ii];
+				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[oc.ii];
 				
-				if (object_dir == 'no')
+				if (oc.no)
 				{
 					objectsClear.ior(objectMask);
 				}
 				else if ( (layerIndex === undefined) || (layerIndex < 0) )
 				{
-					logError("Oops!  " +state.identifiers.names[identifier_index].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError("Oops!  " +state.identifiers.names[oc.ii].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
 				}
 				else
 				{
@@ -519,15 +535,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) )
 					{
-						logError('Rule matches object types that can\'t overlap: "' + state.identifiers.names[identifier_index].toUpperCase() + '" and "' + state.identifiers.names[existing_index].toUpperCase() + '".',rule.lineNumber);
+						logError('Rule matches object types that can\'t overlap: "' + state.identifiers.names[oc.ii].toUpperCase() + '" and "' + state.identifiers.names[existing_index].toUpperCase() + '".',rule.lineNumber);
 					}
 
-					layersUsed_r[layerIndex] = identifier_index;
-
-					if (object_dir.length > 0)
-					{
-						postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex);
-					}
+					layersUsed_r[layerIndex] = oc.ii;
 
 					if (object)
 					{
@@ -540,18 +551,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 						// shouldn't need to do anything here...
 					}
 
-					if (object_dir === 'stationary')
-					{
-						movementsClear.ishiftor(0x1f, 5*layerIndex)
-					}
-					else if (object_dir === 'randomdir')
-					{
-						randomDirMask_r.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-					}
-					else
-					{						
-						movementsSet.ishiftor(dirMasks[object_dir], 5 * layerIndex);
-					}
+					setPostMovement(oc.dir, layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
 				}
 			}
 
@@ -564,7 +564,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				movementsClear.ior(movementsPresent); // ... and movements
 			}
 
-			for (var l = 0; l < layerCount; l++)
+			for (var l = 0; l < layerCount; l++) // TODO: isn't this doing the same thing than that other line below? -> no, the difference is that the other line works only for atomic objects but this loop also works for single-layer properties.
 			{
 				if (layersUsed_l[l] !== null && layersUsed_r[l] === null)
 				{
@@ -575,8 +575,8 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			}
 
 			objectlayers_l.iclear(objectlayers_r);
+			postMovementsLayerMask_r.ior(objectlayers_l); // TODO: that other line.
 
-			postMovementsLayerMask_r.ior(objectlayers_l);
 			if (objectsClear || objectsSet || movementsClear || movementsSet || postMovementsLayerMask_r)
 			{
 				// only set a replacement if something would change
@@ -588,8 +588,8 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 function rulesToMask(state)
 {
-	var layerCount = state.collisionLayers.length;
-	var layerTemplate = Array(layerCount).fill(null);
+	const layerCount = state.collisionLayers.length;
+	const layerTemplate = Array(layerCount).fill(null);
 
 	for (const rule of state.rules)
 	{

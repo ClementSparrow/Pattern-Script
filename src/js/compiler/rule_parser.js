@@ -18,7 +18,7 @@ function* objectConstraint_iterator(rule)
 		for (const cell_row of side)
 			for (const cell of cell_row)
 				for (const object_constraint of cell)
-					if (object_constraint[1] !== '...')
+					if (object_constraint !== null)
 						yield object_constraint
 }
 
@@ -26,10 +26,12 @@ function directionalRule(identifiers, rule)
 {
 	if ( rule.lhs.some( cellrow => (cellrow.length > 1) ) || rule.rhs.some( cellrow => (cellrow.length > 1) ) )
 		return true
-	for (const [dir, identifier_index] of objectConstraint_iterator(rule))
+	for (const oc of objectConstraint_iterator(rule))
 	{
+		if (oc === null)
+			continue
 		// TODO: should'nt it also include 'perpendicular' and 'parallel' but exclude 'horizontal' and 'vertical'?
-		if ( relativeDirections.includes(dir) || identifiers.has_directional_tag_mapping(identifier_index) )
+		if ( relativeDirections.includes(oc.dir) || identifiers.has_directional_tag_mapping(oc.ii) )
 			return true
 	}
 	return false
@@ -198,8 +200,8 @@ function parseRuleString(rule, state, curRules)
 	}
 
 	var curcellrow = []; // [  [up, cat]  [ down, mouse ] ] -> a cell row is everything betwen [ and ], it is an array of cells
-	var curcell = null; // [up, cat, down mouse] -> a cell is everything between [or| and |or], it is '...' or an array of object conditions.
-	var curobjcond = null; // -> an object condition is a sequence "direction? identifier", it is a pair [ direction or null, identifier_index ]
+	var curcell = [] // [up, cat, down mouse] -> a cell is everything between [or| and |or], it is '...' or an array of object conditions.
+	var curobjcond = { dir: null, ii: null, no: false, random: false } // -> an object condition is a sequence "direction? identifier", it is a pair [ direction or null, identifier_index ]
 	var should_close_cellrow = false;
 	var should_close_cell = false;
 	var should_close_objcond = false;
@@ -213,8 +215,6 @@ function parseRuleString(rule, state, curRules)
 	var rhs_cells = [];
 	var commands = new CommandsSet()
 
-	var curcell = [];
-	var curobjcond = [];
 	var bracketbalance = 0;
 	for (var i = nb_tokens_in_rule_directions; i < tokens.length; i++)
 	{
@@ -238,7 +238,24 @@ function parseRuleString(rule, state, curRules)
 			incellrow = true;
 			curcell = [];
 		} else if (reg_directions_only.exec(token)) {
-			if (curobjcond.length == 1) {
+			if (!incellrow) {
+				logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
+			} else if (curobjcond.no || curobjcond.random) {
+				// TODO: it would be nice to allow "no up crate" to match cells that have either no crate or a crate that does not move up. But it requires changes in the engine.
+				logError('Invalid syntax. The keyword "'+(tokens[i-1]).toUpperCase()+'" must be followed by an object name.', lineNumber)
+			} else if (token === 'random') {
+				if ( ! rhs )
+				{
+					logError('"random" cannot be matched on the left-hand side, it can only appear on the right', rule.lineNumber)
+				}
+				curobjcond.random = true
+			} else if (token === 'no') {
+				if (curobjcond.dir !== null)
+				{
+					logError('Syntax error: "NO" cannot follow a direction in a rule.', lineNumber)
+				}
+				curobjcond.no = true
+			} else if (curobjcond.dir !== null) {
 				// TODO: fix bug https://github.com/increpare/PuzzleScript/issues/395
 				//       Basically, we need to replace directions words with 'direction' flags (including 'no' and 'random' that are not directions) and check
 				//       there is no more than one direction? (relative directions should not yet be resolved, however)
@@ -246,10 +263,10 @@ function parseRuleString(rule, state, curRules)
 				//       additional constraints on the matching but is also incompatible with the use of some words like 'parallel' that present an alternative (< or >).
 				//       And we clearly want the ability to have alternatives, but it's just a shortcut to avoid making multiple rules instead.
 				logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
-			} else if (!incellrow) {
-				logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
+			} else if ( ! rhs && token === 'randomdir' ) {
+				logError('Error, "RANDOMDIR" cannot appear on the left-hand side of a rule, it can only appear on the right.', lineNumber)
 			} else {
-				curobjcond.push(token);
+				curobjcond.dir = token
 			}
 		} else if (token == '|') {
 			if (!incellrow) {
@@ -276,10 +293,7 @@ function parseRuleString(rule, state, curRules)
 			if (!incellrow) {
 				logWarning("Invalid token "+token.toUpperCase() +". Object names should only be used within cells (square brackets).", lineNumber);
 			}
-			else if (curobjcond.length == 0) {
-				curobjcond.push('');
-			}
-			curobjcond.push(state.identifiers.checkKnownIdentifier(token, true, state)); // TODO: we should not search it twice...
+			curobjcond.ii = state.identifiers.checkKnownIdentifier(token, true, state) // TODO: we should not search it twice...
 			should_close_objcond = true;
 		} else if (token === '...') {
 			if (!incellrow) {
@@ -322,22 +336,28 @@ function parseRuleString(rule, state, curRules)
 		if (should_close_objcond || should_add_ellipses || should_close_cell || should_close_cellrow)
 		{
 			// close the current object condition / ellipsis
-			if (curobjcond.length == 1)
+			if (curobjcond.ii === null)
 			{
-				// TODO: this error message should not be triggered when something was provided but was not a valid object name.
-				logError('In a rule, if you specify a force, it has to act on an object.', lineNumber);
+				if ( (curobjcond.dir) !== null || curobjcond.no || curobjcond.random )
+				{
+					// TODO: this error message should not be triggered when something was provided but was not a valid object name.
+					// TODO: the error message is a little bit misleading as it would also be trigered by 'no' or 'random' not being followed by an identifier.
+					logError('In a rule, if you specify a force, it has to act on an object.', lineNumber)
+				}
 			}
-			else if (curobjcond.length == 2)
+			else
 			{
+				if (curobjcond.dir === null)
+					curobjcond.dir = ''
 				curcell.push(curobjcond)
 			}
-			curobjcond = [];
+			curobjcond = { dir: null, ii: null, no: false, random: false }
 			should_close_objcond = false;
 		}
 
 		if (should_add_ellipses)
 		{
-			curcell.push([token, token]);
+			curcell.push(null)
 			cell_contains_ellipses = true;
 			should_add_ellipses = false;
 		}
@@ -361,7 +381,7 @@ function parseRuleString(rule, state, curRules)
 			{
 				logError("You have an totally empty pattern on the left-hand side.  This will match *everything*.  You certainly don't want this.");
 			}
-			if ( (curcellrow.length > 0) && (curcellrow[curcellrow.length - 1][0] == '...')) {
+			if ( (curcellrow.length > 0) && (curcellrow[curcellrow.length - 1] === null)) {
 				logError('You cannot end a bracket with ellipses.', lineNumber);
 			}
 			else 
@@ -395,8 +415,8 @@ function parseRuleString(rule, state, curRules)
 		lineNumber: lineNumber,
 		groupNumber: groupNumber,
 		directions: directions,
-		tag_classes: Array.from(tag_classes),
-		parameter_properties: Array.from(properties),
+		tag_classes: tag_classes,
+		parameter_properties: properties,
 		late: late,
 		rigid: rigid,
 		randomRule: randomRule,

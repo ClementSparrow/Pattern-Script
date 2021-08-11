@@ -56,14 +56,16 @@ function dumpTestCase() {
 
 	
 	//normal session recording data
-	var levelDat = compiledText;
-	var input = inputHistory.concat([]);
-	var outputDat = convertLevelToString();
+	if (level !== undefined)
+	{
+		var levelDat = compiledText;
+		var input = inputHistory.concat([]);
+		var outputDat = convertLevelToString();
 
-	var resultarray = [levelDat,input,outputDat,recordingStartsFromLevel,loadedLevelSeed]
-	var resultstring = JSON.stringify(resultarray);
-	consolePrint("<br>Recorded play session data (for play session tests - testdata.js):<br><br><br>"+resultstring+"<br><br><br>",true);
-
+		var resultarray = [levelDat,input,outputDat,recordingStartsFromLevel,loadedLevelSeed]
+		var resultstring = JSON.stringify(resultarray);
+		consolePrint("<br>Recorded play session data (for play session tests - testdata.js):<br><br><br>"+resultstring+"<br><br><br>",true);
+	}
 }
 
 function clearInputHistory()

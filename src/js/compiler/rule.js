@@ -4,7 +4,7 @@
 function deepCloneCellRow(cellrow)
 {
 	return cellrow.map(
-		cell =>  cell.map( ([dir, object_index]) => [dir, object_index] )
+		cell =>  cell.map( oc => (oc === null) ? null : ({dir: oc.dir, ii: oc.ii, no: oc.no, random: oc.random})  )
 	);
 }
 
@@ -41,15 +41,23 @@ function deepCloneRule(rule)
 function printCell(identifiers, cell)
 {
 	var result = '';
-	for (const [direction, identifier_index] of cell)
+	for (const oc of cell)
 	{
-		result += direction + " ";
-		if (direction !== "...")
+		if (oc === null)
 		{
-			result += identifiers.names[identifier_index]+" ";
+			result += '... '
+		}
+		else
+		{
+			if (oc.no)
+				result += 'no '
+			if (oc.random)
+				result += 'random '
+			result += oc.dir + ' '
+			result += identifiers.names[oc.ii]+' '
 		}
 	}
-	return result;
+	return result
 }
 
 function printCellRow(identifiers, cellRow)

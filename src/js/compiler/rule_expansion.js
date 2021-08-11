@@ -54,15 +54,15 @@ function applyRuleParametersMappings(identifiers, rule)
 	const forward = rule.direction
 	for (const objcond of objectConstraint_iterator(rule))
 	{
-		const identifier_index = objcond[1]
-		if (identifier_index === '...')
+		if (objcond === null)
 			continue
-		const dir_index = relativeDirs.indexOf(objcond[0])
+		const identifier_index = objcond.ii
+		const dir_index = relativeDirs.indexOf(objcond.dir)
 		if (dir_index >= 0)
 		{
-			objcond[0] = relativeDict[forward][dir_index]
+			objcond.dir = relativeDict[forward][dir_index]
 		}
-		objcond[1] = identifiers.replace_parameters(
+		objcond.ii = identifiers.replace_parameters(
 			identifiers.replace_directional_tag_mappings(forward, identifier_index),
 			[...rule.tag_classes, ...rule.parameter_properties],
 			[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
@@ -143,13 +143,13 @@ function rewriteUpLeftRules(rule)
 function getPropertiesFromCell(identifiers, cell)
 {
 	var result = [];
-	for (const [dir, identifier_index] of cell)
+	for (const oc of cell)
 	{
-		if (dir == "random")
-			continue;
-		if (identifiers.comptype[identifier_index] === identifier_type_property)
+		if ( (oc === null) || oc.random )
+			continue
+		if (identifiers.comptype[oc.ii] === identifier_type_property)
 		{
-			result.push(identifier_index);
+			result.push(oc.ii)
 		}
 	}
 	return result;
@@ -158,16 +158,16 @@ function getPropertiesFromCell(identifiers, cell)
 //returns you a list of object names in that cell that're moving -> actually, it only returns those moving with a directionaggregate...
 function getMovings(cell)
 {
-	return cell.filter( ([dir, identifier_index]) => (dir in directionaggregates) );
+	return cell.filter( oc => (oc !== null) && (oc.dir in directionaggregates) )
 }
 
 function concretizePropertyInCell(cell, property, concreteType)
 {
 	for (var objcond of cell)
 	{
-		if (objcond[1] === property && objcond[0]!=="random")
+		if ( (objcond !== null) && (objcond.ii === property) && ( ! objcond.random ) )
 		{
-			objcond[1] = concreteType;
+			objcond.ii = concreteType
 		}
 	}
 }
@@ -176,9 +176,9 @@ function concretizeMovingInCell(cell, ambiguousMovement, idToMove, concreteDirec
 {
 	for (var objcond of cell)
 	{
-		if (objcond[0] === ambiguousMovement && objcond[1] === idToMove)
+		if ( (objcond !== null) && (objcond.dir === ambiguousMovement) && (objcond.ii === idToMove) )
 		{
-			objcond[0] = concreteDirection;
+			objcond.dir = concreteDirection
 		}
 	}
 }
@@ -187,9 +187,9 @@ function concretizeMovingInCellByAmbiguousMovementName(cell, ambiguousMovement, 
 {
 	for (var objcond of cell)
 	{
-		if (objcond[0] === ambiguousMovement)
+		if ( (objcond !== null) && (objcond.dir === ambiguousMovement) )
 		{
-			objcond[0] = concreteDirection;
+			objcond.dir = concreteDirection
 		}
 	}
 }
@@ -404,7 +404,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 
 						//just do the base directionaggregate, let future iterations take care of the others
 						//(since all occurences of the base directionaggregate will be replaced by atomic directions, it will not reappear here)
-						const [ambiguous_dir, identifier_index] = movings[0];
+						const { dir: ambiguous_dir, ii: identifier_index } = movings[0];
 						for (const concreteDirection of directionaggregates[ambiguous_dir])
 						{
 							var newrule = deepCloneRule(cur_rule);
@@ -507,7 +507,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 				const movings = getMovings(cur_cell);
 				if (movings.length > 0)
 				{
-					rhsAmbiguousMovementsRemain = movings[0][0];
+					rhsAmbiguousMovementsRemain = movings[0].dir
 				}
 			}
 		}
@@ -544,20 +544,20 @@ function atomizeLegendObjectsInCell(identifiers, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 1)
 	{
-		const [dir, c] = cell[i]
+		const oc = cell[i]
 
-		if (dir === '...')
-			continue;
+		if (oc === null)
+			continue
 
-		const identifier_comptype = identifiers.comptype[c]
-		if ( (identifier_comptype == identifier_type_property) && (dir !== 'no') )
+		const identifier_comptype = identifiers.comptype[oc.ii]
+		if ( (identifier_comptype == identifier_type_property) && ( ! oc.no ) )
 			continue // this case requires a rule expansion and will be dealt with in concretizePropertyRule
-		if ( (identifier_comptype == identifier_type_aggregate) && (dir === 'no') )
+		if ( (identifier_comptype == identifier_type_aggregate) && oc.no )
 		{
-			logError("You cannot use 'no' to exclude the aggregate object " +c.toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber)
+			logError("You cannot use 'no' to exclude the aggregate object " +identifiers.names[oc.ii].toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber)
 		}
 
-		const equivs = Array.from( identifiers.getObjectsForIdentifier(c), p => [dir, identifiers.objects[p].identifier_index] )
+		const equivs = Array.from( identifiers.getObjectsForIdentifier(oc.ii), p => ({ dir: oc.dir, ii: identifiers.objects[p].identifier_index, no: oc.no, random: oc.random }) )
 		cell.splice(i, 1, ...equivs)
 		i += equivs.length-1
 	}
