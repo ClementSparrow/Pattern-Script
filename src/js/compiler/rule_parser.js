@@ -12,27 +12,27 @@ var simpleAbsoluteDirections = ['up', 'down', 'left', 'right'];
 var simpleRelativeDirections = ['^', 'v', '<', '>'];
 var reg_directions_only = /^(\>|\<|\^|v|up|down|left|right|moving|stationary|no|randomdir|random|horizontal|vertical|orthogonal|perpendicular|parallel|action)$/;
 
-
-function isCellRowDirectional(identifiers, cellRow)
+function* objectConstraint_iterator(rule)
 {
-	if (cellRow.length > 1)
-		return true;
-	for (var cell of cellRow)
-	{
-		for (const [dir, identifier_index] of cell)
-		{
-			if (relativeDirections.indexOf(dir) >= 0) // TODO: should'nt it also include 'perpendicular' and 'parallel' but exclude 'horizontal' and 'vertical'?
-				return true;
-			if (identifiers.has_directional_tag_mapping(identifier_index))
-				return true;
-		}
-	}
-	return false;
+	for (const side of [rule.lhs, rule.rhs])
+		for (const cell_row of side)
+			for (const cell of cell_row)
+				for (const object_constraint of cell)
+					if (object_constraint[1] !== '...')
+						yield object_constraint
 }
 
 function directionalRule(identifiers, rule)
 {
-	return rule.lhs.some( cellrow => isCellRowDirectional(identifiers, cellrow) ) || rule.rhs.some( cellrow => isCellRowDirectional(identifiers, cellrow) )
+	if ( rule.lhs.some( cellrow => (cellrow.length > 1) ) || rule.rhs.some( cellrow => (cellrow.length > 1) ) )
+		return true
+	for (const [dir, identifier_index] of objectConstraint_iterator(rule))
+	{
+		// TODO: should'nt it also include 'perpendicular' and 'parallel' but exclude 'horizontal' and 'vertical'?
+		if ( relativeDirections.includes(dir) || identifiers.has_directional_tag_mapping(identifier_index) )
+			return true
+	}
+	return false
 }
 
 function findIndexAfterToken(str, tokens, tokenIndex)

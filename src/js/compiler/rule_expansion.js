@@ -52,30 +52,21 @@ function expandRule(identifiers, original_rule, dir, ...parameters)
 function applyRuleParametersMappings(identifiers, rule)
 {
 	const forward = rule.direction
-	for (const hs of [rule.lhs, rule.rhs])
+	for (const objcond of objectConstraint_iterator(rule))
 	{
-		for (const cellrow of hs)
+		const identifier_index = objcond[1]
+		if (identifier_index === '...')
+			continue
+		const dir_index = relativeDirs.indexOf(objcond[0])
+		if (dir_index >= 0)
 		{
-			for (const cell of cellrow)
-			{
-				for (var objcond of cell)
-				{
-					const identifier_index = objcond[1]
-					if (identifier_index === '...')
-						continue
-					const dir_index = relativeDirs.indexOf(objcond[0])
-					if (dir_index >= 0)
-					{
-						objcond[0] = relativeDict[forward][dir_index]
-					}
-					objcond[1] = identifiers.replace_parameters(
-						identifiers.replace_directional_tag_mappings(forward, identifier_index),
-						[...rule.tag_classes, ...rule.parameter_properties],
-						[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
-					)
-				}
-			}
+			objcond[0] = relativeDict[forward][dir_index]
 		}
+		objcond[1] = identifiers.replace_parameters(
+			identifiers.replace_directional_tag_mappings(forward, identifier_index),
+			[...rule.tag_classes, ...rule.parameter_properties],
+			[...rule.tag_classes_replacements, ...rule.parameter_properties_replacements]
+		)
 	}
 }
 
