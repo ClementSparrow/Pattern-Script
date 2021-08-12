@@ -14,7 +14,7 @@ for (const [testname, td] of testdata)
 			{
 				const [testcode, testinput, testresult] = tdat;
 				const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
-				var errormessage =  testcode+"\n\n\nlevel: "+(tdat[4]||0)+"\n\n\ninput: "+input;
+				var errormessage =  testcode+"\n\n\nlevel: "+(tdat[3]||0)+"\n\n\ninput: "+input;
 				ok(runTest(tdat),errormessage);
 			};
 		}(td)
