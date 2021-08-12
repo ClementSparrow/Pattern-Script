@@ -192,33 +192,25 @@ function generateRigidGroupList(state)
 
 function generateLoopPointsAux(loops, rules)
 {
-	var target = 0;
-
-	// TODO: we're doing this twice -> make an auxillary function.
-	var loopPoint = {};
-	var outside = true;
+	var target = 0
+	var loopPoint = {}
+	var outside = true
 	for (const loop of loops)
 	{
 		const i = rules.findIndex( ruleGroup => (ruleGroup[0].lineNumber >= loop[0]) ) // index of the first ruleGroup after the startloop/endloop instruction
-		if (i < 0)
-			continue
 		if (outside)
 		{
 			target = i
 		}
-		else
+		else if (target >= 0) // there was no rule after the startloop, which can happen for empty loops or loops that contain only late rules
 		{
-			loopPoint[i-1] = target
+			loopPoint[ ((i<0) ? rules.length : i) - 1] = target
 		}
 		if (loop[1] === (outside ? -1 : 1) )
 		{
 			logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
 		}
 		outside = ! outside
-	}
-	if (outside === false)
-	{
-		loopPoint[rules.length] = target
 	}
 	return loopPoint
 }

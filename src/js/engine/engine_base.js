@@ -640,30 +640,21 @@ function applyRules(rules, loopPoint, bannedGroup)
 	var loopPropagated = false
 	while (ruleGroupIndex < rules.length)
 	{
-		while (true)
+		if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) )
 		{
-			if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) )
-			{
-				loopPropagated |= applyRuleGroup(rules[ruleGroupIndex])
-			}
-			if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
-				break
-			ruleGroupIndex++
-			if (ruleGroupIndex === rules.length)
-			{
-				if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
-					break
-				return
-			}
+			loopPropagated |= applyRuleGroup(rules[ruleGroupIndex])
 		}
-		ruleGroupIndex = loopPoint[ruleGroupIndex]
-		loopPropagated = false
-		loopCount++
-		if (loopCount > max_loop_count)
+		if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
 		{
+			ruleGroupIndex = loopPoint[ruleGroupIndex]
+			loopPropagated = false
+			loopCount++
+			if (loopCount <= max_loop_count)
+				continue
 			logErrorCacheable('got caught in an endless startloop...endloop vortex, escaping!', rules[ruleGroupIndex][0].lineNumber, true)
 			return
 		}
+		ruleGroupIndex++
 	}
 }
 

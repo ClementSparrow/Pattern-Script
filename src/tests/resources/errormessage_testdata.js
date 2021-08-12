@@ -413,6 +413,6 @@ var errormessage_testdata = [
     ],
     [
         `Nested loops are not allowed`,
-        ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nGREEN\n\nPlayer\nBlack\n\nCrate\nOrange\n\n\n=======\nLEGEND\n=======\n\n. = Background\nP = Player\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nPlayer, Crate\n\n======\nRULES\n======\n\nstartloop\nstartloop\n[ Player | ] -> [ Player | Crate ]\nendloop\nendloop\n\n\n==============\nWINCONDITIONS\n==============\n\n=======\nLEVELS\n=======\n\n.......\n..P....\n.......\n\n\n",["Need to have matching number of 'startLoop' and 'endLoop' loop points."],1]
+        ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nGREEN\n\nPlayer\nBlack\n\nCrate\nOrange\n\n\n=======\nLEGEND\n=======\n\n. = Background\nP = Player\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nPlayer, Crate\n\n======\nRULES\n======\n\nstartloop\nstartloop\n[ Player | ] -> [ Player | Crate ]\nendloop\nendloop\n\n\n==============\nWINCONDITIONS\n==============\n\n=======\nLEVELS\n=======\n\n.......\n..P....\n.......\n\n\n",["Need to have matching number of 'startLoop' and 'endLoop' loop points."],4]
     ]
 ];
