@@ -201,8 +201,11 @@ function generateExtraMembers(state)
 	{
 		state.background_index = state.identifiers.getObjectFromIdentifier(background_identifier_index);
 	}
-	state.backgroundid = state.identifiers.objects[state.background_index].id
-	state.backgroundlayer = state.identifiers.objects[state.background_index].layer
+	if (state.background_index !== undefined)
+	{
+		state.backgroundid = state.identifiers.objects[state.background_index].id
+		state.backgroundlayer = state.identifiers.objects[state.background_index].layer
+	}
 }
 
 
@@ -385,6 +388,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 		for (const [k, cell_l] of cellrow_l.entries())
 		{
+
+			// Left-Hand Side
+			// ==============
+
 			var layersUsed_l = Array.from(layerTemplate);
 			var objectsPresent = new BitVec(STRIDE_OBJ);
 			var objectsMissing = new BitVec(STRIDE_OBJ); // the objects that must not be in the cell ('no' keyword)
@@ -414,7 +421,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
 				const object = (state.identifiers.object_set[oc.ii].size > 1) ? null : state.identifiers.objects[state.identifiers.object_set[oc.ii].values().next().value];
 
-				const objectMask = state.objectMasks[oc.ii];
+				const objectMask = state.objectMasks[oc.ii]; // only defined for objects and properties, one bit set for each object it can be
 				const layerIndex = (object !== null) ? object.layer : state.single_layer_property[oc.ii];
 
 				if (oc.no)
@@ -427,11 +434,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else
 				{
-					const existing_idindex = layersUsed_l[layerIndex];
-					if (existing_idindex !== null)
+					if (layersUsed_l[layerIndex] !== null)
 					{
 						// TODO: don't use identifier names in rule.discard, just identifier_indexes
-						rule.discard = [state.identifiers.names[oc.ii].toUpperCase(), state.identifiers.names[existing_idindex].toUpperCase()];
+						rule.discard = [state.identifiers.names[oc.ii].toUpperCase(), state.identifiers.names[layersUsed_l[layerIndex]].toUpperCase()];
 					}
 
 					layersUsed_l[layerIndex] = oc.ii;
@@ -457,7 +463,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 			}
 
-			if ( (rule.rhs.length > 0) && (cellrow_r[k][0] === '...') && (cell_l[0] !== '...') )
+			if ( (rule.rhs.length > 0) && (cellrow_r[k][0] === null) && (cell_l[0] !== null) )
 			{
 				logError("An ellipsis on the right must be matched by one in the corresponding place on the left.", rule.lineNumber);
 			}
@@ -468,6 +474,10 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				continue
 			}
 			cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing, null])
+
+
+			// Right-Hand Side
+			// ===============
 
 			if (rule.rhs.length === 0)
 				continue
@@ -507,12 +517,14 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 								logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.identifiers.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
 							}
 
+							// TODO: shouldn't we also test that layersUsedRand_r is not already set?
 							layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
 							setPostMovement(oc.dir, subobj_layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
 						}                      
 					}
 					else
 					{
+						// TODO: this error should be catched earlier in the parsing piepline
 						logError('You want to spawn a random "'+state.identifiers.names[oc.ii].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
 					}
 					continue;
@@ -533,7 +545,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					const existing_index = layersUsed_r[layerIndex] || layersUsedRand_r[layerIndex]
 
-					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) )
+					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) ) // "discard" here is used just to not show an error message when we know there will already be one for that rule?
 					{
 						logError('Rule matches object types that can\'t overlap: "' + state.identifiers.names[oc.ii].toUpperCase() + '" and "' + state.identifiers.names[existing_index].toUpperCase() + '".',rule.lineNumber);
 					}
@@ -543,21 +555,28 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					if (object)
 					{
 						objectsSet.ibitset(object.id);
-						objectsClear.ior(state.layerMasks[layerIndex]);
+						objectsClear.ior(state.layerMasks[layerIndex]); // TODO: shouldn't we clear them ONLY if they do not also appear on the LHS?
 						objectlayers_r.ishiftor(0x1f, 5*layerIndex);
+						// TODO: add movementsClear.ior(state.layerMasks[layerIndex]) ?
 					}
 					else
 					{
 						// shouldn't need to do anything here...
+						// TODO: add movementsClear.ior(state.layerMasks[layerIndex]) ?
 					}
 
 					setPostMovement(oc.dir, layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
 				}
 			}
 
-			if ( ! objectsPresent.bitsSetInArray(objectsSet.data) )
+
+			// Differences between both sides
+			// ==============================
+
+			// TODO: shouldn't we only clear the objects (or rather, their layer masks) that are not present on the RHS? Something like objectsClear.ior(objectsPresent.clear(objectsSet))
+			if ( ! objectsPresent.bitsSetInArray(objectsSet.data) ) // if there are individual objects on the LHS that are not on the RHS
 			{
-				objectsClear.ior(objectsPresent); // clear out old objects
+				objectsClear.ior(objectsPresent) // destroy them
 			}
 			if ( ! movementsPresent.bitsSetInArray(movementsSet.data) )
 			{
