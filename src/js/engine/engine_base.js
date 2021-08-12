@@ -610,11 +610,10 @@ function applyRuleGroup(ruleGroup)
 		return applyRandomRuleGroup(ruleGroup)
 
 	var skip_from = ruleGroup.length - 1
-	var loopcount = 0
+	var loopcount = 1
 	var result = false
 	while(loopcount <= max_loop_count)
 	{
-		loopcount++
 		var last_applied = null
 		for (const [i, rule] of ruleGroup.entries())
 		{
@@ -625,6 +624,7 @@ function applyRuleGroup(ruleGroup)
 		}
 		skip_from = last_applied
 		result = true
+		loopcount++
 	}
 	logErrorCacheable('Got caught looping lots in a rule group :O', ruleGroup[0].lineNumber, true)
 	return result
