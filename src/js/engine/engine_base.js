@@ -609,26 +609,25 @@ function applyRuleGroup(ruleGroup)
 	if (ruleGroup[0].isRandom)
 		return applyRandomRuleGroup(ruleGroup)
 
-	var loopPropagated = false
-	var propagated = true
+	var skip_from = ruleGroup.length - 1
 	var loopcount = 0
-	while (propagated)
+	var result = false
+	while(loopcount <= max_loop_count)
 	{
 		loopcount++
-		if (loopcount > max_loop_count)
+		var last_applied = null
+		for (const [i, rule] of ruleGroup.entries())
 		{
-			logErrorCacheable('Got caught looping lots in a rule group :O', ruleGroup[0].lineNumber, true)
-			break
+			if (rule.tryApply())
+				last_applied = i
+			if ( (i === skip_from) && (last_applied === null))
+				return result
 		}
-		propagated = false
-		for (var rule of ruleGroup)
-		{
-			propagated |= rule.tryApply()
-		}
-		loopPropagated |= propagated
+		skip_from = last_applied
+		result = true
 	}
-
-	return loopPropagated
+	logErrorCacheable('Got caught looping lots in a rule group :O', ruleGroup[0].lineNumber, true)
+	return result
 }
 
 //for each rule, try to match it
