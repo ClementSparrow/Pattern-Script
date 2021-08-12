@@ -190,6 +190,39 @@ function generateRigidGroupList(state)
 	state.groupIndex_to_RigidGroupIndex = groupIndex_to_RigidGroupIndex;
 }
 
+function generateLoopPointsAux(loops, rules)
+{
+	var target = 0;
+
+	// TODO: we're doing this twice -> make an auxillary function.
+	var loopPoint = {};
+	var outside = true;
+	for (const loop of loops)
+	{
+		const i = rules.findIndex( ruleGroup => (ruleGroup[0].lineNumber >= loop[0]) ) // index of the first ruleGroup after the startloop/endloop instruction
+		if (i < 0)
+			continue
+		if (outside)
+		{
+			target = i
+		}
+		else
+		{
+			loopPoint[i-1] = target
+		}
+		if (loop[1] === (outside ? -1 : 1) )
+		{
+			logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
+		}
+		outside = ! outside
+	}
+	if (outside === false)
+	{
+		loopPoint[rules.length] = target
+	}
+	return loopPoint
+}
+
 
 function generateLoopPoints(state)
 {
@@ -197,75 +230,6 @@ function generateLoopPoints(state)
 	{
 		logErrorNoLine("have to have matching number of  'startLoop' and 'endLoop' loop points.");
 	}
-
-	var loopPointIndex = 0;
-	var source = 0;
-	var target = 0;
-
-	// TODO: we're doing this twice -> make an auxillary function.
-	var loopPoint = {};
-	var outside = true;
-	for (const loop of state.loops)
-	{
-		for (const [i, ruleGroup] of state.rules.entries())
-		{
-			if (ruleGroup[0].lineNumber < loop[0])
-				continue;
-
-			if (outside)
-			{
-				target = i;
-			}
-			else
-			{
-				source = i-1;
-				loopPoint[source] = target;
-			}
-			if (loop[1] === (outside ? -1 : 1) )
-			{
-				logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
-			}
-			outside = ! outside;
-			break;
-		}
-	}
-	if (outside === false)
-	{
-		var source = state.rules.length;
-		loopPoint[source] = target;
-	}
-	state.loopPoint = loopPoint;
-
-	loopPoint = {};
-	outside = true;
-	for (const loop of state.loops)
-	{
-		for (const [i, ruleGroup] of state.lateRules.entries())
-		{
-			if (ruleGroup[0].lineNumber < loop[0])
-				continue;
-
-			if (outside)
-			{
-				target = i;
-			}
-			else
-			{
-				source = i-1;
-				loopPoint[source] = target;
-			}
-			if (loop[1] === (outside ? -1 : 1) )
-			{
-				logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
-			}
-			outside = ! outside;
-			break;
-		}
-	}
-	if (outside === false)
-	{
-		var source = state.lateRules.length;
-		loopPoint[source] = target;
-	}
-	state.lateLoopPoint=loopPoint;
+	state.loopPoint = generateLoopPointsAux(state.loops, state.rules)
+	state.lateLoopPoint = generateLoopPointsAux(state.loops, state.lateRules)
 }
