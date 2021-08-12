@@ -85,6 +85,10 @@ function parseRuleDirections(state, tokens, lineNumber)
 		} else if (token === 'rigid') {
 			rigid = true;
 		} else if (token === 'random') {
+			if (has_plus)
+			{
+				logError('A rule-group can only be marked random by the first rule', lineNumber) // TODO: better explain why in the message.
+			}
 			randomRule = true;
 		} else if (simpleAbsoluteDirections.indexOf(token) >= 0) {
 			directions.push(token);

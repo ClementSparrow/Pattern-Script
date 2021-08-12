@@ -33,24 +33,9 @@ function collapseRules(groups)
 	matchCache = {}; // clear match cache so we don't slowly leak memory
 }
 
-// test that in a rule group the only random rules are the ones defined by the first rule of the group
-// TODO: this is a syntaxic issue that should/could be dealt with much sooner?
-function ruleGroupRandomnessTest(ruleGroup)
-{
-	const firstLineNumber = ruleGroup[0].lineNumber;
-	for (var i=1;i<ruleGroup.length;i++)
-	{
-		const rule = ruleGroup[i]
-		if (rule.lineNumber === firstLineNumber) // random [A | B] gets turned into 4 rules, skip
-			continue;
-		if (rule.randomRule)
-		{
-			logError("A rule-group can only be marked random by the first rule", rule.lineNumber);
-		}
-	}
-}
-
-// remove from a group the rules that have a 'discard' field
+// remove from a group the rules that have a 'discard' field. We could display the error message as soon as ruleToMask, but we want to factorize the same error messages
+// created by different expansions of a same original rule. Normally this is done by the console's deletion of repeated messages, but here the example can be different
+// for the different expansions.
 function ruleGroupDiscardOverlappingTest(ruleGroup)
 {
 	var firstLineNumber = ruleGroup[0].lineNumber;
@@ -82,7 +67,6 @@ function arrangeRulesByGroupNumberAux(target)
 		if (target.hasOwnProperty(groupNumber))
 		{
 			var ruleGroup = target[groupNumber];
-			ruleGroupRandomnessTest(ruleGroup);
 			ruleGroupDiscardOverlappingTest(ruleGroup);
 			if (ruleGroup.length > 0)
 			{

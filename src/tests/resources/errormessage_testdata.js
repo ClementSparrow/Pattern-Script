@@ -414,5 +414,9 @@ var errormessage_testdata = [
     [
         `Nested loops are not allowed`,
         ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nGREEN\n\nPlayer\nBlack\n\nCrate\nOrange\n\n\n=======\nLEGEND\n=======\n\n. = Background\nP = Player\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nPlayer, Crate\n\n======\nRULES\n======\n\nstartloop\nstartloop\n[ Player | ] -> [ Player | Crate ]\nendloop\nendloop\n\n\n==============\nWINCONDITIONS\n==============\n\n=======\nLEVELS\n=======\n\n.......\n..P....\n.......\n\n\n",["Need to have matching number of 'startLoop' and 'endLoop' loop points."],4]
+    ],
+    [
+        `Random on second rule of a group`,
+        ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nLIGHTGREEN GREEN\n11111\n01111\n11101\n11111\n10111\n\n\nTarget\nDarkBlue\n.....\n.000.\n.0.0.\n.000.\n.....\n\nWall\nBROWN DARKBROWN\n00010\n11111\n01000\n11111\n00010\n\nPlayer\nBlack Orange White Blue\n.000.\n.111.\n22222\n.333.\n.3.3.\n\nCrate\nOrange Yellow\n00000\n0...0\n0...0\n0...0\n00000\n\n\n=======\nLEGEND\n=======\n\n. = Background\n# = Wall\nP = Player\n* = Crate\n@ = Crate and Target\nO = Target\n\n\n=======\nSOUNDS\n=======\n\nCrate MOVE 36772507\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nTarget\nPlayer, Wall, Crate\n\n======\nRULES\n======\n\n[ > Player | Crate ] -> [ > Player | > Crate ]\n+ random [ action Player | ] -> [ action Player | Crate ]\n\n==============\nWINCONDITIONS\n==============\n\nAll Target on Crate\n\n=======\nLEVELS\n=======\n\n\n####..\n#.O#..\n#..###\n#@P..#\n#..*.#\n#..###\n####..\n\n\n######\n#....#\n#.#P.#\n#.*@.#\n#.O@.#\n#....#\n######\n\n",["line 82: A rule-group can only be marked random by the first rule"],1]
     ]
 ];
