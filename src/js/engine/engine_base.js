@@ -637,22 +637,32 @@ function applyRules(rules, loopPoint, bannedGroup)
 	//when we're going back in, let's loop, to be sure to be sure
 	var loopCount = 0
 	var ruleGroupIndex = 0
-	var loopPropagated = false
+	var last_applied = null
+	var skip_from = null
+	var skip_to = null
+
 	while (ruleGroupIndex < rules.length)
 	{
-		if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) )
+		if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) && applyRuleGroup(rules[ruleGroupIndex]) )
 		{
-			loopPropagated |= applyRuleGroup(rules[ruleGroupIndex])
+			last_applied = ruleGroupIndex
 		}
-		if ( loopPropagated && (loopPoint[ruleGroupIndex] !== undefined) )
+		// loopPoint[ruleGroupIndex] is set on the last ruleGroupIndex before an endloop and contains the first ruleGroupIndex after the matching startloop
+		if ( (last_applied !== null) && (loopPoint[ruleGroupIndex] !== undefined) )
 		{
+			skip_from = last_applied
+			skip_to = ruleGroupIndex
 			ruleGroupIndex = loopPoint[ruleGroupIndex]
-			loopPropagated = false
+			last_applied = null
 			loopCount++
 			if (loopCount <= max_loop_count)
 				continue
 			logErrorCacheable('got caught in an endless startloop...endloop vortex, escaping!', rules[ruleGroupIndex][0].lineNumber, true)
 			return
+		}
+		if ( (skip_from === ruleGroupIndex) && (last_applied === null) )
+		{
+			ruleGroupIndex = skip_to
 		}
 		ruleGroupIndex++
 	}
