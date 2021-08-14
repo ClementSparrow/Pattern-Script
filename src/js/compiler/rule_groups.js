@@ -20,7 +20,7 @@ function collapseRules(groups)
 					{
 						if (ellipses[j])
 						{
-							logError("You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :) ", oldrule.lineNumber)
+							logError(['more_than_one_ellipses_in_cellrow'], oldrule.lineNumber)
 						} 
 						ellipses[j] = true
 					}
@@ -36,6 +36,7 @@ function collapseRules(groups)
 // remove from a group the rules that have a 'discard' field. We could display the error message as soon as ruleToMask, but we want to factorize the same error messages
 // created by different expansions of a same original rule. Normally this is done by the console's deletion of repeated messages, but here the example can be different
 // for the different expansions.
+// See https://github.com/increpare/PuzzleScript/issues/512 and https://github.com/increpare/PuzzleScript/issues/605
 function ruleGroupDiscardOverlappingTest(ruleGroup)
 {
 	var firstLineNumber = ruleGroup[0].lineNumber;
@@ -55,7 +56,7 @@ function ruleGroupDiscardOverlappingTest(ruleGroup)
 	}
 	if (allbad)
 	{
-		logError(example[0] +' and '+example[1]+' can never overlap, but this rule requires that to happen.', firstLineNumber);
+		logError(['overlapping_objects_in_cell', ...example], firstLineNumber)
 	}
 }
 
@@ -192,7 +193,7 @@ function generateLoopPointsAux(loops, rules)
 		}
 		if (loop[1] === (outside ? -1 : 1) )
 		{
-			logErrorNoLine("Need to have matching number of 'startLoop' and 'endLoop' loop points.");
+			logError(['unbalanced_loop'])
 		}
 		outside = ! outside
 	}
@@ -204,7 +205,7 @@ function generateLoopPoints(state)
 {
 	if (state.loops.length % 2 === 1)
 	{
-		logErrorNoLine("have to have matching number of  'startLoop' and 'endLoop' loop points.");
+		logError("have to have matching number of  'startLoop' and 'endLoop' loop points.")
 	}
 	state.loopPoint = generateLoopPointsAux(state.loops, state.rules)
 	state.lateLoopPoint = generateLoopPointsAux(state.loops, state.lateRules)

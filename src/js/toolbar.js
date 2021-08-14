@@ -295,10 +295,10 @@ function shareOnGitHub(is_public, should_fork=false)
 			consolePrint('<br>'+sourceCodeLink,true);
 
 
-			if (errorCount>0) {
-				consolePrint("<br>Cannot link directly to playable game, because there are compiler errors.",true);
+			if (errorStrings.length > 0) {
+				consolePrint("<br>Cannot link directly to playable game, because there are compiler errors.", true)
 			} else {
-				consolePrint("<br>The game can now be played at this url:<br><a target=\"_blank\" href=\""+url+"\">"+url+"</a>",true);
+				consolePrint("<br>The game can now be played at this url:<br><a target=\"_blank\" href=\""+url+"\">"+url+"</a>", true)
 			}
 
 			window.history.replaceState(null, null, "?hack="+id);

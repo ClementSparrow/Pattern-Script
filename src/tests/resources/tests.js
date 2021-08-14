@@ -2,20 +2,24 @@
 
 var inputVals = {0 : 'U', 1: 'L', 2:'D', 3:'R', 4:' ACTION ', tick:' TICK ', undo:' UNDO ', restart:' RESTART '}
 
-function testFunction(td) { }
+// function testFunction(td) { }
 
+QUnit.module('Game parts') // replay game parts to check the execution of rules
+
+// tests of results of inputs
 for (const [testname, td] of testdata)
 {
 	test(
 		testname,
+		td[0],
 		function(tdat)
 		{
 			return function()
 			{
 				const [testcode, testinput, testresult] = tdat;
 				const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
-				var errormessage =  testcode+"\n\n\nlevel: "+(tdat[3]||0)+"\n\n\ninput: "+input;
-				ok(runTest(tdat),errormessage);
+				var errormessage = "<b>level:</b> " + (tdat[3]||0) + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
+				ok(runTest(tdat), errormessage)
 			};
 		}(td)
 	);
@@ -23,23 +27,60 @@ for (const [testname, td] of testdata)
 
 
 
+QUnit.module('Errors and warnings') // check that they are well triggered
+
+function test_compile(testcode, errors, warnings)
+{
+	return function()
+	{
+		const testerrors =   '<b>Expected errors:</b><ul>'   + errors.map(  m => '<li>'+JSON.stringify(m)+'</li>').join('') + '</ul>'
+		const testwarnings = '<b>Expected warnings:</b><ul>' + warnings.map(m => '<li>'+JSON.stringify(m)+'</li>').join('') + '</ul>'
+		ok(runCompilationTest(testcode, errors, warnings),
+		   testerrors + testwarnings +
+		   '<b>Got errors:</b><ul>'   +   errorStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>' + 
+		   '<b>Got warnings:</b><ul>' + warningStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>' +
+		   '<b>Game:</b><pre>' + testcode + '</pre>'
+		)
+	}
+}
 
 for (const [testname, td] of errormessage_testdata)
 {
 	test(
-		"🐛"+testname, 
-		function(tdat)
+		testname, 
+		td[0],
+		test_compile(td[0], td[1], td[2])
+	)
+}
+
+
+QUnit.module('Demos') // Test that demos compile without error or warning
+
+function get_textfile(filename, callback)
+{
+	var fileOpenClient = new XMLHttpRequest()
+	fileOpenClient.open('GET', filename)
+	fileOpenClient.onreadystatechange = function()
+	{
+		if(fileOpenClient.readyState == 4)
 		{
-			return function()
-			{
-				var testcode = tdat[0];
-				var testerrors = tdat[1];
-				if (tdat.length!==3){
-					throw "Error/Warning message testdata has wrong number of fields, invalid. Accidentally pasted in level recording data?";
-				}
-				var errormessage = testcode+"\n\n\ndesired errors: [\"" + testerrors.join('", "') + '"]';
-				ok(runCompilationTest(tdat), errormessage + '\n\nGot errors: ["' + errorStrings.map(stripHTMLTags).join('", "') + '"]');
-			};
-		}(td)
-	);
+			callback(fileOpenClient.responseText)
+		}
+	}
+	fileOpenClient.send()
+}
+
+get_textfile('demo_list.txt', demo_list => demo_list.split('\n').forEach(test_demo_file) )
+
+function test_demo_file(demo_filename)
+{
+	if (demo_filename === 'README' || demo_filename === 'blank.txt' || demo_filename === '')
+		return
+	get_textfile('../demo/'+demo_filename, function(demo_text)
+		{
+			// const errormessage_entry = errormessage_testdata.findIndex( ([name, data]) => data[0].replace(/\s/g, '') === demo_text.replace(/\s/g, ''))
+			// if (errormessage_entry >= 0)
+			// 	console.log('can erase entry #'+errormessage_entry+' ('+errormessage_testdata[errormessage_entry][0]+') of error messages, as it is the same as '+demo_filename)
+			test(demo_filename, demo_text, test_compile(demo_text, [], []))
+		})
 }

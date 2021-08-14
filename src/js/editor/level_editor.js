@@ -426,7 +426,7 @@ function matchGlyph(inputmask, glyphAndMask)
 		return highestmask;
 	}
 	
-	logErrorNoLine("Wasn't able to approximate a glyph value for some tiles, using '.' as a placeholder.",true);
+	logError("Wasn't able to approximate a glyph value for some tiles, using '.' as a placeholder.", undefined, true)
 	return '.';
 }
 

@@ -3,9 +3,10 @@
 // Also, consider merging with console.js
 // And finally, there should be a standalone version of the engine/parser that do not depend on the editor.
 
-var compiling = false;
-var errorStrings = [];//also stores warning strings
-var errorCount=0;//only counts errors
+var compiling = false
+var errorStrings = []
+var warningStrings = []
+
 
 function makeLinkToLine(lineNumber, anchor_text = null)
 {
@@ -15,79 +16,32 @@ function makeLinkToLine(lineNumber, anchor_text = null)
 
 function logErrorCacheable(str, lineNumber, urgent)
 {
-	if (compiling||urgent)
-	{
-		if (lineNumber === undefined)
-			return logErrorNoLine(str, urgent);
-		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consolePrint(errorString);
-			errorStrings.push(errorString);
-			errorCount++;
-		}
-	}
+	logErrorAux(str, lineNumber, urgent, 'errorText', errorStrings)
 }
 
 function logError(str, lineNumber, urgent)
 {
-	if (compiling||urgent)
-	{
-		if (lineNumber === undefined)
-			return logErrorNoLine(str, urgent);
-		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="errorText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consolePrint(errorString, true);
-			errorStrings.push(errorString);
-			errorCount++;
-		}
-	}
+	logErrorAux(str, lineNumber, urgent, 'errorText', errorStrings, true)
 }
 
 function logWarning(str, lineNumber, urgent)
 {
-	if (compiling||urgent)
-	{
-		if (lineNumber === undefined)
-            return logWarningNoLine(str, urgent);
-		var errorString = makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': <span class="warningText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consolePrint(errorString, true);
-			errorStrings.push(errorString);
-		}
-	}
+	logErrorAux(str, lineNumber, urgent, 'warningText', warningStrings, true)
 }
 
-function logWarningNoLine(str, urgent)
-{
-	if (compiling||urgent) {
-		var errorString = '<span class="warningText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consolePrint(errorString, true);
-			errorStrings.push(errorString);
-		}
-		errorCount++;
-	}
-}
-
-function logErrorNoLine(str, urgent)
+function logErrorAux(str, lineNumber, urgent = false, text_class, text_cache, print_immediately)
 {
 	if (compiling||urgent)
 	{
-		var errorString = '<span class="errorText">' + str + '</span>';
-		if (errorStrings.indexOf(errorString) >= 0 && !urgent) {
-			//do nothing, duplicate error
-		} else {
-			consolePrint(errorString, true);
-			errorStrings.push(errorString);
+		const txt = get_error_message(str)
+		const lineString = (lineNumber !== undefined) ? makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': ' : ''
+		const errorString = lineString + '<span class="'+text_class+'">' + txt + '</span>'
+		const key = (typeof str === 'string') ? errorString : [str, lineNumber]
+		if (text_cache.findIndex(x => error_message_equal(x, key)) < 0 || urgent)
+		{
+			// not a duplicate error, we need to log it
+			consolePrint(errorString, print_immediately)
+			text_cache.push(key)
 		}
-		errorCount++;
 	}
 }

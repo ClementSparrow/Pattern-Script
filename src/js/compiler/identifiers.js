@@ -197,6 +197,9 @@ Identifiers.prototype.registerNewMapping = function(identifier, original_case, f
  * and notably they don't check the identifiers have been registered.
  */
 
+// TODO: instead of having an 'accepts_mapping' parameter and check all possible values in the end set of the mapping, we should provide as argument the set of parameters
+// that can be replaced. accepts_mapping is only true for checking rules and the first parameter of copy: in sprites definitions. In both cases we should know the expansion params.
+
 Identifiers.prototype.visitTagExpansion = function(identifier, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
 {
 	const tag_identifier_indexes = tagged_identifier[3];
@@ -330,7 +333,7 @@ Identifiers.prototype.canBeAnObjectName = function(candname, log)
 //	Warn if the name is a keyword
 	if (forbidden_keywords.indexOf(candname) >= 0)
 	{
-		log.logWarning('You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!');
+		log.logWarning(['identifier_name_is_keyword', candname])
 		return [0, candname, []]; // yes, this is only a warning
 	}
 //	Check the tags
@@ -355,11 +358,11 @@ Identifiers.prototype.checkIfNewIdentifierIsValid = function(candname, accept_im
 		const l = this.lineNumbers[identifier_index];
 		if (l == -1)
 		{
-			log.logError('You named an object "'+candname.toUpperCase()+'", but this is a keyword. Don\'t do that!');
+			log.logError(['identifier_name_is_keyword', candname]) // TODO: inconsitancy: it's an error here, but a warning in canBeAnObjectName.
 		}
 		else
 		{
-			log.logError('Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()));
+			log.logError(['identifier_already_defined', candname, definition_string, l])
 		}
 		return false;
 	}
@@ -401,7 +404,7 @@ Identifiers.prototype.checkKnownIdentifier = function(identifier, accepts_mappin
 	if (error_code < 0)
 		return error_code - 2;
 
-	const tagged_identifier = [identifier_base, identifier_base, tags.map( ([tag_index,tag_name]) => tag_name ), tags.map( ([tag_index,tag_name]) => tag_index ), log.lineNumber]
+	const tagged_identifier = [identifier_base, identifier_base, tags.map( ([,tag_name]) => tag_name ), tags.map( ([tag_index,]) => tag_index ), log.lineNumber]
 
 //	For all possible combinations of tag values in these tag classes, the corresponding object must have been defined (as an object).
 	if ( ! this.visitTagExpansion(identifier, tagged_identifier, accepts_mapping, this.checkTagMapping.bind(this), this.checkImplicitObjectIdentifier.bind(this, log)) )

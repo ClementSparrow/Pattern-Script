@@ -87,7 +87,7 @@ function parseRuleDirections(state, tokens, lineNumber)
 		} else if (token === 'random') {
 			if (has_plus)
 			{
-				logError('A rule-group can only be marked random by the first rule', lineNumber) // TODO: better explain why in the message.
+				logError(['random_on_nonfirst_group_rule'], lineNumber)
 			}
 			randomRule = true;
 		} else if (simpleAbsoluteDirections.indexOf(token) >= 0) {
@@ -188,7 +188,7 @@ function parseRuleString(rule, state, curRules)
 
 	if (tokens.indexOf('->') == -1)
 	{
-		logError("A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird", lineNumber);
+		logError(['rule_without_arrow'], lineNumber)
 	}
 
 	const [ directions, tag_classes, properties, late, rigid, randomRule, has_plus, nb_tokens_in_rule_directions ] = parseRuleDirections(state, tokens, lineNumber);
@@ -234,7 +234,7 @@ function parseRuleString(rule, state, curRules)
 		{
 			bracketbalance++;
 			if (bracketbalance > 1) {
-				logWarning("Multiple opening brackets without closing brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
+				logWarning(['rule_open_open_brackets'], lineNumber)
 			}
 			if (curcell.length > 0) { // TODO: isn't that dupplicating what the bracketbalance test does?
 				logError('Error, malformed cell rule - encountered a "["" before previous bracket was closed', lineNumber);
@@ -243,20 +243,20 @@ function parseRuleString(rule, state, curRules)
 			curcell = [];
 		} else if (reg_directions_only.exec(token)) {
 			if (!incellrow) {
-				logWarning("Invalid syntax. Directions should be placed at the start of a rule.", lineNumber);
+				logWarning(['directions_outside_cellrows'], lineNumber);
 			} else if (curobjcond.no || curobjcond.random) {
 				// TODO: it would be nice to allow "no up crate" to match cells that have either no crate or a crate that does not move up. But it requires changes in the engine.
-				logError('Invalid syntax. The keyword "'+(tokens[i-1]).toUpperCase()+'" must be followed by an object name.', lineNumber)
+				logError(['no_or_random_followed_by_direction', tokens[i-1]], lineNumber)
 			} else if (token === 'random') {
 				if ( ! rhs )
 				{
-					logError('"random" cannot be matched on the left-hand side, it can only appear on the right', rule.lineNumber)
+					logError(['random_in_LHS', token], rule.lineNumber)
 				}
 				curobjcond.random = true
 			} else if (token === 'no') {
 				if (curobjcond.dir !== null)
 				{
-					logError('Syntax error: "NO" cannot follow a direction in a rule.', lineNumber)
+					logError(['direction_NO_object'], lineNumber)
 				}
 				curobjcond.no = true
 			} else if (curobjcond.dir !== null) {
@@ -268,7 +268,7 @@ function parseRuleString(rule, state, curRules)
 				//       And we clearly want the ability to have alternatives, but it's just a shortcut to avoid making multiple rules instead.
 				logError("Error, an item can only have one direction/action at a time, but you're looking for several at once!", lineNumber);
 			} else if ( ! rhs && token === 'randomdir' ) {
-				logError('Error, "RANDOMDIR" cannot appear on the left-hand side of a rule, it can only appear on the right.', lineNumber)
+				logError(['random_in_LHS', token], lineNumber)
 			} else {
 				curobjcond.dir = token
 			}
@@ -281,12 +281,12 @@ function parseRuleString(rule, state, curRules)
 		} else if (token === ']') {
 			bracketbalance--;
 			if (bracketbalance < 0) {
-				logWarning("Multiple closing brackets without corresponding opening brackets.  Something fishy here.  Every '[' has to be closed by a ']', and you can't nest them.", lineNumber);
+				logWarning(['rule_close_close_brackets'], lineNumber)
 			}
 			should_close_cellrow = true; // TODO: should it be "should_close_cellrow = (bracketbalance == 0)"?
 		} else if (token === '->') {
 			if (incellrow) {
-				logError('Encountered an unexpected "->" inside square brackets.  It\'s used to separate states, it has no place inside them >:| .', lineNumber);
+				logError(['rule_arrow_in_cell'], lineNumber)
 			} else if (rhs) {
 				logError('Error, you can only use "->" once in a rule; it\'s used to separate before and after states.', lineNumber);
 			} else {
@@ -317,7 +317,7 @@ function parseRuleString(rule, state, curRules)
 			}
 			if (incellrow)
 			{
-				logError('Commands must appear at the end of the rule, outside the cell rows (square brackety things).', lineNumber);
+				logError(['commands_in_cellrow'], lineNumber)
 			}
 			if (token === 'message')
 			{
@@ -371,7 +371,7 @@ function parseRuleString(rule, state, curRules)
 			// close the current cell
 			if ( cell_contains_ellipses && (curcell.length > 1) )
 			{
-				logError('Ellipses shoud be alone in their own cell, like that: |...|', lineNumber);
+				logError(['ellipses_not_alone'], lineNumber)
 			}
 			curcellrow.push(curcell);
 			curcell = [];
@@ -400,17 +400,16 @@ function parseRuleString(rule, state, curRules)
 
 	// Check the coherence between LHS and RHS
 	if (lhs_cells.length != rhs_cells.length) {
-		if (commands.nb_commands > 0 && rhs_cells.length == 0) {
-			//ok
-		} else {
-			logError('Error, when specifying a rule, the number of matches (square bracketed bits) on the left hand side of the arrow must equal the number on the right', lineNumber);
+		if ( (commands.nb_commands === 0) || (rhs_cells.length > 0) )
+		{
+			logError(['different_nb_cellrows'], lineNumber)
 		}
 	} else {
 		for (const [i, lhs_cell] of lhs_cells.entries())
 		{
 			if (lhs_cell.length != rhs_cells[i].length) {
-				logError('In a rule, each pattern to match on the left must have a corresponding pattern on the right of equal length (number of cells).', lineNumber);
-				return null; // ignoring the rule because it would cause bugs later in the code.
+				logError(['different_nb_cells'], lineNumber)
+				return null // ignoring the rule because it would cause bugs later in the code.
 			}
 		}
 	}

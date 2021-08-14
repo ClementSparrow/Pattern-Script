@@ -117,6 +117,7 @@
 }
 
 .qunit-assert-list {
+	display: block;
 	margin-top: 0.5em;
 	padding: 0.5em;
 
@@ -183,6 +184,7 @@
 	color: #3c510c;
 	background-color: #fff;
 	border-left: 10px solid #C6E746;
+	display: block;
 }
 
 #qunit-tests .pass                          { color: #528CE0; background-color: #D2E0E6; }
@@ -244,4 +246,4 @@
 }
 
 
-span.test-message { font-family: monospace; white-space: pre; }
+span.test-message { font-family: monospace; }

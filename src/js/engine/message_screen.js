@@ -40,7 +40,7 @@ MenuScreen.prototype.makeTitle = function()
 	if (titlelines.length > max_title_height)
 	{
 		titlelines.splice(max_title_height)
-		logWarning('Game title is too long to fit on screen, truncating to '+max_title_height+' lines.', undefined, true)
+		logWarning(['title_truncated', max_title_height], undefined, true)
 	}
 	this.text.push(...titlelines.map( l => centerText(l) ), ...Array(Math.max(0, max_title_height - titlelines.length - 1)).fill(empty_terminal_line))
 

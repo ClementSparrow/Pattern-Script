@@ -49,7 +49,7 @@ function generateExtraMembers(state)
 
 	if (state.collisionLayers.length === 0)
 	{
-		logError("No collision layers defined.  All objects need to be in collision layers.");
+		logError(['no_collision_layers'])
 	}
 
 	//annotate objects with layers
@@ -97,7 +97,7 @@ function generateExtraMembers(state)
 		}
 		if (colorPalettes[val] === undefined)
 		{
-			logError('Palette "'+val+'" not found, defaulting to arnecolors.',0);
+			logError(['palette_not_found', val]) // TODO: use the line number of the palette declaration
 		} else {
 			colorPalette = colorPalettes[val];
 		}
@@ -112,7 +112,7 @@ function generateExtraMembers(state)
 	for (var o of state.identifiers.objects)
 	{
 		if (o.colors.length>10) {
-			logError("a sprite cannot have more than 10 colors.  Why you would want more than 10 is beyond me.", state.identifiers.lineNumbers[o.identifier_index]+1); // TODO: Seriously??? Just remind that the bitmap definition uses digits for colors, which limits them to ten -- ClementSparrow
+			logError(['too_many_sprite_colors'], state.identifiers.lineNumbers[o.identifier_index]+1)
 		}
 		for (var i=0; i<o.colors.length; i++)
 		{
@@ -122,7 +122,7 @@ function generateExtraMembers(state)
 				c = colorToHex(colorPalette,c);
 				o.colors[i] = c;
 			} else {
-				logError('Invalid color specified for object "' + o.name + '", namely "' + c + '".', state.identifiers.lineNumbers[o.identifier_index] + 1);
+				logError(['invalid_color_for_object', o.name, c], state.identifiers.lineNumbers[o.identifier_index] + 1)
 				o.colors[i] = '#ff00ffff'; // magenta error color
 			}
 		}
@@ -135,7 +135,7 @@ function generateExtraMembers(state)
 		if (o.colors.length == 0)
 		{
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
-			logError('color not specified for object "' + o.name +'".', state.identifiers.lineNumbers[o.identifier_index]);
+			logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])
 			o.colors=["#ff00ffff"];
 		}
 		if (o.spritematrix.length === 0)
@@ -144,10 +144,6 @@ function generateExtraMembers(state)
 		}
 		else
 		{
-			if ( o.spritematrix.length !== sprite_height || o.spritematrix.some( line => (line.length !== sprite_width) ) )
-			{
-				logWarning('Sprite graphics must be ' + sprite_width + ' wide and ' + sprite_height + ' high exactly.', state.identifiers.lineNumbers[o.identifier_index]);
-			}
 			o.spritematrix = generateSpriteMatrix(o.spritematrix);
 		}
 	}
@@ -182,19 +178,19 @@ function generateExtraMembers(state)
 
 	if ( (state.idDict[0] === undefined) && (state.collisionLayers.length > 0))
 	{
-		logError('You need to have some objects defined');
+		logError(['no_object'])
 	}
 
 	//set default background object
 	const background_identifier_index = state.identifiers.names.indexOf('background');
 	if (background_identifier_index < 0)
 	{
-		logError("you have to define something to be the background");
+		logError(['no_background'])
 		state.background_index = state.idDict[0];
 	}
 	else if ( ! [identifier_type_object, identifier_type_property].includes(state.identifiers.comptype[background_identifier_index]) )
 	{
-		logError("background cannot be an aggregate (declared with 'and'), it has to be a simple type, or property (declared in terms of others using 'or').");
+		logError(['background_is_aggregate'])
 		state.background_index = state.idDict[0];
 	}
 	else
@@ -211,11 +207,6 @@ function generateExtraMembers(state)
 
 Level.prototype.calcBackgroundMask = function(state)
 {
-	if (state.backgroundlayer === undefined)
-	{
-		logError("you have to have a background layer");
-	}
-
 	var backgroundMask = state.layerMasks[state.backgroundlayer];
 	for (var i=0; i<this.n_tiles; i++)
 	{
@@ -265,18 +256,18 @@ function levelFromString(state, level)
 			const identifier_index = state.identifiers.names.indexOf(ch); // TODO: this should be done in the parser
 			if (identifier_index < 0)
 			{
-				logError('Error, symbol "' + ch + '", used in map, not found.', level[0]+j);
-				continue;
+				logError(['unknown_symbol_in_level', ch], level[0]+j)
+				continue
 			}
 			if (state.identifiers.comptype[identifier_index] == identifier_type_property)
 			{
-				logError('Error, symbol "' + ch + '" is defined using \'or\', and therefore ambiguous - it cannot be used in a map. Did you mean to define it in terms of \'and\'?', level[0]+j);
-				continue;
+				logError(['property_symbol_in_level', ch], level[0]+j)
+				continue
 			}
 			if ( ! [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
 			{
-				logError('Error, symbol "' + ch + '" is defined as '+identifier_type_as_text[state.identifiers.comptype[identifier_index]]+'. It cannot be used in a map.', level[0]+j);
-				continue;
+				logError(['wrong_symbol_type_in_level', ch, state.identifiers.comptype[identifier_index]], level[0]+j)
+				continue
 			}
 
 			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
@@ -412,7 +403,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 						if (rhscell.length !==1 || rhscell[0] !== null)
 						{
 							// TODO: this should be catched earlier in the compilation pipeline
-							logError("An ellipsis on the left must be matched by one in the corresponding place on the right.", rule.lineNumber);								
+							logError(['no_matching_ellipsis_in_RHS'], rule.lineNumber)
 						}
 					} 
 					break;
@@ -430,7 +421,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if ((layerIndex === undefined) || (layerIndex < 0))
 				{
-					logError("Oops!  " +state.identifiers.names[oc.ii].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError(['no_layer_for_object', state.identifiers.names[oc.ii]], rule.lineNumber)
 				}
 				else
 				{
@@ -465,7 +456,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 			if ( (rule.rhs.length > 0) && (cellrow_r[k][0] === null) && (cell_l[0] !== null) )
 			{
-				logError("An ellipsis on the right must be matched by one in the corresponding place on the left.", rule.lineNumber);
+				logError(['no_matching_ellipsis_in_LHS'], rule.lineNumber)
 			}
 
 			if (objectsPresent === ellipsisPattern)
@@ -525,7 +516,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					else
 					{
 						// TODO: this error should be catched earlier in the parsing piepline
-						logError('You want to spawn a random "'+state.identifiers.names[oc.ii].toUpperCase()+'", but I don\'t know how to do that', rule.lineNumber);
+						logError(['spawn_aggregate', state.identifiers.names[oc.ii]], rule.lineNumber)
 					}
 					continue;
 				}
@@ -539,7 +530,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				}
 				else if ( (layerIndex === undefined) || (layerIndex < 0) )
 				{
-					logError("Oops!  " +state.identifiers.names[oc.ii].toUpperCase()+" not assigned to a layer.", rule.lineNumber);
+					logError(['no_layer_for_object', state.identifiers.names[oc.ii]], rule.lineNumber)
 				}
 				else
 				{
@@ -547,7 +538,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) ) // "discard" here is used just to not show an error message when we know there will already be one for that rule?
 					{
-						logError('Rule matches object types that can\'t overlap: "' + state.identifiers.names[oc.ii].toUpperCase() + '" and "' + state.identifiers.names[existing_index].toUpperCase() + '".',rule.lineNumber);
+						logError(['cant_overlap', state.identifiers.names[oc.ii], state.identifiers.names[existing_index]], rule.lineNumber)
 					}
 
 					layersUsed_r[layerIndex] = oc.ii;
@@ -646,7 +637,7 @@ function generateMasks(state)
 	const player_identifier_index = state.identifiers.names.indexOf('player');
 	if (player_identifier_index < 0)
 	{
-		logErrorNoLine("error, didn't find any object called player, either in the objects section, or the legends section. there must be a player!");
+		logError(['no_player_defined'])
 		state.playerMask = new BitVec(STRIDE_OBJ);
 	}
 	else
@@ -669,16 +660,17 @@ function generateMasks(state)
 	state.objectMasks = objectMask;
 }
 
-function checkObjectsAreLayered(identifiers)
-{
-	for (var o of identifiers.objects)
-	{
-		if (o.layer === undefined)
-		{
-			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', identifiers.lineNumbers[o.identifier_index]);
-		}
-	}
-}
+// We don't need to check all objects, only those actualy used in rules, which are already checked in ruleToMask.
+// function checkObjectsAreLayered(identifiers)
+// {
+// 	for (var o of identifiers.objects)
+// 	{
+// 		if (o.layer === undefined)
+// 		{
+// 			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', identifiers.lineNumbers[o.identifier_index]);
+// 		}
+// 	}
+// }
 
 function twiddleMetaData(state)
 {
@@ -706,14 +698,14 @@ function tokenizeWinConditionIdentifier(state, n, lineNumber)
 	const identifier_index = state.identifiers.checkKnownIdentifier(n, false, state);
 	if (identifier_index < 0)
 	{
-		logError('Unknown object name "' + n +'" found in win condition.', lineNumber);
-		return null;
+		logError(['unknown_object_in_wincondition', n], lineNumber)
+		return null
 	}
 	const identifier_comptype = state.identifiers.comptype[identifier_index];
 	if ( (identifier_comptype != identifier_type_property) && (identifier_comptype != identifier_type_object) ) // not a property, not an object
 	{
-		logError('Invalid object name found in win condition: ' + n + 'is ' + identifier_type_as_text[identifier_comptype] + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)', lineNumber);
-		return null;
+		logError(['invalid_object_in_wincondition', n, identifier_type_as_text[identifier_comptype]], lineNumber)
+		return null
 	}
 	return state.objectMasks[identifier_index];
 }
@@ -810,7 +802,7 @@ function generateSoundData(state)
 
 		if (sound.length === 2)
 		{
-			logError('incorrect sound declaration.', lineNumber);
+			logError(['incorrect_sound_declaration'], lineNumber)
 			continue;
 		}
 
@@ -838,7 +830,7 @@ function generateSoundData(state)
 			var directions = sound.slice(2, sound.length-2);
 			if (directions.length > 0 && (verb !== 'move' && verb !== 'cantmove'))
 			{
-				logError('incorrect sound declaration.', lineNumber);
+				logError(['incorrect_sound_declaration'], lineNumber)
 			}
 
 			if (verb === 'action')
@@ -1022,7 +1014,7 @@ function loadFile(str)
 			else
 				state.blankLine()
 
-			if (errorCount > MAX_ERRORS)
+			if (errorStrings.length > MAX_ERRORS)
 			{
 				consolePrint("too many errors, aborting compilation");
 				return;
@@ -1061,7 +1053,7 @@ function loadFile(str)
 	generateRigidGroupList(state);
 
 	processWinConditions(state);
-	checkObjectsAreLayered(state.identifiers);
+	// checkObjectsAreLayered(state.identifiers);
 
 	generateLoopPoints(state);
 
@@ -1110,9 +1102,9 @@ function compile(command, text, randomseed)
 		compiledText=text;
 	}
 
-	errorCount = 0;
 	compiling = true;
-	errorStrings = [];
+	errorStrings = []
+	warningStrings = []
 	consolePrint('=================================');
 	try
 	{
@@ -1122,13 +1114,14 @@ function compile(command, text, randomseed)
 	}
 
 	if (state && state.levels && state.levels.length===0){	
-		logError('No levels found. Add some levels!', undefined, true);
+		logError(['no_level_found'], undefined, true)
 	}
 
-	if (errorCount>MAX_ERRORS)
-		return;
+	if (errorStrings.length > MAX_ERRORS)
+		return
 
-	if (errorCount>0) {
+	if (errorStrings.length > 0)
+	{
 		consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>');
 	}
 	else {

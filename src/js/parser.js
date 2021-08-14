@@ -247,8 +247,8 @@ PuzzleScriptParser.prototype.addIdentifierInCollisionLayer = function(candname, 
 		if ( (l !== undefined) && (l != layer_index) )
 		{
 			identifier_added = false;
-			this.logWarning('Object "' + obj.name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!');
-			// TODO: I changed default PuzzleScript behavior, here, which was to change the layer of the object. -- ClementSparrow.
+			this.logWarning(['object_in_multiple_layers', obj.name])
+			// Note: I changed default PuzzleScript behavior, here, which was to change the layer of the object. -- ClementSparrow.
 		}
 		else
 		{
@@ -359,8 +359,8 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 			this.tokenIndex = -1;
 			return 'METADATA';
 		}
-		this.logError('Unrecognised stuff in the prelude.');
-		return 'ERROR';
+		this.logError(['unknown_metadata'])
+		return 'ERROR'
 	}
 	if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
 	{
@@ -686,7 +686,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			const [sprite_w, sprite_h] = this.metadata_values[this.metadata_keys.indexOf('sprite_size')]
 			if (spritematrix[spritematrix.length-1].length > sprite_w)
 			{
-				this.logError('Sprites must be ' + sprite_w + ' wide and ' + sprite_h + ' high.');
+				this.logError(['wrong_spritematrix_size', sprite_w, sprite_h])
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
@@ -1147,7 +1147,7 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 	}
 
 	candname = stream.match(reg_notcommentstart, true);
-	this.logError('unexpected sound token "'+candname+'".');
+	this.logError(['unexpected_sound_token', candname])
 	stream.match(reg_notcommentstart, true);
 	return 'ERROR';
 }
@@ -1384,7 +1384,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 				if (lastlevel.length > 1) 
 				{
 					if (line.length != lastlevel[1].length) {
-						this.logWarning("Maps must be rectangular, yo (In a level, the length of each row must be the same).");
+						this.logWarning(['non_rectangular_level'])
 					}
 				}
 			}
@@ -1402,14 +1402,17 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 
 	if (this.tokenIndex === 2 && !stream.eol())
 	{
-		var ch = stream.peek();
-		stream.next();
-		if (this.abbrevNames.indexOf(ch) >= 0) {
-			return 'LEVEL';
-		} else {
-			this.logError('Key "' + ch.toUpperCase() + '" not found. Do you need to add it to the legend, or define a new object?');
-			return 'ERROR';
-		}
+		var ch = stream.peek()
+		stream.next()
+		return (this.abbrevNames.indexOf(ch) >= 0) ? 'LEVEL' : 'ERROR'
+		// if (this.abbrevNames.indexOf(ch) >= 0)
+		// 	return 'LEVEL'
+
+		// if (this.identifiers.names.indexOf(ch) < 0)
+		// {
+		// 	this.logError('Key "' + ch.toUpperCase() + '" not found. Do you need to add it to the legend, or define a new object?')
+		// }
+		// return 'ERROR'
 	}
 }
 
