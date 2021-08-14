@@ -224,7 +224,7 @@ T = Switch
 Wall = WallUD or WallRL or WallR or WallL or WallM or Wallsolo or WallU or WallD
 Player = PlayerL or PlayerR or PlayerS or PlayerRH or PlayerLH
 Solid = Player or Crate or Wall or Heldcrate or Door or Shadowcrate or Shadowdoor
-Massive =  Crate
+Massive = Crate
 Helpers = H_pickup or H_drop or H_grav or H_step
 Weight = Player or Crate
 
@@ -276,14 +276,14 @@ Down [ Massive ] -> [ down Massive ] again
 (movement/pushing)
 Right [ > Player ] -> [ > PlayerR ]
 Left [ > Player ] -> [ > PlayerL ]
-Horizontal [ >  Player | Crate | no Solid ] -> [  >  Player | > Crate | ] SFX2
+Horizontal [ > Player | Crate | no Solid ] -> [ > Player | > Crate | ] SFX2
 
 (picking up and holding crates)
 Horizontal [ Crate | Action PlayerS | Crate ] -> message I am paralyzed with indecision!
 Right [ Action PlayerR | Crate ] [Player no H_pickup ] -> [ Player | Shadowcrate ] [ Player H_pickup ] SFX1
 Left [ Action PlayerL | Crate ] [Player no H_pickup ] -> [ Player | Shadowcrate ] [ Player H_pickup ] SFX1
 ([ Moving Player ] [ Heldcrate ] -> [ Moving Player ] [ Moving Heldcrate ])
-([ > Player | no Solid ] [ Heldcrate ] -> [ > Player |  ] [ > Heldcrate ])
+([ > Player | no Solid ] [ Heldcrate ] -> [ > Player | ] [ > Heldcrate ])
 (late Up [ Player | no Solid ] [ Heldcrate ] -> [ Player | Heldcrate ] [ ])
 
 (putting down)

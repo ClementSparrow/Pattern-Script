@@ -265,8 +265,8 @@ P = Player
 S = ScrollBG
 { = ScrollLeft
 } = ScrollRight
-[ = ScrollTop
-] = ScrollBottom
+C = ScrollTop
+D = ScrollBottom
 N = ScrollBG and Drop1
 M = ScrollBG and Drop2
 / = ScrollBG and Drop3
@@ -372,13 +372,13 @@ message Level 1
 
 ###############
 #qwet#####r####
-#[[[[###.....##
+#CCCC###.....##
 {nm/\}##.....##
 {ssss}#p.....r#
 {ssss}##.....##
 {ssss}##.....##
 {ssss}####r####
-#]]]]##########
+#DDDD##########
 
 message "Wow, this Candy Scroll is cool! It can crus--I mean CLEAR three candies in a row!" said Mr. Candy.
 message Mr. Candy wonders what original game mechanics he will encounter next.
@@ -387,13 +387,13 @@ message Level 2
 
 ###############
 #qwet##.......#
-#[[[[##.......#
+#CCCC##.......#
 {nm/\}##.....##
 {ssss}#r..p..b#
 {ssss}##.....##
 {1ss3}#.......#
 {1ss3}#.......#
-#]]]]##########
+#DDDD##########
 
 message Mr. Candy wonders why the candies are being dropped into different columns of the Candy Scroll, and decides to investigate further.
 message Should he fail in his endeavors, he need only press R to restart the level.
@@ -402,13 +402,13 @@ message Level 3
 
 ###############
 #qwet##.......#
-#[[[[##.p.....#
+#CCCC##.p.....#
 {nm/\}#.......#
 {ssss}#...r...#
 {ssss}#.......#
 {ssss}#.......#
 {11s1}#.......#
-#]]]]##########
+#DDDD##########
 
 message It appears that approaching candies from different directions determines their placement on the Candy Scroll.
 message Enlightened, Mr. Candy continues his quest to clear ALL of the candies.  Not crush, obviously.  There is only one King when it comes to crushing candies, and Mr. Candy is clearly not him.
@@ -419,13 +419,13 @@ message Level 4
 #######.........#
 #######..r.r.r..#
 #qwet##.........#
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#..#.p.#..#
 {ssss}#.........#
 {ssss}#.........#
 {ssss}#..b.b.b..#
 {ssss}#.........#
-#]]]]############
+#DDDD############
 
 message Level 5
 
@@ -433,13 +433,13 @@ message Level 5
 #######r...p...r#
 #######.##...##.#
 #qwet##.#..#..#.#
-#[[[[##....r....#
+#CCCC##....r....#
 {nm/\}#..#r#b#..#
 {ssss}#....b....#
 {ssss}#.#..#..#.#
 {ssss}#.##...##.#
 {ssss}#b.......b#
-#]]]]############
+#DDDD############
 
 message Level 6
 
@@ -447,13 +447,13 @@ message Level 6
 #######.........#
 #########.....###
 #qwet####...p.###
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#....b....#
 {ssss}#..r###r..#
 {ssss}#.b#...#b.#
 {3131}#..#...#..#
 {1131}#.........#
-#]]]]############
+#DDDD############
 
 message Mr. Candy continues through Candy World and notices something odd.
 message "Is that a green candy? I love those!"
@@ -464,13 +464,13 @@ message Level 7
 #######.........#
 #######.p.......#
 #qwet##....#....#
-#[[[[##....r....#
+#CCCC##....r....#
 {nm/\}#..#b#g#..#
 {ssss}#....b....#
 {s11s}#....#....#
 {1323}#.........#
 {1323}#.........#
-#]]]]############
+#DDDD############
 
 message Level 8
 
@@ -478,13 +478,13 @@ message Level 8
 #######.........#
 #######.#r#g#b#.#
 #qwet##..#.#.#..#
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#p..brg...#
 {ssss}#.........#
 {ssss}#..#.#.#..#
 {ssss}#.#g#b#r#.#
 {ssss}#.........#
-#]]]]############
+#DDDD############
 
 message Mr. Candy advances further and discovers yet another color of candies.  He must be getting close to the exit!
 
@@ -494,13 +494,13 @@ message Level 9
 #######.........#
 #######...g#i...#
 #qwet##.........#
-#[[[[##.g.....i.#
+#CCCC##.g.....i.#
 {nm/\}#.#..p..#.#
 {ssss}#.b.....r.#
 {ssss}#.........#
 {ssss}#...b#r...#
 {1324}#.........#
-#]]]]############
+#DDDD############
 
 message Mr. Candy notices something in the distance, and is ecstatic.
 message "Hey, look! It's the Super Candy Diamond! If I can clear it, I will certainly be able to escape Candy World!"
@@ -511,13 +511,13 @@ message Level 10
 #######.........#
 #######.p..r..i.#
 #qwet##...rbr...#
-#[[[[##..rbgbr..#
+#CCCC##..rbgbr..#
 {nm/\}#.rbgigbr.#
 {ssss}#..rbgbr..#
 {ssss}#...rbr...#
 {ssss}#.i..r....#
 {ssss}#.........#
-#]]]]############
+#DDDD############
 
 message Mr. Candy escapes from Candy World! He is delighted to return to civilization...but this delight is fleeting.
 message He is assaulted by evil ninjas and dragged into an interrogation room!
@@ -537,13 +537,13 @@ message Level 11
 #######.........#
 #######.........#
 #qwet##.........#
-#[[[[##....#....#
+#CCCC##....#....#
 {nm/\}#.p..r..h.#
 {ssss}#....#....#
 {ssss}#.........#
 {ssss}#.........#
 {s11s}#.........#
-#]]]]############
+#DDDD############
 
 message Incredible! The Candy Scroll can defeat ninjas!
 message Eager to test the Candy Scroll's limits, Mr. Candy proceeds through the prison.
@@ -554,13 +554,13 @@ message Level 12
 #######.........#
 #######.p.r.....#
 #qwet##.........#
-#[[[[#####...####
+#CCCC#####...####
 {nm/\}####...####
 {ssss}####...####
 {ssss}####...####
 {ssss}####.h.####
 {s11s}####...####
-#]]]]############
+#DDDD############
 
 message "Interesting," Mr. Candy says. "I can only kill ninjas with my Candy Scroll if I am vertically or horizontally aligned with them."
 
@@ -570,13 +570,13 @@ message Level 13
 #######.........#
 #######....h..p.#
 #qwet##.........#
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#...r...h.#
 {ssss}#....r....#
 {ssss}#.........#
 {ssss}#.r.......#
 {ssss}#.........#
-#]]]]############
+#DDDD############
 
 message Level 14
 
@@ -584,13 +584,13 @@ message Level 14
 ##########...####
 ########h#.r.#h##
 #qwet#####.r.####
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#..r.p.r..#
 {ssss}#.........#
 {ssss}####.r.####
 {ssss}##h#.r.#h##
 {ssss}####...####
-#]]]]############
+#DDDD############
 
 message "Wow, the Candy Scroll's ninja-destroying powers even reach through walls! I'll be out of here in no time!"
 
@@ -600,13 +600,13 @@ message Level 15
 ########b##r##b##
 ########h##h##h##
 #qwet##.........#
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#..r.r.r..#
 {ssss}#.........#
 {ssss}#..r.p.r..#
 {ssss}#....h....#
 {s3ss}#.........#
-#]]]]############
+#DDDD############
 
 message As Mr. Candy makes his way through the prison, he encounters some blue ninjas. Might they bear some connection to the blue candies?
 
@@ -616,13 +616,13 @@ message Level 16
 #######.r....####
 #######rbr....###
 #qwet##.r..k...##
-#[[[[##.........#
+#CCCC##.........#
 {nm/\}#..p.b....#
 {ssss}#.........#
 {ssss}##...k..r.#
 {ssss}###....rbr#
 {ssss}####....r.#
-#]]]]############
+#DDDD############
 
 message Mr. Candy notes that blue ninjas can only be defeated by blue candies, and prepares the Candy Scroll for more battles.
 
@@ -632,13 +632,13 @@ message Level 17
 #######r.......b#
 #######.###h###.#
 #qwet##.#b...r#.#
-#[[[[##.#.r.b.#.#
+#CCCC##.#.r.b.#.#
 {nm/\}#.k..p..k.#
 {ssss}#.#.b.r.#.#
 {ssss}#.#r...b#.#
 {ssss}#.###h###.#
 {ssss}#b.......r#
-#]]]]############
+#DDDD############
 
 message Level 18
 
@@ -646,13 +646,13 @@ message Level 18
 #######r.......b#
 #######..rhhhr..#
 #qwet##..hbbbh..#
-#[[[[##r.......b#
+#CCCC##r.......b#
 {nm/\}#....p....#
 {ssss}#r.......b#
 {ssss}#..krrrk..#
 {ssss}#..bkkkb..#
 {ssss}#r.......b#
-#]]]]############
+#DDDD############
 
 message Level 19
 
@@ -660,13 +660,13 @@ message Level 19
 #######b.......b#
 #######.k..h..k.#
 #qwet##....b....#
-#[[[[##....r....#
+#CCCC##....r....#
 {nm/\}#.hbrprbh.#
 {ssss}#....r....#
 {ssss}#....b....#
 {ssss}#.k..h..k.#
 {ssss}#b.......b#
-#]]]]############
+#DDDD############
 
 message Level 20
 
@@ -674,13 +674,13 @@ message Level 20
 #######g...g...g#
 #######.p..b....#
 #qwet##...###...#
-#[[[[##..krrrk..#
+#CCCC##..krrrk..#
 {nm/\}#.b#####b.#
 {ssss}#...###...#
 {ssss}#...#.#...#
 {ssss}#...b.b...#
 {ssss}#g...g...g#
-#]]]]############
+#DDDD############
 
 message Mr. Candy has successfully defeated the ninjas and escaped the prison!
 message However, his work is not yet finished. He must find those who tried to trademark his name and destroy them!
@@ -695,7 +695,7 @@ message Level 21
 
 ###################
 #qwet##...........#
-#[[[[##...j.#.l...#
+#CCCC##...j.#.l...#
 {nm/\}#...#####...#
 {ssss}#.....#.....#
 {ssss}#...........#
@@ -705,13 +705,13 @@ message Level 21
 {ssss}#.###...###.#
 {ssss}#.g#g...i#i.#
 {ssss}#.....p.....#
-#]]]]##############
+#DDDD##############
 
 message Level 22
 
 ###################
 #qwet##....gig....#
-#[[[[##.....g.....#
+#CCCC##.....g.....#
 {nm/\}#...........#
 {ssss}#.###...###.#
 {ssss}#jrrrj.lbbbl#
@@ -721,13 +721,13 @@ message Level 22
 {ssss}#.....g.....#
 {ssss}#g...gig...g#
 {ssss}#ig.gigig.gi#
-#]]]]##############
+#DDDD##############
 
 message Level 23
 
 ###################
 #qwet##.........#.#
-#[[[[##.##k###g.#.#
+#CCCC##.##k###g.#.#
 {nm/\}#.#b..#g#.#.#
 {ssss}#..##...j...#
 {ssss}#b.r#.#..#i##
@@ -737,7 +737,7 @@ message Level 23
 {ssss}####.#..##l##
 {ssss}#..#.h.#b...#
 {ssss}#....####.#.#
-#]]]]##############
+#DDDD##############
 
 message Mr. Candy notices an increase in ninjas in the next room. Surely they must be guarding something!
 
@@ -745,7 +745,7 @@ message Level 24
 
 ###################
 #qwet##...........#
-#[[[[##.##rr.bb##.#
+#CCCC##.##rr.bb##.#
 {nm/\}#.#r.....b#.#
 {ssss}#.r...h...b.#
 {ssss}#.r..j#l..b.#
@@ -755,7 +755,7 @@ message Level 24
 {ssss}#.#g.....i#.#
 {ssss}#.##gg.ii##.#
 {1324}#...........#
-#]]]]##############
+#DDDD##############
 
 message After defeating the ninjas, Mr. Candy stumbles upon one of the most magnificent rooms he has ever seen...the Candy Vault!
 message If he can clear all of this candy, he might be able to defeat the ninjas once and for all!
@@ -764,7 +764,7 @@ message Level 25
 
 ###################
 #qwet##gb...p...br#
-#[[[[##gb.......br#
+#CCCC##gb.......br#
 {nm/\}####..g..####
 {ssss}#....r#r....#
 {ssss}#....bbb....#
@@ -774,7 +774,7 @@ message Level 25
 {ssss}####..g..####
 {ssss}#ri.......ig#
 {ssss}#ri.......ig#
-#]]]]##############
+#DDDD##############
 
 message Mr. Candy basks in the glory of his achievement: he has cleared all of the candy!
 message But suddenly, the palace trembles...
@@ -788,7 +788,7 @@ message Level 26
 
 ###################
 #qwet##...........#
-#[[[[##...r.r.r...#
+#CCCC##...r.r.r...#
 {nm/\}#...rrrrr...#
 {ssss}#...rrrrr...#
 {ssss}#..h#####h..#
@@ -798,7 +798,7 @@ message Level 26
 {ssss}#..#.###.#..#
 {ssss}#..#######..#
 {ssss}#p..#####...#
-#]]]]##############
+#DDDD##############
 
 message "WHAT? YOU DARE DESTROY MY CANDY CROWN?"
 message "NINJAS! DEFEND ME WHILE I CONSTRUCT A NEW CROWN!"
@@ -807,7 +807,7 @@ message Level 27
 
 #####################
 #qwet##...g....i....#
-#[[[[##...g.........#
+#CCCC##...g.........#
 {nm/\}#...g.........#
 {ssss}#...j...bgb...#
 {ssss}#.p.l.r#####r.#
@@ -817,7 +817,7 @@ message Level 27
 {ssss}#...lb##...##b#
 {ssss}#...k.#######.#
 {ssss}#...h.r#####r.#
-#]]]]################
+#DDDD################
 
 message "YOU DEFEAT MY NINJAS...BUT TOO LATE!"
 message "CANDY CROWN MARK TWO...ACTIVATE!"
@@ -826,7 +826,7 @@ message Level 28
 
 #####################
 #qwet##..ri.........#
-#[[[[##..ir..g.i.r..#
+#CCCC##..ir..g.i.r..#
 {nm/\}#..ri..igbrb..#
 {ssss}#..ir..rbgir..#
 {ssss}#..ri..#####..#
@@ -836,7 +836,7 @@ message Level 28
 {ssss}#..ri.#.....#.#
 {ssss}#..ir.##...##.#
 {ssss}#p.ri..#####..#
-#]]]]################
+#DDDD################
 
 message "MY CANDY BARRIER IS BROKEN? IMPOSSIBLE!"
 message "NINJAS, DEFEND ME!"
@@ -847,7 +847,7 @@ message Level 29
 
 #####################
 #qwet##r....ggg....r#
-#[[[[##.....g.g.....#
+#CCCC##.....g.g.....#
 {nm/\}#..i#######i..#
 {1334}#..##.###.##..#
 {3114}#..###.#.###..#
@@ -857,7 +857,7 @@ message Level 29
 {3114}#..##.....##..#
 {1332}#..###...###..#
 {3112}#p.i#######i.r#
-#]]]]################
+#DDDD################
 
 message "NO...STRENGTH...FLAGGING... ACTIVATE TOTAL CANDY TRANSFORMATION!"
 message This is it! Take down King Crusher once and for all, and Mr. Candy can take back his name!
@@ -866,7 +866,7 @@ message Level 30
 
 #####################
 #qwet##......p......#
-#[[[[##...rrrrrrr...#
+#CCCC##...rrrrrrr...#
 {nm/\}#..rr..r..rr..#
 {ssss}#..rr..r..rr..#
 {ssss}#..rrrrrrrrr..#
@@ -876,7 +876,7 @@ message Level 30
 {ssss}#..rr.rrr.rr..#
 {ssss}#...rrrrrrr...#
 {ssss}#.............#
-#]]]]################
+#DDDD################
 
 message Mr. Candy has defeated King Crusher and has taken back his name! Future generations of Candies can live in peace, all thanks to the valiant efforts of Mr. Candy...and you, you wonderful person.
 message Here ends the saga of Mr. Candy and the Candy Scroll.

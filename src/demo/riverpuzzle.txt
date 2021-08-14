@@ -117,15 +117,15 @@ LEGEND
 . = Grass and LeftB
 , = Grass and RightB
 ~ = Water1 and LeftB
-^ = Water1 and RightB
+u = Water1 and RightB
 P = Player and LeftB
 C = Carrot and Platform and LeftB
 F = Fox and Platform and LeftB
 R = Rabbit and Platform and LeftB
 _ = EmptyBoat and LeftB and Water1
 * = Platform and RightB
-[ = Dude and Dock and LeftB
-] = Dock and RightB
+{ = Dude and Dock and LeftB
+} = Dock and RightB
 Water = Water1 or Water2
 Background = Grass or Water1 or Water2
 Object = Rabbit or Fox or Carrot
@@ -189,11 +189,11 @@ WINCONDITIONS
 LEVELS
 =======
 
-.....~~~^^,,,,,
-.....~~~^^,,,,,
-...F.~~~^^,*,,,
-..RP[_~~^^],*,,
-...C.~~~~^,*,,,
-.....~~~^^,,,,,
-.....~~~^^,,,,,
+.....~~~uu,,,,,
+.....~~~uu,,,,,
+...F.~~~uu,*,,,
+..RP{_~~uu},*,,
+...C.~~~~u,*,,,
+.....~~~uu,,,,,
+.....~~~uu,,,,,
 

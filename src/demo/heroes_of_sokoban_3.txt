@@ -274,8 +274,8 @@ D = Druid
 6 = SDruid
 * = Crate
 G = Goal
-[ = YellowDoor
-] = PurpleDoor
+C = YellowDoor
+: = PurpleDoor
 { = YellowSwitch
 } = PurpleSwitch
 O = Goblin
@@ -464,7 +464,7 @@ Message Purple bard charms nearby crates.
 
 #############
 #{#....{#...#
-#.#.*#B.[.G.#
+#.#.*#B.C.G.#
 #*#.....#...#
 #############
 
@@ -489,15 +489,15 @@ Message No one can resist the bard's music.
 
 ############
 #G#.F.{..O.#
-#.[........#
+#.C........#
 #G#.5.{..O.#
 ############
 
 ############
-##[[[[[[[###
-##[#####[###
-##[##[[[[{*#
-#...#[######
+##CCCCCCC###
+##C#####C###
+##C##CCCC{*#
+#...#C######
 #.T.#......#
 #...#.5.G.G#
 ############
@@ -505,14 +505,14 @@ Message No one can resist the bard's music.
 ########
 #*G{####
 ###.####
-#...[W##
+#...CW##
 ###.#.5#
 #*G*####
 ########
 
 #########
 #....G#G#
-#.#*..#[#
+#.#*..#C#
 #.**....#
 #.......#
 #.{4{B{.#
@@ -523,14 +523,14 @@ Message No one can resist the bard's music.
 #*.{..{.**{#
 ############
 #B21.......#
-##########[#
+##########C#
 #.G..G..G..#
 ############
 
 Message Orange druid turns stone into wood, wood into stone.
 
 #############
-#.[.{.2.#.D.#
+#.C.{.2.#.D.#
 #.#########.#
 #....G.G..#.#
 #############
@@ -542,7 +542,7 @@ Message Orange druid turns stone into wood, wood into stone.
 #############
 #...#..######
 #.1.#..##G.G#
-#...#..#[...#
+#...#..#C...#
 #############
 
 #############
@@ -550,7 +550,7 @@ Message Orange druid turns stone into wood, wood into stone.
 ##.####.#####
 ##.###O.O##G#
 ##.####.###.#
-##D[....###G#
+##DC....###G#
 #############
 
 Message Living things may also be turned into stone.
@@ -565,9 +565,9 @@ Message Try not to think about the moral implications, and don't do it any more 
 
 ###############
 #.............#
-#.5.}}}.]]]]].#
-#...}}}.]G.G].#
-#.D.}}}.]]]]].#
+#.5.}}}.:::::.#
+#...}}}.:G.G:.#
+#.D.}}}.:::::.#
 #.............#
 ###############
 
@@ -587,13 +587,13 @@ Message Try not to think about the moral implications, and don't do it any more 
 
 ################
 #...#...########
-#.G.#.}.....{[O#
+#.G.#.}.....{CO#
 #...#.F.########
 #...#...########
-#.G.].4.########
+#.G.:.4.########
 #...#...########
 #...#.5.########
-#.G.#.}.....{[O#
+#.G.#.}.....{CO#
 #...#...########
 ################
 

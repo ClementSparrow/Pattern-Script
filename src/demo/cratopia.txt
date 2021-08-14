@@ -303,7 +303,7 @@ COLLISIONLAYERS
 
 Background
 Goal, GoalLocked, Ladder, EditModeDrop
-Orb, Key, Player, PlayerJump, PlayerDisabled, Crate, Ground, Space, EditModeArrow, Fire, BurningCrate, BurntCrate, CrateArtifact
+Orb, Key, PlayerLeft, PlayerRight, PlayerLadder, PlayerJump, PlayerDisabled, Crate, Ground, Space, EditModeArrow, Fire, BurningCrate, BurntCrate, CrateArtifact
 EditModeCursor, CrateInfectionSeed, CrateInfectionComplete, CrateInfectionTemp
 
 ======

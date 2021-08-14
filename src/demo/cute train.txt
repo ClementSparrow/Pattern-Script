@@ -228,7 +228,7 @@ M = Mountain
 ~ = Water
 , = Beach
 
-| = VTrack
+I = VTrack
 - = HTrack
 r = URTrack
 ¬ = ULTrack
@@ -243,8 +243,8 @@ P = Player
 T = VTrack and UTrain
 C = VTrack and Cart
 
-[ = HTrack and RTrain
-] = HTrack and Cart
+{ = HTrack and RTrain
+} = HTrack and Cart
 
 / = Switch
 
@@ -400,64 +400,64 @@ message welcome to the breezy isles!
 ~~~~~~~~,,,,,,,,..~~%%%%%.r-------¬.....,,,,~~~~~~~~~~~~~~~~~~~~
 ,,,,,,,,,,,,,....%%~%%%%%%t.......l-¬.....,,,~~~~~~~~~~~~~~~~~~~
 ,,,,,,..........%%%~~%%%%%c%%.......l-¬....,,~~~~~~~~~~~~~~~~~~~
-........%%%..%%%%%%%~%%%%%|%%%%%....|.l--¬..,,~~~~~~~~~~~~~~~~~~
-.%%%%.%%%%%%%%%%%%%%~%%%%%|%%%%%%%..|...%l¬.,,~~~~~~~~~~~~~~~~~~
-%%%%%%%%%%%%%%%%%%%%~%%%%%|%%%%%%%%.l¬..%%|.,,~~~~~~~~~~~~~~~~~~
-%%%%%%%%%%%%%%%%%%%%~%%%%%|%%%%%%%%..|.%%%|.,,~~~~~~~~~~~~~~~~~~
-%%%%r---------------z-¬%%%|%%%%%%....|%%%%|.,,~~~~~~~~~~~~~~~~~~
-%%.rj........%%%%%%%~%l¬%.|..........|%%%rj,,,~~~~~~~~~~~~~~~~~~
+........%%%..%%%%%%%~%%%%%I%%%%%....I.l--¬..,,~~~~~~~~~~~~~~~~~~
+.%%%%.%%%%%%%%%%%%%%~%%%%%I%%%%%%%..I...%l¬.,,~~~~~~~~~~~~~~~~~~
+%%%%%%%%%%%%%%%%%%%%~%%%%%I%%%%%%%%.l¬..%%I.,,~~~~~~~~~~~~~~~~~~
+%%%%%%%%%%%%%%%%%%%%~%%%%%I%%%%%%%%..I.%%%I.,,~~~~~~~~~~~~~~~~~~
+%%%%r---------------z-¬%%%I%%%%%%....I%%%%I.,,~~~~~~~~~~~~~~~~~~
+%%.rj........%%%%%%%~%l¬%.I..........I%%%rj,,,~~~~~~~~~~~~~~~~~~
 %%rj.~~~~G~~~~%%%%%%~M%l--¬..........l---j.,,,~~~~~~~~~~~~~~~~~~
-%.|.~~~~~x~~~~~%%%%M~M....|.....MMM........,,~~~~~~~~~~~~~~~~~~~
-%.|.~~~~~~~~~~~%%MMM~M....l¬...MMMMMM......,,~~~~~~~~~~~~~~~~~~~
-%.|.~~~~~~~~~~%%%MMM~MMM..Ml¬MMMMMMMMMMMMM.,MM~~~~~~~~~~~~~~~~~~
+%.I.~~~~~x~~~~~%%%%M~M....I.....MMM........,,~~~~~~~~~~~~~~~~~~~
+%.I.~~~~~~~~~~~%%MMM~M....l¬...MMMMMM......,,~~~~~~~~~~~~~~~~~~~
+%.I.~~~~~~~~~~%%%MMM~MMM..Ml¬MMMMMMMMMMMMM.,MM~~~~~~~~~~~~~~~~~~
 %%l¬.~~~~~~~%%%MMMMM~MMMMMMMl¬MMMMMMMMMMMMMMMM~~~~~~~~~~~~~~~~~~
-%%.|..~~~~%%%%MMMMM~~MMMMMMMMx~MMMMMMMMMMMMMMMM~~~~~~~~~~~~~~~~~
-%%%|.%%%%%%%%MMMMMM~MMMMMMMM~x~MMMMMMMMMMMMMMMM~~~~~~~~~~~~~~~~~
+%%.I..~~~~%%%%MMMMM~~MMMMMMMMx~MMMMMMMMMMMMMMMM~~~~~~~~~~~~~~~~~
+%%%I.%%%%%%%%MMMMMM~MMMMMMMM~x~MMMMMMMMMMMMMMMM~~~~~~~~~~~~~~~~~
 %%%x%%%%%%%%%MMMMM~~MMMMMMMM~x~MMMMMMMMMMMMMMMMMMMMMM~~~~~~~~~~~
 %%rj%%%%%%%%%MMMMMM~MMMMMMM~~x~%...%%MM%%MMMMMMMMMMMMM~~M~~~~~~~
 %%5z---¬%%%%%MMMMMM~MMMMMMM~Ml¬..%r------¬%%MMMMMMMMMMM~~~~~~~~~
-%%|%%%%|%%%%MMMMMMM~~MMMMM~~MMl¬..|.%%%%%|%%%.MMMMMMMMMMM~~~~~~~
+%%I%%%%I%%%%MMMMMMM~~MMMMM~~MMl¬..I.%%%%%I%%%.MMMMMMMMMMM~~~~~~~
 %r4z---¬%%%%MMMMMMMM~~MMMM~MMM.l--l---3--j%%..MMMMMMMMMMMM~~~~~~
-%x./%r-¬%%%%MMMMMMMMM~~MM~~MMM........|%%%%%..MMMMMMMMMMMMM~~~~~
-%l--zj¬j%%%%MMMMMMMMMM~~~~MMMM%%..../.|.%%...MMMMMMMMMMMMM~~~~~~
-%%%%%%5z¬z¬%MMMMMMMMMMMM~~MMMMM%%%....|......MMMMMMMMMMMMMM~~~~~
+%x./%r-¬%%%%MMMMMMMMM~~MM~~MMM........I%%%%%..MMMMMMMMMMMMM~~~~~
+%l--zj¬j%%%%MMMMMMMMMM~~~~MMMM%%..../.I.%%...MMMMMMMMMMMMM~~~~~~
+%%%%%%5z¬z¬%MMMMMMMMMMMM~~MMMMM%%%....I......MMMMMMMMMMMMMM~~~~~
 %%r--¬x%lzj%MMMMMMMMMMMM~MMMMMM%%%%..~x~~~~~~~MMMMMMMMMMMMMM~M~~
-%%|%%|x%%%%%%MMMMMMMMMMM~MMMMMM%%%%%~~x~~~~~~~~MMMMMMMMMMMMM~~~~
-%%|%%|x%%%%%%%%MMMMMMMMM~MMMMMM%%%%%~~x~~~~~~~~MMMMMMMMMMMMM~~~~
+%%I%%Ix%%%%%%MMMMMMMMMMM~MMMMMM%%%%%~~x~~~~~~~~MMMMMMMMMMMMM~~~~
+%%I%%Ix%%%%%%%%MMMMMMMMM~MMMMMM%%%%%~~x~~~~~~~~MMMMMMMMMMMMM~~~~
 %%r--47---¬¬---zzzzz1zzzzz¬MMMMM%%%..~x~~~~....%MMMMMMMMMMM~~~~~
-%%|%%%x%.%lj%%MMMMMMxMMM~Mlz¬MMMM%%...|..%...%.%%%MMMMMM,,~~~~~~
-%%|%/.l¬.%%%MMMMMMMMxMMM~~MMlz¬MM%%...|.....%...........,,~~~MM~
-%%|%%%lj%%%MMMMMMMMMxMMMM~M~MMxMMM%%.rl-----------r-----__zzz¬M~
-%%l¬%%%%%MMMMMMMMMMMxMMMM~~MMMxMMM%%.|........%...|.....,,~~MxM~
-%%lj%%%%%MMMMMMMMMMr-¬MMM~~~~MxMMMMM%|...%MMM.....l¬../.,,~~~x~~
-%%%%%%%%MMMMMMMMMMM|l¬%MM~~~~~x~MMMMM|.MMMMMMMMMM..|....MMM~~x~~
-%%%%%%%MMMMMMMMMM%rj%|%MMM~~MMxMMMMMrj%%MMMMMMM%%.%l¬.MMMMMM~x~~
-%%%%%%MMMMMMMMMMM%|%%|%MM~MM~MxMMM%.|...%%..%.......|....,,~~x~~
-%%%%MMMMMMMMMMMMM%|/.|%M~MMMMMxMMM%.|.%.............|...,,,~MxM~
-%%MMMMMMMMMMMMMMM%l--8MMMMMMMrj%MM..|..r----!-------2--1___zzjM~
-MMMMMMMMMMMMMMMMM%|%MxMMMMMMMxMMMM%.|.%|%%..|....%..|%.|,,,~~M~~
-MMMMMMMMMMMMMMMMMM|.rlzz--3z-4¬MMM%.|.%l¬...|.......|..l¬,,~~~~~
-MMMMMMMMMMMMMMMMMMxM|MMM..|M..|%MM..l¬%%l-----------j...|,,,~~~~
-MMMMMMMMMMMMMMMMMMl-|---¬/|M.%|%MM%..|.%.%%.l¬%....%....|,,,,~~~
-MMMMMMMMMMMMMMMMMMM%|.%%l-j---j%MMM%.l¬.....%l¬.%.....%.|,,,,~~~
-MMMMMMMMMMMMMMMMMMM%|%%%%%%%%%%MMMM%%.|.%%%...l--¬......l¬,,,~~~
-MMMMMMMMMMMMMMMMMMMMxMMMM%%%MMMMMMM%%.|..%..%...%l-¬%....|,,,~~~
-MMMMMMMMMMMMMMMMMMMMxMMMMMMMMMMMMMM%%%|%%%%..%%....l¬....|,,,,~~
-MMMMMMMMMMMMMMMMMMMMxMMMMMMMMMMMMMMM%%|%MM%%......%.l¬...|.,,,~~
-MMMMMMMMMMMMMMMMMMMMxM%%%%%MMMMMMMMMMM|%%MMMMMM.%%...|...|MMM,~~
-MMMMMMMMMMMMMMMMMMM%|%%....%%MMMMMMMM%|%%%MMMMMMMMM%.|.MM|MM,,~~
-MMMMMMMMMMMMMMMMMMM%|%..%M..%%MMMMM%%rj%%MMMMMMM%....|...|M,,,~~
-MMMMMMMMMMMMMMMMMMM%|./.M%%..%%MMM%%.|.%..%......../.6---¬M,,,~~
-MMMMMMMMMMMMMMMMMMM%|..%M%....%MMM%..|%..%...%......rj...|.,,,~~
-MMMMMMMMMMMMMMMMMMM%l--!z1--¬--zzz----------------!-j..%.|,,,,~~
-MMMMMMMMMMMMMMMMMMMM%%%|M|..|.%MMM%..|.%.%..%..%..|...%..|,,,,~~
-MMMMMMMMMMMMMMMMMMMMMMMxM|%%|%MMMM%%.|%%%.........|......|,,,,~~
-MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMM%%|%MMMMMM.....|...MMrjM,,~~~
-MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMMMM|%.MMMMMMMM%.|.MMMM|MMMM~~~
-MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMMM%|MMMMMMMM.%..|.....|,,MM~~~
-MMMMMMMMMMMMMMMMMMMMMMMxMxMMl¬MMMMM%%|%%MMM.%.....|...%.|,,,~~~~
-MMMMMMMMMMMMMMMMMMMMMMMxMlzzjxMMMM%%.|..%%........|.%...|,,,~~~~
-MMMMMMMMMMMMMMMMMMMMMMMl¬MMMMxMMMM%%.l¬%......%..rj..%..|,,,~~~~
+%%I%%%x%.%lj%%MMMMMMxMMM~Mlz¬MMMM%%...I..%...%.%%%MMMMMM,,~~~~~~
+%%I%/.l¬.%%%MMMMMMMMxMMM~~MMlz¬MM%%...I.....%...........,,~~~MM~
+%%I%%%lj%%%MMMMMMMMMxMMMM~M~MMxMMM%%.rl-----------r-----__zzz¬M~
+%%l¬%%%%%MMMMMMMMMMMxMMMM~~MMMxMMM%%.I........%...I.....,,~~MxM~
+%%lj%%%%%MMMMMMMMMMr-¬MMM~~~~MxMMMMM%I...%MMM.....l¬../.,,~~~x~~
+%%%%%%%%MMMMMMMMMMMIl¬%MM~~~~~x~MMMMMI.MMMMMMMMMM..I....MMM~~x~~
+%%%%%%%MMMMMMMMMM%rj%I%MMM~~MMxMMMMMrj%%MMMMMMM%%.%l¬.MMMMMM~x~~
+%%%%%%MMMMMMMMMMM%I%%I%MM~MM~MxMMM%.I...%%..%.......I....,,~~x~~
+%%%%MMMMMMMMMMMMM%I/.I%M~MMMMMxMMM%.I.%.............I...,,,~MxM~
+%%MMMMMMMMMMMMMMM%l--8MMMMMMMrj%MM..I..r----!-------2--1___zzjM~
+MMMMMMMMMMMMMMMMM%I%MxMMMMMMMxMMMM%.I.%I%%..I....%..I%.I,,,~~M~~
+MMMMMMMMMMMMMMMMMMI.rlzz--3z-4¬MMM%.I.%l¬...I.......I..l¬,,~~~~~
+MMMMMMMMMMMMMMMMMMxMIMMM..IM..I%MM..l¬%%l-----------j...I,,,~~~~
+MMMMMMMMMMMMMMMMMMl-I---¬/IM.%I%MM%..I.%.%%.l¬%....%....I,,,,~~~
+MMMMMMMMMMMMMMMMMMM%I.%%l-j---j%MMM%.l¬.....%l¬.%.....%.I,,,,~~~
+MMMMMMMMMMMMMMMMMMM%I%%%%%%%%%%MMMM%%.I.%%%...l--¬......l¬,,,~~~
+MMMMMMMMMMMMMMMMMMMMxMMMM%%%MMMMMMM%%.I..%..%...%l-¬%....I,,,~~~
+MMMMMMMMMMMMMMMMMMMMxMMMMMMMMMMMMMM%%%I%%%%..%%....l¬....I,,,,~~
+MMMMMMMMMMMMMMMMMMMMxMMMMMMMMMMMMMMM%%I%MM%%......%.l¬...I.,,,~~
+MMMMMMMMMMMMMMMMMMMMxM%%%%%MMMMMMMMMMMI%%MMMMMM.%%...I...IMMM,~~
+MMMMMMMMMMMMMMMMMMM%I%%....%%MMMMMMMM%I%%%MMMMMMMMM%.I.MMIMM,,~~
+MMMMMMMMMMMMMMMMMMM%I%..%M..%%MMMMM%%rj%%MMMMMMM%....I...IM,,,~~
+MMMMMMMMMMMMMMMMMMM%I./.M%%..%%MMM%%.I.%..%......../.6---¬M,,,~~
+MMMMMMMMMMMMMMMMMMM%I..%M%....%MMM%..I%..%...%......rj...I.,,,~~
+MMMMMMMMMMMMMMMMMMM%l--!z1--¬--zzz----------------!-j..%.I,,,,~~
+MMMMMMMMMMMMMMMMMMMM%%%IMI..I.%MMM%..I.%.%..%..%..I...%..I,,,,~~
+MMMMMMMMMMMMMMMMMMMMMMMxMI%%I%MMMM%%.I%%%.........I......I,,,,~~
+MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMM%%I%MMMMMM.....I...MMrjM,,~~~
+MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMMMMI%.MMMMMMMM%.I.MMMMIMMMM~~~
+MMMMMMMMMMMMMMMMMMMMMMMxMxMMxMMMMMMM%IMMMMMMMM.%..I.....I,,MM~~~
+MMMMMMMMMMMMMMMMMMMMMMMxMxMMl¬MMMMM%%I%%MMM.%.....I...%.I,,,~~~~
+MMMMMMMMMMMMMMMMMMMMMMMxMlzzjxMMMM%%.I..%%........I.%...I,,,~~~~
+MMMMMMMMMMMMMMMMMMMMMMMl¬MMMMxMMMM%%.l¬%......%..rj..%..I,,,~~~~
 MMMMMMMMMMMMMMMMMMMMMMMMxMMMMxMMMM%%%.l¬.%......rj.....rj,,,~~~~
 MMMMMMMMMMMMMMMMMMMMMMMMxMMMMxMMMMM%%%%l--------j------j,,,,~~~~
 MMMMMMMMMMMMMMMMMMMMMMMMlzzzzjMMMMMMM%%%%%.%%%%...%%%%MMM,,,~~~~

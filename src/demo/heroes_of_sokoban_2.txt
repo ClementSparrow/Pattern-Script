@@ -256,8 +256,8 @@ P = Priest
 4 = SPriest
 * = Crate
 G = Goal
-[ = YellowDoor
-] = PurpleDoor
+C = YellowDoor
+D = PurpleDoor
 { = YellowSwitch
 } = PurpleSwitch
 L = DragonLeft
@@ -394,14 +394,14 @@ Message [You've played the original, yes?]
 Message [If not, this might be confusing.]
 
 #############
-#.......[...#
-#.*.F.{.[.G.#
+#.......C...#
+#.*.F.{.C.G.#
 #############
-#.......[...#
-#.*.2.{.[.G.#
+#.......C...#
+#.*.2.{.C.G.#
 #############
-#.......[...#
-#.*.3.{.[.G.#
+#.......C...#
+#.*.3.{.C.G.#
 #############
 
 Message Watch out for goblins.
@@ -475,9 +475,9 @@ Message Think fast!
 #############
 #R.O.O.O.O.T#
 ###########{#
-###########]#
-#G#3.[.}.G#G#
-#]###########
+###########D#
+#G#3.C.}.G#G#
+#D###########
 #{###########
 #1..O...O..L#
 #############
@@ -518,7 +518,7 @@ Message Kill monsters to open the M wall.
 #.......#...#
 #.{.*.{.#...#
 #..W.O..M.G.#
-#.{.*.[.#...#
+#.{.*.C.#...#
 #.......#...#
 #############
 
@@ -554,7 +554,7 @@ Message Heroes next to a priest are safe.
 #.#..T..#4##
 #.#.{.*...L#
 #.#.....#..#
-#G[.*.{...L#
+#GC.*.{...L#
 #.#.....#..#
 #.#.{.*...L#
 #.#.....#G##
@@ -583,8 +583,8 @@ Message Heroes next to a priest are safe.
 ###########
 #{*F#.4#.3#
 #{*.#..#..#
-###[#[###.#
-#R[.......#
+###C#C###.#
+#RC.......#
 ####O#.##.#
 ######.##.#
 #G.G.G.#O*#
@@ -601,7 +601,7 @@ Message Heroes next to a priest are safe.
 
 ###########
 ##O#O#O#O##
-#T[.[.[.[.#
+#TC.C.C.C.#
 ##{#{#{#{.#
 #.........#
 #.3G*G*G4.#

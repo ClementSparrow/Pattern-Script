@@ -55,8 +55,8 @@ LEGEND
 . = Background
 # = Wall
 P = Player
-< = LeftPerson
-> = RightPerson
+{ = LeftPerson
+} = RightPerson
 
 =======
 SOUNDS
@@ -90,10 +90,10 @@ LEVELS
 
 
 ####..
-#.>#..
+#.}#..
 #..###
-#<P..#
-#..>.#
+#{P..#
+#..}.#
 #..###
 ####..
 

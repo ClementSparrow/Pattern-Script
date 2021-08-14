@@ -65,13 +65,13 @@ RULES
 ======
 
 [ PlayerGold ] -> [ PlayerRed ]
-[ >  Player White | Black ] -> [  > Player White | > Black ]
-[ >  Player Black | White ] -> [  > Player Black | > White ]
+[ > Player White | Black ] -> [ > Player White | > Black ]
+[ > Player Black | White ] -> [ > Player Black | > White ]
 [ > Black | White ] -> [ White | Black ] SFX0
 [ > White | Black ] -> [ Black | White ] SFX0
-[ >  Player White |  Black ] -> [  Player White |  Black ]
-[ >  Player Black |  White ] -> [  Player Black |  White ]
-[ >  Player |  Gray ] -> [  Player |  Gray ]
+[ > Player White | Black ] -> [ Player White | Black ]
+[ > Player Black | White ] -> [ Player Black | White ]
+[ > Player | Gray ] -> [ Player | Gray ]
 late [ Player | PlayerRed ] -> [ Player | PlayerGold ]
 
 ==============

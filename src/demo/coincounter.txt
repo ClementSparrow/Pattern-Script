@@ -145,7 +145,7 @@ x = wall
 # = r and coin
 $ = m and coin
 % = w and coin
-^ = e and coin
+u = e and coin
 & = b and coin
 * = c and coin
 
@@ -375,7 +375,7 @@ xx???xxxx?x
 z.ctc.c!c.x
 x.lxrx@x#.x
 x.cmcxc$c.x
-x9wxexwx^1x
+x9wxexwxu1x
 x.cbc.cbc.x
 xxxxxxxxxpx
 
@@ -383,7 +383,7 @@ x????xxxxxx
 z.ctcfctc.p
 x.lxrxlx#.x
 x.cmcxcm*.x
-x2wxexwx^4x
+x2wxexwxu4x
 x.cbcfcbc.x
 xxxxxxxxxxx
 
@@ -391,7 +391,7 @@ x????xxxxx
 xctc3ctcxx
 x@xrx}xrxx
 xc$cxc:c7p
-xwx^xwx".x
+xwxuxwx".x
 xc&cxc,c.x
 xxxxxxxxzx
 
@@ -399,7 +399,7 @@ x????xxxpx
 xctc6ctc.x
 x}x;x@x#.x
 xcmcxc$c1x
-x'x"xwx^.x
+x'x"xwxu.x
 xc,c.c&c.x
 xxxxxxxxzx
 
