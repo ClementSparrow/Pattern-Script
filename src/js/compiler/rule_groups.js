@@ -56,7 +56,7 @@ function ruleGroupDiscardOverlappingTest(ruleGroup)
 	}
 	if (allbad)
 	{
-		logError(['overlapping_objects_in_cell', ...example], firstLineNumber)
+		logError(['overlapping_objects_in_cell', example], firstLineNumber)
 	}
 }
 
