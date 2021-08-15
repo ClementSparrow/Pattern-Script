@@ -23,7 +23,7 @@ const error_messages = { // actually also warning messages
 	no_matching_ellipsis_in_RHS: 'An ellipsis on the left must be matched by one in the corresponding place on the right.',
 	no_matching_ellipsis_in_LHS: 'An ellipsis on the right must be matched by one in the corresponding place on the left.',
 	no_layer_for_object: object_name => 'Oops! ' +object_name.toUpperCase()+' not assigned to a layer.',
-	spawn_aggregate: object_name => 'You want to spawn a random "'+object_name.toUpperCase()+'", but I don\'t know how to do that',
+	spawn_aggregate: object_name => 'You want to spawn a random "' + object_name.toUpperCase() + '", but I don\'t know how to do that.',
 	cant_overlap: (object_name1, object_name2) => 'Rule matches object types that can\'t overlap: "' + object_name1.toUpperCase() + '" and "' + object_name2.toUpperCase() + '".',
 
 	// generateMasks
@@ -31,7 +31,7 @@ const error_messages = { // actually also warning messages
 
 	// tokenizeWinConditionIdentifier
 	unknown_object_in_wincondition: n => 'Unknown object name "' + n +'" found in win condition.',
-	invalid_object_in_wincondition: (n, type) => 'Invalid object name found in win condition: ' + n + 'is ' + type + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)',
+	invalid_object_in_wincondition: (n, type) => 'Invalid object name found in win condition: ' + n + ' is ' + type + ', but win conditions objects have to be objects or properties (defined using "or", in terms of other properties)',
 
 	// levelFromString
 	unknown_symbol_in_level: ch => 'Error, symbol "' + ch + '", used in level map, not found. Do you need to add it to the legend, or define a new object?',
@@ -86,7 +86,7 @@ const error_messages = { // actually also warning messages
 	// generateLoopPointsAux
 	unbalanced_loop: "Need to have matching number of 'startLoop' and 'endLoop' loop points.",
 	// ruleGroupDiscardOverlappingTest
-	overlapping_objects_in_cell: example => example[0] +' and '+example[1]+' can never overlap, but this rule requires that to happen.',	
+	overlapping_objects_in_cell: (example1, example2) => example1 + ' and ' + example2 + ' can never overlap, but this rule requires that to happen.',	
 
 	// message_screen.js
 	// =================
