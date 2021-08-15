@@ -8,8 +8,8 @@ function CellPattern(row) {
 	this.anyObjectsPresent = row[2];
 	this.movementsPresent = row[3];
 	this.movementsMissing = row[4];
+	this.replacement = null
 	this.matches = this.generateMatchFunction();
-	this.replacement = row[5];
 };
 
 function CellReplacement(row) {
@@ -84,13 +84,13 @@ CellPattern.prototype.generateMatchString = function()
 		var mp = this.movementsPresent.data[i]
 		var mm = this.movementsMissing.data[i]
 		if (op)
-		{
-			if (op&(op-1))
+		{ // test that all bits set in op (objects present) are also set in co (cell's objects), i.e. the cell contains all the objects requested
+			if (op&(op-1)) // true if op has more than one bit set
 				fn += '\t\t&& ((' + co + '&' + op + ')===' + op + ')\n';
 			else
 				fn += '\t\t&& (' + co + '&' + op + ')\n';
 		}
-		if (om)
+		if (om) // test that 'co & om == 0', i.e. the cell does not contain any of the objects missing (or rather, forbidden objects)
 			fn += '\t\t&& !(' + co + '&' + om + ')\n';
 		if (mp) {
 			if (mp&(mp-1))
@@ -101,6 +101,7 @@ CellPattern.prototype.generateMatchString = function()
 		if (mm)
 			fn += '\t\t&& !(' + cm + '&' + mm + ')\n';
 	}
+	// for each set of objects in anyObjectsPresent, test that the cell contains at least one object of the set. That's for properties in a single layer.
 	for (const anyObjectPresent of this.anyObjectsPresent)
 	{
 		fn += "\t\t&& (0";
@@ -149,14 +150,15 @@ function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
 	if ( ! rule.isRigid )
 		return false
 
-	var rigidGroupIndex = state.groupNumber_to_RigidGroupIndex[rule.groupNumber]
+	var rigidGroupIndex = state.groupNumber_to_RigidGroupIndex[rule.groupNumber] // TODO pass that as function parameter instead of rule (null if rule is not rigid)
 	rigidGroupIndex++;//don't forget to -- it when decoding :O
 
+	// write the rigidGroupIndex in all layers identified by replacementMovementLayerMask
 	var rigidMask = new BitVec(STRIDE_MOV); // TODO: use a static variable
 	for (var layer = 0; layer < level.layerCount; layer++) {
 		rigidMask.ishiftor(rigidGroupIndex, layer * 5);
 	}
-	rigidMask.iand(replacementMovementLayerMask);
+	rigidMask.iand(replacementMovementLayerMask)
 
 	var curRigidGroupIndexMask = level.rigidGroupIndexMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
 	var curRigidMovementAppliedMask = level.rigidMovementAppliedMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
@@ -181,7 +183,8 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 
 	this.replacement.cloneInto(static_CellReplacement)
 
-	static_CellReplacement.movementsClear.ior(this.replacement.movementsLayerMask);
+	// Ensure the movements are cleared in layers from which an object is removed or some movement is set
+	static_CellReplacement.movementsClear.ior(this.replacement.movementsLayerMask) // why is this not done directly at the creation of this.replacement?
 
 	static_CellReplacement.applyRandoms()
 	
@@ -194,7 +197,7 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 	curCellMask.iclear(static_CellReplacement.objectsClear);
 	curCellMask.ior(static_CellReplacement.objectsSet);
 
-	curMovementMask.iclear(static_CellReplacement.movementsClear);
+	curMovementMask.iclear(static_CellReplacement.movementsClear)
 	curMovementMask.ior(static_CellReplacement.movementsSet);
 
 	// Rigid + check if something changed
