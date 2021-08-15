@@ -91,7 +91,7 @@ function Test( settings ) {
 Test.count = 0;
 
 Test.prototype = {
-	copyTestData: function() { navigator.clipboard.writeText(this.testData) },
+	copyTestData: function(i) { navigator.clipboard.writeText(this.testData[0][i]) },
 	init: function() {
 		var a, b, c, li,
 			tests = id( "qunit-tests" );
@@ -100,19 +100,27 @@ Test.prototype = {
 			b = document.createElement( "strong" );
 			b.innerHTML = this.nameHtml;
 
+			s = document.createElement('span')
+
 			// `a` initialized at top of scope
 			a = document.createElement( "a" );
 			a.innerHTML = "Rerun";
 			a.href = QUnit.url({ testNumber: this.testNumber });
-
-			c = document.createElement( "a" );
-			c.innerHTML = 'Copy test data'
-			c.href = "javascript:void('Copy test data');"
-			c.addEventListener("click", () => this.copyTestData(), false)
-
-			s = document.createElement('span')
 			s.appendChild(a)
-			s.appendChild(c)
+
+			if ( (this.testData !== undefined) && (this.testData.length >= 2))
+			{
+				data_span = document.createElement('span')
+				for (const [i, testdata_name] of this.testData[1].entries())
+				{
+					c = document.createElement( "a" );
+					c.innerHTML = 'Copy ' + testdata_name
+					c.href = "javascript:void('Copy "+testdata_name+"');"
+					c.addEventListener("click", () => this.copyTestData(i), false)
+					data_span.appendChild(c)
+				}
+				s.appendChild(data_span)
+			}
 
 			li = document.createElement( "li" );
 			li.appendChild( b );

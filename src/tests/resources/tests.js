@@ -9,16 +9,18 @@ QUnit.module('Game parts') // replay game parts to check the execution of rules
 // tests of results of inputs
 for (const [testname, td] of testdata)
 {
+	const [testcode, testinput, testresult] = td
+	const level_num = td[3]||0
+	const seed = td[4] // undefined is ok
+	const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
+	var errormessage = "<b>level:</b> " + (level_num||0) + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 	test(
 		testname,
-		td[0],
+		[ [testcode, input, testresult, (level_num||0), seed ], ['game code', 'input', 'expected level state', 'level number', 'random seed'] ],
 		function(tdat)
 		{
 			return function()
 			{
-				const [testcode, testinput, testresult] = tdat;
-				const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
-				var errormessage = "<b>level:</b> " + (tdat[3]||0) + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 				ok(runTest(tdat), errormessage)
 			};
 		}(td)
@@ -48,7 +50,7 @@ for (const [testname, td] of errormessage_testdata)
 {
 	test(
 		testname, 
-		td[0],
+		[ [td[0]], ['game code'] ],
 		test_compile(td[0], td[1], td[2])
 	)
 }
@@ -81,6 +83,10 @@ function test_demo_file(demo_filename)
 			// const errormessage_entry = errormessage_testdata.findIndex( ([name, data]) => data[0].replace(/\s/g, '') === demo_text.replace(/\s/g, ''))
 			// if (errormessage_entry >= 0)
 			// 	console.log('can erase entry #'+errormessage_entry+' ('+errormessage_testdata[errormessage_entry][0]+') of error messages, as it is the same as '+demo_filename)
-			test(demo_filename, demo_text, test_compile(demo_text, [], []))
+			test(
+				demo_filename,
+				[ [demo_text, demo_filename], ['game code', 'filename'] ],
+				test_compile(demo_text, [], [])
+			)
 		})
 }
