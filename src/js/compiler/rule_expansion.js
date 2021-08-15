@@ -142,7 +142,7 @@ function rewriteUpLeftRules(rule)
 
 function getPropertiesFromCell(identifiers, cell)
 {
-	var result = [];
+	var result = []
 	for (const oc of cell)
 	{
 		if ( (oc === null) || oc.random )
@@ -152,7 +152,7 @@ function getPropertiesFromCell(identifiers, cell)
 			result.push(oc.ii)
 		}
 	}
-	return result;
+	return result
 }
 
 //returns you a list of object names in that cell that're moving -> actually, it only returns those moving with a directionaggregate...
@@ -227,9 +227,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 			const properties_r = getPropertiesFromCell(state.identifiers, row_r[k]);
 			for (const property of properties_r)
 			{
-				if (properties_l.indexOf(property) == -1)
+				if (properties_l.indexOf(property) === -1)
 				{
-					ambiguousProperties[property] = true;
+					ambiguousProperties[property] = true
 				}
 			}
 		}
@@ -366,7 +366,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 		logError(['ambiguous_property', state.identifiers.names[rhsPropertyRemains]], lineNumber)
 	}
 
-	return result;
+	return result
 }
 
 
@@ -496,7 +496,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 	}
 
 	// if any direction aggregate remain on the RHSes, bleep loudly
-	// TODO: why only log the last one found and not all of them?
+	// TODO: why only log the last one found and not all of them? -> possibly to keep the original wording of the direction, like orthogonal instead of vertical?
 	var rhsAmbiguousMovementsRemain = null
 	for (const cur_rule of result)
 	{
@@ -514,10 +514,10 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 	}
 	if (rhsAmbiguousMovementsRemain !== null)
 	{
-		logError('This rule has an ambiguous movement on the right-hand side, \"'+ rhsAmbiguousMovementsRemain + "\", that can't be inferred from the left-hand side.  (either for every ambiguous movement associated to an entity on the right there has to be a corresponding one on the left attached to the same entity, OR, if there's a single occurrence of a particular ambiguous movement on the left, all properties of the same movement attached to the same object on the right are assumed to be the same (or something like that)).",lineNumber);
+		logError(['ambiguous_movement', rhsAmbiguousMovementsRemain], lineNumber)
 	}
 
-	return result;
+	return result
 }
 
 // replaces aggregates and synonyms appearing in a rule by the list of all objects they are aggregates/synonyms of, i.e. objects they must be.
@@ -540,6 +540,8 @@ function atomizeLegendObjectsInHS(identifiers, hs, lineNumber)
 	}
 }
 
+// TODO: do we really need to do that? Because in ruleToMask, we use the objects masks corresponding to an identifier...
+// So, I think we only need this so that concretizePropertyRule can deal with properties only.
 function atomizeLegendObjectsInCell(identifiers, cell, lineNumber)
 {
 	for (var i = 0; i < cell.length; i += 1)
@@ -554,6 +556,7 @@ function atomizeLegendObjectsInCell(identifiers, cell, lineNumber)
 			continue // this case requires a rule expansion and will be dealt with in concretizePropertyRule
 		if ( (identifier_comptype == identifier_type_aggregate) && oc.no )
 		{
+			// TODO: this error should be catched in the rule parser?
 			logError("You cannot use 'no' to exclude the aggregate object " +identifiers.names[oc.ii].toUpperCase()+" (defined using 'AND'), only regular objects, or properties (objects defined using 'OR').  If you want to do this, you'll have to write it out yourself the long way.", lineNumber)
 		}
 
