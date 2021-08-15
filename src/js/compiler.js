@@ -429,6 +429,16 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 					{
 						// TODO: don't use identifier names in rule.discard, just identifier_indexes
 						rule.discard = [state.identifiers.names[oc.ii].toUpperCase(), state.identifiers.names[layersUsed_l[layerIndex]].toUpperCase()];
+						// Note: this does not log an error or warning message, unlike the same test in the RHS. Indeed, it's strange that the user did that, but
+						// it's not a problem for matching cells. It is a problem, however, if both identifiers matched by the same object are used differently in the RHS,
+						// e.g. [ PlayerOrCrate Player ] -> [ right PlayerOrCrate left Player ]
+						// or if the movements on both objects are incompatible, like in:
+						// [ left PlayerOrCrate right Player ] -> [ stationary PlayerOrCrate stationary Player ]
+						// (although in that case, the rule could be expanded as:
+						//     [ left Player right Player ] -> [ stationary Player stationary Player ] that will never match
+						//     + [ left Crate right Player ] -> [ stationary Crate stationary Player ] that is valid if Player and Crate are in different collision layers
+						// and indeed, it compiles fine, producing only the second rule.
+						// )
 					}
 
 					layersUsed_l[layerIndex] = oc.ii;
@@ -464,7 +474,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				cellrow_l[k] = ellipsisPattern
 				continue
 			}
-			cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing, null])
+			cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing])
 
 
 			// Right-Hand Side
@@ -493,32 +503,30 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 				if (oc.random)
 				{
-					if (state.identifiers.comptype[oc.ii] !== identifier_type_aggregate)
-					{
-						randomMask_r.ior(state.objectMasks[oc.ii]);
-						const values = Array.from( state.identifiers.getObjectsForIdentifier(oc.ii), p => [p, state.identifiers.objects[p]] );
-						for (const [subobject_index, subobject] of values)
-						{
-							// TODO: it would be simpler to precompute a layer mask for each identifier, then compare this mask with objectsSet?
-							// plus, this would ease the implementation of multi-layer objects if we want to go that way.
-							const subobj_layerIndex = subobject.layer|0
-							const existing_index = layersUsed_r[subobj_layerIndex];
-							if ( (existing_index !== null) && (subobject_index !== existing_index) )
-							{
-								logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.identifiers.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
-							}
-
-							// TODO: shouldn't we also test that layersUsedRand_r is not already set?
-							layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
-							setPostMovement(oc.dir, subobj_layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
-						}                      
-					}
-					else
+					if (state.identifiers.comptype[oc.ii] === identifier_type_aggregate)
 					{
 						// TODO: this error should be catched earlier in the parsing piepline
 						logError(['spawn_aggregate', state.identifiers.names[oc.ii]], rule.lineNumber)
+						continue
 					}
-					continue;
+					randomMask_r.ior(state.objectMasks[oc.ii]);
+					const values = Array.from( state.identifiers.getObjectsForIdentifier(oc.ii), p => [p, state.identifiers.objects[p]] );
+					for (const [subobject_index, subobject] of values)
+					{
+						// TODO: it would be simpler to precompute a layer mask for each identifier, then compare this mask with objectsSet?
+						// plus, this would ease the implementation of multi-layer objects if we want to go that way.
+						const subobj_layerIndex = subobject.layer|0
+						const existing_index = layersUsed_r[subobj_layerIndex];
+						if ( (existing_index !== null) && (subobject_index !== existing_index) )
+						{
+							logWarning("This rule may try to spawn a "+subobject.name.toUpperCase()+" with random, but also requires a "+state.identifiers.objects[existing_index].name.toUpperCase()+" be here, which is on the same layer - they shouldn't be able to coexist!", rule.lineNumber); 									
+						}
+
+						// TODO: shouldn't we also test that layersUsedRand_r is not already set?
+						layersUsedRand_r[subobj_layerIndex] = subobject.identifier_index;
+						setPostMovement(oc.dir, subobj_layerIndex, postMovementsLayerMask_r, movementsClear, randomDirMask_r, movementsSet)
+					}
+					continue
 				}
 
 				const objectMask = state.objectMasks[oc.ii];
@@ -536,7 +544,9 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				{
 					const existing_index = layersUsed_r[layerIndex] || layersUsedRand_r[layerIndex]
 
-					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) ) // "discard" here is used just to not show an error message when we know there will already be one for that rule?
+					// "discard" here indicates there is already a problem on the LHS. Is it used just to not show an error message when we know there will already be one for that rule?
+					// so, here, it just prevents write/write conflicts?
+					if ( (existing_index !== null) && ( ! rule.hasOwnProperty('discard') ) )
 					{
 						logError(['cant_overlap', state.identifiers.names[oc.ii], state.identifiers.names[existing_index]], rule.lineNumber)
 					}
@@ -563,6 +573,29 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 
 			// Differences between both sides
 			// ==============================
+
+			// The fix in increpare/PuzzleScript@e4d09233cd7abcb80fc9f320b5e35568dd248247 consists in setting as 'stationary' all objects (not properties) appearing in
+			// the RHS without movement (including 'no' and 'random' and 'randomdir') and not appearing in the same cell of the LHS (including as a member of a single-layer property).
+			//
+			// But I think it should be changed into: setting as 'stationary' all objects (not properties) appearing in the RHS without movement (including 'no' and 'random'
+			// and 'randomdir') and not appearing in the same cell of the LHS (excluding appearance as a member of a single-layer property) (or, then, appearing with a direction?).
+			//
+			// 'setting as stationary' => movementsClear.ishiftor(0x1f, 5*layerIndex)
+			// 'appearing in the RHS as object' => objectlayers_r.ishiftor(0x1f, 5*layerIndex) or object bit set in objectsSet
+			// 'without movement' => postMovementsLayerMask_r.ishiftor(0x1f, 5*layerIndex) is not set.
+			// 'not appearing in the same cell of the LHS' => the bit for the object has not been set in objectsPresent or objectlayers_l.ishiftor(0x1f, 5*layerIndex) not set.
+			//
+			// TODO: it should not be necessary to clear the movement if there is only one type of object in the collision layer of the object created, or the other possible
+			// object types in that layers have been 'no'-ed in the LHS.
+
+			if ( ! rule.late )
+			{
+				var objectsPossiblyCreatedStationary = objectlayers_r.clone()
+				objectsPossiblyCreatedStationary.iclear(objectlayers_l)
+				objectsPossiblyCreatedStationary.iclear(postMovementsLayerMask_r)
+				// if ( ! objectsPossiblyCreatedStationary.iszero() ) { console.log('check out rule '+rule.lineNumber+'!') }
+				movementsClear.ior(objectsPossiblyCreatedStationary)
+			}
 
 			// TODO: shouldn't we only clear the objects (or rather, their layer masks) that are not present on the RHS? Something like objectsClear.ior(objectsPresent.clear(objectsSet))
 			if ( ! objectsPresent.bitsSetInArray(objectsSet.data) ) // if there are individual objects on the LHS that are not on the RHS
@@ -659,18 +692,6 @@ function generateMasks(state)
 
 	state.objectMasks = objectMask;
 }
-
-// We don't need to check all objects, only those actualy used in rules, which are already checked in ruleToMask.
-// function checkObjectsAreLayered(identifiers)
-// {
-// 	for (var o of identifiers.objects)
-// 	{
-// 		if (o.layer === undefined)
-// 		{
-// 			logError('Object "' + o.name.toUpperCase() + '" has been defined, but not assigned to a layer.', identifiers.lineNumbers[o.identifier_index]);
-// 		}
-// 	}
-// }
 
 function twiddleMetaData(state)
 {
