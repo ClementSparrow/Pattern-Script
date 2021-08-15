@@ -84,6 +84,8 @@ const error_messages = { // actually also warning messages
 
 	// generateLoopPointsAux
 	unbalanced_loop: "Need to have matching number of 'startLoop' and 'endLoop' loop points.",
+	// checkNoLateRulesHaveMoves
+	movements_in_laterule: 'Movements cannot appear in late rules.',
 	// ruleGroupDiscardOverlappingTest
 	overlapping_objects_in_cell: example => example[0] +' and '+example[1]+' can never overlap, but this rule requires that to happen.',	
 
@@ -98,7 +100,9 @@ function get_error_message(msg)
 	if (typeof msg === 'string')
 		return msg
 	const f = error_messages[msg[0]]
-	return (typeof f !== 'string') ? f(...msg.slice(1)) : f
+	if (typeof f === 'string')
+		return f
+	return f( ...(msg.slice(1)) )
 }
 
 function error_message_equal(m1=null, m2=null)

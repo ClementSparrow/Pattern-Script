@@ -121,8 +121,8 @@ function checkNoLateRulesHaveMoves(state)
 					var movePresent = cellPattern.movementsPresent;
 					if (!moveMissing.iszero() || !movePresent.iszero())
 					{
-						logError("Movements cannot appear in late rules.", rule.lineNumber);
-						return;
+						logError(['movements_in_laterule'], rule.lineNumber)
+						return
 					}
 
 					if (cellPattern.replacement != null)
@@ -132,8 +132,8 @@ function checkNoLateRulesHaveMoves(state)
 
 						if (!movementsClear.iszero() || !movementsSet.iszero())
 						{
-							logError("Movements cannot appear in late rules.",rule.lineNumber);
-							return;
+							logError(['movements_in_laterule'], rule.lineNumber)
+							return
 						}
 					}				
 				}
