@@ -19,9 +19,10 @@ for (const [testname, td] of testdata)
 		[ [testcode, input, testresult, (level_num||0), seed ], ['game code', 'input', 'expected level state', 'level number', 'random seed'] ],
 		function(tdat)
 		{
+			const display_content = errormessage
 			return function()
 			{
-				ok(runTest(tdat), errormessage)
+				ok(runTest(tdat), display_content)
 			};
 		}(td)
 	);
