@@ -39,6 +39,45 @@ function convertLevelToString()
 	return out;
 }
 
+function loadUnitTestStringLevel(str)
+{
+	const lines = str.split('\n')
+	const height = lines.length
+	const width = lines[0].split(',').length
+	var lev = new Level(undefined, width, height, state.collisionLayers.length, new Int32Array(width * height * STRIDE_OBJ))
+	var masks = []
+	const backgroundLayerMask = state.layerMasks[state.backgroundlayer]
+	const levelBackgroundMask = lev.calcBackgroundMask(state)
+	for (const [y, line] of lines.entries())
+	{
+		for (const [x, cell_content] of line.split(',').entries())
+		{
+			if (cell_content.length == 0)
+				continue
+			var cell_parts = cell_content.split(':')
+			if (cell_parts.length > 1)
+			{
+				const object_names = cell_parts[0].split(' ')
+				const objects = object_names.map( object_name => state.identifiers.objects.find( o => (object_name === o.name) ) )
+				console.log(object_names, objects)
+				const mask = makeMaskFromGlyph( objects.map( o => o.id ) )
+				if ( ! backgroundLayerMask.anyBitsInCommon(mask) )
+				{
+					mask.ior(levelBackgroundMask);
+				}
+				masks.push(mask)
+			}
+			const mask_id = parseInt(cell_parts[cell_parts.length - 1])
+			console.log(mask_id, masks.length)
+			const maskint = masks[mask_id]
+			lev.setCell(x * height + y, maskint)
+		}
+	}
+	loadLevelFromLevelDat(state, lev, null)
+	canvasResize()
+}
+
+
 function stripHTMLTags(html_str)
 {
 	if (typeof html_str !== 'string')
