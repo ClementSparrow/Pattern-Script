@@ -111,10 +111,11 @@ Test.prototype = {
 			if ( (this.testData !== undefined) && (this.testData.length >= 2))
 			{
 				data_span = document.createElement('span')
+				data_span.innerHTML = 'Copy: '
 				for (const [i, testdata_name] of this.testData[1].entries())
 				{
 					c = document.createElement( "a" );
-					c.innerHTML = 'Copy ' + testdata_name
+					c.innerHTML = testdata_name
 					c.href = "javascript:void('Copy "+testdata_name+"');"
 					c.addEventListener("click", () => this.copyTestData(i), false)
 					data_span.appendChild(c)

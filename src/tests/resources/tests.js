@@ -16,7 +16,7 @@ for (const [testname, td] of testdata)
 	var errormessage = "<b>level:</b> " + (level_num||0) + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 	test(
 		testname,
-		[ [testcode, input, testresult, (level_num||0), seed ], ['game code', 'input', 'expected level state', 'level number', 'random seed'] ],
+		[ [testname, testcode, input, testresult, (level_num||0), seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
 		function(tdat)
 		{
 			const display_content = errormessage
@@ -25,7 +25,7 @@ for (const [testname, td] of testdata)
 				ok(runTest(tdat), display_content)
 			};
 		}(td)
-	);
+	)
 }
 
 
@@ -51,7 +51,7 @@ for (const [testname, td] of errormessage_testdata)
 {
 	test(
 		testname, 
-		[ [td[0]], ['game code'] ],
+		[ [testname, td[0]], ['test name', 'game code'] ],
 		test_compile(td[0], td[1], td[2])
 	)
 }
