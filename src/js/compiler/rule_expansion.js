@@ -342,7 +342,7 @@ function concretizePropertyRule(state, rule, lineNumber)
 
 	// if any properties remain on the RHSes, bleep loudly
 	// TODO: why only log the last one found and not all of them?
-	var rhsPropertyRemains = '';
+	var rhsPropertyRemains = null
 	for (const cur_rule of result)
 	{
 		for (const cur_rulerow of cur_rule.rhs)
@@ -361,9 +361,9 @@ function concretizePropertyRule(state, rule, lineNumber)
 	}
 
 
-	if (rhsPropertyRemains.length > 0)
+	if (rhsPropertyRemains !== null)
 	{
-		logError('This rule has a property on the right-hand side, \"'+ state.identifiers.names[rhsPropertyRemains].toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",lineNumber);
+		logError(['ambiguous_property', state.identifiers.names[rhsPropertyRemains]], lineNumber)
 	}
 
 	return result;
@@ -497,7 +497,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 
 	// if any direction aggregate remain on the RHSes, bleep loudly
 	// TODO: why only log the last one found and not all of them?
-	var rhsAmbiguousMovementsRemain = '';
+	var rhsAmbiguousMovementsRemain = null
 	for (const cur_rule of result)
 	{
 		for (const cur_rulerow of cur_rule.rhs)
@@ -512,7 +512,7 @@ function concretizeMovingRule(rule, lineNumber) // a better name for this functi
 			}
 		}
 	}
-	if (rhsAmbiguousMovementsRemain.length > 0)
+	if (rhsAmbiguousMovementsRemain !== null)
 	{
 		logError('This rule has an ambiguous movement on the right-hand side, \"'+ rhsAmbiguousMovementsRemain + "\", that can't be inferred from the left-hand side.  (either for every ambiguous movement associated to an entity on the right there has to be a corresponding one on the left attached to the same entity, OR, if there's a single occurrence of a particular ambiguous movement on the left, all properties of the same movement attached to the same object on the right are assumed to be the same (or something like that)).",lineNumber);
 	}

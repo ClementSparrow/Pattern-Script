@@ -80,6 +80,12 @@ const error_messages = { // actually also warning messages
 	different_nb_cellrows: 'Error, when specifying a rule, the number of matches (square bracketed bits) on the left hand side of the arrow must equal the number on the right',
 	different_nb_cells: 'In a rule, each pattern to match on the left must have a corresponding pattern on the right of equal length (number of cells).',
 
+	// rule_expansion.js
+	// =================
+
+	ambiguous_movement: w => 'This rule has an ambiguous movement on the right-hand side, \"'+ w + "\", that can't be inferred from the left-hand side. (Either for every ambiguous movement associated to an entity on the right there has to be a corresponding one on the left attached to the same entity, OR, if there's a single occurrence of a particular ambiguous movement on the left, all properties of the same movement attached to the same object on the right are assumed to be the same (or something like that)).",
+	ambiguous_property: name => 'This rule has a property on the right-hand side, \"'+ name.toUpperCase() + "\", that can't be inferred from the left-hand side.  (either for every property on the right there has to be a corresponding one on the left in the same cell, OR, if there's a single occurrence of a particular property name on the left, all properties of the same name on the right are assumed to be the same).",
+
 	// rule_groups.js
 	// ==============
 
