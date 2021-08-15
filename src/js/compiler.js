@@ -1048,8 +1048,6 @@ function loadFile(str)
 	collapseRules(state.rules);
 	collapseRules(state.lateRules);
 
-	checkNoLateRulesHaveMoves(state);
-
 	generateRigidGroupList(state);
 
 	processWinConditions(state);

@@ -69,6 +69,7 @@ const error_messages = { // actually also warning messages
 	directions_outside_cellrows: 'Invalid syntax. Directions should be placed at the start of a rule.',
 	no_or_random_followed_by_direction: keyword => 'Invalid syntax. The keyword "'+keyword.toUpperCase()+'" must be followed by an object name.',
 	random_in_LHS: keyword => keyword.toUpperCase()+' cannot be matched on the left-hand side, it can only appear on the right',
+	movements_in_laterule: 'Setting movements in late rules does not make sense and I will simply ignore them, as late rules are applied after eveything has moved.',
 	ellipses_not_alone: 'Ellipses shoud be alone in their own cell, like that: |...|',
 	more_than_one_ellipses_in_cellrow: "You can't use two ellipses in a single cell match pattern.  If you really want to, please implement it yourself and send me a patch :)",
 	rule_without_arrow: "A rule has to have an arrow in it.  There's no arrow here! Consider reading up about rules - you're clearly doing something weird",
@@ -84,8 +85,6 @@ const error_messages = { // actually also warning messages
 
 	// generateLoopPointsAux
 	unbalanced_loop: "Need to have matching number of 'startLoop' and 'endLoop' loop points.",
-	// checkNoLateRulesHaveMoves
-	movements_in_laterule: 'Movements cannot appear in late rules.',
 	// ruleGroupDiscardOverlappingTest
 	overlapping_objects_in_cell: example => example[0] +' and '+example[1]+' can never overlap, but this rule requires that to happen.',	
 

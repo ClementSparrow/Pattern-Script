@@ -259,6 +259,8 @@ function parseRuleString(rule, state, curRules)
 					logError(['direction_NO_object'], lineNumber)
 				}
 				curobjcond.no = true
+			} else if (late) {
+				logWarning(['movements_in_laterule'], lineNumber)
 			} else if (curobjcond.dir !== null) {
 				// TODO: fix bug https://github.com/increpare/PuzzleScript/issues/395
 				//       Basically, we need to replace directions words with 'direction' flags (including 'no' and 'random' that are not directions) and check

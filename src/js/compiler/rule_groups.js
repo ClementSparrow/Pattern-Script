@@ -102,46 +102,6 @@ function arrangeRulesByGroupNumber(state)
 	state.lateRules = result_late;
 }
 
-
-// TODO: can't this been checked much earlier? Also it would be better to list all the rules that have the issue...
-function checkNoLateRulesHaveMoves(state)
-{
-	for (const lateGroup of state.lateRules)
-	{
-		for (const rule of lateGroup)
-		{
-			for (const cellRow_l of rule.patterns)
-			{
-				for (const cellPattern of cellRow_l)
-				{
-					if (cellPattern === ellipsisPattern)
-						continue;
-
-					var moveMissing = cellPattern.movementsMissing;
-					var movePresent = cellPattern.movementsPresent;
-					if (!moveMissing.iszero() || !movePresent.iszero())
-					{
-						logError(['movements_in_laterule'], rule.lineNumber)
-						return
-					}
-
-					if (cellPattern.replacement != null)
-					{
-						var movementsClear = cellPattern.replacement.movementsClear;
-						var movementsSet = cellPattern.replacement.movementsSet;
-
-						if (!movementsClear.iszero() || !movementsSet.iszero())
-						{
-							logError(['movements_in_laterule'], rule.lineNumber)
-							return
-						}
-					}				
-				}
-			}
-		}
-	}
-}
-
 function generateRigidGroupList(state)
 {
 	var rigidGroupIndex_to_GroupIndex = [];
