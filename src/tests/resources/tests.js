@@ -16,7 +16,7 @@ for (const [testname, td] of testdata)
 	const description = "<b>level:</b> " + level_num + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 	test(
 		testname,
-		[ [testname, testcode, input, testresult, (level_num||0), seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
+		[ [testname, testcode, input, testresult, level_num, seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
 		function(tdat)
 		{
 			const display_content = description
