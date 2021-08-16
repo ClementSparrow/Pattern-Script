@@ -409,7 +409,8 @@ function parseRuleString(rule, state, curRules)
 	} else {
 		for (const [i, lhs_cell] of lhs_cells.entries())
 		{
-			if (lhs_cell.length != rhs_cells[i].length) {
+			if (lhs_cell.length != rhs_cells[i].length)
+			{
 				logError(['different_nb_cells'], lineNumber)
 				return null // ignoring the rule because it would cause bugs later in the code.
 			}

@@ -12,17 +12,14 @@ function* generateDirections(directions)
 }
 
 
-function* generateRulesExpansions(identifiers, rules)
+function* generateRuleExpansion(identifiers, rule)
 {
-	for (const rule of rules)
+	const directions = new Set( generateDirections(rule.directions) );
+	const parameter_sets = identifiers.make_expansion_parameter([...rule.tag_classes, ...rule.parameter_properties])
+	for (const parameters of cartesian_product(directions, ...parameter_sets))
 	{
-		const directions = new Set( generateDirections(rule.directions) );
-		const parameter_sets = identifiers.make_expansion_parameter([...rule.tag_classes, ...rule.parameter_properties])
-		for (const parameters of cartesian_product(directions, ...parameter_sets))
-		{
-			// console.log('generateRulesExpansions', rule.toString(), parameters.toString())
-			yield [rule, ...parameters];
-		}
+		// console.log('generateRulesExpansions', rule.toString(), parameters.toString())
+		yield [rule, ...parameters];
 	}
 }
 
@@ -72,13 +69,13 @@ function applyRuleParametersMappings(identifiers, rule)
 
 function rulesToArray(state)
 {
-	var oldrules = state.rules;
-	var rules = [];
-	var loops = [];
-	for (const oldrule of oldrules)
+	var rules = []
+	var loops = []
+	for (const oldrule of state.rules)
 	{
-		var lineNumber = oldrule[1];
-		var newrule = parseRuleString(oldrule, state, rules)
+		// parse the rule
+		const lineNumber = oldrule[1]
+		const newrule = parseRuleString(oldrule, state, rules)
 		if (newrule === null)
 			continue
 		if (newrule.bracket !== undefined)
@@ -86,27 +83,22 @@ function rulesToArray(state)
 			loops.push( [lineNumber, newrule.bracket] )
 			continue
 		}
-		rules.push(newrule);
+
+		// expand out rules with multiple directions or rule parameters
+		for (const rule_expansion of generateRuleExpansion(state.identifiers, newrule) )
+		{
+			const expanded_rule = expandRule(state.identifiers, ...rule_expansion)
+			
+			// now expand ambiguous movements
+			for (const concrete_moving_rule of concretizeMovingRule(expanded_rule, lineNumber) )
+			{
+				// now expand properties
+				rules.push( ...concretizePropertyRule(state, concrete_moving_rule, lineNumber) )
+			}
+		}
 	}
-	state.loops = loops;
-
-	//now expand out rules with multiple directions or rule parameters
-	const rules2 = Array.from( generateRulesExpansions(state.identifiers, rules), rule_expansion => expandRule(state.identifiers, ...rule_expansion) );
-
-	var rules3 = [];
-	//expand property rules
-	for (const rule of rules2)
-	{
-		rules3 = rules3.concat(concretizeMovingRule(rule, rule.lineNumber));
-	}
-
-	var rules4 = [];
-	for (const rule of rules3)
-	{
-		rules4 = rules4.concat(concretizePropertyRule(state, rule, rule.lineNumber));
-	}
-
-	state.rules = rules4;
+	state.loops = loops
+	state.rules = rules
 }
 
 function containsEllipsis(rule)
