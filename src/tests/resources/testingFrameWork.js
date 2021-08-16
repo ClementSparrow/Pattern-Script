@@ -15,6 +15,9 @@ function runTest(dataarray) {
 
 	compile(["loadLevel",targetlevel], levelString, randomseed)
 
+	if (errorStrings.length > 0)
+		return false
+
 	while (againing) {
 		againing=false;
 		processInput(-1);			

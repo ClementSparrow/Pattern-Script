@@ -13,16 +13,21 @@ for (const [testname, td] of testdata)
 	const level_num = td[3]||0
 	const seed = td[4] // undefined is ok
 	const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
-	var errormessage = "<b>level:</b> " + (level_num||0) + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
+	const description = "<b>level:</b> " + level_num + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 	test(
 		testname,
 		[ [testname, testcode, input, testresult, (level_num||0), seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
 		function(tdat)
 		{
-			const display_content = errormessage
+			const display_content = description
 			return function()
 			{
-				ok(runTest(tdat), display_content)
+				ok(
+					runTest(tdat),
+					((errorStrings.length > 0) ? ('<b>Got errors:</b><ul>'   +   errorStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '') +
+					((warningStrings.length > 0) ? ('<b>Got warnings:</b><ul>' + warningStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '')
+					+ display_content
+				)
 			};
 		}(td)
 	)
