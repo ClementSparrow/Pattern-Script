@@ -169,10 +169,10 @@ function generateExtraMembers(state)
 	state.single_layer_property = state.identifiers.comptype.map(
 		function (comptype, i)
 		{
-			if (comptype != identifier_type_property)
+			if (comptype !== identifier_type_property)
 				return -1
-			const layers = new Set( Array.from( state.identifiers.getObjectsForIdentifier(i), j => state.identifiers.objects[j].layer ) );
-			return (layers.size == 1) ? layers.values().next().value : -1;
+			const layers = new Set( Array.from( state.identifiers.getObjectsForIdentifier(i), j => state.identifiers.objects[j].layer ) )
+			return (layers.size === 1) ? layers.values().next().value : -1
 		}
 	);
 
@@ -406,7 +406,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 							logError(['no_matching_ellipsis_in_RHS'], rule.lineNumber)
 						}
 					} 
-					break;
+					break
 				}
 
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique
@@ -476,6 +476,11 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			}
 			cellrow_l[k] = new CellPattern([objectsPresent, objectsMissing, anyObjectsPresent, movementsPresent, movementsMissing])
 
+			// if X no X, the rule cannot match anything
+			if (objectsPresent.anyBitsInCommon(objectsMissing))
+			{
+				logWarning(['rule_cannot_match_anything'], rule.lineNumber)
+			}
 
 			// Right-Hand Side
 			// ===============
@@ -636,7 +641,7 @@ function rulesToMask(state)
 
 	for (const rule of state.rules)
 	{
-		ruleToMask(state, rule, layerTemplate, layerCount);
+		ruleToMask(state, rule, layerTemplate, layerCount)
 	}
 }
 

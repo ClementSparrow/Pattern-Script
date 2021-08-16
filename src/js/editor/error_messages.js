@@ -23,6 +23,7 @@ const error_messages = { // actually also warning messages
 	no_matching_ellipsis_in_RHS: 'An ellipsis on the left must be matched by one in the corresponding place on the right.',
 	no_matching_ellipsis_in_LHS: 'An ellipsis on the right must be matched by one in the corresponding place on the left.',
 	no_layer_for_object: object_name => 'Oops! ' +object_name.toUpperCase()+' not assigned to a layer.',
+	rule_cannot_match_anything: 'This rule will never match anything, because it requires the presence of an entity that has been excluded by a NO.',
 	spawn_aggregate: object_name => 'You want to spawn a random "' + object_name.toUpperCase() + '", but I don\'t know how to do that.',
 	cant_overlap: (object_name1, object_name2) => 'Rule matches object types that can\'t overlap: "' + object_name1.toUpperCase() + '" and "' + object_name2.toUpperCase() + '".',
 

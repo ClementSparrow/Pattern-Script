@@ -136,4 +136,8 @@ var errormessage_testdata = [
         ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nLIGHTGREEN\n\nPlayer\nBlack \n\n=======\nLEGEND\n=======\n\n. = Background\nP = Player\nbaba = Player or Background\n\n=======\nSOUNDS\n=======\n\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nPlayer\n\n======\nRULES\n======\n\nright [ vertical Player | vertical Player | | ] -> [ || vertical Player | vertical Player ]\n\n==============\nWINCONDITIONS\n==============\n\n\n=======\nLEVELS\n=======\n\n.......\n...pp..\n.......\n\n",[[["ambiguous_movement","vertical"],39]],[]]
     ],
     // <--
+    [
+        `Various [ X no X ] situations`, // Issue #19
+        ["title Simple Block Pushing Game\nauthor David Skinner\nhomepage www.puzzlescript.net\n\n========\nOBJECTS\n========\n\nBackground\nLIGHTGREEN GREEN\n11111\n01111\n11101\n11111\n10111\n\n\nWall\nBROWN DARKBROWN\n00010\n11111\n01000\n11111\n00010\n\nPlayer\nBlack Orange White Blue\n.000.\n.111.\n22222\n.333.\n.3.3.\n\nCrate\nOrange Yellow\n00000\n0...0\n0...0\n0...0\n00000\n\n\n=======\nLEGEND\n=======\n\n. = Background\n# = Wall\nP = Player\n* = Crate\n\nMovable = Player or Crate\n\n=======\nSOUNDS\n=======\n\n================\nCOLLISIONLAYERS\n================\n\nBackground\nPlayer, Wall, Crate\n\n======\nRULES\n======\n\n[ Crate no Crate] -> [ Player ]\n[ Crate no Movable ] -> [ Player ]\n[ > Player no Movable ] -> [ Crate ]\n\n\n==============\nWINCONDITIONS\n==============\n\n=======\nLEVELS\n=======\n\n\n######\n#....#\n#....#\n#.P..#\n#..*.#\n#....#\n######\n\n\n",[],[[["rule_cannot_match_anything"],69],[["rule_cannot_match_anything"],70],[["rule_cannot_match_anything"],71]]]
+    ],
 ];
