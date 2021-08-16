@@ -1,6 +1,6 @@
 
 
-var inputVals = {0 : 'U', 1: 'L', 2:'D', 3:'R', 4:' ACTION ', tick:' TICK ', undo:' UNDO ', restart:' RESTART '}
+var inputVals = {0 : 'U', 1: 'L', 2:'D', 3:'R', 4:' Action ', tick:' Tick ', undo:' Undo ', restart:' Restart '}
 
 // function testFunction(td) { }
 
@@ -12,7 +12,7 @@ for (const [testname, td] of testdata)
 	const [testcode, testinput, testresult] = td
 	const level_num = td[3]||0
 	const seed = td[4] // undefined is ok
-	const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^A\s]{5})(?=[^\s])/gu, '$1 ')
+	const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^t\s]{5})(?=[^\s])/gu, '$1 ').replaceAll(/\s\s+/g, ' ')
 	const description = "<b>level:</b> " + level_num + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
 	test(
 		testname,
