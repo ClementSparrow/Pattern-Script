@@ -361,7 +361,8 @@ function setPostMovement(dir, layerIndex, postMovementsLayerMask_r, movementsCle
 	}
 	else if (dir === 'randomdir')
 	{
-		randomDirMask_r.ishiftor(dirMasks[dir], 5 * layerIndex);
+		if (randomDirMask_r.indexOf(layerIndex) < 0)
+			randomDirMask_r.push(layerIndex)
 	}
 	else
 	{						
@@ -500,7 +501,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			var objectlayers_r = new BitVec(STRIDE_MOV);
 			var randomMask_r = new BitVec(STRIDE_OBJ);
 			var postMovementsLayerMask_r = new BitVec(STRIDE_MOV); // set for the bits of layers such that a) an object in that layer appears in the (RHS) cell and has a movement direction or action (movement is set), b) an object in that layer appeared on the same cell in the LHS but no object in that layer appears in the (RHS) cell (objects deleted)
-			var randomDirMask_r = new BitVec(STRIDE_MOV);
+			var randomDirMask_r = []
 			for (const oc of cell_r)
 			{
 				// the identifier may be a property on a single collision layer, in which case object_index should not be unique

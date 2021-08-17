@@ -12,9 +12,10 @@ function CellPattern(row) {
 	this.matches = this.generateMatchFunction();
 };
 
-function CellReplacement(row) {
+function CellReplacement(row)
+{
 	[ this.objectsClear, this.objectsSet, this.movementsClear, this.movementsSet, this.movementsLayerMask, this.randomEntityMask, this.randomDirMask ] = row
-};
+}
 
 CellReplacement.prototype.cloneInto = function(dest)
 {
@@ -50,20 +51,13 @@ CellReplacement.prototype.applyRandoms = function()
 	}
 	
 	// replace random dirs
-	if ( ! this.randomDirMask.iszero() )
+	for (const layerIndex of this.randomDirMask)
 	{
-		for (var layerIndex=0; layerIndex<level.layerCount; layerIndex++)
-		{
-			if (this.randomDirMask.get(5*layerIndex))
-			{
-				const randomDir = Math.floor(RandomGen.uniform()*4)
-				this.movementsSet.ibitset(randomDir + 5*layerIndex)
-			}
-		}
+		this.movementsSet.ibitset(Math.floor(RandomGen.uniform()*4) + 5*layerIndex)
 	}
 }
 
-var make_static_CellReplacement = () => new CellReplacement(Array.from(([1,1,0,0,0,1,0]), x => new BitVec(x ? STRIDE_OBJ : STRIDE_MOV) ))
+var make_static_CellReplacement = () => new CellReplacement(Array.from(([1,1,0,0,0,1,0]), (x,i) => (i==6) ? [] : new BitVec(x ? STRIDE_OBJ : STRIDE_MOV) ))
 var static_CellReplacement = make_static_CellReplacement()
 
 
