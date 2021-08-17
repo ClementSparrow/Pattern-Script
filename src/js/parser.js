@@ -24,24 +24,24 @@ const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perp
 const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
 
-const reg_commands = /[\p{Separator}\s]*(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)[\p{Separator}\s]*/u;
-const reg_name = /[\p{Letter}\p{Number}_]+[\p{Separator}\s]*/u;
+const reg_commands = /(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\b/u;
+const reg_name = /[\p{Letter}\p{Number}_]+/u;
 const reg_tagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_]+)*/u;
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
 const reg_spriterow = /[\.0-9]+[\p{Separator}\s]*/u;
-const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)(?![\p{Letter}\p{Number}_])[\p{Separator}\s]*/u;
+const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)\b/u;
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
 const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx10?|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9)\b/u
 const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 const reg_loopmarker = /^(startloop|endloop)$/;
-const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)$/;
-const reg_sounddirectionindicators = /[\p{Separator}\s]*(up|down|left|right|horizontal|vertical|orthogonal)[\p{Separator}\s]*/u;
-const reg_winconditionquantifiers = /^(all|any|no|some)$/;
-const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)/;
+const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)\b$/;
+const reg_sounddirectionindicators = /(up|down|left|right|horizontal|vertical|orthogonal)\b/u;
+const reg_winconditionquantifiers = /^(all|any|no|some)\b$/;
+const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)\b/;
 
 
 // ======== PARSER CONSTRUCTORS =========
