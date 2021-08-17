@@ -377,38 +377,11 @@ function removeBottomRow()
 // PRINT LEVEL
 // ===========
 
-function selectText(containerid, e)
+function loadInLevelEditor(lines)
 {
-	e = e || window.event
-	var myspan = document.getElementById(containerid)
-	// select level text
-	if (document.selection)
-	{
-		var range = document.body.createTextRange()
-		range.moveToElementText(myspan)
-		range.select()
-	}
-	else if (window.getSelection)
-	{
-		var selection = window.getSelection()
-		selection.removeAllRanges() // why removeAllRanges? https://stackoverflow.com/a/43443101 whatever…
-		var range = document.createRange()
-		range.selectNode(myspan)
-		selection.addRange(range)
-	}
-	// load in level editor with Ctrl/Meta
-	if ( e && (e.ctrlKey || e.metaKey) )
-	{
-		const leveldat = levelFromString(state, ['console'].concat(myspan.innerHTML.split('<br>')) )
-		loadLevelFromLevelDat(state, leveldat, null)
-		canvasResize()
-	}
-	// Copy in clipboard with Shift
-	if ( e && e.shiftKey )
-	{
-		navigator.clipboard.writeText( myspan.innerHTML.split('<br>').join('\n') )
-	}
-	return e.preventDefault()
+	const leveldat = levelFromString(state, ['console'].concat(lines) )
+	loadLevelFromLevelDat(state, leveldat, null)
+	canvasResize()
 }
 
 // find mask with closest match
@@ -449,9 +422,7 @@ const htmlEntityMap = {
 	'"': '&quot;',
 	"'": '&#39;',
 	"/": '&#x2F;'
-};
-
-var selectableint = 0
+}
 
 function printLevel()
 {
@@ -469,24 +440,29 @@ function printLevel()
 			glyphMasks.push([glyphName, glyphmask, glyphbits]);
 		}
 	}
-	selectableint++;
-	const tag = 'selectable'+selectableint;
-	var output="Printing level contents:<br><br><span id=\""+tag+"\" onmousedown=\"selectText('"+tag+"',event)\" oncontextmenu=\"return false\"\">"
-	for (var j=0;j<level.height;j++) {
-		for (var i=0;i<level.width;i++) {
-			const cellMask = level.getCell(j + i*level.height)
-			var glyph = matchGlyph(cellMask, glyphMasks);
-			if (glyph in htmlEntityMap) {
-				glyph = htmlEntityMap[glyph]; 
+	var output = ''
+	for (var j=0; j<level.height; j++)
+	{
+		for (var i=0; i<level.width; i++)
+		{
+			var glyph = matchGlyph(level.getCell(j + i*level.height), glyphMasks);
+			if (glyph in htmlEntityMap)
+			{
+				glyph = htmlEntityMap[glyph]
 			}
-			output = output+glyph;
+			output += glyph
 		}
-		if (j<level.height-1){
-			output=output+"<br>";
+		if (j < level.height-1)
+		{
+			output += "<br>"
 		}
 	}
-	output += '</span><br><br>(Click to select, ctrl-click to load in level editor, shift-click to copy)<br><br>'
-	consolePrint(output, true)
+	consolePrint(
+		'Printing level contents:<br><br>'
+		+ makeSelectableText(output, 'loadInLevelEditor')
+		+ '<br><br>(Click to select, ctrl-click to load in level editor, shift-click to copy)<br><br>',
+		true
+	)
 }
 
 

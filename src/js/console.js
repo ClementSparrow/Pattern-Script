@@ -1,5 +1,5 @@
-function jumpToLine(i) {
-
+function jumpToLine(i)
+{
     var code = parent.form1.code;
 
     var editor = code.editorreference;
@@ -25,7 +25,53 @@ function jumpToLine(i) {
     editor.setCursor(mid, 0);
 }
 
-var consolecache = [];
+// Selectable text in console
+// ==========================
+
+var selectableint = 0
+function makeSelectableText(text, ctrl_callback = '')
+{
+	selectableint++
+	const tag = 'selectable' + selectableint
+	return '<span id="' + tag + '" onmousedown="selectText(\'' + tag + '\', event, ' + ctrl_callback + ')" oncontextmenu="return false">' + text + '</span>'
+}
+
+function selectText(containerid, e, ctrl_callback = null)
+{
+	e = e || window.event
+	var myspan = document.getElementById(containerid)
+	// select level text
+	if (document.selection)
+	{
+		var range = document.body.createTextRange()
+		range.moveToElementText(myspan)
+		range.select()
+	}
+	else if (window.getSelection)
+	{
+		var selection = window.getSelection()
+		selection.removeAllRanges() // why removeAllRanges? https://stackoverflow.com/a/43443101 whatever…
+		var range = document.createRange()
+		range.selectNode(myspan)
+		selection.addRange(range)
+	}
+	// load in level editor with Ctrl/Meta
+	if ( (ctrl_callback !== null) && e && (e.ctrlKey || e.metaKey) )
+	{
+		ctrl_callback(myspan.innerHTML.split('<br>'))
+	}
+	// Copy in clipboard with Shift
+	if ( e && e.shiftKey )
+	{
+		navigator.clipboard.writeText( myspan.innerHTML.split('<br>').join('\n') )
+	}
+	return e.preventDefault()
+}
+
+// Console cache
+// =============
+
+var consolecache = []
 
 
 function consolePrintFromRule(text, rule, urgent)
@@ -62,10 +108,10 @@ function addToConsole(text) {
 	objDiv.scrollTop = objDiv.scrollHeight;
 }
 
-function consoleCacheDump() {
-	if (cache_console_messages===false) {
-		return;
-	}
+function consoleCacheDump()
+{
+	if (cache_console_messages === false)
+		return
 	
 	var lastline = "";
 	var times_repeated = 0;
@@ -101,6 +147,10 @@ function clearConsole() {
 	var objDiv = document.getElementById('lowerarea');
 	objDiv.scrollTop = objDiv.scrollHeight;
 }
+
+
+// Verbose logging
+// ===============
 
 function verboseToggle()
 {
