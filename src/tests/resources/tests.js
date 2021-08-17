@@ -2,36 +2,42 @@
 
 var inputVals = {0 : 'U', 1: 'L', 2:'D', 3:'R', 4:' Action ', tick:' Tick ', undo:' Undo ', restart:' Restart '}
 
-// function testFunction(td) { }
+// tests of results of inputs
+function test_module_with_inputs(testdata_list)
+{
+	for (const [testname, td] of testdata_list)
+	{
+		const [testcode, testinput, testresult] = td
+		const level_num = td[3]||0
+		const seed = td[4] // undefined is ok
+		const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^t\s]{5})(?=[^\s])/gu, '$1 ').replaceAll(/\s\s+/g, ' ')
+		const description = "<b>level:</b> " + level_num + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
+		test(
+			testname,
+			[ [testname, testcode, input, testresult, level_num, seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
+			function(tdat)
+			{
+				const display_content = description
+				return function()
+				{
+					ok(
+						runTest(tdat),
+						((errorStrings.length > 0) ? ('<b>Got errors:</b><ul>'   +   errorStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '') +
+						((warningStrings.length > 0) ? ('<b>Got warnings:</b><ul>' + warningStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '')
+						+ display_content
+					)
+				};
+			}(td)
+		)
+	}
+}
 
 QUnit.module('Game parts') // replay game parts to check the execution of rules
+test_module_with_inputs(testdata)
 
-// tests of results of inputs
-for (const [testname, td] of testdata)
-{
-	const [testcode, testinput, testresult] = td
-	const level_num = td[3]||0
-	const seed = td[4] // undefined is ok
-	const input = testinput.map( j => inputVals[j] ).join('').replaceAll(/([^t\s]{5})(?=[^\s])/gu, '$1 ').replaceAll(/\s\s+/g, ' ')
-	const description = "<b>level:</b> " + level_num + "<br/><b>input:</b> <span style='white-space:pre-wrap;'>" + input + '</span><br/><b>Game:</b><pre>' + testcode + '</pre>'
-	test(
-		testname,
-		[ [testname, testcode, input, testresult, level_num, seed ], ['test name', 'game code', 'input', 'expected level state', 'level number', 'random seed'] ],
-		function(tdat)
-		{
-			const display_content = description
-			return function()
-			{
-				ok(
-					runTest(tdat),
-					((errorStrings.length > 0) ? ('<b>Got errors:</b><ul>'   +   errorStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '') +
-					((warningStrings.length > 0) ? ('<b>Got warnings:</b><ul>' + warningStrings.map(m => '<li>' + JSON.stringify(stripHTMLTags(m)) + '</li>').join('') + '</ul>') : '')
-					+ display_content
-				)
-			};
-		}(td)
-	)
-}
+QUnit.module('Increpare Games') // replay game parts to check the execution of rules
+test_module_with_inputs(increpare_testdata)
+
 
 
 
