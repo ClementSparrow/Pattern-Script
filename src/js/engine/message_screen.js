@@ -8,11 +8,16 @@ const doted_terminal_line    = '..................................';
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
+function isContinuePossible()
+{
+	return ( (curlevel > 0) || (curlevelTarget !== null) ) && (curlevel in state.levels)
+}
+
 // uses: curlevel, curlevelTarget, state
 // sets: this.nb_items, this.text
 MenuScreen.prototype.makeTitle = function()
 {
-	this.nb_items = ( (curlevel>0) || (curlevelTarget !== null) ) ? 2 : 1
+	this.nb_items = isContinuePossible() ? 2 : 1
 
 	if (state.levels.length === 0)
 	{

@@ -259,7 +259,7 @@ function setGameState(_state, command, randomseed)
 			tryPlaySimpleSound('titlescreen')
 			msg_screen.done = false
 			screen_layout.content = menu_screen
-			menu_screen.item = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
+			menu_screen.item = isContinuePossible() ? 1 : 0
 			menu_screen.done = false
 			menu_screen.makeTitle();
 			break;
@@ -1104,7 +1104,7 @@ function goToTitleScreen()
 	messagetext = ''
 	screen_layout.content = menu_screen
 	doSetupTitleScreenLevelContinue()
-	menu_screen.item = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 1 : 0
+	menu_screen.item = isContinuePossible() ? 1 : 0
 	menu_screen.makeTitle()
 }
 

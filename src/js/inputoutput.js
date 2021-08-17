@@ -433,9 +433,9 @@ function update()
 			{
 				screen_layout.content = level_screen
 			}
-			menu_screen.nb_items = ( (curlevel > 0) || (curlevelTarget !== null) ) ? 2 : 1
-			menu_screen.done = false
+			menu_screen.nb_items = isContinuePossible() ? 2 : 1
 			menu_screen.item = 0
+			menu_screen.done = false
 			canvasResize()
 			checkWin()
         }
