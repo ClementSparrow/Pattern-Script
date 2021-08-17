@@ -1145,9 +1145,11 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 		if (this.identifiers.checkKnownIdentifier(m, false, this) >= 0)
 			return 'NAME';
 	}
-
-	candname = stream.match(reg_notcommentstart, true);
-	this.logError(['unexpected_sound_token', candname])
+	else
+	{
+		candname = stream.match(reg_notcommentstart, true);
+		this.logError(['unexpected_sound_token', candname])
+	}
 	stream.match(reg_notcommentstart, true);
 	return 'ERROR';
 }
