@@ -89,14 +89,16 @@ function dumpTestCase()
 {
 	//compiler error data
 	const levelDat = compiledText
-	const resultstring = JSON.stringify( [levelDat, errorStrings.map(stripHTMLTags), warningStrings.map(stripHTMLTags)] )
-	consolePrint("<br>Compilation error/warning data (for error message tests - errormessage_testdata.js):<br><br><br>"+resultstring+"<br><br><br>", true)
+	const resultstring =  '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
+			JSON.stringify( [levelDat, errorStrings.map(stripHTMLTags), warningStrings.map(stripHTMLTags)] ) + '<br>\t],<br>'
+	consolePrint('<br>Compilation error/warning data (for error message tests - errormessage_testdata.js):<br><br>' + makeSelectableText(resultstring) + '<br>', true)
 	
 	//normal session recording data
 	if (level !== undefined)
 	{
-		const resultstring = JSON.stringify( [levelDat, inputHistory.concat([]), convertLevelToString(), recordingStartsFromLevel, loadedLevelSeed] )
-		consolePrint("<br>Recorded play session data (for play session tests - testdata.js):<br><br><br>"+resultstring+"<br><br><br>",true);
+		const resultstring = '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
+			JSON.stringify( [levelDat, inputHistory.concat([]), convertLevelToString(), recordingStartsFromLevel, loadedLevelSeed] ) + '<br>\t],<br>'
+		consolePrint('<br>Recorded play session data (for play session tests - testdata.js):<br><br>'+makeSelectableText(resultstring) + '<br>', true)
 	}
 }
 
