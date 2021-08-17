@@ -6,7 +6,7 @@ var compiledText;
 var IDE=true;
 var recordingStartsFromLevel = 0 // for input recorder
 
-Level.prototype.convertToString = function()
+Level.prototype.convertToString = function(def_char = '=')
 {
 	var out = ''
 	var seenCells = {}
@@ -30,7 +30,7 @@ Level.prototype.convertToString = function()
 			if (!seenCells.hasOwnProperty(objs))
 			{
 				seenCells[objs] = i++
-				out += objs + '='
+				out += objs + def_char
 			}
 			out += seenCells[objs] + ','
 		}

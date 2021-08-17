@@ -41,7 +41,7 @@ function runTest(dataarray) {
 	}
 
 	unitTesting = false
-	return (convertLevelToString() === dataarray[2])
+	return (level.convertToString( (dataarray[2].indexOf('=') >= 0) ? '=' : ':' ) === dataarray[2])
 }
 
 function runCompilationTest(game_string, recordedErrorStrings, recordedWarningStrings)
