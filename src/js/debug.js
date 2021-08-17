@@ -6,16 +6,16 @@ var compiledText;
 var IDE=true;
 var recordingStartsFromLevel = 0 // for input recorder
 
-function convertLevelToString()
+Level.prototype.convertToString = function()
 {
-	var out = '';
-	var seenCells = {};
-	var i = 0;
-	for (var y = 0; y < level.height; y++)
+	var out = ''
+	var seenCells = {}
+	var i = 0
+	for (var y = 0; y < this.height; y++)
 	{
-		for (var x = 0; x < level.width; x++)
+		for (var x = 0; x < this.width; x++)
 		{
-			const bitmask = level.getCell(x + y*level.width); // TODO: it should be y + x*level.height
+			const bitmask = this.getCell(x + y*this.width) // TODO: it should be y + x*this.height
 			var objs = [];
 			for (var bit = 0; bit < 32 * STRIDE_OBJ; ++bit)
 			{
@@ -24,20 +24,22 @@ function convertLevelToString()
 					objs.push(state.identifiers.objects[state.idDict[bit]].name)
 				}
 			}
-			objs.sort();
-			objs = objs.join(" ");
+			objs.sort()
+			objs = objs.join(' ')
 			/* replace repeated object combinations with numbers */
 			if (!seenCells.hasOwnProperty(objs))
 			{
-				seenCells[objs] = i++;
-				out += objs + ":"; // TODO: can conflict with semicolons in the names of objects with tags
+				seenCells[objs] = i++
+				out += objs + '='
 			}
-			out += seenCells[objs] + ",";
+			out += seenCells[objs] + ','
 		}
-		out += '\n';
+		out += '\n'
 	}
-	return out;
+	return out
 }
+
+function convertLevelToString() { return level.convertToString() }
 
 function levelFromUnitTestString(str)
 {
@@ -52,7 +54,7 @@ function levelFromUnitTestString(str)
 		{
 			if (cell_content.length == 0)
 				continue
-			var cell_parts = cell_content.split(':')
+			var cell_parts = cell_content.split(/[:=]/) // : is used by vanilla PuzzleScript but appears in names of objects with tags so it is replaced with = in Pattern:Script.
 			if (cell_parts.length > 1)
 			{
 				const object_names = cell_parts[0].split(' ')
