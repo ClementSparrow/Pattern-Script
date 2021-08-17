@@ -377,26 +377,38 @@ function removeBottomRow()
 // PRINT LEVEL
 // ===========
 
-function selectText(containerid,e)
+function selectText(containerid, e)
 {
-	e = e || window.event;
-	var myspan = document.getElementById(containerid);
-	if (e&&(e.ctrlKey || e.metaKey)) {
-		var levelarr = ["console"].concat(myspan.innerHTML.split("<br>"));
-		var leveldat = levelFromString(state,levelarr);
-		loadLevelFromLevelDat(state,leveldat,null);
-		canvasResize();
-	} else {
-		if (document.selection) {
-			var range = document.body.createTextRange();
-			range.moveToElementText(myspan);
-			range.select();
-		} else if (window.getSelection) {
-			var range = document.createRange();
-			range.selectNode(myspan);
-			window.getSelection().addRange(range);
-		}
+	e = e || window.event
+	var myspan = document.getElementById(containerid)
+	// select level text
+	if (document.selection)
+	{
+		var range = document.body.createTextRange()
+		range.moveToElementText(myspan)
+		range.select()
 	}
+	else if (window.getSelection)
+	{
+		var selection = window.getSelection()
+		selection.removeAllRanges() // why removeAllRanges? https://stackoverflow.com/a/43443101 whatever…
+		var range = document.createRange()
+		range.selectNode(myspan)
+		selection.addRange(range)
+	}
+	// load in level editor with Ctrl/Meta
+	if ( e && (e.ctrlKey || e.metaKey) )
+	{
+		const leveldat = levelFromString(state, ['console'].concat(myspan.innerHTML.split('<br>')) )
+		loadLevelFromLevelDat(state, leveldat, null)
+		canvasResize()
+	}
+	// Copy in clipboard with Shift
+	if ( e && e.shiftKey )
+	{
+		navigator.clipboard.writeText( myspan.innerHTML.split('<br>').join('\n') )
+	}
+	return e.preventDefault()
 }
 
 // find mask with closest match
@@ -459,7 +471,7 @@ function printLevel()
 	}
 	selectableint++;
 	const tag = 'selectable'+selectableint;
-	var output="Printing level contents:<br><br><span id=\""+tag+"\" onclick=\"selectText('"+tag+"',event)\">";
+	var output="Printing level contents:<br><br><span id=\""+tag+"\" onmousedown=\"selectText('"+tag+"',event)\" oncontextmenu=\"return false\"\">"
 	for (var j=0;j<level.height;j++) {
 		for (var i=0;i<level.width;i++) {
 			const cellMask = level.getCell(j + i*level.height)
@@ -473,7 +485,7 @@ function printLevel()
 			output=output+"<br>";
 		}
 	}
-	output+="</span><br><br>"
+	output += '</span><br><br>(Click to select, ctrl-click to load in level editor, shift-click to copy)<br><br>'
 	consolePrint(output, true)
 }
 
