@@ -83,7 +83,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		screen_layout.content.level = level
 
 		backups=[]
-		restartTarget=backupLevel();
+		restartTarget = level.backUp()
 		keybuffer = []
 
 		if ('run_rules_on_level_start' in state.metadata)
@@ -145,7 +145,6 @@ Level.prototype.backUp = function()
 		oldflickscreendat: oldflickscreendat.concat([])
 	}
 }
-function backupLevel() { return level.backUp() }
 
 Level.prototype.forSerialization = function()
 {
@@ -156,7 +155,6 @@ Level.prototype.forSerialization = function()
 		oldflickscreendat: oldflickscreendat.concat([])
 	}
 }
-function level4Serialization() { return level.forSerialization() }
 
 
 // Youtube
@@ -340,7 +338,7 @@ function DoRestart(force) {
 	restarting = true;
 	if (force !== true)
 	{
-		backups.push(backupLevel());
+		backups.push(level.backUp())
 	}
 
 	if (verbose_logging) {
@@ -759,7 +757,7 @@ function processInput(dir, dontDoWin, dontModify)
 		}
 	}
 
-	var bak = backupLevel()
+	var bak = level.backUp()
 
 	var playerPositions = []
 	if (dir <= 4)
@@ -922,7 +920,7 @@ function processInput(dir, dontDoWin, dontModify)
 				{ 
 					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 				}
-				restartTarget = level4Serialization()
+				restartTarget = level.forSerialization()
 				hasUsedCheckpoint = true
 				storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
 				storage_set(document.URL, curlevel)
@@ -1084,7 +1082,7 @@ function nextLevel()
 		storage_set(document.URL, curlevel)
 		if (curlevelTarget !== null)
 		{
-			restartTarget = level4Serialization()
+			restartTarget = level.forSerialization()
 			storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
 		} else {
 			storage_remove(document.URL+'_checkpoint')
