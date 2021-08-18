@@ -56,7 +56,7 @@ LevelEditorScreen.prototype.toggle = function()
 		screen_layout.content = this
 	}
 
-	restartTarget = screen_layout.content.content.level.backUp()
+	execution_context.restartTarget = screen_layout.content.content.level.backUp()
 	canvasResize()
 }
 
@@ -295,8 +295,9 @@ LevelScreen.prototype.redraw = function(magnification)
 // TODO: the new Level function should be in a new file named editor/level.js
 Level.prototype.adjust = function(widthdelta, heightdelta)
 {
-	backups.push(this.backUp())
-	const oldlevel = this.clone();
+	execution_context.backups.push(this.backUp())
+	const oldlevel = this.clone()
+	execution_context.resetCommands()
 	this.width += widthdelta;
 	this.height += heightdelta;
 	this.n_tiles = this.width * this.height;
@@ -534,7 +535,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		if (this.anyEditsSinceMouseDown === false)
 		{
 			this.anyEditsSinceMouseDown = true
-			backups.push(this.content.level.backUp())
+			execution_context.backups.push(this.content.level.backUp())
 		}
 		this.content.level.setCell(coordIndex, glyphmask)
 		redraw()

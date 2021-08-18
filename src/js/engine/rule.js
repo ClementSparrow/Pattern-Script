@@ -117,21 +117,23 @@ function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
 {
 	const len = cellRow.length - 1
 
-	const xmin = (direction === 4) ? len : 0
-	const xmax = level.width - ((direction === 8) ? len : 0)
-	const ymin = (direction === 1) ? len : 0
-	const ymax = level.height - ((direction === 2) ? len : 0)
+	var xmin = (direction === 4) ? len : 0
+	var xmax = level.width - ((direction === 8) ? len : 0)
+	var ymin = (direction === 1) ? len : 0
+	var ymax = level.height - ((direction === 2) ? len : 0)
 
 	var result = []
 	
 	if (direction>2)
 	{ // horizontal
+
 		for (var y=ymin; y<ymax; y++)
 		{
 			if ( ! cellRowMask.bitsSetInArray(level.rowCellContents[y].data) )
 				continue
 
 			for (var x=xmin; x<xmax; x++)
+			// for (const x of possible_xs)
 			{
 				const i = x*level.height + y
 				if (cellRowMatch(cellRow, i, d, level.objects, level.movements))
@@ -164,7 +166,7 @@ function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
 
 function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask, d)
 {
-	const len = cellRow.length - 2//remove one to deal with wildcard
+	const len = cellRow.length - 2//remove one to deal with wildcard (it takes one cell in cellRow, but can be entirely skipped)
 
 	const xmin = (direction === 4) ? len : 0
 	const xmax = level.width - ((direction === 8) ? len : 0)
@@ -313,12 +315,12 @@ Rule.prototype.queueCommands = function()
 	// priority cancel > restart > everything else + sfx and message commands allowed after a cancel / restart
 
 	// if cancel is the queue from other rules, ignore everything
-	const preexisting_cancel = level.commandQueue.get(CommandsSet.command_keys.cancel)
+	const preexisting_cancel = execution_context.commandQueue.get(CommandsSet.command_keys.cancel)
 	if (preexisting_cancel)
 		return
 
 	// if restart is in the queue from other rules, only apply if there's a cancel present here
-	const preexisting_restart = level.commandQueue.get(CommandsSet.command_keys.restart)
+	const preexisting_restart = execution_context.commandQueue.get(CommandsSet.command_keys.restart)
 	const currule_cancel = this.commands.get(CommandsSet.command_keys.cancel)
 	if ( preexisting_restart && ( ! currule_cancel ) )
 		return
@@ -326,16 +328,16 @@ Rule.prototype.queueCommands = function()
 	//if you are writing a cancel or restart, clear the current queue
 	if ( this.commands.get(CommandsSet.command_keys.restart) || currule_cancel )
 	{
-		this.commands.cloneInto(level.commandQueue)
+		this.commands.cloneInto(execution_context.commandQueue)
 	}
 	else
 	{
-		level.commandQueue.ior(this.commands)
+		execution_context.commandQueue.ior(this.commands)
 	}
 
 	if (this.commands.message !== null)
 	{
-		messagetext = level.commandQueue.message = this.commands.message
+		messagetext = execution_context.commandQueue.message = this.commands.message
 	}
 
 	if (verbose_logging)
@@ -343,7 +345,7 @@ Rule.prototype.queueCommands = function()
 		for(const command of CommandsSet.commandwords.filter( (k,i) => this.commands.get(i) ) )
 		{
 			consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + ' triggers command ' + command + '.</font>', true)
-			level.commandQueue.sourceRules[CommandsSet.command_keys[command]] = this
+			execution_context.commandQueue.sourceRules[CommandsSet.command_keys[command]] = this
 		}
 	}
 }

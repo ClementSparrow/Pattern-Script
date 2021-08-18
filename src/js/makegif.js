@@ -29,7 +29,7 @@ function makeGIF()
   	{
   		var realtimeframe = false
 		if (val === 'undo') {
-			DoUndo(false, true)
+			execution_context.doUndo()
 		} else if (val === 'restart') {
 			DoRestart();
 		} else if (val === 'tick') {			

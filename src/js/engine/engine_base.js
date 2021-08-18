@@ -82,8 +82,8 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		}
 		screen_layout.content.level = level
 
-		backups=[]
-		restartTarget = level.backUp()
+		execution_context.backups = []
+		execution_context.restartTarget = level.backUp()
 		keybuffer = []
 
 		if ('run_rules_on_level_start' in state.metadata)
@@ -113,7 +113,8 @@ function loadLevelFromState(state, levelindex, target, randomseed)
 	if (target !== null)
 	{
 		level.restore(target)
-		restartTarget = target
+		execution_context.resetCommands()
+		execution_context.restartTarget = target
 	}
 }
 
@@ -133,8 +134,20 @@ function goToLevel(i, state, levelindex, target, randomseed)
 // Backup levels
 // =============
 
-var backups=[];
-var restartTarget;
+function executionContext()
+{
+	this.backups = []
+	this.restartTarget = null
+	this.commandQueue = new CommandsSet()
+	this.commandQueue.sourceRules = []
+}
+var execution_context = new executionContext()
+
+executionContext.prototype.resetCommands = function()
+{
+	this.commandQueue.reset()
+	this.commandQueue.sourceRules = []
+}
 
 Level.prototype.backUp = function()
 {
@@ -160,7 +173,8 @@ Level.prototype.forSerialization = function()
 // Youtube
 // =======
 
-function tryDeactivateYoutube(){
+function tryDeactivateYoutube()
+{
 	var youtubeFrame = document.getElementById("youtubeFrame");
 	if (youtubeFrame){
 		document.body.removeChild(youtubeFrame);
@@ -196,7 +210,7 @@ function tryActivateYoutube(){
 // ==========
 
 // Only called at the end of compile()
-function setGameState(_state, command, randomseed)
+function setGameState(_state, command = ['restart'], randomseed = null)
 {
 	oldflickscreendat=[];
 	timer=0;
@@ -210,25 +224,21 @@ function setGameState(_state, command, randomseed)
 	sfxCreateMask=new BitVec(STRIDE_OBJ);
 	sfxDestroyMask=new BitVec(STRIDE_OBJ);
 
-	if (command===undefined) {
-		command=["restart"];
+	if ( ((state.levels.length === 0) || (_state.levels.length === 0) ) && (command.length > 0) && (command[0] === 'rebuild') ) 
+	{
+		command = ["restart"]
 	}
-	if ((state.levels.length===0 || _state.levels.length===0) && command.length>0 && command[0]==="rebuild")  {
-		command=["restart"];
-	}
-	if (randomseed===undefined) {
-		randomseed=null;
-	}
-	RandomGen = new RNG(randomseed);
+	RandomGen = new RNG(randomseed)
 
-	state = _state;
+	state = _state
 
-	if (command[0]!=="rebuild"){
-		backups=[];
+	if (command[0] !== 'rebuild')
+	{
+		execution_context.backups = []
 	}
 
 	//set sprites
-	sprites = [];
+	sprites = []
 	for (var object of state.identifiers.objects)
 	{
 		sprites[object.id] = {
@@ -310,7 +320,7 @@ function setGameState(_state, command, randomseed)
 
 	canvasResize()
 
-	if ( (state.sounds.length == 0) && (state.metadata.youtube == null) )
+	if ( (state.sounds.length === 0) && (state.metadata.youtube === null) )
 	{
 		killAudioButton()
 	}
@@ -328,70 +338,65 @@ function setGameState(_state, command, randomseed)
 
 var messagetext=""; // the text of a message command appearing in a rule only (not messages in LEVEL section !)
 
-function DoRestart(force) {
-	if (restarting===true){
-		return;
-	}
-	if (force!==true && ('norestart' in state.metadata)) {
-		return;
-	}
-	restarting = true;
-	if (force !== true)
-	{
-		backups.push(level.backUp())
-	}
+function DoRestart(bak)
+{
+	if (restarting === true)
+		return
+	if ( (bak === undefined) && ('norestart' in state.metadata) )
+		return
+	restarting = true
+	execution_context.backups.push( bak || level.backUp() )
 
-	if (verbose_logging) {
-		consolePrint("--- restarting ---",true);
-	}
+	if (verbose_logging) { consolePrint("--- restarting ---", true) }
 
-	level.restore(restartTarget);
+	level.restore(execution_context.restartTarget)
+	execution_context.resetCommands()
+
 	tryPlaySimpleSound('restart')
 
-	if ('run_rules_on_level_start' in state.metadata) {
+	if ('run_rules_on_level_start' in state.metadata)
+	{
 		processInput(-1, true)
 	}
 	
-	level.commandQueue.reset()
-	level.commandQueue.sourceRules = []
-	restarting=false;
+	execution_context.resetCommands()
+	restarting = false
 }
 
-function backupDiffers(){
-	if (backups.length==0){
-		return true;
-	}
-	var bak = backups[backups.length-1];
-	for (var i=0;i<level.objects.length;i++) {
-		if (level.objects[i]!==bak.dat[i]) {
-			return true;
-		}
-	}
-	return false;
-}
-
-function DoUndo(force, ignoreDuplicates)
+executionContext.prototype.backupDiffers = function()
 {
-	if ( ( ! screen_layout.alwaysAllowUndo() ) && ('noundo' in state.metadata) && (force !== true) )
-		return;
-	if (verbose_logging) {
-		consolePrint("--- undoing ---",true);
-	}
+	if (this.backups.length === 0)
+		return true
 
-	if (ignoreDuplicates){
-		while (backupDiffers()==false){
-			backups.pop();
-		}
-	}
+	const bak = this.backups[this.backups.length-1]
+	return level.objects.some( (o, i) => o !== bak.dat[i] )
+}
 
-	if (backups.length > 0)
+executionContext.prototype.doUndo = function()
+{
+	if ( ( ! screen_layout.alwaysAllowUndo() ) && ('noundo' in state.metadata) )
+		return
+
+	while (this.backupDiffers() === false)
 	{
-		level.restore(backups[backups.length-1]);
-		backups = backups.splice(0,backups.length-1);
-		if (! force) {
-			tryPlaySimpleSound('undo')
-		}
+		this.backups.pop()
 	}
+	if (this.backups.length === 0)
+	{
+		if (verbose_logging) { consolePrint("--- nothing to undo ---", true) }
+		return
+	}
+
+	forceUndo(this.backups[this.backups.length-1])
+	this.backups = this.backups.splice(0, this.backups.length-1)
+	tryPlaySimpleSound('undo')
+}
+
+function forceUndo(backup) // force=true, ignoreDuplicates=false
+{
+	if (verbose_logging) { consolePrint("--- undoing ---", true) }
+	level.restore(backup)
+	execution_context.resetCommands()
 }
 
 Level.prototype.getPlayerPositions = function()
@@ -409,26 +414,26 @@ Level.prototype.getPlayerPositions = function()
 	return result
 }
 
-function startMovement(dir)
+Level.prototype.startMovement = function(dir)
 {
-	const playerPositions = level.getPlayerPositions()
+	const playerPositions = this.getPlayerPositions()
 	for (const playerPosIndex of playerPositions)
 	{
-		var cellMask = level.getCell(playerPosIndex)
-		var movementMask = level.getMovements(playerPosIndex);
+		var cellMask = this.getCell(playerPosIndex)
+		var movementMask = this.getMovements(playerPosIndex)
 
 		cellMask.iand(state.playerMask)
 
 		for (var i=0; i<state.objectCount; i++)
 		{
 			if (cellMask.get(i)) {
-				movementMask.ishiftor(dir, 5 * state.identifiers.objects[ state.idDict[i] ].layer);
+				movementMask.ishiftor(dir, 5 * state.identifiers.objects[ state.idDict[i] ].layer)
 			}
 		}
 
-		level.setMovements(playerPosIndex, movementMask);
+		this.setMovements(playerPosIndex, movementMask)
 	}
-	return playerPositions;
+	return playerPositions
 }
 
 var dirMasksDelta = {
@@ -468,7 +473,7 @@ Level.prototype.repositionEntitiesOnLayer = function(positionIndex, layer, dirMa
 	const layerMask = state.layerMasks[layer]
 	var targetMask = this.getCellInto(targetIndex, _o7)
 
-	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) )
+	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision
 		return false
 
 	var sourceMask = this.getCellInto(positionIndex, _o8)
@@ -531,8 +536,8 @@ Level.prototype.commitPreservationState = function(ruleGroupIndex)
 		rigidGroupIndexMask: this.rigidGroupIndexMask.concat([]),
 		rigidMovementAppliedMask: this.rigidMovementAppliedMask.concat([]),
 		bannedGroup:  this.bannedGroup.concat([]),
-		commandQueue: this.commandQueue.clone(),
-		commandQueueSourceRules: this.commandQueue.sourceRules.concat([])
+		commandQueue: execution_context.commandQueue.clone(),
+		commandQueueSourceRules: execution_context.commandQueue.sourceRules.concat([])
 	}
 	rigidBackups[ruleGroupIndex] = propagationState
 	return propagationState
@@ -545,8 +550,8 @@ Level.prototype.restorePreservationState = function(preservationState)
 	this.movements = new Int32Array(preservationState.movements)
 	this.rigidGroupIndexMask = preservationState.rigidGroupIndexMask.concat([])
 	this.rigidMovementAppliedMask = preservationState.rigidMovementAppliedMask.concat([])
-	preservationState.commandQueue.cloneInto(level.commandQueue)
-	this.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
+	preservationState.commandQueue.cloneInto(execution_context.commandQueue)
+	execution_context.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
 	sfxCreateMask.setZero()
 	sfxDestroyMask.setZero()
 	consolePrint("Rigid movement application failed, rolling back")
@@ -562,16 +567,16 @@ function showTempMessage()
 	canvasResize()
 }
 
-function processOutputCommands(commands)
+CommandsSet.prototype.processOutput = function()
 {
 	for (var k = CommandsSet.command_keys['sfx0']; k <= CommandsSet.command_keys['sfx10']; k++)
 	{
-		if (commands.get(k))
+		if (this.get(k))
 		{
 			tryPlaySimpleSound(CommandsSet.commandwords[k])
 		}
 	}
-	if ( (unitTesting === false) && (commands.message !== null) )
+	if ( (unitTesting === false) && (this.message !== null) )
 	{
 		keybuffer = []
 		msg_screen.done = false
@@ -765,13 +770,15 @@ function processInput(dir, dontDoWin, dontModify)
 		if (dir >= 0)
 		{
 			dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
-			playerPositions = startMovement(dir)
+			playerPositions = level.startMovement(dir)
 		}
 
 		rigidBackups = []
 		level.bannedGroup = []
-		level.commandQueue.reset()
-		level.commandQueue.sourceRules = []
+		// TODO: it seems the only reason why commandQueue is in 'level' is so that it gets saved in commitPreservationState, which is only used here for rigid rules trackback
+		// so, we should move it out of level.
+		execution_context.commandQueue.reset()
+		execution_context.commandQueue.sourceRules = []
 
 		var i = max_rigid_loops
 		const startState = level.commitPreservationState()
@@ -813,8 +820,7 @@ function processInput(dir, dontDoWin, dontModify)
 			if ( playerPositions.every( pos => ! state.playerMask.bitsClearInArray(level.getCell(pos).data) ) )
 			{
 				if (verbose_logging) { consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true) }
-				backups.push(bak)
-				DoUndo(true, false)
+				forceUndo(bak)
 				return false
 			}
 			//play player cantmove sounds here
@@ -822,56 +828,49 @@ function processInput(dir, dontDoWin, dontModify)
 
 
 		// CANCEL command
-		if (level.commandQueue.get(CommandsSet.command_keys.cancel))
+		if (execution_context.commandQueue.get(CommandsSet.command_keys.cancel))
 		{
 			if (verbose_logging)
 			{
-				consolePrintFromRule('CANCEL command executed, cancelling turn.', level.commandQueue.sourceRules[CommandsSet.command_keys.cancel], true)
+				consolePrintFromRule('CANCEL command executed, cancelling turn.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.cancel], true)
 			}
-			processOutputCommands(level.commandQueue)
+			execution_context.commandQueue.processOutput()
 			tryPlaySimpleSound('cancel')
-			backups.push(bak)
-			DoUndo(true, false)
+			forceUndo(bak)
 			return false
 		} 
 
 		// RESTART command
-		if (level.commandQueue.get(CommandsSet.command_keys.restart))
+		if (execution_context.commandQueue.get(CommandsSet.command_keys.restart))
 		{
 			if (verbose_logging)
 			{
-				consolePrintFromRule('RESTART command executed, reverting to restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
+				consolePrintFromRule('RESTART command executed, reverting to restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
 			}
-			processOutputCommands(level.commandQueue)
-			backups.push(bak)
-			DoRestart(true)
+			execution_context.commandQueue.processOutput()
+			DoRestart(bak)
 			return true
 		} 
 
 		var modified = false
-		for (var i=0; i<level.objects.length; i++)
+		if ( level.objects.some( (o, i) => o !== bak.dat[i] ) )
 		{
-			if (level.objects[i] !== bak.dat[i])
+			if (dontModify)
 			{
-				if (dontModify)
-				{
-					if (verbose_logging) { consoleCacheDump() }
-					backups.push(bak)
-					DoUndo(true, false)
-					return true
-				}
-				if (dir !== -1)
-				{
-					backups.push(bak)
-				}
-				modified = true
-				break
+				if (verbose_logging) { consoleCacheDump() }
+				forceUndo(bak)
+				return true
 			}
+			if (dir !== -1)
+			{
+				execution_context.backups.push(bak)
+			}
+			modified = true
 		}
 
 		if (dontModify)
 		{
-			if (level.commandQueue.get(CommandsSet.command_keys.win))
+			if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
 				return true
 
 			if (verbose_logging) { consoleCacheDump() }
@@ -904,7 +903,7 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 		}
 
-		processOutputCommands(level.commandQueue)
+		execution_context.commandQueue.processOutput()
 
 		if (screen_layout.content != msg_screen)
 		{
@@ -914,21 +913,21 @@ function processInput(dir, dontDoWin, dontModify)
 
 		if ( ! winning )
 		{
-			if (level.commandQueue.get(CommandsSet.command_keys.checkpoint))
+			if (execution_context.commandQueue.get(CommandsSet.command_keys.checkpoint))
 			{
 				if (verbose_logging)
 				{ 
-					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', level.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
+					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 				}
-				restartTarget = level.forSerialization()
+				execution_context.restartTarget = level.forSerialization()
 				hasUsedCheckpoint = true
-				storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
+				storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
 				storage_set(document.URL, curlevel)
 			}	 
 
-			if ( modified && level.commandQueue.get(CommandsSet.command_keys.again) )
+			if ( modified && execution_context.commandQueue.get(CommandsSet.command_keys.again) )
 			{
-				const r = level.commandQueue.sourceRules[CommandsSet.command_keys.again]
+				const r = execution_context.commandQueue.sourceRules[CommandsSet.command_keys.again]
 
 				//first have to verify that something's changed
 				var old_verbose_logging = verbose_logging
@@ -949,8 +948,8 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 		}
 
-		level.commandQueue.reset()
-		level.commandQueue.sourceRules = []
+		execution_context.commandQueue.reset()
+		execution_context.commandQueue.sourceRules = []
 	}
 
 	if (verbose_logging) { consoleCacheDump() }
@@ -964,7 +963,7 @@ function checkWin(dontDoWin = false)
 {
 	dontDoWin |= screen_layout.dontDoWin()
 
-	if (level.commandQueue.get(CommandsSet.command_keys.win))
+	if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
 	{
 		if (runrulesonlevelstart_phase)
 		{
@@ -1082,8 +1081,8 @@ function nextLevel()
 		storage_set(document.URL, curlevel)
 		if (curlevelTarget !== null)
 		{
-			restartTarget = level.forSerialization()
-			storage_set(document.URL+'_checkpoint', JSON.stringify(restartTarget))
+			execution_context.restartTarget = level.forSerialization()
+			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
 		} else {
 			storage_remove(document.URL+'_checkpoint')
 		}		

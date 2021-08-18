@@ -379,7 +379,7 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	{
 		//undo
 		pushInput('undo')
-		DoUndo(false, true)
+		execution_context.doUndo()
 		canvasResize() // calls redraw
 		return true;
 	}

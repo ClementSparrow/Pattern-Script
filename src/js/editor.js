@@ -214,6 +214,7 @@ editor.on("beforeChange", function(instance, change) {
     change.update(null, null, text);
 });*/
 
+code.editorreference = editor;
 
 
 function setEditorLightMode(new_mode) // 0 for dark, 1 for light
@@ -223,8 +224,6 @@ function setEditorLightMode(new_mode) // 0 for dark, 1 for light
 	editor.setOption('theme', (['midnight', 'midday'])[mode]);
 	document.getElementById('switchModeClickLink').innerHTML = (['LIGHT MODE', 'DARK MODE'])[mode]
 }
-
-code.editorreference = editor;
 setEditorLightMode(storage_get('light_mode'))
 
 
@@ -284,6 +283,7 @@ function unloadGame()
 {
 	state = introstate
 	level = new Level(0, 5, 5, 2, new Int32Array(0))
+	execution_context.resetCommands()
 	menu_screen.makeTitle()
 	canvasResize()
 }

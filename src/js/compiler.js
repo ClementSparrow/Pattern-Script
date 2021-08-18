@@ -241,7 +241,8 @@ function levelFromString(state, level)
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	var o = new Level(level[0], level[1].length, level.length-1, state.collisionLayers.length, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ));
+	var o = new Level(level[0], level[1].length, level.length-1, state.collisionLayers.length, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ))
+	execution_context.resetCommands()
 
 	for (var i = 0; i < o.width; i++)
 	{
@@ -1087,41 +1088,34 @@ function loadFile(str)
 	return state;
 }
 
-function compile(command, text, randomseed)
+function compile(command = ["restart"], text, randomseed)
 {
-	matchCache={};
+	matchCache = {}
 	forceRegenImages()
-	if (command===undefined) {
-		command = ["restart"];
-	}
-	if (randomseed===undefined) {
-		randomseed = null;
-	}
-	lastDownTarget=canvas;	
+	lastDownTarget = canvas
 
-	if (text===undefined){
-		var code = window.form1.code;
-
-		var editor = code.editorreference;
-
-		text = editor.getValue()+"\n";
+	if (text === undefined)
+	{
+		text = window.form1.code.editorreference.getValue() + '\n'
 	}
-	if (canDump===true) {
-		compiledText=text;
+	if (canDump === true)
+	{
+		compiledText = text
 	}
 
-	compiling = true;
+	compiling = true
 	errorStrings = []
 	warningStrings = []
-	consolePrint('=================================');
+	consolePrint('=================================')
 	try
 	{
-		var state = loadFile(text);
+		var state = loadFile(text)
 	} finally {
-		compiling = false;
+		compiling = false
 	}
 
-	if (state && state.levels && state.levels.length===0){	
+	if (state && state.levels && (state.levels.length === 0) )
+	{	
 		logError(['no_level_found'], undefined, true)
 	}
 
@@ -1130,23 +1124,24 @@ function compile(command, text, randomseed)
 
 	if (errorStrings.length > 0)
 	{
-		consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>');
+		consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>')
 	}
 	else {
-		var ruleCount=0;
+		var ruleCount = 0
 		for (const rule of state.rules) {
-			ruleCount += rule.length;
+			ruleCount += rule.length
 		}
 		for (const rule of state.lateRules) {
-			ruleCount += rule.length;
+			ruleCount += rule.length
 		}
 		consolePrint('<span class="systemMessage">Successful ' + ((command[0] == 'restart')?'Compilation':'live recompilation') + ', generated '+ruleCount+' instructions.</span>')
 	}
-	setGameState(state,command,randomseed);
 
-	clearInputHistory();
+	setGameState(state, command, randomseed)
 
-	consoleCacheDump();
+	clearInputHistory()
+
+	consoleCacheDump()
 }
 
 

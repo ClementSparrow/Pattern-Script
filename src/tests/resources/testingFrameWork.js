@@ -26,7 +26,7 @@ function runTest(dataarray) {
 	for(const val of inputDat)
 	{
 		if (val === "undo") {
-			DoUndo(false, true)
+			execution_context.doUndo()
 		} else if (val === "restart") {
 			DoRestart()
 		} else if (val === "tick") {

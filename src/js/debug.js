@@ -47,6 +47,7 @@ function levelFromUnitTestString(str)
 	const height = lines.length - 1
 	const width = lines[0].split(',').length - 1
 	var lev = new Level(undefined, width, height, state.collisionLayers.length, new Int32Array(width * height * STRIDE_OBJ))
+	execution_context.resetCommands()
 	var masks = []
 	for (const [y, line] of lines.entries())
 	{
