@@ -10,9 +10,10 @@ function Rule(rule) {
 	this.isRigid = rule[6];
 	this.commands = rule[7];		/* cancel, restart, sfx, etc */
 	this.isRandom = rule[8];
-	this.cellRowMasks = this.patterns.map( p => computePatternMask(p) )
 	this.parameter_expansion_string = rule[9]
+	this.cellRowMasks = this.patterns.map( p => computePatternMask(p) )
 	this.cellRowMatches = this.patterns.map( (p,i) => this.generateCellRowMatchesFunction(p, this.isEllipsis[i]) )
+	this.ruleMask = this.cellRowMasks.reduce( (acc, m) => { acc.ior(m); return acc }, new BitVec(STRIDE_OBJ) )
 	/* TODO: eliminate isRigid, groupNumber, isRandom
 	from this class by moving them up into a RuleGroup class */
 }
@@ -206,6 +207,9 @@ function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask, d)
 
 Rule.prototype.findMatches = function()
 {
+	if ( ! this.ruleMask.bitsSetInArray(level.mapCellContents.data) )
+		return []
+
 	const [dx, dy] = dirMasksDelta[this.direction]
 	const d = dy + dx*level.height
 
@@ -213,15 +217,14 @@ Rule.prototype.findMatches = function()
 	const cellRowMasks = this.cellRowMasks
 	for (const [cellRowIndex, cellRow] of this.patterns.entries())
 	{
-		if ( ! cellRowMasks[cellRowIndex].bitsSetInArray(level.mapCellContents.data) )
-			return []
+		const cellRowMask = cellRowMasks[cellRowIndex]
 
 		const matchFunction = this.cellRowMatches[cellRowIndex];
 		if (this.isEllipsis[cellRowIndex])
 		{
-			var match = matchCellRowWildCard(this.direction, matchFunction, cellRow, cellRowMasks[cellRowIndex], d)
+			var match = matchCellRowWildCard(this.direction, matchFunction, cellRow, cellRowMask, d)
 		} else {
-			var match = matchCellRow(this.direction, matchFunction, cellRow, cellRowMasks[cellRowIndex], d)
+			var match = matchCellRow(this.direction, matchFunction, cellRow, cellRowMask, d)
 		}
 		if (match.length === 0)
 			return []
