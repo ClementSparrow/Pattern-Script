@@ -10,13 +10,24 @@ function Rule(rule) {
 	this.isRigid = rule[6];
 	this.commands = rule[7];		/* cancel, restart, sfx, etc */
 	this.isRandom = rule[8];
-	this.cellRowMasks = rule[9];
-	this.parameter_expansion_string = rule[10]
+	this.cellRowMasks = this.patterns.map( p => computePatternMask(p) )
+	this.parameter_expansion_string = rule[9]
 	this.cellRowMatches = this.patterns.map( (p,i) => this.generateCellRowMatchesFunction(p, this.isEllipsis[i]) )
 	/* TODO: eliminate isRigid, groupNumber, isRandom
 	from this class by moving them up into a RuleGroup class */
 }
 
+function computePatternMask(cellRow)
+{
+	var rowMask = new BitVec(STRIDE_OBJ)
+	for (const cell of cellRow)
+	{
+		if (cell === ellipsisPattern)
+			continue
+		rowMask.ior(cell.objectsPresent)
+	}
+	return rowMask
+}
 
 // See notes on generation in engine/generate_matches.js
 
@@ -97,19 +108,12 @@ Rule.prototype.toJSON = function() {
 		this.direction, this.patterns, this.hasReplacements, this.lineNumber, this.isEllipsis,
 		this.groupNumber, this.isRigid, this.commands, this.isRandom, this.cellRowMasks
 	];
-};
-
-
-
-
+}
 
 
 
 function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
 {
-	if ( ! cellRowMask.bitsSetInArray(level.mapCellContents.data) )
-		return []
-
 	const len = cellRow.length - 1
 
 	const xmin = (direction === 4) ? len : 0
@@ -159,9 +163,6 @@ function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
 
 function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask, d)
 {
-	if ( ! cellRowMask.bitsSetInArray(level.mapCellContents.data) )
-		return []
-
 	const len = cellRow.length - 2//remove one to deal with wildcard
 
 	const xmin = (direction === 4) ? len : 0
@@ -212,6 +213,9 @@ Rule.prototype.findMatches = function()
 	const cellRowMasks = this.cellRowMasks
 	for (const [cellRowIndex, cellRow] of this.patterns.entries())
 	{
+		if ( ! cellRowMasks[cellRowIndex].bitsSetInArray(level.mapCellContents.data) )
+			return []
+
 		const matchFunction = this.cellRowMatches[cellRowIndex];
 		if (this.isEllipsis[cellRowIndex])
 		{

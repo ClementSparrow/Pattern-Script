@@ -646,23 +646,6 @@ function rulesToMask(state)
 	}
 }
 
-function cellRowMasks(rule) {
-	var ruleMasks=[];
-	var lhs=rule[1];
-	for (var i=0;i<lhs.length;i++) {
-		var cellRow = lhs[i];
-		var rowMask=new BitVec(STRIDE_OBJ);
-		for (var j=0;j<cellRow.length;j++) {
-			if (cellRow[j] === ellipsisPattern)
-				continue;
-			rowMask.ior(cellRow[j].objectsPresent);
-		}
-		ruleMasks.push(rowMask);
-	}
-	return ruleMasks;
-}
-
-
 
 function makeMaskFromObjectSet(identifiers, objects)
 {

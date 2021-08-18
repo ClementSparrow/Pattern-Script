@@ -1,4 +1,5 @@
 
+
 // TODO: the only role of this function is to convert the format for rules used during compilation into a Rule object, which has almost the same structure.
 // the function could thus probably be removed if we used Rule objects sooner in the pipeline.
 function collapseRules(groups)
@@ -26,7 +27,7 @@ function collapseRules(groups)
 					}
 				}
 			}
-			newrule.push(ellipses, oldrule.groupNumber, oldrule.rigid, oldrule.commands, oldrule.randomRule, cellRowMasks(newrule), oldrule.parameter_expansion_string);
+			newrule.push(ellipses, oldrule.groupNumber, oldrule.rigid, oldrule.commands, oldrule.randomRule, oldrule.parameter_expansion_string)
 			rules[i] = new Rule(newrule)
 		}
 	}
