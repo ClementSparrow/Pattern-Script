@@ -58,5 +58,5 @@ var sprite_height = 5
 
 function clamp(min, value, max)
 {
-    return (value<max) ? ((value<min) ? min : value) : max
+    return (value < max) ? ( (value < min) ? min : value ) : max
 }

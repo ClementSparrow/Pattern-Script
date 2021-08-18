@@ -1,4 +1,5 @@
 // Open simple dialogs on top of an editor. Relies on dialog.css.
+// Only used to provide a search field
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS

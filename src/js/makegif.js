@@ -25,31 +25,34 @@ function makeGIF()
   	encoder.addFrame(gifctx);
 	var autotimer=0;
 
-  	for(var i=0;i<inputDat.length;i++) {
-  		var realtimeframe=false;
-		var val=inputDat[i];
-		if (val==="undo") {
-			DoUndo(false,true);
-		} else if (val==="restart") {
+  	for(const val of inputDat)
+  	{
+  		var realtimeframe = false
+		if (val === 'undo') {
+			DoUndo(false, true)
+		} else if (val === 'restart') {
 			DoRestart();
-		} else if (val=="tick") {			
-			processInput(-1);
-			realtimeframe=true;
+		} else if (val === 'tick') {			
+			processInput(-1)
+			realtimeframe = true
 		} else {
-			processInput(val);
+			processInput(val)
 		}
-		redraw();
-		gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
-		encoder.addFrame(gifctx);
-		encoder.setDelay(realtimeframe?autotickinterval:repeatinterval);
-		autotimer+=repeatinterval;
 
-		while (againing) {
-			processInput(-1);		
-			redraw();
-			encoder.setDelay(againinterval);
-			gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
-	  		encoder.addFrame(gifctx);	
+		redraw()
+		gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1])
+		encoder.addFrame(gifctx)
+		encoder.setDelay(realtimeframe ? autotickinterval : repeatinterval)
+		autotimer += repeatinterval
+
+		while (againing)
+		{
+			processInput(-1)
+			redraw()
+
+			encoder.setDelay(againinterval)
+			gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1])
+	  		encoder.addFrame(gifctx)
 		}
 	}
 
@@ -60,5 +63,5 @@ function makeGIF()
   	
   	unitTesting = false;
 
-        inputHistory = inputDat;
+    inputHistory = inputDat
 }

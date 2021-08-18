@@ -234,10 +234,6 @@ Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(
 	{
 		for (var cellRowIndex=0; cellRowIndex<this.patterns.length; cellRowIndex++)
 		{
-			// TODO: it would be much easier if, instead of having ellipses as cells in cell rows, a cell row was defined as a list of cell segments separated by (non-given) ellipses.
-			// then, findMatches (or, more precisely, matchCellRowWildCard) should store the matches as lists [i,j,k...] listing the indexes of the first cell in each segment
-			// and only one type of generated function would be necessary (for cell segments, which would be the same as the current generated function for cellrows without ellipses)
-			// this, of course, would also make it easier to implement the new feature of allowing multiple ellipses in a cell row.
 			if (this.isEllipsis[cellRowIndex]) //if ellipsis
 			{
 				if ( this.cellRowMatches[cellRowIndex](this.patterns[cellRowIndex], tuple[cellRowIndex][0], tuple[cellRowIndex][1]+1, tuple[cellRowIndex][1], delta_index).length == 0 )
