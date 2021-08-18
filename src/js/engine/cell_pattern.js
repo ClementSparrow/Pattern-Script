@@ -170,7 +170,7 @@ function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
 var _o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
 var _m3;
 
-CellPattern.prototype.replace = function(rule, currentIndex)
+CellPattern.prototype.replace = function(rule, level, currentIndex)
 {
 	if (this.replacement === null)
 		return false;

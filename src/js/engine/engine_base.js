@@ -139,7 +139,7 @@ function executionContext()
 	this.backups = []
 	this.restartTarget = null
 	this.commandQueue = new CommandsSet()
-	this.commandQueue.sourceRules = []
+	this.commandQueue.sourceRules = [] // only used with verbose_logging
 }
 var execution_context = new executionContext()
 
@@ -584,14 +584,14 @@ CommandsSet.prototype.processOutput = function()
 	}
 }
 
-function applyRandomRuleGroup(ruleGroup)
+function applyRandomRuleGroup(ruleGroup, level)
 {
 	var propagated = false
 
 	var matches = []
 	for (const [ruleIndex, rule] of ruleGroup.entries())
 	{
-		const ruleMatches = rule.findMatches()
+		const ruleMatches = rule.findMatches(level)
 		if (ruleMatches.length > 0)
 		{
 			for (const tuple of cartesian_product(...ruleMatches))
@@ -605,17 +605,17 @@ function applyRandomRuleGroup(ruleGroup)
 		return false
 
 	const [rule, tuple] = matches[Math.floor(RandomGen.uniform()*matches.length)];
-	const modified = rule.applyAt(tuple, false)
+	const modified = rule.applyAt(level, tuple, false)
 	rule.queueCommands()
 	return modified
 }
 
 const max_loop_count = 200
 
-function applyRuleGroup(ruleGroup)
+function applyRuleGroup(ruleGroup, level)
 {
 	if (ruleGroup[0].isRandom)
-		return applyRandomRuleGroup(ruleGroup)
+		return applyRandomRuleGroup(ruleGroup, level)
 
 	var skip_from = ruleGroup.length - 1
 	var loopcount = 1
@@ -625,7 +625,7 @@ function applyRuleGroup(ruleGroup)
 		var last_applied = null
 		for (const [i, rule] of ruleGroup.entries())
 		{
-			if (rule.tryApply())
+			if (rule.tryApply(level))
 				last_applied = i
 			if ( (i === skip_from) && (last_applied === null))
 				return result
@@ -639,7 +639,7 @@ function applyRuleGroup(ruleGroup)
 }
 
 //for each rule, try to match it
-function applyRules(rules, loopPoint, bannedGroup)
+function applyRules(rules, level, loopPoint, bannedGroup)
 {
 	//when we're going back in, let's loop, to be sure to be sure
 	var loopCount = 0
@@ -650,7 +650,7 @@ function applyRules(rules, loopPoint, bannedGroup)
 
 	while (ruleGroupIndex < rules.length)
 	{
-		if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) && applyRuleGroup(rules[ruleGroupIndex]) )
+		if ( ! (bannedGroup && bannedGroup[ruleGroupIndex]) && applyRuleGroup(rules[ruleGroupIndex], level) )
 		{
 			last_applied = ruleGroupIndex
 		}
@@ -794,13 +794,13 @@ function processInput(dir, dontDoWin, dontModify)
 		while (true)
 		{
 			if (verbose_logging) { consolePrint('applying rules') }
-			applyRules(state.rules, state.loopPoint, level.bannedGroup)
+			applyRules(state.rules, level, state.loopPoint, level.bannedGroup)
 
 			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
 			if ( ! resolveMovements() )
 			{
 				if (verbose_logging) { consolePrint('applying late rules') }
-				applyRules(state.lateRules, state.lateLoopPoint)
+				applyRules(state.lateRules, level, state.lateLoopPoint)
 				break
 			}
 

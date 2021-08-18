@@ -113,7 +113,7 @@ Rule.prototype.toJSON = function() {
 
 
 
-function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
+function matchCellRow(level, direction, cellRowMatch, cellRow, cellRowMask, d)
 {
 	const len = cellRow.length - 1
 
@@ -164,7 +164,7 @@ function matchCellRow(direction, cellRowMatch, cellRow, cellRowMask, d)
 }
 
 
-function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask, d)
+function matchCellRowWildCard(level, direction, cellRowMatch, cellRow, cellRowMask, d)
 {
 	const len = cellRow.length - 2//remove one to deal with wildcard (it takes one cell in cellRow, but can be entirely skipped)
 
@@ -207,7 +207,7 @@ function matchCellRowWildCard(direction, cellRowMatch, cellRow, cellRowMask, d)
 	return result
 }
 
-Rule.prototype.findMatches = function()
+Rule.prototype.findMatches = function(level)
 {
 	if ( ! this.ruleMask.bitsSetInArray(level.mapCellContents.data) )
 		return []
@@ -224,9 +224,9 @@ Rule.prototype.findMatches = function()
 		const matchFunction = this.cellRowMatches[cellRowIndex];
 		if (this.isEllipsis[cellRowIndex])
 		{
-			var match = matchCellRowWildCard(this.direction, matchFunction, cellRow, cellRowMask, d)
+			var match = matchCellRowWildCard(level, this.direction, matchFunction, cellRow, cellRowMask, d)
 		} else {
-			var match = matchCellRow(this.direction, matchFunction, cellRow, cellRowMask, d)
+			var match = matchCellRow(level, this.direction, matchFunction, cellRow, cellRowMask, d)
 		}
 		if (match.length === 0)
 			return []
@@ -235,7 +235,7 @@ Rule.prototype.findMatches = function()
 	return matches
 }
 
-Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(this.direction))
+Rule.prototype.applyAt = function(level, tuple, check, delta_index = level.delta_index(this.direction))
 {
 	// have to double check they apply because the first check only tested individual cell rows and called this function for all possible tuples,
 	// but the application of one rule can invalidate the next ones.
@@ -269,7 +269,7 @@ Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(
 				currentIndex += delta_index*k
 				continue;
 			}
-			result = preCell.replace(this, currentIndex) || result;
+			result = preCell.replace(this, level, currentIndex) || result;
 			currentIndex += delta_index
 		}
 	}
@@ -285,12 +285,12 @@ Rule.prototype.applyAt = function(tuple, check, delta_index = level.delta_index(
 	return result
 }
 
-Rule.prototype.tryApply = function()
+Rule.prototype.tryApply = function(level)
 {
 	const delta = level.delta_index(this.direction)
 
 	//get all cellrow matches
-	const matches = this.findMatches()
+	const matches = this.findMatches(level)
 	if (matches.length === 0)
 		return false
 
@@ -300,7 +300,7 @@ Rule.prototype.tryApply = function()
 		var chk = false
 		for (const tuple of cartesian_product(...matches))
 		{
-			result = this.applyAt(tuple, chk, delta) || result
+			result = this.applyAt(level, tuple, chk, delta) || result
 			chk = true
 		}
 	}
