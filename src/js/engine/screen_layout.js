@@ -66,13 +66,13 @@ function LevelScreen(screen_type = 'level')
 	this.spriteimages = []
 }
 LevelScreen.prototype = Object.create(EmptyScreen.prototype)
-LevelScreen.prototype.get_nb_tiles = () => [ level.width, level.height ]
+LevelScreen.prototype.get_nb_tiles = () => [ this.level.width, this.level.height ]
 LevelScreen.prototype.get_virtual_screen_size = function()
 {
 	const [w,h] = this.get_nb_tiles()
 	return [ w*sprite_width, h*sprite_height ];
 }
-LevelScreen.prototype.get_viewport = () => [0, 0, level.width, level.height]
+LevelScreen.prototype.get_viewport = () => [0, 0, this.level.width, this.level.height]
 var level_screen = new LevelScreen()
 
 // Flick screen, also base class for zoomscreen (could be the reverse, it's just to reuse the methods)
@@ -82,17 +82,17 @@ TiledWorldScreen.prototype.get_nb_tiles = () => state.metadata.flickscreen
 TiledWorldScreen.prototype.get_viewport = function()
 {
 	// TODO: oldflickscreendat is a global variable because it needs to be recorded for undos
-	const playerPositions = level.getPlayerPositions()
+	const playerPositions = this.level.getPlayerPositions()
 	if (playerPositions.length == 0)
 		return oldflickscreendat;
 
 	const playerPosition = playerPositions[0]
-	const [px, py] = level.cellCoord(playerPosition)
+	const [px, py] = this.level.cellCoord(playerPosition)
 
 	const [w, h] = this.get_nb_tiles()
 	const [mini, minj] = this.get_viewport_for_focus_point(px, py, w, h)
-	const maxi = Math.min(mini + w, level.width);
-	const maxj = Math.min(minj + h, level.height);
+	const maxi = Math.min(mini + w, this.level.width);
+	const maxj = Math.min(minj + h, this.level.height);
 	oldflickscreendat = [mini, minj, maxi, maxj];
 	return oldflickscreendat;
 }
@@ -105,8 +105,8 @@ function CameraOnPlayerScreen() { TiledWorldScreen.call(this, 'zoomscreen') }
 CameraOnPlayerScreen.prototype = Object.create(TiledWorldScreen.prototype)
 CameraOnPlayerScreen.prototype.get_nb_tiles = () => state.metadata.zoomscreen
 CameraOnPlayerScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [
-	clamp(0, px - Math.floor(w/2), level.width  - w),
-	clamp(0, py - Math.floor(h/2), level.height - h)
+	clamp(0, px - Math.floor(w/2), this.level.width  - w),
+	clamp(0, py - Math.floor(h/2), this.level.height - h)
 ]
 var camera_on_player_screen = new CameraOnPlayerScreen()
 

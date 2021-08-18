@@ -113,7 +113,7 @@ LevelScreen.prototype.redraw = function(magnification)
 	{
 		for (var j = minj; j < maxj; j++)
 		{
-			level.mapCellObjects( j + i*level.height,
+			this.level.mapCellObjects( j + i*this.level.height,
 				k => ctx.drawImage(this.spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
 			)
 		}

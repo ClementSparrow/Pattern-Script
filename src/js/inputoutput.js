@@ -244,8 +244,8 @@ function checkKey(e, justPressed)
         }
         case 80://p
         {
-			printLevel();
-        	break;
+			level.printToConsole()
+        	break
         }
         case 13://enter
         case 32://space

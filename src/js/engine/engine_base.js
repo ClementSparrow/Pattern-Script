@@ -80,6 +80,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 				screen_layout.content = camera_on_player_screen
 			}
 		}
+		screen_layout.content.level = level
 
 		backups=[]
 		restartTarget=backupLevel();

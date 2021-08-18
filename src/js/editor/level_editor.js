@@ -6,7 +6,7 @@
 // TODO: the level editor should be split into a legend_EditorScreen and a levelContent_EditorScreen
 function LevelEditorScreen()
 {
-	LevelScreen.call(this, 'levelEditor')
+	EmptyScreen.call(this, 'levelEditor')
 	this.noAutoTick = true
 	this.noSwipe = true
 	this.alwaysAllowUndo = true
@@ -19,40 +19,40 @@ function LevelEditorScreen()
 	this.glyphSelectedIndex = null
 	this.anyEditsSinceMouseDown = false
 }
-LevelEditorScreen.prototype = Object.create(LevelScreen.prototype)
+LevelEditorScreen.prototype = Object.create(EmptyScreen.prototype)
 LevelEditorScreen.prototype.get_nb_tiles = function()
 {
 	const [w, h] = this.content.get_nb_tiles()
 	this.editorRowCount = Math.ceil( state.abbrevNames.length / (w+1) ) // we could do better than that and use more space horizontally
 	return [ w + 2, h + 2 + this.editorRowCount ];
 }
+LevelEditorScreen.prototype.get_virtual_screen_size = function()
+{
+	const [w, h] = this.get_nb_tiles()
+	return [ w*sprite_width, h*sprite_height ]
+}
 
 LevelEditorScreen.prototype.toggle = function()
 {
-	if ( ! (screen_layout.content instanceof LevelScreen) )
-	{
-		if (state.title === 'EMPTY GAME')
-		{
-			compile(["loadFirstNonMessageLevel"])
-		}
-		else
-		{
-			nextLevel() // TODO: we should actually skip all message 'levels' until a playable one is found or we reach the end of the game (then, create a new level)
-		}
-	}
-	else if (screen_layout.content instanceof LevelEditorScreen)
-	{
-		printLevel()
-	}
-
 	if (screen_layout.content instanceof LevelEditorScreen)
 	{
-		// close
-		screen_layout.content = screen_layout.content.content
+		screen_layout.content.content.level.printToConsole()
+		screen_layout.content = screen_layout.content.content // close
 	}
 	else
 	{
-		this.content = screen_layout.content
+		if ( ! (screen_layout.content instanceof LevelScreen) )
+		{
+			if (state.title === 'EMPTY GAME')
+			{
+				compile(["loadFirstNonMessageLevel"])
+			}
+			else
+			{
+				nextLevel() // TODO: we should actually skip all message 'levels' until a playable one is found or we reach the end of the game (then, create a new level)
+			}
+		}	
+		this.content = screen_layout.content // open
 		screen_layout.content = this
 	}
 
@@ -122,6 +122,7 @@ LevelEditorScreen.prototype.regenResources = function(magnification)
 		{
 			if (id === -1)
 				continue;
+			if (this.content.spriteimages === undefined) console.log(this)
 			spritectx.drawImage(this.content.spriteimages[id], 0, 0);
 		}
 		glyphImages.push(sprite);
@@ -237,7 +238,7 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 	else if ( this.hovered_level_cell !== null )
 	{
 		tooltip_objects = []
-		level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*level.height, k => tooltip_objects.push(state.idDict[k]) )
+		this.content.level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*this.content.level.height, k => tooltip_objects.push(state.idDict[k]) )
 	}
 	// prepare tooltip: object names
 	if (tooltip_objects !== null)
@@ -326,49 +327,15 @@ Level.prototype.copyRegion = function(oldlevel, dx, dy)
 	}
 }
 
-function addLeftColumn()
-{
-	level.copyRegion(level.adjust(1, 0), 1, 0)
-}
+Level.prototype.addLeftColumn = function()  { this.copyRegion(this.adjust(1, 0), 1, 0) }
+Level.prototype.addRightColumn = function() { this.copyRegion(this.adjust(1, 0), 0, 0) }
+Level.prototype.addTopRow = function()      { this.copyRegion(this.adjust(0, 1), 0, 1) }
+Level.prototype.addBottomRow = function()   { this.copyRegion(this.adjust(0, 1), 0, 0) }
 
-function addRightColumn()
-{
-	level.copyRegion(level.adjust(1, 0), 0, 0)
-}
-
-function addTopRow()
-{
-	level.copyRegion(level.adjust(0, 1), 0, 1)
-}
-
-function addBottomRow()
-{
-	level.copyRegion(level.adjust(0, 1), 0, 0)
-}
-
-function removeLeftColumn()
-{
-	if (level.width > 1)
-		level.copyRegion(level.adjust(-1, 0), -1, 0)
-}
-
-function removeRightColumn()
-{
-	if (level.width > 1)
-		level.copyRegion(level.adjust(-1, 0), 0, 0)
-}
-
-function removeTopRow()
-{
-	if (level.height > 1)
-		level.copyRegion(level.adjust(0, -1), 0, -1)
-}
-
-function removeBottomRow()
-{
-	if (level.height > 1)
-		level.copyRegion(level.adjust(0, -1), 0, 0)
-}
+Level.prototype.removeLeftColumn = function()  { if (this.width > 1)  this.copyRegion(this.adjust(-1, 0), -1,  0) }
+Level.prototype.removeRightColumn = function() { if (this.width > 1)  this.copyRegion(this.adjust(-1, 0),  0,  0) }
+Level.prototype.removeTopRow = function()      { if (this.height > 1) this.copyRegion(this.adjust(0, -1),  0, -1) }
+Level.prototype.removeBottomRow = function()   { if (this.height > 1) this.copyRegion(this.adjust(0, -1),  0,  0) }
 
 
 
@@ -424,7 +391,7 @@ const htmlEntityMap = {
 	"/": '&#x2F;'
 }
 
-function printLevel()
+Level.prototype.printToConsole = function()
 {
 	var glyphMasks = [];
 	for (const [identifier_index, glyph] of state.glyphDict.entries())
@@ -441,18 +408,18 @@ function printLevel()
 		}
 	}
 	var output = ''
-	for (var j=0; j<level.height; j++)
+	for (var j=0; j<this.height; j++)
 	{
-		for (var i=0; i<level.width; i++)
+		for (var i=0; i<this.width; i++)
 		{
-			var glyph = matchGlyph(level.getCell(j + i*level.height), glyphMasks);
+			var glyph = matchGlyph(this.getCell(j + i*this.height), glyphMasks);
 			if (glyph in htmlEntityMap)
 			{
 				glyph = htmlEntityMap[glyph]
 			}
 			output += glyph
 		}
-		if (j < level.height-1)
+		if (j < this.height-1)
 		{
 			output += "<br>"
 		}
@@ -539,7 +506,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 	{
 		if (this.hovered_glyph_index == -1)
 		{
-			printLevel()
+			this.content.level.printToConsole()
 		}
 		else
 		{
@@ -560,18 +527,18 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 			glyphmask.ibitset(state.backgroundid);
 		}
 
-		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*level.height;
-		const getcell = level.getCell(coordIndex);
+		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*level.height
+		const getcell = this.content.level.getCell(coordIndex)
 		if (getcell.equals(glyphmask))
-			return;
+			return
 		if (this.anyEditsSinceMouseDown === false)
 		{
 			this.anyEditsSinceMouseDown = true
 			backups.push(backupLevel())
 		}
-		level.setCell(coordIndex, glyphmask);
-		redraw();
-		return;
+		this.content.level.setCell(coordIndex, glyphmask)
+		redraw()
+		return
 	}
 
 	if ( ( ! click ) || (this.hovered_level_resize === null) )
@@ -581,20 +548,20 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 
 	if (this.hovered_level_resize[2] == -1)
 	{
-		addLeftColumn();			
+		this.content.level.addLeftColumn()
 	}
 	else if (this.hovered_level_resize[2] == w)
 	{
-		addRightColumn();
+		this.content.level.addRightColumn()
 	}
 
 	if (this.hovered_level_resize[3] == -1)
 	{
-		addTopRow();
+		this.content.level.addTopRow()
 	}
 	else if (this.hovered_level_resize[3] == h)
 	{
-		addBottomRow();
+		this.content.level.addBottomRow()
 	}
 
 	canvasResize()
@@ -614,12 +581,12 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 
 	if (this.hovered_level_cell !== null)
 	{
-		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*level.height;
-		var glyphmask = new BitVec(STRIDE_OBJ);
-		glyphmask.ibitset(state.backgroundid); // TODO: shouldn't it be the same code than in levelEditorClick?
-		level.setCell(coordIndex, glyphmask);
-		redraw();
-		return;
+		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*this.content.level.height
+		var glyphmask = new BitVec(STRIDE_OBJ)
+		glyphmask.ibitset(state.backgroundid) // TODO: shouldn't it be the same code than in levelEditorClick?
+		this.content.level.setCell(coordIndex, glyphmask)
+		redraw()
+		return
 	}
 
 	if ( ( ! click ) || (this.hovered_level_resize === null) )
@@ -630,20 +597,20 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 	if (this.hovered_level_resize[2] == -1)
 	{
 		//add a left row to the map
-		removeLeftColumn();			
+		this.content.level.removeLeftColumn()
 	}
 	else if (this.hovered_level_resize[2] == w)
 	{
-		removeRightColumn();
+		this.content.level.removeRightColumn()
 	} 
 
 	if (this.hovered_level_resize[3] == -1)
 	{
-		removeTopRow();
+		this.content.level.removeTopRow()
 	}
 	else if (this.hovered_level_resize[3] == h)
 	{
-		removeBottomRow();
+		this.content.level.removeBottomRow()
 	}
 
 	canvasResize()
