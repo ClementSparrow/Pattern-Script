@@ -39,8 +39,6 @@ Level.prototype.convertToString = function(def_char = '=')
 	return out
 }
 
-function convertLevelToString() { return level.convertToString() }
-
 function levelFromUnitTestString(str)
 {
 	const lines = str.split('\n')
@@ -100,7 +98,7 @@ function dumpTestCase()
 	if (level !== undefined)
 	{
 		const resultstring = '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
-			JSON.stringify( [levelDat, inputHistory.concat([]), convertLevelToString(), recordingStartsFromLevel, loadedLevelSeed] ) + '<br>\t],<br>'
+			JSON.stringify( [levelDat, inputHistory.concat([]), level.convertToString(), recordingStartsFromLevel, loadedLevelSeed] ) + '<br>\t],<br>'
 		consolePrint('<br>Recorded play session data (for play session tests - testdata.js):<br><br>'+makeSelectableText(resultstring) + '<br>', true)
 	}
 }

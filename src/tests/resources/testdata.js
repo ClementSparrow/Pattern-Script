@@ -4,7 +4,7 @@
 //		[
 //			game_code (string),
 //			input (integer array, see tests.js for values),
-//			test_result (a string representing the level after the input, as returned by debug.js/convertLevelToString – generally the start state of the next level),
+//			test_result (a string representing the level after the input, as returned by debug.js/level.convertToString – generally the start state of the next level),
 //			target_level (integer, starting at 0 and counting messages as levels, default value is 0),
 //			randomseed (float)
 //		]
