@@ -9,7 +9,7 @@ function CellPattern(row) {
 	this.movementsPresent = row[3];
 	this.movementsMissing = row[4];
 	this.replacement = null
-	this.matches = this.generateMatchFunction();
+	this.matches = this.generateMatchFunction()
 };
 
 function CellReplacement(row)
@@ -117,18 +117,18 @@ CellPattern.prototype.generateMatchFunction = function()
 	var mul = STRIDE_OBJ === 1 ? '' : '*'+STRIDE_OBJ
 	for (var i = 0; i < STRIDE_OBJ; ++i)
 	{
-		fn += '\tvar cellObjects' + i + ' = level.objects[i' + mul + (i ? '+'+i : '') + '];\n'
+		fn += '\tvar cellObjects' + i + ' = objects[i' + mul + (i ? '+'+i : '') + '];\n'
 	}
 	mul = STRIDE_MOV === 1 ? '' : '*'+STRIDE_MOV
 	for (var i = 0; i < STRIDE_MOV; ++i)
 	{
-		fn += '\tvar cellMovements' + i + ' = level.movements[i' + mul + (i ? '+'+i: '') + '];\n';
+		fn += '\tvar cellMovements' + i + ' = movements[i' + mul + (i ? '+'+i: '') + '];\n';
 	}
 	fn += 'return ' + this.generateMatchString()+';';
 	if (fn in matchCache)
 		return matchCache[fn]
 	// console.log(fn.replace(/\s+/g, ' '));
-	return matchCache[fn] = new Function('i', fn);
+	return matchCache[fn] = new Function('i', 'objects', 'movements', fn);
 }
 
 CellPattern.prototype.toJSON = function() {
@@ -182,17 +182,16 @@ CellPattern.prototype.replace = function(rule, currentIndex)
 
 	static_CellReplacement.applyRandoms()
 	
-	var curCellMask = level.getCellInto(currentIndex,_o2_5);
-	var curMovementMask = level.getMovements(currentIndex);
+	var oldCellMask = level.getCellInto(currentIndex, _o3)
+	var oldMovementMask = level.getMovements(currentIndex)
+	
+	var curCellMask = oldCellMask.cloneInto(_o2_5)
+	curCellMask.iclear(static_CellReplacement.objectsClear)
+	curCellMask.ior(static_CellReplacement.objectsSet)
 
-	var oldCellMask = curCellMask.cloneInto(_o3);
-	var oldMovementMask = curMovementMask.cloneInto(_m3);
-
-	curCellMask.iclear(static_CellReplacement.objectsClear);
-	curCellMask.ior(static_CellReplacement.objectsSet);
-
+	var curMovementMask = oldMovementMask.cloneInto(_m3)
 	curMovementMask.iclear(static_CellReplacement.movementsClear)
-	curMovementMask.ior(static_CellReplacement.movementsSet);
+	curMovementMask.ior(static_CellReplacement.movementsSet)
 
 	// Rigid + check if something changed
 	if ( ( ! replaceRigid(rule, level, currentIndex, this.replacement.movementsLayerMask) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
