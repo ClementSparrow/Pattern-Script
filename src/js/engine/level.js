@@ -124,7 +124,7 @@ Level.prototype.updateCellContent = function(cell_index, cellMask, movMask)
 	this.setCell(cell_index, cellMask)
 	this.setMovements(cell_index, movMask)
 
-	const [x, y] = level.cellCoord(cell_index)
+	const [x, y] = this.cellCoord(cell_index)
 	this.colCellContents[x].ior(cellMask)
 	this.rowCellContents[y].ior(cellMask)
 	this.mapCellContents.ior(cellMask)
@@ -207,5 +207,5 @@ Level.prototype.restore = function(lev)
 Level.prototype.delta_index = function(direction)
 {
 	const [dx, dy] = dirMasksDelta[direction]
-	return dx*level.height + dy
+	return dx*this.height + dy
 }

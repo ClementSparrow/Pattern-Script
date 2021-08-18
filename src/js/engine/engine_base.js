@@ -135,23 +135,27 @@ function goToLevel(i, state, levelindex, target, randomseed)
 var backups=[];
 var restartTarget;
 
-function backupLevel() {
+Level.prototype.backUp = function()
+{
 	return {
-		dat : new Int32Array(level.objects),
-		width : level.width,
-		height : level.height,
+		dat: new Int32Array(this.objects),
+		width:  this.width,
+		height: this.height,
 		oldflickscreendat: oldflickscreendat.concat([])
-	};
+	}
 }
+function backupLevel() { return level.backUp() }
 
-function level4Serialization() {
+Level.prototype.forSerialization = function()
+{
 	return {
-		dat : Array.from(level.objects),
-		width : level.width,
-		height : level.height,
+		dat : Array.from(this.objects),
+		width :  this.width,
+		height : this.height,
 		oldflickscreendat: oldflickscreendat.concat([])
-	};
+	}
 }
+function level4Serialization() { return level.forSerialization() }
 
 
 // Youtube
@@ -391,24 +395,24 @@ function DoUndo(force, ignoreDuplicates)
 	}
 }
 
-function getPlayerPositions()
+Level.prototype.getPlayerPositions = function()
 {
-	var result=[];
-	var playerMask = state.playerMask;
-	for (i=0; i<level.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
+	var result = []
+	var playerMask = state.playerMask
+	for (i=0; i<this.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
 	{
-		level.getCellInto(i,_o11);
+		this.getCellInto(i,_o11)
 		if (playerMask.anyBitsInCommon(_o11))
 		{
-			result.push(i);
+			result.push(i)
 		}
 	}
-	return result;
+	return result
 }
 
 function startMovement(dir)
 {
-	const playerPositions = getPlayerPositions()
+	const playerPositions = level.getPlayerPositions()
 	for (const playerPosIndex of playerPositions)
 	{
 		var cellMask = level.getCell(playerPosIndex)
@@ -451,28 +455,28 @@ var dirMaskName = {
 var seedsToPlay_CanMove = []
 var seedsToPlay_CantMove = []
 
-function repositionEntitiesOnLayer(positionIndex, layer, dirMask) 
+Level.prototype.repositionEntitiesOnLayer = function(positionIndex, layer, dirMask) 
 {
 	const [dx, dy] = dirMasksDelta[dirMask]
-	const [sx, sy] = level.cellCoord(positionIndex)
+	const [sx, sy] = this.cellCoord(positionIndex)
 	const [tx, ty] = [sx+dx, sy+dy]
 
-	if ( (clamp(0, tx, level.width-1) != tx) || (clamp(0, ty, level.height-1) != ty) )
+	if ( (clamp(0, tx, this.width-1) != tx) || (clamp(0, ty, this.height-1) != ty) )
 		return false
 
-	const targetIndex = ty + tx*level.height
+	const targetIndex = ty + tx*this.height
 
 	const layerMask = state.layerMasks[layer]
-	var targetMask = level.getCellInto(targetIndex, _o7)
+	var targetMask = this.getCellInto(targetIndex, _o7)
 
 	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) )
 		return false
 
-	var sourceMask = level.getCellInto(positionIndex, _o8)
+	var sourceMask = this.getCellInto(positionIndex, _o8)
 
 	for (const o of state.sfx_MovementMasks)
 	{
-		if ( o.objectMask.anyBitsInCommon(sourceMask) && level.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
+		if ( o.objectMask.anyBitsInCommon(sourceMask) && this.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 		{
 			seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
 		}
@@ -483,29 +487,29 @@ function repositionEntitiesOnLayer(positionIndex, layer, dirMask)
 	movingEntities.iand(layerMask);
 	targetMask.ior(movingEntities);
 
-	level.setCell(positionIndex, sourceMask);
-	level.setCell(targetIndex, targetMask);
+	this.setCell(positionIndex, sourceMask)
+	this.setCell(targetIndex, targetMask)
 
-	const [colIndex, rowIndex] = level.cellCoord(targetIndex)
-	level.colCellContents[colIndex].ior(movingEntities);
-	level.rowCellContents[rowIndex].ior(movingEntities);
-	level.mapCellContents.ior(movingEntities);
+	const [colIndex, rowIndex] = this.cellCoord(targetIndex)
+	this.colCellContents[colIndex].ior(movingEntities)
+	this.rowCellContents[rowIndex].ior(movingEntities)
+	this.mapCellContents.ior(movingEntities)
 	return true
 }
 
-function repositionEntitiesAtCell(positionIndex)
+Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 {
-	var movementMask = level.getMovements(positionIndex)
+	var movementMask = this.getMovements(positionIndex)
 	if (movementMask.iszero())
 		return false
 
 	var moved = false
-	for (var layer=0; layer<level.layerCount; layer++)
+	for (var layer=0; layer<this.layerCount; layer++)
 	{
 		const layerMovement = movementMask.getshiftor(0x1f, 5*layer)
 		if (layerMovement !== 0)
 		{
-			if ( repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
+			if ( this.repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
 			{
 				movementMask.ishiftclear(layerMovement, 5*layer)
 				moved = true
@@ -513,41 +517,41 @@ function repositionEntitiesAtCell(positionIndex)
 		}
 	}
 
-	level.setMovements(positionIndex, movementMask)
+	this.setMovements(positionIndex, movementMask)
 	return moved
 }
 
 var rigidBackups = []
 
-function commitPreservationState(ruleGroupIndex)
+Level.prototype.commitPreservationState = function(ruleGroupIndex)
 {
-	var propagationState = {
-		ruleGroupIndex:ruleGroupIndex,
-		objects:new Int32Array(level.objects),
-		movements:new Int32Array(level.movements),
-		rigidGroupIndexMask:level.rigidGroupIndexMask.concat([]),
-		rigidMovementAppliedMask:level.rigidMovementAppliedMask.concat([]),
-		bannedGroup:level.bannedGroup.concat([]),
-		commandQueue:level.commandQueue.clone(),
-		commandQueueSourceRules:level.commandQueue.sourceRules.concat([])
-	};
-	rigidBackups[ruleGroupIndex]=propagationState;
-	return propagationState;
+	const propagationState = {
+		ruleGroupIndex: ruleGroupIndex,
+		objects: new Int32Array(this.objects),
+		movements: new Int32Array(this.movements),
+		rigidGroupIndexMask: this.rigidGroupIndexMask.concat([]),
+		rigidMovementAppliedMask: this.rigidMovementAppliedMask.concat([]),
+		bannedGroup:  this.bannedGroup.concat([]),
+		commandQueue: this.commandQueue.clone(),
+		commandQueueSourceRules: this.commandQueue.sourceRules.concat([])
+	}
+	rigidBackups[ruleGroupIndex] = propagationState
+	return propagationState
 }
 
-function restorePreservationState(preservationState) {;
+Level.prototype.restorePreservationState = function(preservationState)
+{
 //don't need to concat or anythign here, once something is restored it won't be used again.
-	level.objects = new Int32Array(preservationState.objects);
-	level.movements = new Int32Array(preservationState.movements);
-	level.rigidGroupIndexMask = preservationState.rigidGroupIndexMask.concat([]);
-	level.rigidMovementAppliedMask = preservationState.rigidMovementAppliedMask.concat([]);
+	this.objects = new Int32Array(preservationState.objects)
+	this.movements = new Int32Array(preservationState.movements)
+	this.rigidGroupIndexMask = preservationState.rigidGroupIndexMask.concat([])
+	this.rigidMovementAppliedMask = preservationState.rigidMovementAppliedMask.concat([])
 	preservationState.commandQueue.cloneInto(level.commandQueue)
-	level.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
-	sfxCreateMask.setZero();
-	sfxDestroyMask.setZero();
-	consolePrint("Rigid movement application failed, rolling back");
-
-//	rigidBackups = preservationState.rigidBackups;
+	this.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
+	sfxCreateMask.setZero()
+	sfxDestroyMask.setZero()
+	consolePrint("Rigid movement application failed, rolling back")
+//	rigidBackups = preservationState.rigidBackups
 }
 
 
@@ -675,13 +679,9 @@ function resolveMovements(dir)
 	while(moved)
 	{
 		moved = false
-		// TODO-OPTIMIZATION: this loops on each cell of the level and each layer in the cell, possibly multiple times if there is a long chain of dependencies
-		// (object A can only move after B has moved, which can only happen after C has moved, etc.) But most cells actually contain no object that can move.
-		// An optimization could be to maintain a chained list of cells that contain pending movements? However, some games rely on the scanning order, so the list
-		// would have to preserve that order.
 		for (var i=0; i<level.n_tiles; i++)
 		{
-			moved |= repositionEntitiesAtCell(i)
+			moved |= level.repositionEntitiesAtCell(i)
 		}
 	}
 	var doUndo = false
@@ -775,7 +775,7 @@ function processInput(dir, dontDoWin, dontModify)
 		level.commandQueue.sourceRules = []
 
 		var i = max_rigid_loops
-		const startState = commitPreservationState()
+		const startState = level.commitPreservationState()
 
 		sfxCreateMask.setZero()
 		sfxDestroyMask.setZero()
@@ -798,7 +798,7 @@ function processInput(dir, dontDoWin, dontModify)
 				break
 			}
 
-			restorePreservationState(startState)
+			level.restorePreservationState(startState)
 			i--
 			if (i <= 0)
 			{

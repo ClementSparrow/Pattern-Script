@@ -82,7 +82,7 @@ TiledWorldScreen.prototype.get_nb_tiles = () => state.metadata.flickscreen
 TiledWorldScreen.prototype.get_viewport = function()
 {
 	// TODO: oldflickscreendat is a global variable because it needs to be recorded for undos
-	const playerPositions = getPlayerPositions();
+	const playerPositions = level.getPlayerPositions()
 	if (playerPositions.length == 0)
 		return oldflickscreendat;
 
