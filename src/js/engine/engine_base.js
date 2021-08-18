@@ -301,15 +301,16 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 		}
 		case 'levelline':
 		{
-			var targetLine = command[1];
-			for (var i=state.levels.length-1;i>=0;i--) {
-				var level= state.levels[i];
-				if(level.lineNumber<=targetLine+1) {
+			const targetLine = command[1]
+			for (var i=state.levels.length-1; i>=0; i--)
+			{
+				if(state.levels[i].lineNumber <= targetLine+1)
+				{
 					goToLevel(i, state, i)
-					break;
+					break
 				}
 			}
-			break;
+			break
 		}
 	}
 	
@@ -525,40 +526,6 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 	return moved
 }
 
-var rigidBackups = []
-
-Level.prototype.commitPreservationState = function(ruleGroupIndex)
-{
-	const propagationState = {
-		ruleGroupIndex: ruleGroupIndex,
-		objects: new Int32Array(this.objects),
-		movements: new Int32Array(this.movements),
-		rigidGroupIndexMask: this.rigidGroupIndexMask.concat([]),
-		rigidMovementAppliedMask: this.rigidMovementAppliedMask.concat([]),
-		bannedGroup:  this.bannedGroup.concat([]),
-		commandQueue: execution_context.commandQueue.clone(),
-		commandQueueSourceRules: execution_context.commandQueue.sourceRules.concat([])
-	}
-	rigidBackups[ruleGroupIndex] = propagationState
-	return propagationState
-}
-
-Level.prototype.restorePreservationState = function(preservationState)
-{
-//don't need to concat or anythign here, once something is restored it won't be used again.
-	this.objects = new Int32Array(preservationState.objects)
-	this.movements = new Int32Array(preservationState.movements)
-	this.rigidGroupIndexMask = preservationState.rigidGroupIndexMask.concat([])
-	this.rigidMovementAppliedMask = preservationState.rigidMovementAppliedMask.concat([])
-	preservationState.commandQueue.cloneInto(execution_context.commandQueue)
-	execution_context.commandQueue.sourceRules = preservationState.commandQueueSourceRules.concat([])
-	sfxCreateMask.setZero()
-	sfxDestroyMask.setZero()
-	consolePrint("Rigid movement application failed, rolling back")
-//	rigidBackups = preservationState.rigidBackups
-}
-
-
 
 function showTempMessage()
 {
@@ -677,7 +644,7 @@ function applyRules(rules, level, loopPoint, bannedGroup)
 
 
 //if this returns!=null, need to go back and reprocess
-function resolveMovements(dir)
+function resolveMovements(level, bannedGroup)
 {
 	var moved = true
 	while(moved)
@@ -710,7 +677,7 @@ function resolveMovements(dir)
 							//this is our layer!
 							var rigidGroupIndex = level.rigidGroupIndexMask[i].getshiftor(0x1f, 5*j)
 							rigidGroupIndex-- //group indices start at zero, but are incremented for storing in the bitfield
-							level.bannedGroup[ state.rigidGroupIndex_to_GroupIndex[rigidGroupIndex] ] = true
+							bannedGroup[ state.rigidGroupIndex_to_GroupIndex[rigidGroupIndex] ] = true
 							doUndo = true
 							break
 						}
@@ -773,15 +740,19 @@ function processInput(dir, dontDoWin, dontModify)
 			playerPositions = level.startMovement(dir)
 		}
 
-		rigidBackups = []
-		level.bannedGroup = []
-		// TODO: it seems the only reason why commandQueue is in 'level' is so that it gets saved in commitPreservationState, which is only used here for rigid rules trackback
-		// so, we should move it out of level.
+		bannedGroup = []
 		execution_context.commandQueue.reset()
 		execution_context.commandQueue.sourceRules = []
 
 		var i = max_rigid_loops
-		const startState = level.commitPreservationState()
+		const startState = {
+			objects: new Int32Array(level.objects),
+			movements: new Int32Array(level.movements),
+			rigidGroupIndexMask: level.rigidGroupIndexMask.concat([]),
+			rigidMovementAppliedMask: level.rigidMovementAppliedMask.concat([]),
+			commandQueue: execution_context.commandQueue.clone(),
+			commandQueueSourceRules: execution_context.commandQueue.sourceRules.concat([])
+		}
 
 		sfxCreateMask.setZero()
 		sfxDestroyMask.setZero()
@@ -794,17 +765,30 @@ function processInput(dir, dontDoWin, dontModify)
 		while (true)
 		{
 			if (verbose_logging) { consolePrint('applying rules') }
-			applyRules(state.rules, level, state.loopPoint, level.bannedGroup)
+			applyRules(state.rules, level, state.loopPoint, bannedGroup)
 
 			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
-			if ( ! resolveMovements() )
+			if ( ! resolveMovements(level, bannedGroup) )
 			{
 				if (verbose_logging) { consolePrint('applying late rules') }
 				applyRules(state.lateRules, level, state.lateLoopPoint)
 				break
 			}
 
-			level.restorePreservationState(startState)
+			// trackback
+			consolePrint("Rigid movement application failed, rolling back")
+			//don't need to concat or anythign here, once something is restored it won't be used again.
+			level.objects = new Int32Array(startState.objects)
+			level.movements = new Int32Array(startState.movements)
+			level.rigidGroupIndexMask = startState.rigidGroupIndexMask.concat([])
+			level.rigidMovementAppliedMask = startState.rigidMovementAppliedMask.concat([])
+			// TODO: shouldn't we also save/restore the level data computed by level.calculateRowColMasks() ?
+			startState.commandQueue.cloneInto(execution_context.commandQueue)
+			execution_context.commandQueue.sourceRules = startState.commandQueueSourceRules.concat([])
+			sfxCreateMask.setZero()
+			sfxDestroyMask.setZero()
+			// TODO: shouldn't we also reset seedsToPlay_CanMove and seedsToPlay_CantMove?
+
 			i--
 			if (i <= 0)
 			{
