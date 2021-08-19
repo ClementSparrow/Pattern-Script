@@ -514,10 +514,7 @@ const dirMasksDelta = {
 	 3:[ 0, 0]//'no'
 }
 
-var seedsToPlay_CanMove = []
-var seedsToPlay_CantMove = []
-
-Level.prototype.repositionEntitiesAtCell = function(positionIndex)
+Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_CanMove)
 {
 	var movementMask = this.getMovements(positionIndex)
 	if (movementMask.iszero())
@@ -582,7 +579,7 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 }
 
 //if this returns!=null, need to go back and reprocess
-function resolveMovements(level, bannedGroup)
+function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove)
 {
 	var moved = true
 	while(moved)
@@ -590,7 +587,7 @@ function resolveMovements(level, bannedGroup)
 		moved = false
 		for (var i=0; i<level.n_tiles; i++)
 		{
-			moved |= level.repositionEntitiesAtCell(i)
+			moved |= level.repositionEntitiesAtCell(i, seedsToPlay_CanMove)
 		}
 	}
 	var doUndo = false
@@ -763,8 +760,8 @@ function processInput(dir, dontDoWin, dontModify)
 		sfxCreateMask.setZero()
 		sfxDestroyMask.setZero()
 
-		seedsToPlay_CanMove = []
-		seedsToPlay_CantMove = []
+		var seedsToPlay_CanMove = []
+		var seedsToPlay_CantMove = []
 
 		var i = max_rigid_loops
 		while (true)
@@ -773,7 +770,7 @@ function processInput(dir, dontDoWin, dontModify)
 			applyRules(state.rules, level, state.loopPoint, bannedGroup)
 
 			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
-			if ( ! resolveMovements(level, bannedGroup) )
+			if ( ! resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove) )
 			{
 				if (verbose_logging) { consolePrint('applying late rules') }
 				applyRules(state.lateRules, level, state.lateLoopPoint)
