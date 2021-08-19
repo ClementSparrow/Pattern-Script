@@ -1138,8 +1138,8 @@ PuzzleScriptParser.prototype.tokenInSoundsSection = function(is_start_of_line, s
 		this.tokenIndex++;
 		return 'SOUND';
 	} 
-	candname = stream.match(/[^\[\|\]\p{Separator}\s]+/u, true);
-	if (candname!== null)
+	candname = stream.match(/[^\[\|\]\p{Separator}\s]+/u, true) // will match everything but [|] and spaces
+	if (candname !== null)
 	{
 		const m = candname[0].trim();
 		if (this.identifiers.checkKnownIdentifier(m, false, this) >= 0)
