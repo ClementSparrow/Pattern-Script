@@ -744,14 +744,15 @@ function processInput(dir, dontDoWin, dontModify)
 		execution_context.commandQueue.reset()
 		execution_context.commandQueue.sourceRules = []
 
-		var i = max_rigid_loops
+		level.calculateRowColMasks()
 		const startState = {
 			objects: new Int32Array(level.objects),
 			movements: new Int32Array(level.movements),
 			rigidGroupIndexMask: level.rigidGroupIndexMask.concat([]),
 			rigidMovementAppliedMask: level.rigidMovementAppliedMask.concat([]),
-			commandQueue: execution_context.commandQueue.clone(),
-			commandQueueSourceRules: execution_context.commandQueue.sourceRules.concat([])
+			// colCellContents: level.colCellContents.map(x => x.clone()),
+			// rowCellContents: level.rowCellContents.map(x => x.clone()),
+			// mapCellContents: level.mapCellContents.clone(),
 		}
 
 		sfxCreateMask.setZero()
@@ -760,8 +761,7 @@ function processInput(dir, dontDoWin, dontModify)
 		seedsToPlay_CanMove = []
 		seedsToPlay_CantMove = []
 
-		level.calculateRowColMasks()
-
+		var i = max_rigid_loops
 		while (true)
 		{
 			if (verbose_logging) { consolePrint('applying rules') }
@@ -782,9 +782,13 @@ function processInput(dir, dontDoWin, dontModify)
 			level.movements = new Int32Array(startState.movements)
 			level.rigidGroupIndexMask = startState.rigidGroupIndexMask.concat([])
 			level.rigidMovementAppliedMask = startState.rigidMovementAppliedMask.concat([])
-			// TODO: shouldn't we also save/restore the level data computed by level.calculateRowColMasks() ?
-			startState.commandQueue.cloneInto(execution_context.commandQueue)
-			execution_context.commandQueue.sourceRules = startState.commandQueueSourceRules.concat([])
+			// TODO: shouldn't we also save/restore the level data computed by level.calculateRowColMasks()?
+			// -> I tried and it does not help with speed, but is it correct not to do it?
+			// level.colCellContents = startState.colCellContents.map(x => x.clone())
+			// level.rowCellContents = startState.rowCellContents.map(x => x.clone())
+			// level.mapCellContents = startState.mapCellContents.clone()
+			execution_context.commandQueue.reset()
+			execution_context.commandQueue.sourceRules = []
 			sfxCreateMask.setZero()
 			sfxDestroyMask.setZero()
 			// TODO: shouldn't we also reset seedsToPlay_CanMove and seedsToPlay_CantMove?
