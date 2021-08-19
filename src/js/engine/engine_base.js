@@ -136,8 +136,11 @@ function goToLevel(i, state, levelindex, target, randomseed)
 
 function executionContext()
 {
-	this.backups = []
-	this.restartTarget = null
+	// Undo/restart/checkpoints data
+	this.backups = [] // only used in doUndo
+	this.restartTarget = null // only used in DoRestart
+
+	// Output queue
 	this.commandQueue = new CommandsSet()
 	this.commandQueue.sourceRules = [] // only used with verbose_logging
 }
@@ -400,156 +403,9 @@ function forceUndo(backup) // force=true, ignoreDuplicates=false
 	execution_context.resetCommands()
 }
 
-Level.prototype.getPlayerPositions = function()
-{
-	var result = []
-	var playerMask = state.playerMask
-	for (i=0; i<this.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
-	{
-		this.getCellInto(i,_o11)
-		if (playerMask.anyBitsInCommon(_o11))
-		{
-			result.push(i)
-		}
-	}
-	return result
-}
 
-Level.prototype.startMovement = function(dir)
-{
-	const playerPositions = this.getPlayerPositions()
-	for (const playerPosIndex of playerPositions)
-	{
-		var cellMask = this.getCell(playerPosIndex)
-		var movementMask = this.getMovements(playerPosIndex)
-
-		cellMask.iand(state.playerMask)
-
-		for (var i=0; i<state.objectCount; i++)
-		{
-			if (cellMask.get(i)) {
-				movementMask.ishiftor(dir, 5 * state.identifiers.objects[ state.idDict[i] ].layer)
-			}
-		}
-
-		this.setMovements(playerPosIndex, movementMask)
-	}
-	return playerPositions
-}
-
-var dirMasksDelta = {
-	 1:[0,-1],//up
-	 2:[0,1],//'down'  : 
-	 4:[-1,0],//'left'  : 
-	 8:[1,0],//'right' : 
-	 15:[0,0],//'?' : 
-	 16:[0,0],//'action' : 
-	 3:[0,0]//'no'
-};
-
-var dirMaskName = {
-	 1:'up',
-	 2:'down',
-	 4:'left',
-	 8:'right',
-	 15:'?',
-	 16:'action',
-	 3:'no'
-};
-
-var seedsToPlay_CanMove = []
-var seedsToPlay_CantMove = []
-
-Level.prototype.repositionEntitiesOnLayer = function(positionIndex, layer, dirMask) 
-{
-	const [dx, dy] = dirMasksDelta[dirMask]
-	const [sx, sy] = this.cellCoord(positionIndex)
-	const [tx, ty] = [sx+dx, sy+dy]
-
-	if ( (clamp(0, tx, this.width-1) != tx) || (clamp(0, ty, this.height-1) != ty) )
-		return false
-
-	const targetIndex = ty + tx*this.height
-
-	const layerMask = state.layerMasks[layer]
-	var targetMask = this.getCellInto(targetIndex, _o7)
-
-	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision
-		return false
-
-	var sourceMask = this.getCellInto(positionIndex, _o8)
-
-	for (const o of state.sfx_MovementMasks)
-	{
-		if ( o.objectMask.anyBitsInCommon(sourceMask) && this.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
-		{
-			seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
-		}
-	}
-
-	var movingEntities = sourceMask.clone();
-	sourceMask.iclear(layerMask);
-	movingEntities.iand(layerMask);
-	targetMask.ior(movingEntities);
-
-	this.setCell(positionIndex, sourceMask)
-	this.setCell(targetIndex, targetMask)
-
-	const [colIndex, rowIndex] = this.cellCoord(targetIndex)
-	this.colCellContents[colIndex].ior(movingEntities)
-	this.rowCellContents[rowIndex].ior(movingEntities)
-	this.mapCellContents.ior(movingEntities)
-	return true
-}
-
-Level.prototype.repositionEntitiesAtCell = function(positionIndex)
-{
-	var movementMask = this.getMovements(positionIndex)
-	if (movementMask.iszero())
-		return false
-
-	var moved = false
-	for (var layer=0; layer<this.layerCount; layer++)
-	{
-		const layerMovement = movementMask.getshiftor(0x1f, 5*layer)
-		if (layerMovement !== 0)
-		{
-			if ( this.repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
-			{
-				movementMask.ishiftclear(layerMovement, 5*layer)
-				moved = true
-			}
-		}
-	}
-
-	this.setMovements(positionIndex, movementMask)
-	return moved
-}
-
-
-function showTempMessage()
-{
-	tryPlaySimpleSound('showmessage')
-	msg_screen.doMessage()
-	canvasResize()
-}
-
-CommandsSet.prototype.processOutput = function()
-{
-	for (var k = CommandsSet.command_keys['sfx0']; k <= CommandsSet.command_keys['sfx10']; k++)
-	{
-		if (this.get(k))
-		{
-			tryPlaySimpleSound(CommandsSet.commandwords[k])
-		}
-	}
-	if ( (unitTesting === false) && (this.message !== null) )
-	{
-		keybuffer = []
-		msg_screen.done = false
-		showTempMessage()
-	}
-}
+// Match rules and collect commands
+// ================================
 
 function applyRandomRuleGroup(ruleGroup, level)
 {
@@ -643,6 +499,100 @@ function applyRules(rules, level, loopPoint, bannedGroup)
 }
 
 
+
+// Apply global effects of rules
+// =============================
+
+
+var dirMasksDelta = {
+	 1:[0,-1],//up
+	 2:[0,1],//'down'  : 
+	 4:[-1,0],//'left'  : 
+	 8:[1,0],//'right' : 
+	 15:[0,0],//'?' : 
+	 16:[0,0],//'action' : 
+	 3:[0,0]//'no'
+};
+
+var dirMaskName = {
+	 1:'up',
+	 2:'down',
+	 4:'left',
+	 8:'right',
+	 15:'?',
+	 16:'action',
+	 3:'no'
+};
+
+var seedsToPlay_CanMove = []
+var seedsToPlay_CantMove = []
+
+Level.prototype.repositionEntitiesOnLayer = function(positionIndex, layer, dirMask) 
+{
+	const [dx, dy] = dirMasksDelta[dirMask]
+	const [sx, sy] = this.cellCoord(positionIndex)
+	const [tx, ty] = [sx+dx, sy+dy]
+
+	if ( (clamp(0, tx, this.width-1) != tx) || (clamp(0, ty, this.height-1) != ty) )
+		return false
+
+	const targetIndex = ty + tx*this.height
+
+	const layerMask = state.layerMasks[layer]
+	var targetMask = this.getCellInto(targetIndex, _o7)
+
+	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision
+		return false
+
+	var sourceMask = this.getCellInto(positionIndex, _o8)
+
+	for (const o of state.sfx_MovementMasks)
+	{
+		if ( o.objectMask.anyBitsInCommon(sourceMask) && this.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
+		{
+			seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
+		}
+	}
+
+	var movingEntities = sourceMask.clone();
+	sourceMask.iclear(layerMask);
+	movingEntities.iand(layerMask);
+	targetMask.ior(movingEntities);
+
+	this.setCell(positionIndex, sourceMask)
+	this.setCell(targetIndex, targetMask)
+
+	const [colIndex, rowIndex] = this.cellCoord(targetIndex)
+	this.colCellContents[colIndex].ior(movingEntities)
+	this.rowCellContents[rowIndex].ior(movingEntities)
+	this.mapCellContents.ior(movingEntities)
+	return true
+}
+
+Level.prototype.repositionEntitiesAtCell = function(positionIndex)
+{
+	var movementMask = this.getMovements(positionIndex)
+	if (movementMask.iszero())
+		return false
+
+	var moved = false
+	for (var layer=0; layer<this.layerCount; layer++)
+	{
+		const layerMovement = movementMask.getshiftor(0x1f, 5*layer)
+		if (layerMovement !== 0)
+		{
+			if ( this.repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
+			{
+				movementMask.ishiftclear(layerMovement, 5*layer)
+				moved = true
+			}
+		}
+	}
+
+	this.setMovements(positionIndex, movementMask)
+	return moved
+}
+
 //if this returns!=null, need to go back and reprocess
 function resolveMovements(level, bannedGroup)
 {
@@ -706,8 +656,75 @@ function resolveMovements(level, bannedGroup)
 	return doUndo
 }
 
+
+function showTempMessage()
+{
+	tryPlaySimpleSound('showmessage')
+	msg_screen.doMessage()
+	canvasResize()
+}
+
+CommandsSet.prototype.processOutput = function()
+{
+	for (var k = CommandsSet.command_keys['sfx0']; k <= CommandsSet.command_keys['sfx10']; k++)
+	{
+		if (this.get(k))
+		{
+			tryPlaySimpleSound(CommandsSet.commandwords[k])
+		}
+	}
+	if ( (unitTesting === false) && (this.message !== null) )
+	{
+		keybuffer = []
+		msg_screen.done = false
+		showTempMessage()
+	}
+}
+
+
+// Process inputs
+// ==============
+
 var sfxCreateMask = null
 var sfxDestroyMask = null
+
+Level.prototype.getPlayerPositions = function()
+{
+	var result = []
+	var playerMask = state.playerMask
+	for (i=0; i<this.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
+	{
+		this.getCellInto(i,_o11)
+		if (playerMask.anyBitsInCommon(_o11))
+		{
+			result.push(i)
+		}
+	}
+	return result
+}
+
+Level.prototype.startMovement = function(dir)
+{
+	const playerPositions = this.getPlayerPositions()
+	for (const playerPosIndex of playerPositions)
+	{
+		var cellMask = this.getCell(playerPosIndex)
+		var movementMask = this.getMovements(playerPosIndex)
+
+		cellMask.iand(state.playerMask)
+
+		for (var i=0; i<state.objectCount; i++)
+		{
+			if (cellMask.get(i)) {
+				movementMask.ishiftor(dir, 5 * state.identifiers.objects[ state.idDict[i] ].layer)
+			}
+		}
+
+		this.setMovements(playerPosIndex, movementMask)
+	}
+	return playerPositions
+}
+
 
 const max_rigid_loops = 50
 
