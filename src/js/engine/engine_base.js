@@ -743,8 +743,7 @@ function processInput(dir, dontDoWin, dontModify)
 		}
 
 		bannedGroup = []
-		execution_context.commandQueue.reset()
-		execution_context.commandQueue.sourceRules = []
+		execution_context.resetCommands()
 
 		level.calculateRowColMasks()
 		const startState = {
@@ -789,8 +788,7 @@ function processInput(dir, dontDoWin, dontModify)
 			// level.colCellContents = startState.colCellContents.map(x => x.clone())
 			// level.rowCellContents = startState.rowCellContents.map(x => x.clone())
 			// level.mapCellContents = startState.mapCellContents.clone()
-			execution_context.commandQueue.reset()
-			execution_context.commandQueue.sourceRules = []
+			execution_context.resetCommands()
 			sfxCreateMask.setZero()
 			sfxDestroyMask.setZero()
 			// TODO: shouldn't we also reset seedsToPlay_CanMove and seedsToPlay_CantMove?
@@ -938,8 +936,7 @@ function processInput(dir, dontDoWin, dontModify)
 			}
 		}
 
-		execution_context.commandQueue.reset()
-		execution_context.commandQueue.sourceRules = []
+		execution_context.resetCommands()
 	}
 
 	if (verbose_logging) { consoleCacheDump() }
