@@ -34,13 +34,10 @@ function computePatternMask(cellRow)
 
 Rule.prototype.generateCellRowMatchesFunction = function(cellRow, hasEllipsis)
 {
-	if (hasEllipsis==false) {
-		var delta = dirMasksDelta[this.direction];
-		var d0 = delta[0];
-		var d1 = delta[1];
-		var cr_l = cellRow.length;
-
-		var fn = ''
+	const cr_l = cellRow.length
+	var fn = ''
+	if (hasEllipsis === false)
+	{
 		var mul = STRIDE_OBJ === 1 ? '' : '*'+STRIDE_OBJ;	
 		for (var i = 0; i < STRIDE_OBJ; ++i) {
 			fn += 'var cellObjects' + i + ' = objects[i' + mul + (i ? '+'+i : '') + '];\n';
@@ -53,7 +50,8 @@ Rule.prototype.generateCellRowMatchesFunction = function(cellRow, hasEllipsis)
 		hard substitute in the first one - if I substitute in all of them, firefox chokes.
 		*/
 		fn += "return "+cellRow[0].generateMatchString('0_');// cellRow[0].matches(i)";
-		for (var cellIndex=1;cellIndex<cr_l;cellIndex++) {
+		for (var cellIndex=1; cellIndex<cr_l; cellIndex++)
+		{
 			fn+="&&cellRow["+cellIndex+"].matches(i+"+cellIndex+"*d, objects, movements)";
 		}
 		fn+=";";
@@ -63,14 +61,9 @@ Rule.prototype.generateCellRowMatchesFunction = function(cellRow, hasEllipsis)
 		}
 		//console.log(fn.replace(/\s+/g, ' '));
 		return matchCache[fn] = new Function('cellRow', 'i', 'd', 'objects', 'movements', fn)
-	} else {
-		var delta = dirMasksDelta[this.direction];
-		var d0 = delta[0];
-		var d1 = delta[1];
-		var cr_l = cellRow.length;
-
-
-		var fn = ''
+	}
+	else
+	{
 		fn += "var result = [];\n"
 		fn += "if(cellRow[0].matches(i, objects, movements)";
 		var cellIndex=1;
@@ -212,8 +205,7 @@ Rule.prototype.findMatches = function(level)
 	if ( ! this.ruleMask.bitsSetInArray(level.mapCellContents.data) )
 		return []
 
-	const [dx, dy] = dirMasksDelta[this.direction]
-	const d = dy + dx*level.height
+	const d = level.delta_index(this.direction)
 
 	var matches = []
 	const cellRowMasks = this.cellRowMasks
@@ -229,7 +221,7 @@ Rule.prototype.findMatches = function(level)
 			var match = matchCellRow(level, this.direction, matchFunction, cellRow, cellRowMask, d)
 		}
 		if (match.length === 0)
-			return []
+			return match
 		matches.push(match)
 	}
 	return matches

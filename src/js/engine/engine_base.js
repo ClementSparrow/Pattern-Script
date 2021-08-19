@@ -504,70 +504,18 @@ function applyRules(rules, level, loopPoint, bannedGroup)
 // =============================
 
 
-var dirMasksDelta = {
-	 1:[0,-1],//up
-	 2:[0,1],//'down'  : 
-	 4:[-1,0],//'left'  : 
-	 8:[1,0],//'right' : 
-	 15:[0,0],//'?' : 
-	 16:[0,0],//'action' : 
-	 3:[0,0]//'no'
-};
-
-var dirMaskName = {
-	 1:'up',
-	 2:'down',
-	 4:'left',
-	 8:'right',
-	 15:'?',
-	 16:'action',
-	 3:'no'
-};
+const dirMasksDelta = {
+	 1:[ 0,-1],//up
+	 2:[ 0, 1],//down
+	 4:[-1, 0],//left
+	 8:[ 1, 0],//right
+	15:[ 0, 0],//moving?
+	16:[ 0, 0],//action
+	 3:[ 0, 0]//'no'
+}
 
 var seedsToPlay_CanMove = []
 var seedsToPlay_CantMove = []
-
-Level.prototype.repositionEntitiesOnLayer = function(positionIndex, layer, dirMask) 
-{
-	const [dx, dy] = dirMasksDelta[dirMask]
-	const [sx, sy] = this.cellCoord(positionIndex)
-	const [tx, ty] = [sx+dx, sy+dy]
-
-	if ( (clamp(0, tx, this.width-1) != tx) || (clamp(0, ty, this.height-1) != ty) )
-		return false
-
-	const targetIndex = ty + tx*this.height
-
-	const layerMask = state.layerMasks[layer]
-	var targetMask = this.getCellInto(targetIndex, _o7)
-
-	if ( (dirMask != 16) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision
-		return false
-
-	var sourceMask = this.getCellInto(positionIndex, _o8)
-
-	for (const o of state.sfx_MovementMasks)
-	{
-		if ( o.objectMask.anyBitsInCommon(sourceMask) && this.getMovements(positionIndex).anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
-		{
-			seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
-		}
-	}
-
-	var movingEntities = sourceMask.clone();
-	sourceMask.iclear(layerMask);
-	movingEntities.iand(layerMask);
-	targetMask.ior(movingEntities);
-
-	this.setCell(positionIndex, sourceMask)
-	this.setCell(targetIndex, targetMask)
-
-	const [colIndex, rowIndex] = this.cellCoord(targetIndex)
-	this.colCellContents[colIndex].ior(movingEntities)
-	this.rowCellContents[rowIndex].ior(movingEntities)
-	this.mapCellContents.ior(movingEntities)
-	return true
-}
 
 Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 {
@@ -575,20 +523,63 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 	if (movementMask.iszero())
 		return false
 
+	var sourceMask = this.getCellInto(positionIndex, _o8)
+	const [sx, sy] = this.cellCoord(positionIndex)
+
 	var moved = false
 	for (var layer=0; layer<this.layerCount; layer++)
 	{
-		const layerMovement = movementMask.getshiftor(0x1f, 5*layer)
-		if (layerMovement !== 0)
+		const dirMask = movementMask.getshiftor(0x1f, 5*layer)
+		if (dirMask === 0)
+			continue
+
+		const [dx, dy] = dirMasksDelta[dirMask]
+		const [tx, ty] = [sx+dx, sy+dy]
+
+		if ( (clamp(0, tx, this.width-1) != tx) || (clamp(0, ty, this.height-1) != ty) )
+			continue
+
+		const targetIndex = ty + tx*this.height
+
+		const layerMask = state.layerMasks[layer]
+		var targetMask = this.getCellInto(targetIndex, _o7)
+
+		if ( (targetIndex !== positionIndex) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision.
+			continue
+
+		// TODO: this test is there because at that point we know that something will move in that level, but
+		// 1) it does not use the layer and will apply to any object moving in that cell, even if they belong to a layer not yet tested and will collide
+		// 2) it's not the place to do that
+		// 3) the structure of state.sfx_MovementMasks could be organized as lists by layer, to minimize the amount of unnecessary looping
+		for (const o of state.sfx_MovementMasks)
 		{
-			if ( this.repositionEntitiesOnLayer(positionIndex, layer, layerMovement) )
+			if ( o.objectMask.anyBitsInCommon(sourceMask) && movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 			{
-				movementMask.ishiftclear(layerMovement, 5*layer)
-				moved = true
+				seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
 			}
 		}
-	}
 
+		movementMask.ishiftclear(dirMask, 5*layer)
+		moved = true
+
+		if (targetIndex === positionIndex)
+			continue
+
+		var movingEntities = sourceMask.clone()
+		movingEntities.iand(layerMask)
+		targetMask.ior(movingEntities)
+
+		sourceMask.iclear(layerMask)
+		this.setCell(targetIndex, targetMask) // TODO: we write the whole cell content, when we just need to do getCell(position).clear(layerMask), which could be done faster with ishiftclear
+
+		this.colCellContents[tx].ior(movingEntities)
+		this.rowCellContents[ty].ior(movingEntities)
+		// this.mapCellContents.ior(movingEntities) // would not change
+	}
+	if ( ! moved )
+		return false
+
+	this.setCell(positionIndex, sourceMask)
 	this.setMovements(positionIndex, movementMask)
 	return moved
 }

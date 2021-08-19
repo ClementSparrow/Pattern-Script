@@ -74,6 +74,13 @@ function selectText(containerid, e, ctrl_callback = null)
 var consolecache = []
 
 
+const dirMaskName = {
+	 1:'up',
+	 2:'down',
+	 4:'left',
+	 8:'right',
+}
+
 function consolePrintFromRule(text, rule, urgent)
 {
 	consolePrint('<font color="green">Rule ' + makeLinkToLine(rule.lineNumber) + ' ' + dirMaskName[rule.direction] + ": "  + text + '</font>', urgent)
