@@ -734,210 +734,207 @@ function processInput(dir, dontDoWin, dontModify)
 	var bak = level.backUp()
 
 	var playerPositions = []
-	if (dir <= 4)
+	if (dir >= 0)
 	{
-		if (dir >= 0)
+		dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
+		playerPositions = level.startMovement(dir)
+	}
+
+	bannedGroup = []
+	execution_context.resetCommands()
+
+	level.calculateRowColMasks()
+	const startState = {
+		objects: new Int32Array(level.objects),
+		movements: new Int32Array(level.movements),
+		rigidGroupIndexMask: level.rigidGroupIndexMask.concat([]),
+		rigidMovementAppliedMask: level.rigidMovementAppliedMask.concat([]),
+		// colCellContents: level.colCellContents.map(x => x.clone()),
+		// rowCellContents: level.rowCellContents.map(x => x.clone()),
+		// mapCellContents: level.mapCellContents.clone(),
+	}
+
+	sfxCreateMask.setZero()
+	sfxDestroyMask.setZero()
+
+	var seedsToPlay_CanMove = []
+	var seedsToPlay_CantMove = []
+
+	var i = max_rigid_loops
+	while (true)
+	{
+		if (verbose_logging) { consolePrint('applying rules') }
+		applyRules(state.rules, level, state.loopPoint, bannedGroup)
+
+		// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
+		if ( ! resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove) )
 		{
-			dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
-			playerPositions = level.startMovement(dir)
+			if (verbose_logging) { consolePrint('applying late rules') }
+			applyRules(state.lateRules, level, state.lateLoopPoint)
+			break
 		}
 
-		bannedGroup = []
+		// trackback
+		consolePrint("Rigid movement application failed, rolling back")
+		//don't need to concat or anythign here, once something is restored it won't be used again.
+		level.objects = new Int32Array(startState.objects)
+		level.movements = new Int32Array(startState.movements)
+		level.rigidGroupIndexMask = startState.rigidGroupIndexMask.concat([])
+		level.rigidMovementAppliedMask = startState.rigidMovementAppliedMask.concat([])
+		// TODO: shouldn't we also save/restore the level data computed by level.calculateRowColMasks()?
+		// -> I tried and it does not help with speed, but is it correct not to do it?
+		// level.colCellContents = startState.colCellContents.map(x => x.clone())
+		// level.rowCellContents = startState.rowCellContents.map(x => x.clone())
+		// level.mapCellContents = startState.mapCellContents.clone()
 		execution_context.resetCommands()
-
-		level.calculateRowColMasks()
-		const startState = {
-			objects: new Int32Array(level.objects),
-			movements: new Int32Array(level.movements),
-			rigidGroupIndexMask: level.rigidGroupIndexMask.concat([]),
-			rigidMovementAppliedMask: level.rigidMovementAppliedMask.concat([]),
-			// colCellContents: level.colCellContents.map(x => x.clone()),
-			// rowCellContents: level.rowCellContents.map(x => x.clone()),
-			// mapCellContents: level.mapCellContents.clone(),
-		}
-
 		sfxCreateMask.setZero()
 		sfxDestroyMask.setZero()
+		// TODO: shouldn't we also reset seedsToPlay_CanMove and seedsToPlay_CantMove?
 
-		var seedsToPlay_CanMove = []
-		var seedsToPlay_CantMove = []
-
-		var i = max_rigid_loops
-		while (true)
+		i--
+		if (i <= 0)
 		{
-			if (verbose_logging) { consolePrint('applying rules') }
-			applyRules(state.rules, level, state.loopPoint, bannedGroup)
-
-			// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
-			if ( ! resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove) )
-			{
-				if (verbose_logging) { consolePrint('applying late rules') }
-				applyRules(state.lateRules, level, state.lateLoopPoint)
-				break
-			}
-
-			// trackback
-			consolePrint("Rigid movement application failed, rolling back")
-			//don't need to concat or anythign here, once something is restored it won't be used again.
-			level.objects = new Int32Array(startState.objects)
-			level.movements = new Int32Array(startState.movements)
-			level.rigidGroupIndexMask = startState.rigidGroupIndexMask.concat([])
-			level.rigidMovementAppliedMask = startState.rigidMovementAppliedMask.concat([])
-			// TODO: shouldn't we also save/restore the level data computed by level.calculateRowColMasks()?
-			// -> I tried and it does not help with speed, but is it correct not to do it?
-			// level.colCellContents = startState.colCellContents.map(x => x.clone())
-			// level.rowCellContents = startState.rowCellContents.map(x => x.clone())
-			// level.mapCellContents = startState.mapCellContents.clone()
-			execution_context.resetCommands()
-			sfxCreateMask.setZero()
-			sfxDestroyMask.setZero()
-			// TODO: shouldn't we also reset seedsToPlay_CanMove and seedsToPlay_CantMove?
-
-			i--
-			if (i <= 0)
-			{
-				consolePrint('Cancelled '+max_rigid_loops+' rigid rules, gave up. Too many loops!')
-				break
-			}
+			consolePrint('Cancelled '+max_rigid_loops+' rigid rules, gave up. Too many loops!')
+			break
 		}
+	}
 
-		// require_player_movement
-		if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
+	// require_player_movement
+	if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
+	{
+		// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
+		if ( playerPositions.every( pos => ! state.playerMask.bitsClearInArray(level.getCell(pos).data) ) )
 		{
-			// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
-			if ( playerPositions.every( pos => ! state.playerMask.bitsClearInArray(level.getCell(pos).data) ) )
-			{
-				if (verbose_logging) { consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true) }
-				forceUndo(bak)
-				return false
-			}
-			//play player cantmove sounds here
-		}
-
-
-		// CANCEL command
-		if (execution_context.commandQueue.get(CommandsSet.command_keys.cancel))
-		{
-			if (verbose_logging)
-			{
-				consolePrintFromRule('CANCEL command executed, cancelling turn.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.cancel], true)
-			}
-			execution_context.commandQueue.processOutput()
-			tryPlaySimpleSound('cancel')
+			if (verbose_logging) { consolePrint('require_player_movement set, but no player movement detected, so cancelling turn.', true) }
 			forceUndo(bak)
 			return false
-		} 
-
-		// RESTART command
-		if (execution_context.commandQueue.get(CommandsSet.command_keys.restart))
-		{
-			if (verbose_logging)
-			{
-				consolePrintFromRule('RESTART command executed, reverting to restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
-			}
-			execution_context.commandQueue.processOutput()
-			DoRestart(bak)
-			return true
-		} 
-
-		var modified = false
-		if ( level.objects.some( (o, i) => o !== bak.dat[i] ) )
-		{
-			if (dontModify)
-			{
-				if (verbose_logging) { consoleCacheDump() }
-				forceUndo(bak)
-				return true
-			}
-			if (dir !== -1)
-			{
-				execution_context.backups.push(bak)
-			}
-			modified = true
 		}
+		//play player cantmove sounds here
+	}
 
+
+	// CANCEL command
+	if (execution_context.commandQueue.get(CommandsSet.command_keys.cancel))
+	{
+		if (verbose_logging)
+		{
+			consolePrintFromRule('CANCEL command executed, cancelling turn.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.cancel], true)
+		}
+		execution_context.commandQueue.processOutput()
+		tryPlaySimpleSound('cancel')
+		forceUndo(bak)
+		return false
+	} 
+
+	// RESTART command
+	if (execution_context.commandQueue.get(CommandsSet.command_keys.restart))
+	{
+		if (verbose_logging)
+		{
+			consolePrintFromRule('RESTART command executed, reverting to restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
+		}
+		execution_context.commandQueue.processOutput()
+		DoRestart(bak)
+		return true
+	} 
+
+	var modified = false
+	if ( level.objects.some( (o, i) => o !== bak.dat[i] ) )
+	{
 		if (dontModify)
 		{
-			if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
-				return true
-
 			if (verbose_logging) { consoleCacheDump() }
-			return false
+			forceUndo(bak)
+			return true
 		}
-
-		for (const seed of seedsToPlay_CantMove)
+		if (dir !== -1)
 		{
-			playSound(seed)
+			execution_context.backups.push(bak)
 		}
-
-		for (const seed of seedsToPlay_CanMove)
-		{
-			playSound(seed)
-		}
-
-		for (const entry of state.sfx_CreationMasks)
-		{
-			if (sfxCreateMask.anyBitsInCommon(entry.objectMask))
-			{
-				playSound(entry.seed)
-			}
-		}
-
-		for (const entry of state.sfx_DestructionMasks)
-		{
-			if (sfxDestroyMask.anyBitsInCommon(entry.objectMask))
-			{
-				playSound(entry.seed)
-			}
-		}
-
-		execution_context.commandQueue.processOutput()
-
-		if (screen_layout.content != msg_screen)
-		{
-			if (verbose_logging) { consolePrint('Checking win condition.') }
-			checkWin(dontDoWin)
-		}
-
-		if ( ! winning )
-		{
-			if (execution_context.commandQueue.get(CommandsSet.command_keys.checkpoint))
-			{
-				if (verbose_logging)
-				{ 
-					consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
-				}
-				execution_context.restartTarget = level.forSerialization()
-				hasUsedCheckpoint = true
-				storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
-				storage_set(document.URL, curlevel)
-			}	 
-
-			if ( modified && execution_context.commandQueue.get(CommandsSet.command_keys.again) )
-			{
-				const r = execution_context.commandQueue.sourceRules[CommandsSet.command_keys.again]
-
-				//first have to verify that something's changed
-				var old_verbose_logging = verbose_logging
-				var oldmessagetext = messagetext
-				verbose_logging = false
-				if (processInput(-1, true, true))
-				{
-					if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
-					againing = true
-					timer = 0
-				}
-				else
-				{
-					if (old_verbose_logging) { consolePrintFromRule('AGAIN command not executed, it wouldn\'t make any changes.', r) }
-				}
-				verbose_logging = old_verbose_logging
-				messagetext = oldmessagetext
-			}
-		}
-
-		execution_context.resetCommands()
+		modified = true
 	}
+
+	if (dontModify)
+	{
+		if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
+			return true
+
+		if (verbose_logging) { consoleCacheDump() }
+		return false
+	}
+
+	for (const seed of seedsToPlay_CantMove)
+	{
+		playSound(seed)
+	}
+
+	for (const seed of seedsToPlay_CanMove)
+	{
+		playSound(seed)
+	}
+
+	for (const entry of state.sfx_CreationMasks)
+	{
+		if (sfxCreateMask.anyBitsInCommon(entry.objectMask))
+		{
+			playSound(entry.seed)
+		}
+	}
+
+	for (const entry of state.sfx_DestructionMasks)
+	{
+		if (sfxDestroyMask.anyBitsInCommon(entry.objectMask))
+		{
+			playSound(entry.seed)
+		}
+	}
+
+	execution_context.commandQueue.processOutput()
+
+	if (screen_layout.content != msg_screen)
+	{
+		if (verbose_logging) { consolePrint('Checking win condition.') }
+		checkWin(dontDoWin)
+	}
+
+	if ( ! winning )
+	{
+		if (execution_context.commandQueue.get(CommandsSet.command_keys.checkpoint))
+		{
+			if (verbose_logging)
+			{ 
+				consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
+			}
+			execution_context.restartTarget = level.forSerialization()
+			hasUsedCheckpoint = true
+			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
+			storage_set(document.URL, curlevel)
+		}	 
+
+		if ( modified && execution_context.commandQueue.get(CommandsSet.command_keys.again) )
+		{
+			const r = execution_context.commandQueue.sourceRules[CommandsSet.command_keys.again]
+
+			//first have to verify that something's changed
+			var old_verbose_logging = verbose_logging
+			var oldmessagetext = messagetext
+			verbose_logging = false
+			if (processInput(-1, true, true))
+			{
+				if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
+				againing = true
+				timer = 0
+			}
+			else
+			{
+				if (old_verbose_logging) { consolePrintFromRule('AGAIN command not executed, it wouldn\'t make any changes.', r) }
+			}
+			verbose_logging = old_verbose_logging
+			messagetext = oldmessagetext
+		}
+	}
+
+	execution_context.resetCommands()
 
 	if (verbose_logging) { consoleCacheDump() }
 
@@ -945,6 +942,8 @@ function processInput(dir, dontDoWin, dontModify)
 
 	return modified
 }
+
+
 
 function checkWin(dontDoWin = false)
 {
