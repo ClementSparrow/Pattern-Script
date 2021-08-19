@@ -4,15 +4,15 @@
 function Level(lineNumber, width, height, layerCount, objects)
 {
 	// Debug info, should only be needed for the editor, not in the player
-	this.lineNumber = lineNumber;
+	this.lineNumber = lineNumber
 	// Definition of the level layout (should be constant)
-	this.width = width;
-	this.height = height;
-	this.n_tiles = width * height;
+	this.width = width
+	this.height = height
+	this.n_tiles = width * height
 	// This has the same value for all levels and should thus be an attribute of the game definition object
-	this.layerCount = layerCount;
+	this.layerCount = layerCount
 	// This is both the initial state of the level (constant) and the current state (mutable).
-	this.objects = objects;
+	this.objects = objects
 }
 
 Level.prototype.clone = function()
@@ -23,6 +23,12 @@ Level.prototype.clone = function()
 Level.prototype.cellCoord = function(cell_index)
 {
 	return [ (cell_index/this.height)|0, (cell_index%this.height) ]
+}
+
+Level.prototype.delta_index = function(direction)
+{
+	const [dx, dy] = dirMasksDelta[direction]
+	return dx*this.height + dy
 }
 
 Level.prototype.getCell = function(index)
@@ -171,36 +177,32 @@ Level.prototype.restore = function(lev)
 
 	this.objects = new Int32Array(lev.dat);
 
-	if (this.width !== lev.width || this.height !== lev.height) {
-		this.width = lev.width;
-		this.height = lev.height;
-		this.n_tiles = lev.width * lev.height;
-		this.rebuildArrays();
-		//regenerate all other stride-related stuff
+	if ( (this.width !== lev.width) || (this.height !== lev.height) )
+	{
+		this.width = lev.width
+		this.height = lev.height
+		this.n_tiles = lev.width * lev.height
+		this.rebuildArrays() //regenerate all other stride-related stuff
 	}
 	else 
 	{
-	// layercount doesn't change
-
-		for (var i=0;i<this.n_tiles;i++) {
-			this.movements[i]=0;
-			this.rigidMovementAppliedMask[i]=0;
-			this.rigidGroupIndexMask[i]=0;
+		// layercount doesn't change
+		for (var i=0; i<this.n_tiles; i++)
+		{
+			this.movements[i] = 0
+			this.rigidMovementAppliedMask[i] = 0
+			this.rigidGroupIndexMask[i] = 0
 		}	
 
-		for (var i=0;i<this.height;i++) {
+		for (var i=0; i<this.height; i++)
+		{
 			this.rowCellContents[i].setZero();
 		}
-		for (var i=0;i<this.width;i++) {
+		for (var i=0; i<this.width; i++)
+		{
 			this.colCellContents[i].setZero();
 		}
 	}
 
 	againing = false
-}
-
-Level.prototype.delta_index = function(direction)
-{
-	const [dx, dy] = dirMasksDelta[direction]
-	return dx*this.height + dy
 }
