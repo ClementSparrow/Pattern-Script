@@ -800,6 +800,7 @@ function processInput(dir, dontDoWin, dontModify)
 	}
 
 	// require_player_movement
+	// TODO: shouldn't this be tested after CANCEL and RESTART commands? (and AGAIN ?)
 	if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
 	{
 		// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
@@ -891,7 +892,7 @@ function processInput(dir, dontDoWin, dontModify)
 
 	execution_context.commandQueue.processOutput()
 
-	if (screen_layout.content != msg_screen)
+	if (screen_layout.content !== msg_screen)
 	{
 		if (verbose_logging) { consolePrint('Checking win condition.') }
 		checkWin(dontDoWin)
@@ -915,14 +916,16 @@ function processInput(dir, dontDoWin, dontModify)
 		{
 			const r = execution_context.commandQueue.sourceRules[CommandsSet.command_keys.again]
 
-			//first have to verify that something's changed
+			// first have to verify that something's changed
+			// TODO: why that? Can't we simply do the next again loop until no 'again' command is triggered or nothing has changed? => there is supposed to be a delay before
+			// the next turn triggered by again, and a key-triggered undo could happen during that interval (other keys are disabled, as well as autotick)
 			var old_verbose_logging = verbose_logging
 			var oldmessagetext = messagetext
 			verbose_logging = false
-			if (processInput(-1, true, true))
+			if (processInput(-1, true, true)) // This is the only place we call processInput with parameter dontModify set to true
 			{
 				if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
-				againing = true
+				againing = true // this is the only place where we set againing to true
 				timer = 0
 			}
 			else
@@ -938,13 +941,11 @@ function processInput(dir, dontDoWin, dontModify)
 
 	if (verbose_logging) { consoleCacheDump() }
 
-	againing &&= ! winning
-
 	return modified
 }
 
 
-
+// only called from update when closing a message, and from processInput
 function checkWin(dontDoWin = false)
 {
 	dontDoWin |= screen_layout.dontDoWin()
@@ -1001,6 +1002,7 @@ function checkWin(dontDoWin = false)
 	}
 }
 
+// only called from checkWin
 function DoWin()
 {
 	if (winning)
