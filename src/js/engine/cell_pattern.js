@@ -167,7 +167,7 @@ function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
 	return true
 }
 
-var _o2_5,_o3,_o4,_o5,_o6,_o7,_o8,_o9,_o10,_o11;
+var _o2_5,_o3,_o6,_o7,_o8,_o9,_o10,_o11;
 var _m3;
 
 CellPattern.prototype.replace = function(rule, level, currentIndex)
@@ -185,25 +185,16 @@ CellPattern.prototype.replace = function(rule, level, currentIndex)
 	var oldCellMask = level.getCellInto(currentIndex, _o3)
 	var oldMovementMask = level.getMovements(currentIndex)
 	
-	var curCellMask = oldCellMask.cloneInto(_o2_5)
-	curCellMask.iclear(static_CellReplacement.objectsClear)
-	curCellMask.ior(static_CellReplacement.objectsSet)
-
-	var curMovementMask = oldMovementMask.cloneInto(_m3)
-	curMovementMask.iclear(static_CellReplacement.movementsClear)
-	curMovementMask.ior(static_CellReplacement.movementsSet)
+	var curCellMask = oldCellMask.iClearAddInto(static_CellReplacement.objectsClear, static_CellReplacement.objectsSet, _o2_5)
+	var curMovementMask = oldMovementMask.iClearAddInto(static_CellReplacement.movementsClear, static_CellReplacement.movementsSet, _m3)
 
 	// Rigid + check if something changed
 	if ( ( ! replaceRigid(rule, level, currentIndex, this.replacement.movementsLayerMask) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
 		return false
 
 	// Sfx
-	var created = curCellMask.cloneInto(_o4);
-	created.iclear(oldCellMask);
-	sfxCreateMask.ior(created);
-	var destroyed = oldCellMask.cloneInto(_o5);
-	destroyed.iclear(curCellMask);
-	sfxDestroyMask.ior(destroyed);
+	sfxCreateMask .iAddBut(curCellMask, oldCellMask)
+	sfxDestroyMask.iAddBut(oldCellMask, curCellMask)
 
 	// Update the level
 	level.updateCellContent(currentIndex, curCellMask, curMovementMask)

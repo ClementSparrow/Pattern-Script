@@ -3,12 +3,6 @@ function BitVec(init) {
 	this.data = new Int32Array(init);
 }
 
-BitVec.prototype.cloneInto = function(target) {
-	for (var i=0;i<this.data.length;++i) {
-		target.data[i]=this.data[i];
-	}
-	return target;
-}
 BitVec.prototype.clone = function() {
 	return new BitVec(this.data);
 }
@@ -16,45 +10,40 @@ BitVec.prototype.clone = function() {
 // Operations on the whole set of bits
 // ===================================
 
-BitVec.prototype.setZero = function() {
-	for (var i = 0; i < this.data.length; ++i) {
-		this.data[i]=0;
-	}
+// Don't use these functions with a bitvec created from Level.getCell, which uses internally a subarray that adds layers of abstraction.
+// It's faster to first getCellInto and then use the functions.
+
+function generate_bitvec_function(formula, return_var)
+{
+	var params = []
+	const body = formula.replace(/{([a-zA-Z_][a-zA-Z_\d]*)}/g, function(_, match)
+		{
+			if ( (match !== 'this') && (params.indexOf(match) < 0) )
+				params.push(match)
+			return match+'.data[i]'
+		})
+	params.sort()
+	const return_value = (return_var !== undefined) ? '\nreturn ' + return_var : ''
+	return Function(...params, 'for (var i=0; i<this.data.length; ++i) ' + body + return_value)
 }
 
-BitVec.prototype.iand = function(other) {
-	for (var i = 0; i < this.data.length; ++i) {
-		this.data[i] &= other.data[i];
-	}
-}
+BitVec.prototype.cloneInto = generate_bitvec_function('{target} = {this}', 'target')
 
+BitVec.prototype.setZero = generate_bitvec_function('{this} = 0')
 
-BitVec.prototype.inot = function() {
-	for (var i = 0; i < this.data.length; ++i) {
-		this.data[i] = ~this.data[i];
-	}
-}
+BitVec.prototype.inot = generate_bitvec_function('{this} = ~{this}')
 
-BitVec.prototype.ior = function(other) {
-	for (var i = 0; i < this.data.length; ++i) {
-		this.data[i] |= other.data[i];
-	}
-}
+BitVec.prototype.iand = generate_bitvec_function('{this} &= {other}')
+
+BitVec.prototype.ior = generate_bitvec_function('{this} |= {other}')
 
 // Note that x.iclear(y) is equivalent to x.iand(y.clone().inot()) and can sometimes be optimized by precomputing y.clone().inot()
-BitVec.prototype.iclear = function(other) {
-	for (var i = 0; i < this.data.length; ++i) {
-		this.data[i] &= ~other.data[i];
-	}
-}
-// Commenting this because for some reason, it is much faster to copy a bitvec and call iclear on it than to do both operations in one loop...
-// maybe because I tried with a bitvec created from Level.getCell, which uses internally a subarray, which adds layers of abstraction?
-// BitVec.prototype.iclearInto = function(other, dest) {
-// 	for (var i = 0; i < this.data.length; ++i) {
-// 		dest.data[i] = this.data[i] & ~other.data[i];
-// 	}
-// 	return dest
-// }
+BitVec.prototype.iclear = generate_bitvec_function('{this} &= ~{other}')
+
+BitVec.prototype.iClearAddInto = generate_bitvec_function('{dest} = ({this} & ~{a}) | {b}', 'dest')
+
+BitVec.prototype.iAddBut = generate_bitvec_function('{this} |= {a} & ~{b}')
+
 
 // Operations on individual bits
 // =============================
