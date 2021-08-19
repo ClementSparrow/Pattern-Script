@@ -551,7 +551,7 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex)
 		// 1) it does not use the layer and will apply to any object moving in that cell, even if they belong to a layer not yet tested and will collide
 		// 2) it's not the place to do that
 		// 3) the structure of state.sfx_MovementMasks could be organized as lists by layer, to minimize the amount of unnecessary looping
-		for (const o of state.sfx_MovementMasks)
+		for (const o of state.sfx_MovementMasks[layer])
 		{
 			if ( o.objectMask.anyBitsInCommon(sourceMask) && movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 			{
