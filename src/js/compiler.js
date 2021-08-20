@@ -325,17 +325,6 @@ function levelsToArray(state)
 	state.levels = processedLevels;
 }
 
-
-/*
-	direction mask
-	UP parseInt('%1', 2);
-	DOWN parseInt('0', 2);
-	LEFT parseInt('0', 2);
-	RIGHT parseInt('0', 2);
-	?  parseInt('', 2);
-
-*/
-
 var dirMasks = {
 	'up'	: parseInt('00001', 2),
 	'down'	: parseInt('00010', 2),

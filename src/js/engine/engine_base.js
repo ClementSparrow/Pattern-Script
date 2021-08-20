@@ -394,7 +394,7 @@ executionContext.prototype.doUndo = function()
 	tryPlaySimpleSound('undo')
 }
 
-function forceUndo(backup) // force=true, ignoreDuplicates=false
+function forceUndo(backup)
 {
 	if (verbose_logging) { consolePrint("--- undoing ---", true) }
 	level.restore(backup)
