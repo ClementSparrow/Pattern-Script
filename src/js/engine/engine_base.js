@@ -99,11 +99,11 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	clearInputHistory();
 }
 
-function loadLevelFromState(state, levelindex, target, randomseed)
+function loadLevelFromState(state, levelindex, randomseed)
 {
+	const target = curlevelTarget
 	const leveldat = (target === null) ? state.levels[levelindex] : target
 	curlevel = levelindex
-	curlevelTarget = target
 	if ( (leveldat !== undefined) && (leveldat.message === undefined) )
 	{
 		tryPlaySimpleSound('startlevel')
@@ -124,7 +124,8 @@ function goToLevel(i, state, levelindex, randomseed)
 	timer = 0
 	menu_screen.done = false
 	msg_screen.done = false
-	loadLevelFromState(state, levelindex, null, randomseed)
+	curlevelTarget = null
+	loadLevelFromState(state, levelindex, randomseed)
 }
 
 
@@ -1037,7 +1038,7 @@ function nextLevel()
 			curlevel = 0
 			curlevelTarget = null
 		} 			
-		loadLevelFromState(state, curlevel, curlevelTarget)
+		loadLevelFromState(state, curlevel)
 	}
 	else
 	{
@@ -1050,7 +1051,7 @@ function nextLevel()
 		{			
 			curlevel++
 			msg_screen.done = false
-			loadLevelFromState(state, curlevel, curlevelTarget)
+			loadLevelFromState(state, curlevel)
 		}
 		else
 		{
