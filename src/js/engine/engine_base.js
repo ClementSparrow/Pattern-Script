@@ -82,7 +82,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		}
 		screen_layout.content.level = level
 
-		execution_context.backups = []
+		execution_context.resetUndoStack()
 		execution_context.restartTarget = level.backUp()
 		keybuffer = []
 
@@ -146,6 +146,10 @@ function executionContext()
 }
 var execution_context = new executionContext()
 
+executionContext.prototype.resetUndoStack = function()
+{
+	this.backups = []
+}
 executionContext.prototype.resetCommands = function()
 {
 	this.commandQueue.reset()
@@ -237,7 +241,7 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 
 	if (command[0] !== 'rebuild')
 	{
-		execution_context.backups = []
+		execution_context.resetUndoStack() // TODO: shouldn't we also reset restartTarget?
 	}
 
 	//set sprites
@@ -841,29 +845,23 @@ function processInput(dir, dontDoWin, dontModify)
 		return true
 	} 
 
-	var modified = false
-	if ( level.objects.some( (o, i) => o !== bak.dat[i] ) )
+	const modified = level.objects.some( (o, i) => o !== bak.dat[i] )
+
+	if (dontModify) // this is a fake frame just to check that applying again would cause some change
 	{
-		if (dontModify)
+		if (modified)
 		{
-			if (verbose_logging) { consoleCacheDump() }
+			// if (verbose_logging) { consoleCacheDump() } // verbose_logging is set to false when dontModify is set to true
 			forceUndo(bak)
 			return true
 		}
-		if (dir !== -1)
-		{
-			execution_context.backups.push(bak)
-		}
-		modified = true
+		return (execution_context.commandQueue.get(CommandsSet.command_keys.win))
 	}
 
-	if (dontModify)
+	// Add the frame to undo stack if something changed in the frame and it has some actual player input (not ticks, not apply rules on level start)
+	if (modified && (dir !== -1) )
 	{
-		if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
-			return true
-
-		if (verbose_logging) { consoleCacheDump() }
-		return false
+		execution_context.backups.push(bak)
 	}
 
 	for (const seed of seedsToPlay_CantMove)
