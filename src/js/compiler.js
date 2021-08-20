@@ -600,7 +600,6 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 				var objectsPossiblyCreatedStationary = objectlayers_r.clone()
 				objectsPossiblyCreatedStationary.iclear(objectlayers_l)
 				objectsPossiblyCreatedStationary.iclear(postMovementsLayerMask_r)
-				// if ( ! objectsPossiblyCreatedStationary.iszero() ) { console.log('check out rule '+rule.lineNumber+'!') }
 				movementsClear.ior(objectsPossiblyCreatedStationary)
 			}
 
@@ -802,7 +801,7 @@ function generateSoundData(state)
 	var sfx_CreationMasks = [];
 	var sfx_DestructionMasks = [];
 	var sfx_MovementMasks = Array.from(state.collisionLayers, cl => [])
-	var sfx_MovementFailureMasks = [];
+	var sfx_MovementFailureMasks = Array.from(state.collisionLayers, cl => [])
 
 	for (var sound of state.sounds)
 	{
@@ -889,26 +888,19 @@ function generateSoundData(state)
 				}
 			}
 
-			const targets = Array.from( state.identifiers.getObjectsForIdentifier(target_index), object_index => state.identifiers.objects[object_index] );
-
 			if (verb === 'move' || verb === 'cantmove')
 			{
-				for (var targetDat of targets)
+				for (const [layer, array] of (verb === 'move' ? sfx_MovementMasks : sfx_MovementFailureMasks).entries() )
 				{
-					const targetLayer = targetDat.layer;
-					const shiftedDirectionMask = new BitVec(STRIDE_MOV);
-					shiftedDirectionMask.ishiftor(directionMask, 5*targetLayer);
-
-					const o = {
-						objectMask: objectMask,
-						directionMask: shiftedDirectionMask,
-						seed: seed
-					};
-
-					if (verb === 'move') {
-						sfx_MovementMasks[targetLayer].push(o)
-					} else {
-						sfx_MovementFailureMasks.push(o);
+					var objectsInLayerMask = objectMask.clone()
+					objectsInLayerMask.iand(state.layerMasks[layer])
+					if ( ! objectsInLayerMask.iszero() )
+					{
+						array.push({
+							objectMask: objectsInLayerMask,
+							directionMask: directionMask,
+							seed: seed
+						})
 					}
 				}
 			}

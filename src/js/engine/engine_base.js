@@ -138,7 +138,7 @@ function executionContext()
 {
 	// Undo/restart/checkpoints data
 	this.backups = [] // only used in doUndo
-	this.restartTarget = null // only used in DoRestart
+	this.restartTarget = null // last checkpoint reached. Only used in DoRestart
 
 	// Output queue
 	this.commandQueue = new CommandsSet()
@@ -381,6 +381,7 @@ executionContext.prototype.doUndo = function()
 	if ( ( ! screen_layout.alwaysAllowUndo() ) && ('noundo' in state.metadata) )
 		return
 
+	// See Pattern:Script issue #23
 	while (this.backupDiffers() === false)
 	{
 		this.backups.pop()
@@ -544,10 +545,10 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_C
 		if ( (targetIndex !== positionIndex) && layerMask.anyBitsInCommon(targetMask) ) // if moving and collision.
 			continue
 
-		// TODO: this test is there because at that point we know that something will move in that level, but it's not the place to do that
+		// TODO: this test is there because at that point we know that something will move in that layer, but it's not the place to do that
 		for (const o of state.sfx_MovementMasks[layer])
 		{
-			if ( o.objectMask.anyBitsInCommon(sourceMask) && movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
+			if ( (dirMask & o.directionMask) && o.objectMask.anyBitsInCommon(sourceMask) && (seedsToPlay_CanMove.indexOf(o.seed) === -1) )
 			{
 				seedsToPlay_CanMove.push(o.seed) // TODO: we should use a set or bitvec instead of an array
 			}
@@ -619,11 +620,12 @@ function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_C
 					}
 				}
 			}
-			for (const o of state.sfx_MovementFailureMasks)
-			{				
-				if (o.objectMask.anyBitsInCommon(cellMask))
-				{
-					if ( movementMask.anyBitsInCommon(o.directionMask) && (seedsToPlay_CantMove.indexOf(o.seed) === -1) )
+			for (const [layer, sfx_objects] of state.sfx_MovementFailureMasks.entries() )
+			{
+				const dirMask = movementMask.getshiftor(0x1f, 5*layer)
+				for (const o of sfx_objects)
+				{				
+					if ( (dirMask & o.objectMask) && o.objectMask.anyBitsInCommon(cellMask) && (seedsToPlay_CantMove.indexOf(o.seed) === -1) )
 					{
 						seedsToPlay_CantMove.push(o.seed)
 					}
@@ -917,8 +919,8 @@ function processInput(dir, dontDoWin, dontModify)
 			const r = execution_context.commandQueue.sourceRules[CommandsSet.command_keys.again]
 
 			// first have to verify that something's changed
-			// TODO: why that? Can't we simply do the next again loop until no 'again' command is triggered or nothing has changed? => there is supposed to be a delay before
-			// the next turn triggered by again, and a key-triggered undo could happen during that interval (other keys are disabled, as well as autotick)
+			// TODO: instead, we could precompute the next state and activate it when the again_interval times out. It would require to store the to-be-displayed console messages
+			// with the precomputed level, but I think we can do that, and for emulation/debugging purposes it might be good to associate the error messages with the state
 			var old_verbose_logging = verbose_logging
 			var oldmessagetext = messagetext
 			verbose_logging = false
