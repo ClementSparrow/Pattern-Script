@@ -18,9 +18,10 @@ function runTest(dataarray) {
 	if (errorStrings.length > 0)
 		return false
 
-	while (againing) {
-		againing=false;
-		processInput(-1);			
+	while (againing)
+	{
+		againing = false
+		processInput(processing_causes.again_frame)
 	}
 	
 	for(const val of inputDat)
@@ -30,13 +31,14 @@ function runTest(dataarray) {
 		} else if (val === "restart") {
 			DoRestart()
 		} else if (val === "tick") {
-			processInput(-1)
+			processInput(processing_causes.autotick)
 		} else {
 			processInput(val)
 		}
-		while (againing) {
-			againing=false;
-			processInput(-1);			
+		while (againing)
+		{
+			againing = false
+			processInput(processing_causes.again_frame)
 		}
 	}
 

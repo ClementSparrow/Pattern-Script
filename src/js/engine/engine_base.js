@@ -83,9 +83,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 		if ('run_rules_on_level_start' in state.metadata)
 		{
-			runrulesonlevelstart_phase = true
-			processInput(-1, true)
-			runrulesonlevelstart_phase = false
+			processInput(processing_causes.run_rules_on_level_start)
 		}
 	} else {
 		showTempMessage()
@@ -306,7 +304,7 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			const targetLine = command[1]
 			for (var i=state.levels.length-1; i>=0; i--)
 			{
-				if(state.levels[i].lineNumber <= targetLine+1)
+				if (state.levels[i].lineNumber <= targetLine+1)
 				{
 					goToLevel(state, i)
 					break
@@ -359,7 +357,7 @@ function DoRestart(bak)
 
 	if ('run_rules_on_level_start' in state.metadata)
 	{
-		processInput(-1, true)
+		processInput(processing_causes.run_rules_on_level_start)
 	}
 	
 	execution_context.resetCommands()
@@ -714,32 +712,30 @@ Level.prototype.startMovement = function(dir)
 
 const max_rigid_loops = 50
 
+const processing_causes = { run_rules_on_level_start: -1, againing_test: -2, again_frame: -3, autotick: -4, } // positive inputs are directions/action
+
 /* returns a bool indicating if anything changed */
-function processInput(dir, dontDoWin, dontModify)
+function processInput(input)
 {
 	againing = false
 
 	if (verbose_logging)
 	{
-		if (dir === -1) 
+		if (input < 0)
 		{
 			consolePrint('Turn starts with no input.')
 		}
 		else
 		{
 			consolePrint('=======================');
-			consolePrint('Turn starts with input of ' + ['up','left','down','right','action'][dir]+'.');
+			consolePrint('Turn starts with input of ' + ['up','left','down','right','action'][input]+'.')
 		}
 	}
 
 	var bak = level.backUp()
 
-	var playerPositions = []
-	if (dir >= 0)
-	{
-		dir = ([1, 4, 2, 8, 16])[dir] // TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
-		playerPositions = level.startMovement(dir)
-	}
+	// TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
+	const playerPositions = (input >= 0) ? level.startMovement( ([1, 4, 2, 8, 16])[input] ) : []
 
 	bannedGroup = []
 	execution_context.resetCommands()
@@ -842,19 +838,18 @@ function processInput(dir, dontDoWin, dontModify)
 
 	const modified = level.objects.some( (o, i) => o !== bak.dat[i] )
 
-	if (dontModify) // this is a fake frame just to check that applying again would cause some change
+	if (input === processing_causes.againing_test) // this is a fake frame just to check that applying again would cause some change
 	{
 		if (modified)
 		{
-			// if (verbose_logging) { consoleCacheDump() } // verbose_logging is set to false when dontModify is set to true
 			forceUndo(bak)
 			return true
 		}
 		return (execution_context.commandQueue.get(CommandsSet.command_keys.win))
 	}
 
-	// Add the frame to undo stack if something changed in the frame and it has some actual player input (not ticks, not apply rules on level start)
-	if (modified && (dir !== -1) )
+	// Add the frame to undo stack if something changed in the frame and it has some actual player input (not ticks, not apply rules on level start, not againing)
+	if (modified && (input >= 0) )
 	{
 		execution_context.backups.push(bak)
 	}
@@ -890,7 +885,7 @@ function processInput(dir, dontDoWin, dontModify)
 	if (screen_layout.content !== msg_screen)
 	{
 		if (verbose_logging) { consolePrint('Checking win condition.') }
-		checkWin(dontDoWin)
+		checkWin(input)
 	}
 
 	if ( ! winning )
@@ -917,7 +912,7 @@ function processInput(dir, dontDoWin, dontModify)
 			var old_verbose_logging = verbose_logging
 			var oldmessagetext = messagetext
 			verbose_logging = false
-			if (processInput(-1, true, true)) // This is the only place we call processInput with parameter dontModify set to true
+			if (processInput(processing_causes.againing_test)) // This is the only place we call processInput with the againing_test cause
 			{
 				if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
 				againing = true // this is the only place where we set againing to true
@@ -941,57 +936,44 @@ function processInput(dir, dontDoWin, dontModify)
 
 
 // only called from update when closing a message, and from processInput
-function checkWin(dontDoWin = false)
+function checkWin(cause_of_processing)
 {
-	dontDoWin |= screen_layout.dontDoWin()
-
-	if (execution_context.commandQueue.get(CommandsSet.command_keys.win))
+	if ( ! execution_context.commandQueue.get(CommandsSet.command_keys.win) )
 	{
-		if (runrulesonlevelstart_phase)
-		{
-			consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");
-		} else {
-			consolePrint("Win Condition Satisfied");
-		}
-		if( ! dontDoWin )
-		{
-			DoWin()
-		}
-		return
-	}
-
-	if (state.winconditions.length == 0)
-		return
-
-	for (const [quantifier, filter1, filter2] of state.winconditions)
-	{
-		// TODO: can we use level.mapCellContents to optimize this?
-		// "no"   FAILS    if we find an x WITH    an y
-		// "some" SUCCEEDS if we find an x WITH    an y
-		// "all"  FAILS    if we find an x WITHOUT an y
-		var rulePassed = (quantifier != 0)
-		const search_WITH = (quantifier < 1)
-		for (var i=0; i<level.n_tiles; i++)
-		{
-			const cell = level.getCellInto(i,_o10)
-			if ( ( ! filter1.bitsClearInArray(cell.data) ) && (search_WITH ^ filter2.bitsClearInArray(cell.data)) )
-			{
-				rulePassed = ! rulePassed
-				break
-			}
-		}
-		if ( ! rulePassed )
+		if (state.winconditions.length === 0)
 			return
+
+		for (const [quantifier, filter1, filter2] of state.winconditions)
+		{
+			// TODO: can we use level.mapCellContents to optimize this?
+			// "no"   FAILS    if we find an x WITH    an y
+			// "some" SUCCEEDS if we find an x WITH    an y
+			// "all"  FAILS    if we find an x WITHOUT an y
+			var rulePassed = (quantifier != 0)
+			const search_WITH = (quantifier < 1)
+			for (var i=0; i<level.n_tiles; i++)
+			{
+				const cell = level.getCellInto(i,_o10)
+				if ( ( ! filter1.bitsClearInArray(cell.data) ) && (search_WITH ^ filter2.bitsClearInArray(cell.data)) )
+				{
+					rulePassed = ! rulePassed
+					break
+				}
+			}
+			if ( ! rulePassed )
+				return
+		}
 	}
 
 	// won
-	if (runrulesonlevelstart_phase)
+	if (cause_of_processing === processing_causes.run_rules_on_level_start)
 	{
-		consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)");		
-	} else {
-		consolePrint("Win Condition Satisfied");
+		consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)")
+		return
 	}
-	if ( ! dontDoWin )
+
+	consolePrint('Win Condition Satisfied')
+	if ( ! screen_layout.dontDoWin() )
 	{
 		DoWin()
 	}

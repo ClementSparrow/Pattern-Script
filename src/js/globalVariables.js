@@ -2,7 +2,6 @@ var unitTesting=false;
 var curlevel=0;
 var curlevelTarget = null
 var muted=0;
-var runrulesonlevelstart_phase=false;
 
 const storage_get = (key) => localStorage.getItem(key)
 const storage_has = (key) => (localStorage.getItem(key) !== null)

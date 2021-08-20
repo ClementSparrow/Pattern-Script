@@ -33,7 +33,7 @@ function makeGIF()
 		} else if (val === 'restart') {
 			DoRestart();
 		} else if (val === 'tick') {			
-			processInput(-1)
+			processInput(processing_causes.autotick)
 			realtimeframe = true
 		} else {
 			processInput(val)
@@ -47,7 +47,7 @@ function makeGIF()
 
 		while (againing)
 		{
-			processInput(-1)
+			processInput(processing_causes.again_frame)
 			redraw()
 
 			encoder.setDelay(againinterval)

@@ -391,9 +391,9 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 		return true;
 
 	pushInput(inputdir)
-	if (processInput(inputdir))
+	if ( processInput(inputdir) )
 	{
-		redraw();
+		redraw()
 	}
 	return true;
 }
@@ -408,7 +408,7 @@ function update()
         menu_screen.done = false
         nextLevel();
     }
-    if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(-1) )
+    if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(processing_causes.again_frame) )
     {
 		redraw()
 		keyRepeatTimer = 0
@@ -465,7 +465,7 @@ function update()
         {
             autotick = 0;
             pushInput("tick");
-            if (processInput(-1))
+            if (processInput(processing_causes.autotick))
             {
                 redraw();
             }
