@@ -1,6 +1,6 @@
 var unitTesting=false;
 var curlevel=0;
-var curlevelTarget=null;
+var curlevelTarget = null
 var muted=0;
 var runrulesonlevelstart_phase=false;
 
@@ -30,7 +30,7 @@ function doSetupTitleScreenLevelContinue()
 	} catch(ex) { }
 }
 
-doSetupTitleScreenLevelContinue();
+doSetupTitleScreenLevelContinue()
 
 
 var verbose_logging=false;
