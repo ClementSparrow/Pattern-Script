@@ -101,19 +101,18 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 function loadLevelFromState(state, levelindex, randomseed)
 {
-	const target = curlevelTarget
-	const leveldat = (target === null) ? state.levels[levelindex] : target
+	const leveldat = (curlevelTarget === null) ? state.levels[levelindex] : curlevelTarget
 	curlevel = levelindex
 	if ( (leveldat !== undefined) && (leveldat.message === undefined) )
 	{
 		tryPlaySimpleSound('startlevel')
 	}
 	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
-	if (target !== null)
+	if (curlevelTarget !== null)
 	{
-		level.restore(target)
+		level.restore(curlevelTarget)
 		execution_context.resetCommands()
-		execution_context.restartTarget = target
+		execution_context.restartTarget = curlevelTarget
 	}
 }
 
@@ -308,7 +307,7 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			goToLevel(i, state, command[1], randomseed)
 			break;
 		}
-		case 'levelline':
+		case 'levelline': // called when clicking on a level line in the editor
 		{
 			const targetLine = command[1]
 			for (var i=state.levels.length-1; i>=0; i--)
@@ -1053,7 +1052,7 @@ function nextLevel()
 			msg_screen.done = false
 			loadLevelFromState(state, curlevel)
 		}
-		else
+		else // end game
 		{
 			try {
 				storage_remove(document.URL)
