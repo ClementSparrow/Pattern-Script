@@ -111,9 +111,8 @@ function loadLevelFromState(state, levelindex, randomseed)
 	}
 }
 
-function goToLevel(i, state, levelindex, randomseed)
+function goToLevel(state, levelindex, randomseed)
 {
-	curlevel = i
 	winning = false
 	timer = 0
 	menu_screen.done = false
@@ -292,14 +291,14 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 				if (state.levels[i].hasOwnProperty("message")){
 					continue;
 				}
-				goToLevel(i, state, i, randomseed)
+				goToLevel(state, i, randomseed)
 				break;
 			}
 			break;	
 		}
 		case 'loadLevel':
 		{
-			goToLevel(i, state, command[1], randomseed)
+			goToLevel(state, command[1], randomseed)
 			break;
 		}
 		case 'levelline': // called when clicking on a level line in the editor
@@ -309,7 +308,7 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			{
 				if(state.levels[i].lineNumber <= targetLine+1)
 				{
-					goToLevel(i, state, i)
+					goToLevel(state, i)
 					break
 				}
 			}
