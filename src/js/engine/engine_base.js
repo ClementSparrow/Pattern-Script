@@ -101,7 +101,6 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 function loadLevelFromState(state, levelindex, target, randomseed)
 {
-	if (target === undefined) { target = null }
 	const leveldat = (target === null) ? state.levels[levelindex] : target
 	curlevel = levelindex
 	curlevelTarget = target
@@ -118,14 +117,14 @@ function loadLevelFromState(state, levelindex, target, randomseed)
 	}
 }
 
-function goToLevel(i, state, levelindex, target, randomseed)
+function goToLevel(i, state, levelindex, randomseed)
 {
 	curlevel = i
 	winning = false
 	timer = 0
 	menu_screen.done = false
 	msg_screen.done = false
-	loadLevelFromState(state, levelindex, target, randomseed)
+	loadLevelFromState(state, levelindex, null, randomseed)
 }
 
 
@@ -139,6 +138,8 @@ function executionContext()
 	// Undo/restart/checkpoints data
 	this.backups = [] // only used in doUndo
 	this.restartTarget = null // last checkpoint reached. Only used in DoRestart
+	this.hasUsedCheckpoint = false // was a checkpoint used in this level?
+
 
 	// Output queue
 	this.commandQueue = new CommandsSet()
@@ -296,14 +297,14 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 				if (state.levels[i].hasOwnProperty("message")){
 					continue;
 				}
-				goToLevel(i, state, i, null, randomseed)
+				goToLevel(i, state, i, randomseed)
 				break;
 			}
 			break;	
 		}
 		case 'loadLevel':
 		{
-			goToLevel(i, state, command[1], null, randomseed)
+			goToLevel(i, state, command[1], randomseed)
 			break;
 		}
 		case 'levelline':
@@ -907,7 +908,7 @@ function processInput(dir, dontDoWin, dontModify)
 				consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 			}
 			execution_context.restartTarget = level.forSerialization()
-			hasUsedCheckpoint = true
+			execution_context.hasUsedCheckpoint = true
 			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
 			storage_set(document.URL, curlevel)
 		}	 
@@ -1040,10 +1041,10 @@ function nextLevel()
 	}
 	else
 	{
-		if (hasUsedCheckpoint)
+		if (execution_context.hasUsedCheckpoint)
 		{
 			curlevelTarget = null
-			hasUsedCheckpoint = false
+			execution_context.hasUsedCheckpoint = false
 		}
 		if (curlevel < state.levels.length-1)
 		{			
