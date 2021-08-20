@@ -336,11 +336,8 @@ var messagetext=""; // the text of a message command appearing in a rule only (n
 
 function DoRestart(bak)
 {
-	if (restarting === true)
-		return
 	if ( (bak === undefined) && ('norestart' in state.metadata) )
 		return
-	restarting = true
 	execution_context.backups.push( bak || level.backUp() )
 
 	if (verbose_logging) { consolePrint("--- restarting ---", true) }
@@ -356,7 +353,6 @@ function DoRestart(bak)
 	}
 	
 	execution_context.resetCommands()
-	restarting = false
 }
 
 executionContext.prototype.backupDiffers = function()
@@ -827,8 +823,15 @@ function processInput(input)
 			consolePrintFromRule('RESTART command executed, reverting to restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
 		}
 		execution_context.commandQueue.processOutput()
-		DoRestart(bak)
-		return true
+		if (input === processing_causes.run_rules_on_level_start)
+		{
+			if (verbose_logging) consolePrint('Restart cancelled because it would cause an infinite loop if executed during a "run_rules_on_level_start" phase.')
+		}
+		else
+		{
+			DoRestart(bak)
+			return true
+		}
 	} 
 
 	const modified = level.objects.some( (o, i) => o !== bak.dat[i] )
