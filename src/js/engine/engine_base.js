@@ -49,11 +49,6 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	RandomGen = new RNG(loadedLevelSeed);
 	forceRegenImages()
 	againing=false;
-	if (leveldat===undefined) {
-		consolePrint("Trying to access a level that doesn't exist.", true)
-		goToTitleScreen();
-		return;
-	}
 	if (leveldat.message===undefined) {
 		menu_screen.nb_items = 1 // TODO: this should not be here
 		screen_layout.content = level_screen
