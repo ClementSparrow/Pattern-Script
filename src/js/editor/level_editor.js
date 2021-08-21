@@ -38,6 +38,7 @@ LevelEditorScreen.prototype.toggle = function()
 	{
 		screen_layout.content.content.level.printToConsole()
 		screen_layout.content = screen_layout.content.content // close
+		execution_context.restartTarget = screen_layout.content.level.backUp()
 	}
 	else
 	{
@@ -50,7 +51,7 @@ LevelEditorScreen.prototype.toggle = function()
 					{
 						for (var i=0; i<levels.length; i++)
 						{
-							if ( ! state.levels[i].hasOwnProperty("message") )
+							if ( ! levels[i].hasOwnProperty('message') )
 								return i
 						}
 						return undefined
@@ -64,9 +65,8 @@ LevelEditorScreen.prototype.toggle = function()
 		}	
 		this.content = screen_layout.content // open
 		screen_layout.content = this
+		execution_context.restartTarget = this.content.level.backUp()
 	}
-
-	execution_context.restartTarget = screen_layout.content.content.level.backUp()
 	canvasResize()
 }
 
