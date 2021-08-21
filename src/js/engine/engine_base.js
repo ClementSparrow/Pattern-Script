@@ -102,7 +102,7 @@ function loadLevelFromState(state, levelindex, randomseed)
 	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
 	if (curlevelTarget !== null)
 	{
-		execution_context.restartTarget = curlevelTarget
+		execution_context.setRestartTarget(curlevelTarget)
 		execution_context.restore()
 	}
 }
@@ -167,9 +167,9 @@ executionContext.prototype.pushToUndoStack = function(bak = this.backUp())
 	this.backups.push(bak)
 }
 
-executionContext.prototype.setRestartTarget = function()
+executionContext.prototype.setRestartTarget = function(bak = this.backUp())
 {
-	this.restartTarget = this.backUp()
+	this.restartTarget = bak
 }
 
 
@@ -861,7 +861,7 @@ function processInput(input)
 			{ 
 				consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 			}
-			execution_context.restartTarget = level.forSerialization()
+			execution_context.setRestartTarget(execution_context.forSerialization())
 			execution_context.hasUsedCheckpoint = true
 			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
 			storage_set(document.URL, curlevel)
@@ -1011,7 +1011,7 @@ function nextLevel()
 		storage_set(document.URL, curlevel)
 		if (curlevelTarget !== null)
 		{
-			execution_context.restartTarget = level.forSerialization()
+			execution_context.setRestartTarget(execution_context.forSerialization())
 			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
 		} else {
 			storage_remove(document.URL+'_checkpoint')

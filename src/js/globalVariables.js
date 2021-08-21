@@ -18,11 +18,12 @@ function doSetupTitleScreenLevelContinue()
 				curlevelTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
 
 				var arr = []
-				for(var p in Object.keys(curlevelTarget.dat))
+				const from = curlevelTarget.hasOwnProperty('lev') ? curlevelTarget.lev.dat : curlevelTarget.dat
+				for(var p in Object.keys(from))
 				{
-					arr[p] = curlevelTarget.dat[p]
+					arr[p] = from[p]
 				}
-				curlevelTarget.dat = new Int32Array(arr)
+				curlevelTarget.lev.dat = new Int32Array(arr)
 			}
 			curlevel = storage_get(document.URL)
 		}
