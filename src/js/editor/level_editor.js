@@ -42,7 +42,7 @@ LevelEditorScreen.prototype.toggle = function()
 	}
 	else
 	{
-		if ( ! (screen_layout.content instanceof LevelScreen) )
+		while ( ! (screen_layout.content instanceof LevelScreen) )
 		{
 			if (state.title === 'EMPTY GAME')
 			{
