@@ -85,7 +85,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		{
 			processInput(processing_causes.run_rules_on_level_start)
 		}
-	} else {
+	} else { // show level message
 		showTempMessage()
 	}
 
@@ -224,18 +224,14 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 	sfxCreateMask=new BitVec(STRIDE_OBJ);
 	sfxDestroyMask=new BitVec(STRIDE_OBJ);
 
-	if ( ((state.levels.length === 0) || (_state.levels.length === 0) ) && (command.length > 0) && (command[0] === 'rebuild') ) 
+	// show the title screen if there's no level
+	if ( ((state.levels.length === 0) || (_state.levels.length === 0) ) && (command.length > 0) && (command[0] === 'rebuild') ) // it's not that 'rebuild' is special, it's that it cannot happen in the other cases
 	{
 		command = ["restart"]
 	}
 	RandomGen = new RNG(randomseed)
 
 	state = _state
-
-	if (command[0] !== 'rebuild')
-	{
-		execution_context.resetUndoStack() // TODO: shouldn't we also reset restartTarget?
-	}
 
 	//set sprites
 	sprites = []
@@ -251,12 +247,11 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 	autotickinterval = (state.metadata.realtime_interval !== undefined) ? state.metadata.realtime_interval*1000 : 0
 	repeatinterval = (state.metadata.key_repeat_interval !== undefined) ? state.metadata.key_repeat_interval*1000 : 150
 	againinterval = (state.metadata.again_interval !== undefined) ? state.metadata.again_interval*1000 : 150
-
+	norepeat_action = (state.metadata.norepeat_action !== undefined)
 	if ( throttle_movement && (autotickinterval === 0) )
 	{
 		logWarning("throttle_movement is designed for use in conjunction with realtime_interval. Using it in other situations makes games gross and unresponsive, broadly speaking.  Please don't.");
 	}
-	norepeat_action = (state.metadata.norepeat_action !== undefined)
 	
 	switch(command[0])
 	{
@@ -269,8 +264,9 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			screen_layout.content = menu_screen
 			menu_screen.item = isContinuePossible() ? 1 : 0
 			menu_screen.done = false
-			menu_screen.makeTitle();
-			break;
+			menu_screen.makeTitle()
+			clearInputHistory()
+			break
 		}
 		case 'rebuild':
 		{
@@ -307,11 +303,6 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			}
 			break
 		}
-	}
-	
-	if(command[0] !== 'rebuild')
-	{
-		clearInputHistory();
 	}
 
 	canvasResize()
