@@ -264,14 +264,25 @@ function checkKey(e, justPressed)
         	if (screen_layout.content !== menu_screen)
         	{
         		menu_screen.done = false
-				goToTitleScreen()
-		    	tryPlaySimpleSound('titlescreen')
+        		menu_screen.item = 0 // select resume as default
+        		// TODO: the next three lines also appear in goToTitleScreen and should be factorized.
+        		againing = false
+				messagetext = ''
+				screen_layout.content = menu_screen
+        		menu_screen.makePauseMenu()
+				tryPlaySimpleSound('titlescreen') // TODO: well, we need to change that option name
 				canvasResize()
+
+        		// TODO: This is the code to go to the title screen:
+				// menu_screen.done = false
+				// goToTitleScreen()
+				// tryPlaySimpleSound('titlescreen')
+				// canvasResize()
 				return prevent(e)
         	}
-        	else
+        	else // TODO: if not in title screen
         	{
-        		// TODO: should select option 'continue', which should not restart the level
+        		// TODO: should do the same as selecting option 'resume'
         	}
         	break;
         }

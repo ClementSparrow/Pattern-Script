@@ -13,6 +13,38 @@ function isContinuePossible()
 	return ( (curlevel > 0) || (curlevelTarget !== null) ) && (curlevel in state.levels)
 }
 
+MenuScreen.prototype.makeTerminalScreen = function()
+{
+	this.text = Array.from(
+		{
+			3: ' Pattern:Script Terminal ',
+			4: ' v 1.7 ',
+			8: ' insert cartridge ',
+			length:terminal_height
+		},
+		l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
+	)
+}
+
+MenuScreen.prototype.makeMenuItems = function(menu_entries, nb_lines)
+{
+	const l = menu_entries.length - 1
+	const interline_size = Math.ceil( nb_lines / (l+1) ) - 1
+	const menu_height = (interline_size + 1) * l + 1
+	const margin_top = Math.floor( ( nb_lines - menu_height ) / 2)
+	this.text.push( ...Array(margin_top).fill(empty_terminal_line) )
+	for (const [i, item_text] of menu_entries.entries())
+	{
+		if (this.item === i)
+			this.text.push( centerText( '# '+item_text+' #', this.done ? selected_terminal_line : empty_terminal_line) )
+		else
+			this.text.push( centerText( item_text, empty_terminal_line) )
+		if (i < l)
+			this.text.push( ...Array(interline_size).fill(empty_terminal_line) )
+	}
+	this.text.push( ...Array(nb_lines - margin_top - menu_height).fill(empty_terminal_line) )
+}
+
 // uses: curlevel, curlevelTarget, state
 // sets: this.nb_items, this.text
 MenuScreen.prototype.makeTitle = function()
@@ -21,16 +53,8 @@ MenuScreen.prototype.makeTitle = function()
 
 	if (state.levels.length === 0)
 	{
-		this.text = Array.from(
-			{
-				3: ' Pattern:Script Terminal ',
-				4: ' v 1.7 ',
-				8: ' insert cartridge ',
-				length:terminal_height
-			},
-			l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
-		)
-		return;
+		this.makeTerminalScreen()
+		return
 	}
 
 	const title = (state.metadata.title !== undefined) ? state.metadata.title : 'Pattern:Script Game';
@@ -69,23 +93,12 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_terminal_line) )
 
 	// Add menu options
-	if (this.nb_items == 1)
-	{
-		this.text.push( empty_terminal_line, centerText('# start game #', this.done ? selected_terminal_line : empty_terminal_line), empty_terminal_line)
-	}
-	else
-	{
-		this.text.push(
-			centerText( (this.item == 0) ? '# new game #' : 'new game', (this.done && (this.item == 0)) ? selected_terminal_line : empty_terminal_line),
-			empty_terminal_line,
-			centerText( (this.item == 1) ? '# continue #' : 'continue', (this.done && (this.item == 1)) ? selected_terminal_line : empty_terminal_line)
-		)
-	}
-	this.text.push(empty_terminal_line)
+	this.makeMenuItems( (this.nb_items === 1) ? ['start game'] : ['new game', 'continue'], 3)
+	this.text.push( empty_terminal_line )
 
 	// Add key configuration info:
 	this.text.push( alignTextLeft('arrow keys to move') )
-	this.text.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to action') )
+	this.text.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to select / action') )
 	var msgs = []
 	if ( ! ('noundo' in state.metadata) )
 		msgs.push('Z to undo')
@@ -120,6 +133,14 @@ function wordwrap(str, width)
 	const regex = '.{1,'+width+'}(\\s|$)|.{'+width+'}|.+$'
 	// cont regex = '.{1,'+width+'}(\\s|$)|\\S+?(\\s|$)'
 	return str.match( RegExp(regex, 'g') );
+}
+
+
+MenuScreen.prototype.makePauseMenu = function()
+{
+	this.text = [ empty_terminal_line, centerText('- PAUSE -'), empty_terminal_line ]
+	this.makeMenuItems(['resume game', execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', 'exit to title screen' ], terminal_height-4)
+	this.text.push( empty_terminal_line )
 }
 
 
