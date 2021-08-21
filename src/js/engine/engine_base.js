@@ -48,34 +48,33 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
 	forceRegenImages()
-	againing=false;
-	if (leveldat.message===undefined) {
+	againing=false
+	if (leveldat.message === undefined)
+	{
 		menu_screen.nb_items = 1 // TODO: this should not be here
-		screen_layout.content = level_screen
 		level = leveldat.clone();
 		level.rebuildArrays();
 
-
-		if (state!==undefined) {
-			if (state.metadata.flickscreen!==undefined){
-				oldflickscreendat=[
-					0,
-					0,
-					Math.min(state.metadata.flickscreen[0],level.width),
-					Math.min(state.metadata.flickscreen[1],level.height)
-				];
+		screen_layout.content = level_screen
+		if (state !== undefined) // can it be undefined?
+		{
+			if (state.metadata.flickscreen !== undefined)
+			{
 				screen_layout.content = tiled_world_screen
-			} else if (state.metadata.zoomscreen!==undefined){
-				oldflickscreendat=[
-					0,
-					0,
-					Math.min(state.metadata.zoomscreen[0],level.width),
-					Math.min(state.metadata.zoomscreen[1],level.height)
-				];
+			}
+			else if (state.metadata.zoomscreen !== undefined)
+			{
 				screen_layout.content = camera_on_player_screen
 			}
 		}
 		screen_layout.content.level = level
+
+		// init oldflickscreendat
+		if ( (state.metadata.flickscreen !== undefined) || (state.metadata.zoomscreen !== undefined) )
+		{
+			oldflickscreendat = undefined
+			screen_layout.content.get_viewport()
+		}
 
 		execution_context.resetUndoStack()
 		execution_context.restartTarget = level.backUp()
@@ -1025,4 +1024,33 @@ function goToTitleScreen()
 	menu_screen.makeTitle()
 }
 
+
+function closeMessageScreen()
+{
+	msg_screen.done = false
+	if (messagetext === '')
+	{
+		nextLevel()
+		return
+	}
+
+	messagetext = ''
+	if (state.metadata.flickscreen !== undefined)
+	{
+		screen_layout.content = tiled_world_screen
+	}
+	else if (state.metadata.zoomscreen  !== undefined)
+	{
+		screen_layout.content = camera_on_player_screen
+	}
+	else
+	{
+		screen_layout.content = level_screen
+	}
+	menu_screen.nb_items = isContinuePossible() ? 2 : 1 // TODO: why do we care about menu_screen, here?
+	menu_screen.item = 0
+	menu_screen.done = false
+	canvasResize()
+	checkWin()
+}
 

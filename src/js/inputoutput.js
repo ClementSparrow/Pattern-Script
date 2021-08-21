@@ -398,7 +398,6 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	return true;
 }
 
-
 function update()
 {
     timer+=deltatime;
@@ -416,29 +415,7 @@ function update()
     }
     if ( msg_screen.done && (timer/1000 > 0.15) )
     {
-        msg_screen.done = false
-        if (messagetext==="") {
-        	nextLevel();
-        } else {
-        	messagetext="";
-			if (state.metadata.flickscreen !== undefined)
-			{
-				screen_layout.content = tiled_world_screen
-			}
-			else if (state.metadata.zoomscreen  !== undefined)
-			{
-				screen_layout.content = camera_on_player_screen
-			}
-			else
-			{
-				screen_layout.content = level_screen
-			}
-			menu_screen.nb_items = isContinuePossible() ? 2 : 1
-			menu_screen.item = 0
-			menu_screen.done = false
-			canvasResize()
-			checkWin()
-        }
+    	closeMessageScreen()
     }
     if (winning) {
         if (timer/1000>0.5) {
