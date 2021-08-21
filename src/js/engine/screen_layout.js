@@ -82,14 +82,14 @@ TiledWorldScreen.prototype.get_nb_tiles = () => state.metadata.flickscreen
 TiledWorldScreen.prototype.get_viewport = function()
 {
 	// TODO: oldflickscreendat is a global variable because it needs to be recorded for undos
+	const [w, h] = this.get_nb_tiles()
 	const playerPositions = this.level.getPlayerPositions()
-	if (playerPositions.length == 0)
-		return oldflickscreendat;
+	if ( (playerPositions.length === 0) && (oldflickscreendat !== undefined) )
+		return oldflickscreendat
 
-	const playerPosition = playerPositions[0]
+	const playerPosition = playerPositions[0] || 0
 	const [px, py] = this.level.cellCoord(playerPosition)
 
-	const [w, h] = this.get_nb_tiles()
 	const [mini, minj] = this.get_viewport_for_focus_point(px, py, w, h)
 	const maxi = Math.min(mini + w, this.level.width);
 	const maxj = Math.min(minj + h, this.level.height);
