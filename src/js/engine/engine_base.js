@@ -250,25 +250,21 @@ function setGameState(_state, level, randomseed = null)
 
 	if (level !== undefined)
 	{
+		winning = false
+		timer = 0
+		msg_screen.done = false
+		menu_screen.done = false
 		if (level < 0)
 		{
 			// restart
-			winning=false;
-			timer=0;
 			tryPlaySimpleSound('titlescreen')
-			msg_screen.done = false
 			screen_layout.content = menu_screen
 			menu_screen.item = isContinuePossible() ? 1 : 0
-			menu_screen.done = false
 			menu_screen.makeTitle()
 			clearInputHistory()
 		}
 		else // go to level
 		{
-			winning = false
-			timer = 0
-			menu_screen.done = false
-			msg_screen.done = false
 			curlevelTarget = null
 			loadLevelFromState(state, level, randomseed)
 		}
