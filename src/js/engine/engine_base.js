@@ -77,7 +77,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 		}
 
 		execution_context.resetUndoStack()
-		execution_context.restartTarget = level.backUp()
+		execution_context.setRestartTarget()
 		keybuffer = []
 
 		if ('run_rules_on_level_start' in state.metadata)
@@ -102,9 +102,8 @@ function loadLevelFromState(state, levelindex, randomseed)
 	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
 	if (curlevelTarget !== null)
 	{
-		level.restore(curlevelTarget)
-		execution_context.resetCommands()
 		execution_context.restartTarget = curlevelTarget
+		execution_context.restore()
 	}
 }
 
@@ -128,34 +127,49 @@ function executionContext()
 }
 var execution_context = new executionContext()
 
-executionContext.prototype.resetUndoStack = function()
-{
-	this.backups = []
-}
 executionContext.prototype.resetCommands = function()
 {
 	this.commandQueue.reset()
 	this.commandQueue.sourceRules = []
 }
 
-Level.prototype.backUp = function()
+
+executionContext.prototype.resetUndoStack = function()
+{
+	this.backups = []
+}
+
+executionContext.prototype.backUp = function()
 {
 	return {
-		dat: new Int32Array(this.objects),
-		width:  this.width,
-		height: this.height,
+		lev: level.backUp(),
 		oldflickscreendat: oldflickscreendat.concat([])
 	}
 }
 
-Level.prototype.forSerialization = function()
+executionContext.prototype.forSerialization = function()
 {
 	return {
-		dat : Array.from(this.objects),
-		width :  this.width,
-		height : this.height,
+		lev: level.forSerialization(),
 		oldflickscreendat: oldflickscreendat.concat([])
 	}
+}
+
+executionContext.prototype.restore = function(backup = this.restartTarget)
+{
+	oldflickscreendat = backup.oldflickscreendat.concat([])
+	level.restore(backup.lev)
+	this.resetCommands()
+}
+
+executionContext.prototype.pushToUndoStack = function(bak = this.backUp())
+{
+	this.backups.push(bak)
+}
+
+executionContext.prototype.setRestartTarget = function()
+{
+	this.restartTarget = this.backUp()
 }
 
 
@@ -293,12 +307,11 @@ function DoRestart(bak)
 {
 	if ( (bak === undefined) && ('norestart' in state.metadata) )
 		return
-	execution_context.backups.push( bak || level.backUp() )
+	execution_context.pushToUndoStack(bak)
 
 	if (verbose_logging) { consolePrint("--- restarting ---", true) }
 
-	level.restore(execution_context.restartTarget)
-	execution_context.resetCommands()
+	execution_context.restore()
 
 	tryPlaySimpleSound('restart')
 
@@ -343,8 +356,7 @@ executionContext.prototype.doUndo = function()
 function forceUndo(backup)
 {
 	if (verbose_logging) { consolePrint("--- undoing ---", true) }
-	level.restore(backup)
-	execution_context.resetCommands()
+	execution_context.restore(backup)
 }
 
 
@@ -678,7 +690,7 @@ function processInput(input)
 		}
 	}
 
-	var bak = level.backUp()
+	var bak = execution_context.backUp()
 
 	// TODO: use a global const generated from the one that defines these bits. And use a more consistent ordering of directions
 	const playerPositions = (input >= 0) ? level.startMovement( ([1, 4, 2, 8, 16])[input] ) : []

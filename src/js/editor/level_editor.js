@@ -38,7 +38,6 @@ LevelEditorScreen.prototype.toggle = function()
 	{
 		screen_layout.content.content.level.printToConsole()
 		screen_layout.content = screen_layout.content.content // close
-		execution_context.restartTarget = screen_layout.content.level.backUp()
 	}
 	else
 	{
@@ -65,8 +64,8 @@ LevelEditorScreen.prototype.toggle = function()
 		}	
 		this.content = screen_layout.content // open
 		screen_layout.content = this
-		execution_context.restartTarget = this.content.level.backUp()
 	}
+	execution_context.setRestartTarget() // TODO: should use 'this' directly rather than indirectly through global var 'level'
 	canvasResize()
 }
 
@@ -305,7 +304,7 @@ LevelScreen.prototype.redraw = function(magnification)
 // TODO: the new Level function should be in a new file named editor/level.js
 Level.prototype.adjust = function(widthdelta, heightdelta)
 {
-	execution_context.backups.push(this.backUp())
+	execution_context.pushToUndoStack() // todo: this should use 'this' directly instead of indirectly using global var 'level'
 	const oldlevel = this.clone()
 	execution_context.resetCommands()
 	this.width += widthdelta;
@@ -545,7 +544,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		if (this.anyEditsSinceMouseDown === false)
 		{
 			this.anyEditsSinceMouseDown = true
-			execution_context.backups.push(this.content.level.backUp())
+			execution_context.pushToUndoStack() // todo: should use 'this' directly instead of through global var 'level'
 		}
 		this.content.level.setCell(coordIndex, glyphmask)
 		redraw()

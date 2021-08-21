@@ -169,10 +169,26 @@ Level.prototype.rebuildArrays = function()
 	}
 }
 
+Level.prototype.backUp = function()
+{
+	return {
+		dat: new Int32Array(this.objects),
+		width:  this.width,
+		height: this.height,
+	}
+}
+
+Level.prototype.forSerialization = function()
+{
+	return {
+		dat : Array.from(this.objects),
+		width :  this.width,
+		height : this.height,
+	}
+}
+
 Level.prototype.restore = function(lev)
 {
-	oldflickscreendat = lev.oldflickscreendat.concat([]);
-
 	this.objects = new Int32Array(lev.dat);
 
 	if ( (this.width !== lev.width) || (this.height !== lev.height) )
