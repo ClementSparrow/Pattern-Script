@@ -45,7 +45,17 @@ LevelEditorScreen.prototype.toggle = function()
 		{
 			if (state.title === 'EMPTY GAME')
 			{
-				compile(["loadFirstNonMessageLevel"])
+				compile(
+					function findFirstNonMessageLevel(levels)
+					{
+						for (var i=0; i<levels.length; i++)
+						{
+							if ( ! state.levels[i].hasOwnProperty("message") )
+								return i
+						}
+						return undefined
+					}
+				)
 			}
 			else
 			{

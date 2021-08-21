@@ -16,7 +16,7 @@ function setPageTitle()
 function runClick()
 {
 	clearConsole()
-	compile(["restart"])
+	compile(-1)
 	setPageTitle()
 }
 
@@ -181,7 +181,7 @@ function levelEditorClick_Fn()
 {
 	// if ( (screen_layout.content === msg_screen) || (state.levels.length === 0) )
 	// {
-	// 	compile(['loadLevel', 0])
+	// 	compile(0)
 	// }
 	level_editor_screen.toggle()
 	// forceRegenImages()
@@ -226,7 +226,7 @@ function shareOnGitHub(is_public, should_fork=false)
 		return;
 	}
 
-	compile(["rebuild"]);
+	compile()
 
 	const title = (state.metadata.title !== undefined) ? state.metadata.title + " ("+PSFORKNAME+" Script)" : ("Untitled "+PSFORKNAME+" Script");
 	const source = editor.getValue();
@@ -336,7 +336,7 @@ function rebuildClick()
 function exportClick()
 {
 	const sourceCode = editor.getValue();
-	compile("restart");
+	compile(-1)
 	buildStandalone(JSON.stringify(sourceCode));
 }
 

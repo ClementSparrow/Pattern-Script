@@ -13,7 +13,7 @@ function runTest(dataarray) {
 	const targetlevel = dataarray[3] || 0
 	const randomseed = dataarray[4] || null
 
-	compile(["loadLevel",targetlevel], levelString, randomseed)
+	compile(targetlevel, levelString, randomseed)
 
 	if (errorStrings.length > 0)
 		return false
@@ -53,7 +53,7 @@ function runCompilationTest(game_string, recordedErrorStrings, recordedWarningSt
 	warningStrings = []
 
 	try{
-		compile(["restart"], game_string)
+		compile(-1, game_string)
 	} catch (error){
 		console.log(error)
 	}

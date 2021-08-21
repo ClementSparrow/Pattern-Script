@@ -210,7 +210,7 @@ function tryActivateYoutube(){
 // ==========
 
 // Only called at the end of compile()
-function setGameState(_state, command = ['restart'], randomseed = null)
+function setGameState(_state, level, randomseed = null)
 {
 	oldflickscreendat=[];
 	timer=0;
@@ -225,9 +225,9 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 	sfxDestroyMask=new BitVec(STRIDE_OBJ);
 
 	// show the title screen if there's no level
-	if ( ((state.levels.length === 0) || (_state.levels.length === 0) ) && (command.length > 0) && (command[0] === 'rebuild') ) // it's not that 'rebuild' is special, it's that it cannot happen in the other cases
+	if ( (level === undefined) && ( (state.levels.length === 0) || (_state.levels.length === 0) ) )
 	{
-		command = ["restart"]
+		level = -1
 	}
 	RandomGen = new RNG(randomseed)
 
@@ -253,10 +253,16 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 		logWarning("throttle_movement is designed for use in conjunction with realtime_interval. Using it in other situations makes games gross and unresponsive, broadly speaking.  Please don't.");
 	}
 	
-	switch(command[0])
+	if (typeof level === 'function')
 	{
-		case 'restart':
+		level = level(state.levels)
+	}
+
+	if (level !== undefined)
+	{
+		if (level < 0)
 		{
+			// restart
 			winning=false;
 			timer=0;
 			tryPlaySimpleSound('titlescreen')
@@ -266,42 +272,10 @@ function setGameState(_state, command = ['restart'], randomseed = null)
 			menu_screen.done = false
 			menu_screen.makeTitle()
 			clearInputHistory()
-			break
 		}
-		case 'rebuild':
+		else
 		{
-			//do nothing
-			break;
-		}
-		case 'loadFirstNonMessageLevel':
-		{
-			for (var i=0; i<state.levels.length; i++)
-			{
-				if (state.levels[i].hasOwnProperty("message")){
-					continue;
-				}
-				goToLevel(state, i, randomseed)
-				break;
-			}
-			break;	
-		}
-		case 'loadLevel':
-		{
-			goToLevel(state, command[1], randomseed)
-			break;
-		}
-		case 'levelline': // called when clicking on a level line in the editor
-		{
-			const targetLine = command[1]
-			for (var i=state.levels.length-1; i>=0; i--)
-			{
-				if (state.levels[i].lineNumber <= targetLine+1)
-				{
-					goToLevel(state, i)
-					break
-				}
-			}
-			break
+			goToLevel(state, level, randomseed)
 		}
 	}
 

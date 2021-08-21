@@ -141,7 +141,18 @@ editor.on('mousedown', function(cm, event)
 			document.activeElement.blur()  // unfocus code panel
 			editor.display.input.blur()
 			prevent(event)         // prevent refocus
-			compile(["levelline", cm.posFromMouse(event).line])
+			const targetLine = cm.posFromMouse(event).line
+			compile(
+				function(levels)
+				{
+					for (var i=levels.length-1; i>=0; i--)
+					{
+						if (levels[i].lineNumber <= targetLine+1)
+							return i
+					}
+					return undefined
+				}
+			)
 		}
 	}
 })
@@ -297,7 +308,7 @@ function loadText(txt)
 	editor.setValue(txt)
 	setEditorClean()
 	unloadGame()
-	compile(["restart"], txt)
+	compile(-1, txt)
 	setPageTitle()
 }
 

@@ -1069,7 +1069,7 @@ function loadFile(str)
 	return state;
 }
 
-function compile(command = ["restart"], text, randomseed)
+function compile(level, text, randomseed) // level = -1 means restart, level = undefined means rebuild
 {
 	matchCache = {}
 	forceRegenImages()
@@ -1115,10 +1115,10 @@ function compile(command = ["restart"], text, randomseed)
 		for (const rule of state.lateRules) {
 			ruleCount += rule.length
 		}
-		consolePrint('<span class="systemMessage">Successful ' + ((command[0] == 'restart')?'Compilation':'live recompilation') + ', generated '+ruleCount+' instructions.</span>')
+		consolePrint('<span class="systemMessage">Successful ' + ((level === undefined) ? 'live re' : '') + 'compilation, generated '+ruleCount+' instructions.</span>')
 	}
 
-	setGameState(state, command, randomseed)
+	setGameState(state, level, randomseed)
 
 	clearInputHistory()
 
