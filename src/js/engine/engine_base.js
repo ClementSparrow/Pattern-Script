@@ -329,7 +329,7 @@ executionContext.prototype.backupDiffers = function()
 		return true
 
 	const bak = this.backups[this.backups.length-1]
-	return level.objects.some( (o, i) => o !== bak.dat[i] )
+	return level.objects.some( (o, i) => o !== bak.lev.dat[i] )
 }
 
 executionContext.prototype.doUndo = function()
@@ -801,7 +801,7 @@ function processInput(input)
 		}
 	} 
 
-	const modified = level.objects.some( (o, i) => o !== bak.dat[i] )
+	const modified = level.objects.some( (o, i) => o !== bak.lev.dat[i] )
 
 	if (input === processing_causes.againing_test) // this is a fake frame just to check that applying again would cause some change
 	{
