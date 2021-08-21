@@ -109,16 +109,6 @@ function loadLevelFromState(state, levelindex, randomseed)
 	}
 }
 
-function goToLevel(state, levelindex, randomseed)
-{
-	winning = false
-	timer = 0
-	menu_screen.done = false
-	msg_screen.done = false
-	curlevelTarget = null
-	loadLevelFromState(state, levelindex, randomseed)
-}
-
 
 
 
@@ -273,9 +263,14 @@ function setGameState(_state, level, randomseed = null)
 			menu_screen.makeTitle()
 			clearInputHistory()
 		}
-		else
+		else // go to level
 		{
-			goToLevel(state, level, randomseed)
+			winning = false
+			timer = 0
+			menu_screen.done = false
+			msg_screen.done = false
+			curlevelTarget = null
+			loadLevelFromState(state, level, randomseed)
 		}
 	}
 
