@@ -970,43 +970,35 @@ function nextLevel()
 		curlevel = state.levels.length-1
 	}
 	
-	if (screen_layout.content === menu_screen) // TODO: this should not be in this function
+	if (execution_context.hasUsedCheckpoint)
 	{
-		if (menu_screen.item === 0)
-		{
-			//new game
-			curlevel = 0
-			curlevelTarget = null
-		} 			
+		curlevelTarget = null
+		execution_context.hasUsedCheckpoint = false
+	}
+	if (curlevel < state.levels.length-1)
+	{			
+		curlevel++
+		msg_screen.done = false
 		loadLevelFromState(state, curlevel)
 	}
-	else
+	else // end game
 	{
-		if (execution_context.hasUsedCheckpoint)
-		{
-			curlevelTarget = null
-			execution_context.hasUsedCheckpoint = false
-		}
-		if (curlevel < state.levels.length-1)
-		{			
-			curlevel++
-			msg_screen.done = false
-			loadLevelFromState(state, curlevel)
-		}
-		else // end game
-		{
-			try {
-				storage_remove(document.URL)
-				storage_remove(document.URL+'_checkpoint')
-			} catch(ex) { }
-			
-			curlevel = 0
-			curlevelTarget = null
-			goToTitleScreen()
-			tryPlaySimpleSound('endgame')
-		}		
-		//continue existing game
-	}
+		try {
+			storage_remove(document.URL)
+			storage_remove(document.URL+'_checkpoint')
+		} catch(ex) { }
+		
+		curlevel = 0
+		curlevelTarget = null
+		goToTitleScreen()
+		tryPlaySimpleSound('endgame')
+	}		
+	//continue existing game
+	finalizeNextLevel()
+}
+
+function finalizeNextLevel()
+{
 	try {
 		storage_set(document.URL, curlevel)
 		if (curlevelTarget !== null)

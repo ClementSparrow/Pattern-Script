@@ -413,11 +413,21 @@ function update()
 {
     timer+=deltatime;
     input_throttle_timer+=deltatime;
-    if (menu_screen.done && (timer/1000>0.3) )
-    {
-        menu_screen.done = false
-        nextLevel();
-    }
+	if (menu_screen.done && (timer/1000>0.3) )
+	{
+		menu_screen.done = false
+		if (screen_layout.content === menu_screen) // TODO: this is for the title screen, we need a way to now if we're in the pause menu sreen
+		{
+			if (menu_screen.item === 0)
+			{
+				//new game
+				curlevel = 0
+				curlevelTarget = null
+			} 			
+			loadLevelFromState(state, curlevel)
+			finalizeNextLevel()
+		}
+	}
     if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(processing_causes.again_frame) )
     {
 		redraw()
