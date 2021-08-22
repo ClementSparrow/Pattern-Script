@@ -300,7 +300,7 @@ function loadText(txt)
 	setEditorClean()
 	state = introstate
 	level = new Level(0, 5, 5, 2, new Int32Array(0))
-	menu_screen.makeTitle()
+	title_screen.makeTitle()
 	compile(-1, txt)
 	setPageTitle()
 }

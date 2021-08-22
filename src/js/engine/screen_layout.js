@@ -49,14 +49,16 @@ TextModeScreen.prototype.get_virtual_screen_size = () => [ terminal_width*(font_
 var msg_screen = new TextModeScreen()
 
 // Menu screen, based on TextModeScreen
-function MenuScreen()
+function MenuScreen(open_soundname)
 {
 	TextModeScreen.call(this, 'menu')
 	this.menu_items = []
 	this.item = 0 //which item is currently highlighted/selected
+	this.open_soundname = open_soundname
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)
-var menu_screen = new MenuScreen()
+var pause_menu_screen = new MenuScreen()
+var title_screen = new MenuScreen('titlescreen')
 
 // Level screen, also base class for flickscreen and zoomscreen
 function LevelScreen(screen_type = 'level')
@@ -115,10 +117,10 @@ var camera_on_player_screen = new CameraOnPlayerScreen()
 function ScreenLayout()
 {
 	// content of the virtual screen
-	this.content = menu_screen
+	this.content = title_screen
 	// layout parameters
 	this.magnification = 0
-	this.margins = [ 0, 0]
+	this.margins = [0, 0]
 }
 
 ScreenLayout.prototype.resize = function(canvas_size)

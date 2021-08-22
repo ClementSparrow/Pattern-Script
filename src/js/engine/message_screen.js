@@ -13,6 +13,27 @@ function isContinuePossible()
 	return ( (curlevel > 0) || (curlevelTarget !== null) ) && (curlevel in state.levels)
 }
 
+
+function titleMenuNewGame()
+{
+	curlevelTarget = null
+	loadLevelFromState(state, 0)
+	finalizeNextLevel()
+}
+
+function titleMenuContinue()
+{
+	loadLevelFromState(state, curlevel)
+	finalizeNextLevel()
+}
+
+MenuScreen.prototype.doSelectedFunction = function()
+{
+	this.done = false
+	const func = this.menu_entries[this.item][1]
+	func()
+}
+
 MenuScreen.prototype.makeTerminalScreen = function()
 {
 	this.text = Array.from(
@@ -26,8 +47,9 @@ MenuScreen.prototype.makeTerminalScreen = function()
 	)
 }
 
-MenuScreen.prototype.makeMenuItems = function(menu_entries, nb_lines)
+MenuScreen.prototype.makeMenuItems = function(nb_lines, menu_entries)
 {
+	this.done = false
 	this.menu_entries = menu_entries
 	const l = menu_entries.length - 1
 	this.interline_size = Math.ceil( nb_lines / (l+1) )
@@ -40,11 +62,27 @@ MenuScreen.prototype.makeMenuItems = function(menu_entries, nb_lines)
 
 MenuScreen.prototype.updateMenuItems = function()
 {
-	for (const [i, item_text] of this.menu_entries.entries())
+	for (const [i, [item_text, item_function]] of this.menu_entries.entries())
 	{
 		this.text[this.first_menu_line + i*this.interline_size] = centerText( item_text, empty_terminal_line)
 	}
-	this.text[this.first_menu_line + this.item*this.interline_size] = centerText( '# '+this.menu_entries[this.item]+' #', this.done ? selected_terminal_line : empty_terminal_line)
+	this.text[this.first_menu_line + this.item*this.interline_size] = centerText( '# '+this.menu_entries[this.item][0]+' #', this.done ? selected_terminal_line : empty_terminal_line)
+}
+
+MenuScreen.prototype.openMenu = function(previous_screen = screen_layout.content)
+{
+	this.escaped_screen = previous_screen
+	screen_layout.content = this
+	tryPlaySimpleSound(this.open_soundname) // TODO: well, we need to change that option name
+	canvasResize()
+}
+
+MenuScreen.prototype.closeMenu = function()
+{
+	if (this.escaped_screen === null)
+		return
+	screen_layout.content = this.escaped_screen
+	canvasResize()
 }
 
 // uses: isContinuePossible
@@ -93,7 +131,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_terminal_line) )
 
 	// Add menu options
-	this.makeMenuItems( isContinuePossible() ? ['continue', 'new game'] :  ['start'], 3)
+	this.makeMenuItems(3,  isContinuePossible() ? [['continue', titleMenuContinue], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_terminal_line )
 
 	// Add key configuration info:
@@ -134,10 +172,22 @@ function wordwrap(str, width = terminal_width)
 }
 
 
+
+function pauseMenuExit()
+{
+	goToTitleScreen()
+	tryPlaySimpleSound('titlescreen')
+	canvasResize()
+}
+
 MenuScreen.prototype.makePauseMenu = function()
 {
 	this.text = [ empty_terminal_line, centerText('-< GAME PAUSED >-'), empty_terminal_line ]
-	this.makeMenuItems(['resume game', execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', 'exit to title screen' ], terminal_height-4)
+	this.makeMenuItems(terminal_height - 4, [
+		['resume game', () => this.closeMenu()],
+		[execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', titleMenuContinue],
+		['exit to title screen', pauseMenuExit]
+	])
 	this.text.push( empty_terminal_line )
 }
 

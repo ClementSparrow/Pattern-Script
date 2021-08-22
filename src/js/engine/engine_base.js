@@ -15,13 +15,12 @@ const introstate = {
 
 var state = introstate;
 
-menu_screen.makeTitle()
-canvasResize()
-
+title_screen.makeTitle()
+title_screen.openMenu(null) // can't close the title menu without selecting something
 
 function tryPlaySimpleSound(soundname)
 {
-	if (state.sfx_Events[soundname] !== undefined)
+	if ( (state.sfx_Events !== undefined) && (state.sfx_Events[soundname] !== undefined) )
 	{
 		playSound(state.sfx_Events[soundname])
 	}
@@ -260,13 +259,12 @@ function setGameState(_state, level, randomseed = null)
 		winning = false
 		timer = 0
 		msg_screen.done = false
-		menu_screen.done = false
+		pause_menu_screen.done = false
 		if (level < 0)
 		{
 			// restart
-			tryPlaySimpleSound('titlescreen')
-			screen_layout.content = menu_screen
-			menu_screen.makeTitle()
+			title_screen.makeTitle()
+			title_screen.openMenu(null)
 			clearInputHistory()
 		}
 		else // go to level
@@ -1015,16 +1013,16 @@ function goToTitleScreen()
 {
 	againing = false
 	messagetext = ''
-	screen_layout.content = menu_screen
 	doSetupTitleScreenLevelContinue()
-	menu_screen.makeTitle()
+	title_screen.makeTitle()
+	title_screen.openMenu(null)
 }
 
 
 function closeMessageScreen()
 {
 	msg_screen.done = false
-	if (messagetext === '')
+	if (messagetext === '') // was a message level
 	{
 		nextLevel()
 		return
@@ -1043,9 +1041,6 @@ function closeMessageScreen()
 	{
 		screen_layout.content = level_screen
 	}
-	// TODO: why do we care about menu_screen, here?
-	menu_screen.item = 0
-	menu_screen.done = false
 	canvasResize()
 	checkWin()
 }

@@ -259,33 +259,20 @@ function checkKey(e, justPressed)
             }
 			return
         }
-        case 27://escape
-        {
-        	if (screen_layout.content !== menu_screen)
-        	{
-        		menu_screen.done = false
-        		menu_screen.item = 0 // select resume as default
-        		// TODO: the next three lines also appear in goToTitleScreen and should be factorized.
-        		againing = false
-				messagetext = ''
-				screen_layout.content = menu_screen
-        		menu_screen.makePauseMenu()
-				tryPlaySimpleSound('titlescreen') // TODO: well, we need to change that option name
-				canvasResize()
-
-        		// TODO: This is the code to go to the title screen:
-				// menu_screen.done = false
-				// goToTitleScreen()
-				// tryPlaySimpleSound('titlescreen')
-				// canvasResize()
-				return prevent(e)
-        	}
-        	else // TODO: if not in title screen
-        	{
-        		// TODO: should do the same as selecting option 'resume'
-        	}
-        	break;
-        }
+		case 27://escape
+		{
+			if (screen_layout.content instanceof MenuScreen)
+			{
+				screen_layout.content.closeMenu()
+			}
+			else
+			{
+				pause_menu_screen.makePauseMenu()
+				pause_menu_screen.openMenu()
+			}
+			return prevent(e)
+			break
+		}
         case 69: {//e
         	if (typeof level_editor_screen !== 'undefined') // can open editor
         	{
@@ -411,22 +398,11 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 
 function update()
 {
-    timer+=deltatime;
-    input_throttle_timer+=deltatime;
-	if (menu_screen.done && (timer/1000>0.3) )
+    timer += deltatime
+    input_throttle_timer += deltatime
+	if ( (screen_layout.content instanceof MenuScreen) && screen_layout.content.done && (timer/1000>0.3) )
 	{
-		menu_screen.done = false
-		if (screen_layout.content === menu_screen) // TODO: this is for the title screen, we need a way to know if we're in the pause menu sreen
-		{
-			if (menu_screen.item === 0)
-			{
-				//new game
-				curlevel = 0
-				curlevelTarget = null
-			} 			
-			loadLevelFromState(state, curlevel)
-			finalizeNextLevel()
-		}
+		screen_layout.content.doSelectedFunction()
 	}
     if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(processing_causes.again_frame) )
     {
