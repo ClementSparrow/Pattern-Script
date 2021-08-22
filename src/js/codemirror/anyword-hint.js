@@ -62,7 +62,7 @@
 
         var SOUND_WORDS = [
             "SOUNDVERB",
-            "titlescreen", "startgame", "cancel", "endgame", "startlevel", "undo", "restart", "endlevel", "showmessage", "closemessage", "sfx0", "sfx1", "sfx2", "sfx3", "sfx4", "sfx5", "sfx6", "sfx7", "sfx8", "sfx9", "sfx10", "create", "destroy", "move", "cantmove", "action"];
+            'gamescreen', 'pausescreen', "startgame", "cancel", "endgame", "startlevel", "undo", "restart", "endlevel", "showmessage", "closemessage", "sfx0", "sfx1", "sfx2", "sfx3", "sfx4", "sfx5", "sfx6", "sfx7", "sfx8", "sfx9", "sfx10", "create", "destroy", "move", "cantmove", "action"];
 
         var WINCONDITION_WORDS = [
             "LOGICWORD",

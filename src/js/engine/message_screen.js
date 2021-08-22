@@ -176,7 +176,7 @@ function wordwrap(str, width = terminal_width)
 function pauseMenuExit()
 {
 	goToTitleScreen()
-	tryPlaySimpleSound('titlescreen')
+	tryPlaySimpleSound('gamescreen')
 	canvasResize()
 }
 

@@ -759,7 +759,7 @@ function removeDuplicateRules(state)
 
 //	======= SOUNDS =======
 
-var soundEvents = ["titlescreen", "startgame", "cancel", "endgame", "startlevel","undo","restart","endlevel","showmessage","closemessage","sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10"];
+var soundEvents = ["titlescreen", 'gamescreen', 'pausescreen', "startgame", "cancel", "endgame", "startlevel","undo","restart","endlevel","showmessage","closemessage","sfx0","sfx1","sfx2","sfx3","sfx4","sfx5","sfx6","sfx7","sfx8","sfx9","sfx10"];
 var soundMaskedEvents =["create","destroy","move","cantmove","action"];
 var soundVerbs = soundEvents.concat(soundMaskedEvents);
 
@@ -814,10 +814,14 @@ function generateSoundData(state)
 			var seed = sound[1];
 			if (validSeed(seed))
 			{
-				if (sfx_Events[sound[0]] !== undefined) {
-					logWarning(sound[0].toUpperCase()+" already declared.", lineNumber);
-				} 
-				sfx_Events[sound[0]] = sound[1];
+				const sound_names = (sound[0] === 'titlescreen') ? [ 'gamescreen', 'pausescreen' ] : [ sound[0] ]
+				for (const sound_name of sound_names)
+				{
+					if (sfx_Events[sound_name] !== undefined) {
+						logWarning(sound_name.toUpperCase()+" already declared.", lineNumber);
+					} 
+					sfx_Events[sound_name] = sound[1]
+				}
 			} else {
 				logError("Expecting sfx data, instead found \""+sound[1]+"\".", lineNumber);
 			}

@@ -57,8 +57,8 @@ function MenuScreen(open_soundname)
 	this.open_soundname = open_soundname
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)
-var pause_menu_screen = new MenuScreen()
-var title_screen = new MenuScreen('titlescreen')
+var pause_menu_screen = new MenuScreen('pausescreen')
+var title_screen = new MenuScreen('gamescreen')
 
 // Level screen, also base class for flickscreen and zoomscreen
 function LevelScreen(screen_type = 'level')

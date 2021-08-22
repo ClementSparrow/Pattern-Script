@@ -35,7 +35,7 @@ const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winc
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
-const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx10?|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9)\b/u
+const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|gamescreen|pausescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx10?|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9)\b/u
 const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 const reg_loopmarker = /^(startloop|endloop)$/;
 const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|orthogonal|late|rigid)\b$/;
