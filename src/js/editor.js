@@ -294,20 +294,13 @@ function tryLoadGist(id)
 	githubHTTPClient.send();
 }
 
-function unloadGame()
-{
-	state = introstate
-	level = new Level(0, 5, 5, 2, new Int32Array(0))
-	execution_context.resetCommands()
-	menu_screen.makeTitle()
-	canvasResize()
-}
-
 function loadText(txt)
 {
 	editor.setValue(txt)
 	setEditorClean()
-	unloadGame()
+	state = introstate
+	level = new Level(0, 5, 5, 2, new Int32Array(0))
+	menu_screen.makeTitle()
 	compile(-1, txt)
 	setPageTitle()
 }
