@@ -309,7 +309,7 @@ function levelsToArray(state)
 				message: level[1]
 			};
 			// TODO: we should keep the result of wordwrap so that we don't have to recompute it in doMessage
-			if (wordwrap(o.message, terminal_width).length > 12)
+			if (wordwrap(o.message).length >= terminal_height)
 			{
 				logWarning('Message too long to fit on screen.', level[2]);
 			}

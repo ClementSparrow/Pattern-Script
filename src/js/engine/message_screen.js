@@ -65,7 +65,7 @@ MenuScreen.prototype.makeTitle = function()
 
 	// Add title
 	const max_title_height = (state.metadata.author === undefined) ? author_bottomline : title_bottomline
-	var titlelines = wordwrap(title, terminal_width)
+	var titlelines = wordwrap(title)
 	if (titlelines.length > max_title_height)
 	{
 		titlelines.splice(max_title_height)
@@ -76,7 +76,7 @@ MenuScreen.prototype.makeTitle = function()
 	// Add author(s)
 	if (state.metadata.author !== undefined)
 	{
-		var attributionsplit = wordwrap('by ' + state.metadata.author, terminal_width)
+		var attributionsplit = wordwrap('by ' + state.metadata.author)
 		if (attributionsplit[0].length < terminal_width)
 		{
 			attributionsplit[0] = " " + attributionsplit[0];
@@ -124,10 +124,8 @@ function alignTextRight(txt, rmargin=1, context=empty_terminal_line)
 	return context.slice(0, -rmargin - txt.length) + txt + context.slice(context.length - rmargin)
 }
 
-function wordwrap(str, width)
+function wordwrap(str, width = terminal_width)
 {
-	width = width || 75
- 
 	if (!str) { return str; }
  
 	const regex = '.{1,'+width+'}(\\s|$)|.{'+width+'}|.+$'
@@ -151,7 +149,7 @@ TextModeScreen.prototype.doMessage = function()
 
 	this.text = Array(terminal_height).fill(empty_terminal_line)
 
-	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext, terminal_width)
+	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext)
 
 	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(splitMessage.length/2) )
 
