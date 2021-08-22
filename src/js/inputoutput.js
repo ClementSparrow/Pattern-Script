@@ -331,20 +331,20 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		this.doMessage()
 		keybuffer = []
 	}
-	return false;
+	return false
 }
 
 MenuScreen.prototype.checkKey = function(e, inputdir)
 {
-	if ( (state.levels.length === 0) || (inputdir != 4) || (this.done === true) )
-		return false;
+	if ( (inputdir != 4) || this.done || (state.levels.length === 0) )
+		return false
 
-	tryPlaySimpleSound('startgame')
+	tryPlaySimpleSound('startgame') // todo: we may want to have a different sound for starting the game and leaving the pause menu
 	timer = 0
 	this.done = true
-	this.makeTitle()
+	this.updateMenuItems()
 	keybuffer = []
-	if (this.nb_items === 1)
+	if (this.menu_entries.length === 1)
 	{
 		canvasResize()
 	}
@@ -352,22 +352,22 @@ MenuScreen.prototype.checkKey = function(e, inputdir)
 	{
 		redraw()
 	}
-	return false;
+	return false
 }
 
 
 MenuScreen.prototype.checkRepeatableKey = function(e, inputdir)
 {
-	if (state.levels.length === 0)
-		return false;
+	if ( this.done || (state.levels.length === 0) )
+		return false
 
-	if ( ( (inputdir === 0) || (inputdir === 2) ) )
+	if ( (inputdir === 0) || (inputdir === 2) )
 	{
-		this.item = clamp(0, this.item + (inputdir === 0) ? -1 : 1, this.nb_items - 1)
-		this.makeTitle()
+		this.item = clamp(0, this.item + ((inputdir === 0) ? -1 : 1), this.menu_entries.length - 1)
+		this.updateMenuItems()
 		redraw()
 	}
-	return false;
+	return false
 }
 
 
@@ -416,7 +416,7 @@ function update()
 	if (menu_screen.done && (timer/1000>0.3) )
 	{
 		menu_screen.done = false
-		if (screen_layout.content === menu_screen) // TODO: this is for the title screen, we need a way to now if we're in the pause menu sreen
+		if (screen_layout.content === menu_screen) // TODO: this is for the title screen, we need a way to know if we're in the pause menu sreen
 		{
 			if (menu_screen.item === 0)
 			{

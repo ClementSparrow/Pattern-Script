@@ -16,11 +16,6 @@ const introstate = {
 var state = introstate;
 
 menu_screen.makeTitle()
-if (menu_screen.nb_items > 1)
-{
-	menu_screen.item = 1 // defaults to 'continue'
-}
-
 canvasResize()
 
 
@@ -51,7 +46,6 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	againing=false
 	if (leveldat.message === undefined)
 	{
-		menu_screen.nb_items = 1 // TODO: this should not be here
 		level = leveldat.clone();
 		level.rebuildArrays();
 
@@ -272,7 +266,6 @@ function setGameState(_state, level, randomseed = null)
 			// restart
 			tryPlaySimpleSound('titlescreen')
 			screen_layout.content = menu_screen
-			menu_screen.item = isContinuePossible() ? 1 : 0
 			menu_screen.makeTitle()
 			clearInputHistory()
 		}
@@ -1024,7 +1017,6 @@ function goToTitleScreen()
 	messagetext = ''
 	screen_layout.content = menu_screen
 	doSetupTitleScreenLevelContinue()
-	menu_screen.item = isContinuePossible() ? 1 : 0
 	menu_screen.makeTitle()
 }
 
@@ -1051,7 +1043,7 @@ function closeMessageScreen()
 	{
 		screen_layout.content = level_screen
 	}
-	menu_screen.nb_items = isContinuePossible() ? 2 : 1 // TODO: why do we care about menu_screen, here?
+	// TODO: why do we care about menu_screen, here?
 	menu_screen.item = 0
 	menu_screen.done = false
 	canvasResize()

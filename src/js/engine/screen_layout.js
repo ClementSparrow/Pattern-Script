@@ -52,7 +52,7 @@ var msg_screen = new TextModeScreen()
 function MenuScreen()
 {
 	TextModeScreen.call(this, 'menu')
-	this.nb_items = 1
+	this.menu_items = []
 	this.item = 0 //which item is currently highlighted/selected
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)

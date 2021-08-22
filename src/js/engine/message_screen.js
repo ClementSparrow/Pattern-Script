@@ -28,29 +28,29 @@ MenuScreen.prototype.makeTerminalScreen = function()
 
 MenuScreen.prototype.makeMenuItems = function(menu_entries, nb_lines)
 {
+	this.menu_entries = menu_entries
 	const l = menu_entries.length - 1
-	const interline_size = Math.ceil( nb_lines / (l+1) ) - 1
-	const menu_height = (interline_size + 1) * l + 1
-	const margin_top = Math.floor( ( nb_lines - menu_height ) / 2)
-	this.text.push( ...Array(margin_top).fill(empty_terminal_line) )
-	for (const [i, item_text] of menu_entries.entries())
-	{
-		if (this.item === i)
-			this.text.push( centerText( '# '+item_text+' #', this.done ? selected_terminal_line : empty_terminal_line) )
-		else
-			this.text.push( centerText( item_text, empty_terminal_line) )
-		if (i < l)
-			this.text.push( ...Array(interline_size).fill(empty_terminal_line) )
-	}
-	this.text.push( ...Array(nb_lines - margin_top - menu_height).fill(empty_terminal_line) )
+	this.interline_size = Math.ceil( nb_lines / (l+1) )
+	const menu_height = this.interline_size*l + 1
+	this.first_menu_line = this.text.length + Math.floor( ( nb_lines - menu_height ) / 2)
+	this.text.push( ...Array(nb_lines).fill(empty_terminal_line) )
+	this.item = 0
+	this.updateMenuItems()
 }
 
-// uses: curlevel, curlevelTarget, state
-// sets: this.nb_items, this.text
+MenuScreen.prototype.updateMenuItems = function()
+{
+	for (const [i, item_text] of this.menu_entries.entries())
+	{
+		this.text[this.first_menu_line + i*this.interline_size] = centerText( item_text, empty_terminal_line)
+	}
+	this.text[this.first_menu_line + this.item*this.interline_size] = centerText( '# '+this.menu_entries[this.item]+' #', this.done ? selected_terminal_line : empty_terminal_line)
+}
+
+// uses: isContinuePossible
+// sets: this.text
 MenuScreen.prototype.makeTitle = function()
 {
-	this.nb_items = isContinuePossible() ? 2 : 1
-
 	if (state.levels.length === 0)
 	{
 		this.makeTerminalScreen()
@@ -93,7 +93,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_terminal_line) )
 
 	// Add menu options
-	this.makeMenuItems( (this.nb_items === 1) ? ['start game'] : ['new game', 'continue'], 3)
+	this.makeMenuItems( isContinuePossible() ? ['continue', 'new game'] :  ['start'], 3)
 	this.text.push( empty_terminal_line )
 
 	// Add key configuration info:
@@ -138,7 +138,7 @@ function wordwrap(str, width)
 
 MenuScreen.prototype.makePauseMenu = function()
 {
-	this.text = [ empty_terminal_line, centerText('- PAUSE -'), empty_terminal_line ]
+	this.text = [ empty_terminal_line, centerText('-< GAME PAUSED >-'), empty_terminal_line ]
 	this.makeMenuItems(['resume game', execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', 'exit to title screen' ], terminal_height-4)
 	this.text.push( empty_terminal_line )
 }
