@@ -96,6 +96,10 @@ Here are the possible options:
 		<dl>
 			<dt>author increpare</dt>
 			<dd>Your name goes here.  This will appear in the title screen of the game.</dd>
+      
+      <dt>author_color blue</dt>
+      <dd>Can accept a color name or hex code (in the form #412bbc). Controls the font color of the author name in the title screen.</dd>
+
 			<dt>color_palette mastersystem</dt>
 			<dd>By default, when you use colour names, they are pulled from a variation of <a href="http://androidarts.com/palette/16pal.htm">Arne</a>'s 16-Colour palette.  However, there are other palettes to choose from:
 			<p>
@@ -118,11 +122,14 @@ Here are the possible options:
 <p>
 (you can also refer to them by their numerical index)
 			</dd>
+      
       <dt>again_interval 0.1</dt>      
       <dd>The amount of time it takes an 'again' event to trigger.</dd>
+      
       <dt>background_color blue</dt>
       <dd>Can accept a color name or hex code (in the form #412bbc). Controls the background color of title/message screens, as well as the background color of the website.  Text_color is its sibling.</dd>
-			<dt>debug</dt>
+			
+      <dt>debug</dt>
 			<dd>This outputs the compiled instructions whenever you build your file.  For instance, the line
 			<p>
 			<pre><code>[ > Player | Crate ] -> [ > Player | > Crate ]</code></pre>
@@ -139,52 +146,66 @@ Here are the possible options:
 			</dd>
 
 			<dt>flickscreen WxH</dt>
-			<dd>
-				Setting flickscreen divides each level into WxH grids, and zooms the camera in so that the player can only see one at a time - the camera does not follow the player around on a move-to-move basis, but if the player moves from one part of this grid to another, the camera <em>flicks</em> to the new position.
-			</dd>
-			<dt>homepage www.mypage.com</dt>
-			<dd>
-			The homepage of the author.  This doesn't appear directly in the game itself, but is included in the exported HTML build.
-			</dd>
-			<dt>key_repeat_interval 0.1</dt> 
-			<dd>
-			When you hold down a key, how long is the delay between repeated presses getting sent to the game (in seconds)?
-			</dd>
+			<dd>Setting flickscreen divides each level into WxH grids, and zooms the camera in so that the player can only see one at a time - the camera does not follow the player around on a move-to-move basis, but if the player moves from one part of this grid to another, the camera <em>flicks</em> to the new position.</dd>
+			
+      <dt>homepage www.mypage.com</dt>
+			<dd>The homepage of the author.  This doesn't appear directly in the game itself, but is included in the exported HTML build.</dd>
+      
+      <dt>keyhint_color brown</dt>
+      <dd>Can accept a color name or hex code (in the form #412bbc). Controls the font color of lines giving hints about the keys to use, at the bottom of the title screen, pause menu, and message screens.</dd>
+			
+      <dt>key_repeat_interval 0.1</dt> 
+			<dd>When you hold down a key, how long is the delay between repeated presses getting sent to the game (in seconds)?</dd>
+      
       <dt>noaction</dt>
       <dd>Hides the action key (X) instruction from the title screen, and does not respond when the player pressed it (outside of menus and cutscenes and the like).</dd>
+      
       <dt>norepeat_action</dt>
       <dd>For many games, you don't want holding action down to retrigger it - games where you're toggling a switch, say.  For these games, set norepeat_action, and the action button will only respond to individual presses.</dd>
-			<dt>noundo</dt>
+			
+      <dt>noundo</dt>
 			<dd>Disables the undo key (Z)</dd>
-			<dt>norestart</dt>
+			
+      <dt>norestart</dt>
 			<dd>Disables the restart key (R)</dd>
+      
       <dt>realtime_interval</dt> 
       <dd>The number indicates how long each realtime frame should be.  In the above case, twice a second the game engine will tick, but with no input.  Player input is processed as regular. See <a href="realtime.html">this documentation</a> for more info on making realtime games.</dd>     
-			<dt>require_player_movement</dt>
+			
+      <dt>require_player_movement</dt>
 			<dd>
 			This is a common requirement in games - if the player doesn't move, cancel the whole move.  This is equivalent, where there's only one player character, to the following:
 			<pre><code>[Player]->[Player Temp]
 late [ Player Temp ] -> CANCEL
 late [ Temp ] -> [ ]</code></pre>
 			</dd>
-			<dt>run_rules_on_level_start</dt>
-			<dd>
-			For some games, you will want, before the player sees the level, for the rules to be applied once.
-			</dd>
+			
+      <dt>run_rules_on_level_start</dt>
+			<dd>For some games, you will want, before the player sees the level, for the rules to be applied once.</dd>
+      
       <dt>sprite_size WxH</dt>
       <dd>Defines the size (in pixels) of all the object sprites in the game.</dd>
+      
       <dt>text_color blue</dt>
       <dd>Can accept a color name or hex code (in the form #412bbc). Controls the font color of title/message screens, as well as the font color in the website. Background_color is its sibling.</dd>
-			<dt>title My Amazing Puzzle Game</dt>
+			
+      <dt>title My Amazing Puzzle Game</dt>
 			<dd>The name of your game.  Appears on the title screen.</dd>
+      
+      <dt>title_color blue</dt>
+      <dd>Can accept a color name or hex code (in the form #412bbc). Controls the font color of titles in the title screen and pause menu.</dd>
+      
       <dt>throttle_movement</dt>
       <dd>For use in conjunction with realtime_interval - this stops you from moving crazy fast - repeated keypresses of the same movement direction will not increase your speed. This doesn't apply to the action button.  If you can think of an example that requires action be throttled, just let me know and I'll try accommodate you.</dd>
+      
       <dt>verbose_logging</dt>
       <dd>As you play the game, spits out information about all rules applied as you play:<p>
       <img src="images/verbose_logging.png"></dd>
+      
       <dt>youtube 5MJLi5_dyn0</dt>
       <dd>If you write the youtube tag followed by the ID of a youtube video, it will play in the background.  Exported builds using this, obviously enough, will no longer be fully self-contained, but some might like it :)  You'll only hear the music in the exported or shared versions, not in the editor.</dd>
-			<dt>zoomscreen WxH</dt>
+			
+      <dt>zoomscreen WxH</dt>
 			<dd>Zooms the camera in to a WxH section of the map around the player, centered on the player.</dd>
 		</dl>
 

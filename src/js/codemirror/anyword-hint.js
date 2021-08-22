@@ -16,12 +16,14 @@
         var PRELUDE_COMMAND_WORDS = [
             "METADATA",//tag
             ["author", "Gill Bloggs", "Your name goes here. This will appear in the title screen of the game."],
+            ['author_color', 'blue', 'Can accept a color name or hex code (in the form #412bbc). Controls the font color of the author name in the title screen.'],
             ["color_palette", "arne", "By default, when you use colour names, they are pulled from a variation of <a href='http://androidarts.com/palette/16pal.htm'>Arne</a>'s 16-Colour palette. However, there are other palettes to choose from: <p> <ul> <li>1 - mastersystem </li> <li>2 - gameboycolour </li> <li>3 - amiga </li> <li>4 - arnecolors </li> <li>5 - famicom </li> <li>6 - atari </li> <li>7 - pastel </li> <li>8 - ega </li> <li>9 - amstrad </li> <li>10 - proteus_mellow </li> <li>11 - proteus_rich </li> <li>12 - proteus_night </li> <li>13 - c64 </li> <li>14 - whitingjp </li> </ul> <p> (you can also refer to them by their numerical index)"],
             ["again_interval", "0.1", "The amount of time it takes an 'again' event to trigger."],
             ["background_color", "blue", "Can accept a color name or hex code (in the form #412bbc). Controls the background color of title/message screens, as well as the background color of the website. Text_color is its sibling."],
             ["debug", "", "This outputs the compiled instructions whenever you build your file."],
             ["flickscreen", "8x5", "Setting flickscreen divides each level into WxH grids, and zooms the camera in so that the player can only see one at a time"],
             ["homepage", "www.puzzlescript.net", "A link to your homepage!"],
+            ['keyhint_color', 'brown', 'Can accept a color name or hex code (in the form #412bbc). Controls the font color of lines giving hints about the keys to use, at the bottom of the title screen, pause menu, and message screens.'],
             ["key_repeat_interval", "0.1", "When you hold down a key, how long is the delay between repeated presses getting sent to the game (in seconds)?"],
             ["noaction", "", "Hides the action key (X) instruction from the title screen, and does not respond when the player pressed it (outside of menus and cutscenes and the like)."],
             ["norepeat_action", "", "The action button will only respond to individual presses, and not auto-trigger when held down."],
@@ -30,12 +32,14 @@
             ["realtime_interval", "", "The number indicates how long each realtime frame should be."],
             ["require_player_movement", "", "If the player doesn't move, cancel the whole move."],
             ["run_rules_on_level_start", "", "Applies the rules once on level-load, before the player has moved"],
+            ['sprite_size', 'WxH', 'Size of the sprites in pixels.'],
             ["text_color", "orange", "Can accept a color name or hex code (in the form #412bbc). Controls the font color of title/message screens, as well as the font color in the website. Background_color is its sibling."],
             ["title", "My Amazing Puzzle Game", "The name of your game. Appears on the title screen."],
+            ['title_color', 'blue', 'Can accept a color name or hex code (in the form #412bbc). Controls the font color of titles in the title screen and pause menu.'],
             ["throttle_movement", "", "For use in conjunction with realtime_interval - this stops you from moving crazy fast - repeated keypresses of the same movement direction will not increase your speed. This doesn't apply to the action button."],
             ["zoomscreen", "WxH", "Zooms the camera in to a WxH section of the map around the player, centered on the player."],
-            ['sprite_size', 'WxH', 'Size of the sprites in pixels.']
         ];
+        const color_keywords = [ 'author_color', 'background_color', 'keyhint_color', 'text_color', 'title_color' ]
 
         var COLOR_WORDS = [
             "COLOR",//special tag
@@ -224,8 +228,7 @@
                 default: //preamble
                     {
                         var lc = lineToCursor.toLowerCase();
-                        if (lc.indexOf("background_color")>=0 ||
-                            lc.indexOf("text_color")>=0) {
+                        if (color_keywords.some( c => lc.includes(c) ) ) {
                             candlists.push(COLOR_WORDS);
                         } else {
                             var linewords =lineToCursor.trim().split(/\s+/ );

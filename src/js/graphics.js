@@ -80,19 +80,18 @@ var ctx = canvas.getContext('2d');
 
 TextModeScreen.prototype.redraw = function(magnification)
 {
-	const f = font.colored_font(state.fgcolor, magnification)
-	if (f === null)
-		return;
-
 	const char_width  = magnification * font_width
 	const char_height = magnification * font_height
 	const grid_width  = magnification * (1+font_width)
 	const grid_height = magnification * (1+font_height)
-	for (var j = 0; j < terminal_height; j++)
+	for (const [j, [line, color]] of this.text.entries() )
 	{
-		for (var i = 0; i < terminal_width; i++)
+		const f = font.colored_font(color, magnification)
+		if (f === null)
+			return
+		for (var i = 0; i < line.length; i++)
 		{
-			draw_char(ctx, f, this.text[j].charAt(i), i*grid_width, j*grid_height, char_width, char_height)
+			draw_char(ctx, f, line.charAt(i), i*grid_width, j*grid_height, char_width, char_height)
 		}
 	}
 }

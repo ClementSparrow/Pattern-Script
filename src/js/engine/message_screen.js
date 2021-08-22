@@ -43,7 +43,7 @@ MenuScreen.prototype.makeTerminalScreen = function()
 			8: ' insert cartridge ',
 			length:terminal_height
 		},
-		l => (l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line)
+		l => [(l === undefined) ? doted_terminal_line : centerText(l, doted_terminal_line), '#ffffff']
 	)
 }
 
@@ -55,7 +55,7 @@ MenuScreen.prototype.makeMenuItems = function(nb_lines, menu_entries)
 	this.interline_size = Math.ceil( nb_lines / (l+1) )
 	const menu_height = this.interline_size*l + 1
 	this.first_menu_line = this.text.length + Math.floor( ( nb_lines - menu_height ) / 2)
-	this.text.push( ...Array(nb_lines).fill(empty_terminal_line) )
+	this.text.push( ...Array(nb_lines).fill(['', state.fgcolor]) )
 	this.item = 0
 	this.updateMenuItems()
 }
@@ -64,9 +64,9 @@ MenuScreen.prototype.updateMenuItems = function()
 {
 	for (const [i, [item_text, item_function]] of this.menu_entries.entries())
 	{
-		this.text[this.first_menu_line + i*this.interline_size] = centerText( item_text, empty_terminal_line)
+		this.text[this.first_menu_line + i*this.interline_size] = [centerText( item_text, empty_terminal_line), state.fgcolor]
 	}
-	this.text[this.first_menu_line + this.item*this.interline_size] = centerText( '# '+this.menu_entries[this.item][0]+' #', this.done ? selected_terminal_line : empty_terminal_line)
+	this.text[this.first_menu_line + this.item*this.interline_size] = [centerText( '# '+this.menu_entries[this.item][0]+' #', this.done ? selected_terminal_line : empty_terminal_line), state.fgcolor]
 }
 
 MenuScreen.prototype.openMenu = function(previous_screen = screen_layout.content)
@@ -99,7 +99,8 @@ MenuScreen.prototype.makeTitle = function()
 
 	const title_bottomline = 3
 	const author_bottomline = 5
-	this.text = [ empty_terminal_line ]
+	const empty_line = ['', state.fgcolor]
+	this.text = [ empty_line ]
 
 	// Add title
 	const max_title_height = (state.metadata.author === undefined) ? author_bottomline : title_bottomline
@@ -109,7 +110,7 @@ MenuScreen.prototype.makeTitle = function()
 		titlelines.splice(max_title_height)
 		logWarning(['title_truncated', max_title_height], undefined, true)
 	}
-	this.text.push(...titlelines.map( l => centerText(l) ), ...Array(Math.max(0, max_title_height - titlelines.length - 1)).fill(empty_terminal_line))
+	this.text.push(...titlelines.map( l => [centerText(l), state.titlecolor] ), ...Array(Math.max(0, max_title_height - titlelines.length - 1)).fill(empty_line))
 
 	// Add author(s)
 	if (state.metadata.author !== undefined)
@@ -124,27 +125,27 @@ MenuScreen.prototype.makeTitle = function()
 			attributionsplit.splice(author_bottomline - title_bottomline)
 			logWarning('Author list too long to fit on screen, truncating to three lines.', undefined, true)
 		}
-		this.text.push(...attributionsplit.map( l => alignTextRight(l, Math.max(l.length - terminal_width, 1)) ))
+		this.text.push(...attributionsplit.map( l => [alignTextRight(l, Math.max(l.length - terminal_width, 1)), state.authorcolor] ))
 		// I prefer them centered:
 		// this.text.push(...attributionsplit.map( l => centerText(l) ))
 	}
-	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_terminal_line) )
+	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
 	this.makeMenuItems(3,  isContinuePossible() ? [['continue', titleMenuContinue], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
-	this.text.push( empty_terminal_line )
+	this.text.push( empty_line )
 
 	// Add key configuration info:
-	this.text.push( alignTextLeft('arrow keys to move') )
-	this.text.push( alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to select / action') )
+	this.text.push( [alignTextLeft('arrow keys to move'), state.keyhintcolor] )
+	this.text.push( [alignTextLeft( ('noaction' in state.metadata) ? 'X to select' : 'X to select / action'), state.keyhintcolor] )
 	var msgs = []
 	if ( ! ('noundo' in state.metadata) )
 		msgs.push('Z to undo')
 	if ( ! ('norestart' in state.metadata) )
 		msgs.push('R to restart')
-	this.text.push( alignTextLeft( msgs.join(', ') ) )
+	this.text.push( [alignTextLeft( msgs.join(', ') ), state.keyhintcolor] )
 
-	this.text.push(empty_terminal_line)
+	this.text.push(empty_line)
 }
 
 function centerText(txt, context=empty_terminal_line)
@@ -182,13 +183,14 @@ function pauseMenuExit()
 
 MenuScreen.prototype.makePauseMenu = function()
 {
-	this.text = [ empty_terminal_line, centerText('-< GAME PAUSED >-'), empty_terminal_line ]
+	const empty_line = [ empty_terminal_line, state.fgcolor]
+	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], empty_line ]
 	this.makeMenuItems(terminal_height - 4, [
 		['resume game', () => this.closeMenu()],
 		[execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', titleMenuContinue],
 		['exit to title screen', pauseMenuExit]
 	])
-	this.text.push( empty_terminal_line )
+	this.text.push( empty_line )
 }
 
 
@@ -196,8 +198,9 @@ MenuScreen.prototype.makePauseMenu = function()
 TextModeScreen.prototype.doMessage = function()
 {
 	screen_layout.content = this
+	const empty_line = [ empty_terminal_line, state.fgcolor ]
 
-	this.text = Array(terminal_height).fill(empty_terminal_line)
+	this.text = Array(terminal_height).fill(empty_line)
 
 	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext)
 
@@ -206,13 +209,13 @@ TextModeScreen.prototype.doMessage = function()
 	const count = Math.min(splitMessage.length, terminal_height - 1)
 	for (var i=0; i<count; i++)
 	{
-		this.text[offset+i] = centerText(splitMessage[i])
+		this.text[offset+i] = [centerText(splitMessage[i]), state.fgcolor]
 	}
 
 	if ( ! this.done )
 	{
-		this.text[clamp(10, count+1, 12)] = centerText('X to continue')
+		this.text[clamp(10, count+1, 12)] = [centerText('X to continue'), state.keyhintcolor]
 	}
 	
-	canvasResize();
+	canvasResize()
 }

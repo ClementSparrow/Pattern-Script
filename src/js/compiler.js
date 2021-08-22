@@ -107,6 +107,28 @@ function generateExtraMembers(state)
 		colorPalette = colorPalettes.arnecolors;
 	}
 
+	const color_metadata = [
+		[ 'background_color', 'bgcolor', '#000000FF' ],
+		[ 'text_color', 'fgcolor', '#FFFFFFFF'],
+		[ 'title_color', 'titlecolor', undefined],
+		[ 'author_color', 'authorcolor', undefined],
+		[ 'keyhint_color', 'keyhintcolor', undefined],
+	]
+	for (const [metadata_key, state_key, default_color] of color_metadata)
+	{
+		const color = (metadata_key in state.metadata) ? colorToHex(colorPalette, state.metadata[metadata_key]) : (default_color || state.fgcolor)
+		if ( isColor(color) )
+		{
+			state[state_key] = color
+		}
+		else
+		{
+			const final_color = (default_color || state.fgcolor)
+			logError(metadata_key + ' in incorrect format - found '+color+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to "+final_color+'.')
+			state[state_key] = final_color
+		}
+	}
+
 	//convert colors to hex
 	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 	for (var o of state.identifiers.objects)
@@ -938,26 +960,6 @@ function generateSoundData(state)
 
 function formatHomePage(state)
 {
-	if ('background_color' in state.metadata) {
-		state.bgcolor=colorToHex(colorPalette,state.metadata.background_color);
-	} else {
-		state.bgcolor="#000000FF";
-	}
-	if ('text_color' in state.metadata) {
-		state.fgcolor=colorToHex(colorPalette,state.metadata.text_color);
-	} else {
-		state.fgcolor="#FFFFFFFF";
-	}
-	
-	if (isColor(state.fgcolor)===false ){
-		logError("text_color in incorrect format - found "+state.fgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to white.")
-		state.fgcolor="#FFFFFFFF";
-	}
-	if (isColor(state.bgcolor)===false ){
-		logError("background_color in incorrect format - found "+state.bgcolor+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to black.")
-		state.bgcolor="#000000FF";
-	}
-
 	if (canSetHTMLColors) {
 		
 		if ('background_color' in state.metadata)  {
