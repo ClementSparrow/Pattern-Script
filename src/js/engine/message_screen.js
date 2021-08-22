@@ -174,13 +174,6 @@ function wordwrap(str, width = terminal_width)
 
 
 
-function pauseMenuExit()
-{
-	goToTitleScreen()
-	tryPlaySimpleSound('gamescreen')
-	canvasResize()
-}
-
 MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [ empty_terminal_line, state.fgcolor]
@@ -188,7 +181,7 @@ MenuScreen.prototype.makePauseMenu = function()
 	this.makeMenuItems(terminal_height - 4, [
 		['resume game', () => this.closeMenu()],
 		[execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', titleMenuContinue],
-		['exit to title screen', pauseMenuExit]
+		['exit to title screen', goToTitleScreen]
 	])
 	this.text.push( empty_line )
 }
