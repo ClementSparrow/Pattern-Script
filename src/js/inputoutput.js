@@ -326,7 +326,10 @@ MenuScreen.prototype.checkKey = function(e, inputdir)
 	if ( (inputdir != 4) || this.done || (state.levels.length === 0) )
 		return false
 
-	tryPlaySimpleSound('startgame') // todo: we may want to have a different sound for starting the game and leaving the pause menu
+	if (this.select_soundname !== undefined)
+	{
+		tryPlaySimpleSound(this.select_soundname)
+	}
 	timer = 0
 	this.done = true
 	this.updateMenuItems()

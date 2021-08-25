@@ -299,7 +299,7 @@ function loadText(txt)
 	editor.setValue(txt)
 	setEditorClean()
 	state = introstate
-	level = new Level(0, 5, 5, 2, new Int32Array(0))
+	level = new Level(5, 5, 2, new Int32Array(0))
 	title_screen.makeTitle()
 	compile(-1, txt)
 	setPageTitle()
@@ -346,4 +346,8 @@ editor.on('keyup', function (editor, event) {
 			CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
 		}
 	}
-});
+})
+
+title_screen.makeTerminalScreen()
+// TODO: This one should not play sound, but it does not matter because the sound has not been compiled yet.
+title_screen.openMenu(null) // can't close the menu

@@ -13,7 +13,6 @@ function makeGIF()
 	encoder.start();
 
 	compile(curlevel, levelString, randomseed)
-	canvasResize()
 
 	var gifcanvas = document.createElement('canvas');
 	const [virtual_screen_w, virtual_screen_h] = screen_layout.content.get_virtual_screen_size()

@@ -1,10 +1,8 @@
 // uses: STRIDE_OBJ, STRIDE_MOV
 
 // levels are only constructed in engine/engine_base.js/unloadGame and compiler.js/levelFromString
-function Level(lineNumber, width, height, layerCount, objects)
+function Level(width, height, layerCount, objects)
 {
-	// Debug info, should only be needed for the editor, not in the player
-	this.lineNumber = lineNumber
 	// Definition of the level layout (should be constant)
 	this.width = width
 	this.height = height
@@ -17,7 +15,7 @@ function Level(lineNumber, width, height, layerCount, objects)
 
 Level.prototype.clone = function()
 {
-	return new Level(this.lineNumber, this.width, this.height, this.layerCount, new Int32Array(this.objects));
+	return new Level(this.width, this.height, this.layerCount, new Int32Array(this.objects))
 }
 
 Level.prototype.cellCoord = function(cell_index)
@@ -172,30 +170,33 @@ Level.prototype.rebuildArrays = function()
 Level.prototype.backUp = function()
 {
 	return {
-		dat: new Int32Array(this.objects),
+		objects: new Int32Array(this.objects),
 		width:  this.width,
 		height: this.height,
+		layerCount: this.layerCount,
 	}
 }
 
 Level.prototype.forSerialization = function()
 {
 	return {
-		dat : Array.from(this.objects),
+		objects : Array.from(this.objects),
 		width :  this.width,
 		height : this.height,
+		layerCount: this.layerCount,
 	}
 }
 
 Level.prototype.restore = function(lev)
 {
-	this.objects = new Int32Array(lev.dat);
+	this.objects = new Int32Array(lev.objects)
 
 	if ( (this.width !== lev.width) || (this.height !== lev.height) )
 	{
 		this.width = lev.width
 		this.height = lev.height
 		this.n_tiles = lev.width * lev.height
+		this.layerCount = lev.layerCount
 		this.rebuildArrays() //regenerate all other stride-related stuff
 	}
 	else 

@@ -37,9 +37,9 @@ var empty_screen = new EmptyScreen()
 
 
 // Text screen
-function TextModeScreen()
+function TextModeScreen(screen_type = 'text')
 {
-	EmptyScreen.call(this, 'text')
+	EmptyScreen.call(this, screen_type)
 	this.text = []
 	this.done = false // not yet pressed the key that would leave the screen
 }
@@ -49,16 +49,17 @@ TextModeScreen.prototype.get_virtual_screen_size = () => [ terminal_width*(font_
 var msg_screen = new TextModeScreen()
 
 // Menu screen, based on TextModeScreen
-function MenuScreen(open_soundname)
+function MenuScreen(open_soundname, select_soundname)
 {
 	TextModeScreen.call(this, 'menu')
 	this.menu_items = []
 	this.item = 0 //which item is currently highlighted/selected
 	this.open_soundname = open_soundname
+	this.select_soundname = select_soundname
 }
 MenuScreen.prototype = Object.create(TextModeScreen.prototype)
 var pause_menu_screen = new MenuScreen('pausescreen')
-var title_screen = new MenuScreen('gamescreen')
+var title_screen = new MenuScreen('gamescreen', 'startgame')
 
 // Level screen, also base class for flickscreen and zoomscreen
 function LevelScreen(screen_type = 'level')

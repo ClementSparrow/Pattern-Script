@@ -15,15 +15,69 @@ const introstate = {
 
 var state = introstate;
 
-title_screen.makeTitle()
-title_screen.openMenu(null) // can't close the title menu without selecting something
-
 function tryPlaySimpleSound(soundname)
 {
 	if ( (state.sfx_Events !== undefined) && (state.sfx_Events[soundname] !== undefined) )
 	{
 		playSound(state.sfx_Events[soundname])
 	}
+}
+
+
+// SAVE POINTS
+// ===========
+
+// Save point is only used for the 'continue' option of title screen.
+// It's different from restartTarget, which is used for restarts triggered with the R key.
+
+function setSavePoint(curlevel, new_restart_target)
+{
+	try
+	{
+		if ( (curlevel > 0) || (new_restart_target !== undefined) )
+		{
+			storage_set(document.URL, curlevel)
+		}
+		else
+		{
+			storage_remove(document.URL)
+		}
+
+		if (new_restart_target !== undefined)
+		{
+			storage_set(document.URL+'_checkpoint', JSON.stringify(new_restart_target))
+		}
+		else
+		{
+			storage_remove(document.URL+'_checkpoint')
+		}
+	}
+	catch (ex) { }
+}
+
+function getSavePoint()
+{
+	try {
+		if (storage_has(document.URL))
+		{
+			const result_level = storage_get(document.URL)
+			if ( ! storage_has(document.URL+'_checkpoint') )
+				return [ result_level, undefined ]
+
+			var curlvlTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
+
+			var arr = []
+			const from = curlvlTarget.hasOwnProperty('lev') ? curlvlTarget.lev.objects : curlvlTarget.dat // compatibility feature
+			for(var p in Object.keys(from))
+			{
+				arr[p] = from[p]
+			}
+			curlvlTarget.lev.objects = new Int32Array(arr)
+
+			return [ result_level, curlvlTarget ]
+		}
+	} catch(ex) { }
+	return [ undefined, undefined ]
 }
 
 
@@ -41,24 +95,29 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	}
 	loadedLevelSeed = randomseed;
 	RandomGen = new RNG(loadedLevelSeed);
-	forceRegenImages()
-	againing=false
-	if (leveldat.message === undefined)
+	forceRegenImages() // why do we need that?
+	
+	execution_context.resetUndoStack()
+	execution_context.is_message_level = (leveldat.message !== undefined)
+
+	if (execution_context.is_message_level)
 	{
-		level = leveldat.clone();
-		level.rebuildArrays();
+		execution_context.restartTarget = null
+		showTempMessage()
+	}
+	else
+	{
+		level.restore(leveldat)
+		execution_context.setRestartTarget()
 
 		screen_layout.content = level_screen
-		if (state !== undefined) // can it be undefined?
+		if (state.metadata.flickscreen !== undefined)
 		{
-			if (state.metadata.flickscreen !== undefined)
-			{
-				screen_layout.content = tiled_world_screen
-			}
-			else if (state.metadata.zoomscreen !== undefined)
-			{
-				screen_layout.content = camera_on_player_screen
-			}
+			screen_layout.content = tiled_world_screen
+		}
+		else if (state.metadata.zoomscreen !== undefined)
+		{
+			screen_layout.content = camera_on_player_screen
 		}
 		screen_layout.content.level = level
 
@@ -69,34 +128,31 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 			screen_layout.content.get_viewport()
 		}
 
-		execution_context.resetUndoStack()
-		execution_context.setRestartTarget()
 		keybuffer = []
 
-		if ('run_rules_on_level_start' in state.metadata)
+		execution_context.run_rules_on_level_start_phase = ('run_rules_on_level_start' in state.metadata)
+		if (execution_context.run_rules_on_level_start_phase)
 		{
 			processInput(processing_causes.run_rules_on_level_start)
 		}
-	} else { // show level message
-		showTempMessage()
 	}
 
-	clearInputHistory();
+	clearInputHistory()
+	canvasResize()
 }
 
-function loadLevelFromState(state, levelindex, randomseed)
+function loadLevelFromState(state, levelindex, randomseed, set_save = true)
 {
-	const leveldat = (curlevelTarget === null) ? state.levels[levelindex] : curlevelTarget
+	const leveldat = state.levels[levelindex]
 	curlevel = levelindex
-	if ( (leveldat !== undefined) && (leveldat.message === undefined) )
+	if (leveldat.message === undefined)
 	{
 		tryPlaySimpleSound('startlevel')
 	}
-	loadLevelFromLevelDat(state, state.levels[levelindex], randomseed)
-	if (curlevelTarget !== null)
+	loadLevelFromLevelDat(state, leveldat, randomseed)
+	if (set_save)
 	{
-		execution_context.setRestartTarget(curlevelTarget)
-		execution_context.restore()
+		setSavePoint(levelindex) // always set the save point at the start of level
 	}
 }
 
@@ -110,9 +166,9 @@ function executionContext()
 {
 	// Undo/restart/checkpoints data
 	this.backups = [] // only used in doUndo
-	this.restartTarget = null // last checkpoint reached. Only used in DoRestart
-	this.hasUsedCheckpoint = false // was a checkpoint used in this level?
-
+	this.restartTarget = null // last checkpoint reached.
+	this.is_message_level = null
+	this.run_rules_on_level_start_phase = null
 
 	// Output queue
 	this.commandQueue = new CommandsSet()
@@ -206,7 +262,8 @@ function tryActivateYoutube(){
 // ==========
 
 // Only called at the end of compile()
-function setGameState(_state, level, randomseed = null)
+// TODO: level_index being anything else than -1 is editor/unit_tests only features and should be removed from exported games.
+function setGameState(_state, level_index, randomseed = null)
 {
 	oldflickscreendat=[];
 	timer=0;
@@ -220,10 +277,10 @@ function setGameState(_state, level, randomseed = null)
 	sfxCreateMask=new BitVec(STRIDE_OBJ);
 	sfxDestroyMask=new BitVec(STRIDE_OBJ);
 
-	// show the title screen if there's no level
-	if ( (level === undefined) && ( (state.levels.length === 0) || (_state.levels.length === 0) ) )
+	// show the title screen if there's no level_index
+	if ( (level_index === undefined) && ( (state.levels.length === 0) || (_state.levels.length === 0) ) )
 	{
-		level = -1
+		level_index = -1
 	}
 	RandomGen = new RNG(randomseed)
 
@@ -249,28 +306,27 @@ function setGameState(_state, level, randomseed = null)
 		logWarning("throttle_movement is designed for use in conjunction with realtime_interval. Using it in other situations makes games gross and unresponsive, broadly speaking.  Please don't.");
 	}
 	
-	if (typeof level === 'function')
+	if (typeof level_index === 'function')
 	{
-		level = level(state.levels)
+		level_index = level_index(state.levels)
 	}
 
-	if (level !== undefined)
+	if (level_index !== undefined)
 	{
 		winning = false
 		timer = 0
 		msg_screen.done = false
 		pause_menu_screen.done = false
-		if (level < 0)
+		level = new Level()
+		if (level_index < 0)
 		{
 			// restart
-			title_screen.makeTitle()
-			title_screen.openMenu(null)
-			clearInputHistory()
+			goToTitleScreen(false)
 		}
-		else // go to level
+		else
 		{
-			curlevelTarget = null
-			loadLevelFromState(state, level, randomseed)
+			// go to given level
+			loadLevelFromState(state, level_index, randomseed, false)
 		}
 	}
 
@@ -320,7 +376,7 @@ executionContext.prototype.backupDiffers = function()
 		return true
 
 	const bak = this.backups[this.backups.length-1]
-	return level.objects.some( (o, i) => o !== bak.lev.dat[i] )
+	return level.objects.some( (o, i) => o !== bak.lev.objects[i] )
 }
 
 executionContext.prototype.doUndo = function()
@@ -667,6 +723,7 @@ const processing_causes = { run_rules_on_level_start: -1, againing_test: -2, aga
 function processInput(input)
 {
 	againing = false
+	const in_level_start_animation = execution_context.run_rules_on_level_start_phase
 
 	if (verbose_logging)
 	{
@@ -745,8 +802,11 @@ function processInput(input)
 		}
 	}
 
+	execution_context.run_rules_on_level_start_phase = false // this will be reset to previous value only if againing
+
 	// require_player_movement
 	// TODO: shouldn't this be tested after CANCEL and RESTART commands? (and AGAIN ?)
+	// TODO: should this be ignored in run_rules_on_level_start_phase?
 	if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
 	{
 		// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
@@ -781,7 +841,7 @@ function processInput(input)
 			consolePrintFromRule('RESTART command executed, reverting to restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.restart], true)
 		}
 		execution_context.commandQueue.processOutput()
-		if (input === processing_causes.run_rules_on_level_start)
+		if (in_level_start_animation)
 		{
 			if (verbose_logging) consolePrint('Restart cancelled because it would cause an infinite loop if executed during a "run_rules_on_level_start" phase.')
 		}
@@ -792,7 +852,7 @@ function processInput(input)
 		}
 	} 
 
-	const modified = level.objects.some( (o, i) => o !== bak.lev.dat[i] )
+	const modified = level.objects.some( (o, i) => o !== bak.lev.objects[i] )
 
 	if (input === processing_causes.againing_test) // this is a fake frame just to check that applying again would cause some change
 	{
@@ -852,10 +912,12 @@ function processInput(input)
 			{ 
 				consolePrintFromRule('CHECKPOINT command executed, saving current state to the restart state.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.checkpoint])
 			}
-			execution_context.setRestartTarget(execution_context.forSerialization())
-			execution_context.hasUsedCheckpoint = true
-			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
-			storage_set(document.URL, curlevel)
+			const new_restart_target = execution_context.forSerialization()
+			if ( ! in_level_start_animation )
+			{
+				setSavePoint(curlevel, new_restart_target)
+			}
+			execution_context.setRestartTarget(new_restart_target)
 		}	 
 
 		if ( modified && execution_context.commandQueue.get(CommandsSet.command_keys.again) )
@@ -873,6 +935,7 @@ function processInput(input)
 				if (old_verbose_logging) { consolePrintFromRule('AGAIN command executed, with changes detected - will execute another turn.', r) }
 				againing = true // this is the only place where we set againing to true
 				timer = 0
+				execution_context.run_rules_on_level_start_phase = in_level_start_animation
 			}
 			else
 			{
@@ -924,22 +987,15 @@ function checkWin(cause_of_processing)
 	// won
 	if (cause_of_processing === processing_causes.run_rules_on_level_start)
 	{
+		// We can win in rules_on_level_phase but not on first frame, for making cutscene levels.
 		consolePrint("Win Condition Satisfied (However this is in the run_rules_on_level_start rule pass, so I'm going to ignore it for you.  Why would you want to complete a level before it's already started?!)")
 		return
 	}
 
 	consolePrint('Win Condition Satisfied')
-	if ( ! screen_layout.dontDoWin() )
-	{
-		DoWin()
-	}
-}
-
-// only called from checkWin
-function DoWin()
-{
-	if (winning)
+	if ( screen_layout.dontDoWin() || winning )
 		return
+
 	againing = false
 	tryPlaySimpleSound('endlevel')
 	if (unitTesting)
@@ -947,7 +1003,6 @@ function DoWin()
 		nextLevel()
 		return
 	}
-
 	winning = true
 	timer = 0
 }
@@ -961,61 +1016,27 @@ function nextLevel()
 		curlevel = state.levels.length-1
 	}
 	
-	if (execution_context.hasUsedCheckpoint)
-	{
-		curlevelTarget = null
-		execution_context.hasUsedCheckpoint = false
-	}
 	if (curlevel < state.levels.length-1)
-	{			
+	{
 		curlevel++
 		msg_screen.done = false
 		loadLevelFromState(state, curlevel)
+		return
 	}
-	else // end game
-	{
-		try {
-			storage_remove(document.URL)
-			storage_remove(document.URL+'_checkpoint')
-		} catch(ex) { }
-		
-		curlevel = 0
-		curlevelTarget = null
-		goToTitleScreen()
-		tryPlaySimpleSound('endgame')
-	}		
-	//continue existing game
-	finalizeNextLevel()
+	// end game
+	setSavePoint(0) // actually removes save point
+	tryPlaySimpleSound('endgame') // TODO: we may need a small delay to play the sound before going back to the title screen which also plays a sound?
+	goToTitleScreen(false)
 }
 
-function finalizeNextLevel()
-{
-	try {
-		storage_set(document.URL, curlevel)
-		if (curlevelTarget !== null)
-		{
-			execution_context.setRestartTarget(execution_context.forSerialization())
-			storage_set(document.URL+'_checkpoint', JSON.stringify(execution_context.restartTarget))
-		} else {
-			storage_remove(document.URL+'_checkpoint')
-		}		
-	} catch (ex) { }
-
-	if ( (state !== undefined) && (state.metadata.flickscreen !== undefined) )
-	{
-		oldflickscreendat = [0, 0, Math.min(state.metadata.flickscreen[0], level.width), Math.min(state.metadata.flickscreen[1], level.height)]
-	}
-	canvasResize()
-	clearInputHistory()
-}
-
-function goToTitleScreen()
+function goToTitleScreen(escapable = true)
 {
 	againing = false
 	messagetext = ''
-	doSetupTitleScreenLevelContinue()
+	;[ title_screen.curlevel, title_screen.curlevelTarget ] = getSavePoint()
 	title_screen.makeTitle()
-	title_screen.openMenu(null)
+	title_screen.openMenu(escapable ? undefined : null)
+	clearInputHistory()
 }
 
 

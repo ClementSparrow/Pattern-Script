@@ -356,9 +356,7 @@ Level.prototype.removeBottomRow = function()   { if (this.height > 1) this.copyR
 
 function loadInLevelEditor(lines)
 {
-	const leveldat = levelFromString(state, ['console'].concat(lines) )
-	loadLevelFromLevelDat(state, leveldat, null)
-	canvasResize()
+	loadLevelFromLevelDat(state, levelFromString(state, ['console'].concat(lines)), null)
 }
 
 // find mask with closest match

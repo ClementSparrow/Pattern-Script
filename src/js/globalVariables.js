@@ -1,37 +1,11 @@
 var unitTesting=false;
 var curlevel=0;
-var curlevelTarget = null
 var muted=0;
 
 const storage_get = (key) => localStorage.getItem(key)
 const storage_has = (key) => (localStorage.getItem(key) !== null)
 const storage_set = (key, value) => localStorage.setItem(key, value)
 const storage_remove = (key) => localStorage.removeItem(key)
-
-function doSetupTitleScreenLevelContinue()
-{
-	try {
-		if (storage_has(document.URL))
-		{
-			if (storage_has(document.URL+'_checkpoint'))
-			{
-				curlevelTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
-
-				var arr = []
-				const from = curlevelTarget.hasOwnProperty('lev') ? curlevelTarget.lev.dat : curlevelTarget.dat
-				for(var p in Object.keys(from))
-				{
-					arr[p] = from[p]
-				}
-				curlevelTarget.lev.dat = new Int32Array(arr)
-			}
-			curlevel = storage_get(document.URL)
-		}
-	} catch(ex) { }
-}
-
-doSetupTitleScreenLevelContinue()
-
 
 var verbose_logging=false;
 var throttle_movement=false;

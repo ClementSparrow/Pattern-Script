@@ -1,5 +1,5 @@
 
-// uses: curlevel, curlevelTarget, state, messagetext
+// uses: state, messagetext
 
 const empty_terminal_line    = '                                  ';
 const selected_terminal_line = '##################################';
@@ -8,29 +8,45 @@ const doted_terminal_line    = '..................................';
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
-function isContinuePossible()
+MenuScreen.prototype.isContinuePossible = function()
 {
-	return ( (curlevel > 0) || (curlevelTarget !== null) ) && (curlevel in state.levels)
+	return ( (this.curlevel > 0) || (this.curlevelTarget !== undefined) ) && (this.curlevel in state.levels)
 }
 
+
+function skipTextLevels()
+{
+	while ( (state.levels[curlevel].message !== undefined) && (curlevel < state.levels.length - 1) )
+		curlevel++
+	loadLevelFromState(state, curlevel)
+}
 
 function titleMenuNewGame()
 {
-	curlevelTarget = null
 	loadLevelFromState(state, 0)
-	finalizeNextLevel()
 }
 
-function titleMenuContinue()
+MenuScreen.prototype.titleMenuContinue = function()
+{
+	curlevel = this.curlevel
+	if (state.levels[curlevel].message === undefined)
+	{
+		tryPlaySimpleSound('startlevel')
+	}
+	loadLevelFromLevelDat(state, (this.curlevelTarget !== undefined) ? this.curlevelTarget.lev : state.levels[curlevel])
+	setSavePoint(this.curlevel, this.curlevelTarget)
+}
+
+function pauseMenuRestart()
 {
 	loadLevelFromState(state, curlevel)
-	finalizeNextLevel()
 }
 
 MenuScreen.prototype.doSelectedFunction = function()
 {
 	this.done = false
 	const func = this.menu_entries[this.item][1]
+	this.updateMenuItems() // in case we need to come back to the menu after the selected function
 	func()
 }
 
@@ -73,7 +89,7 @@ MenuScreen.prototype.openMenu = function(previous_screen = screen_layout.content
 {
 	this.escaped_screen = previous_screen
 	screen_layout.content = this
-	tryPlaySimpleSound(this.open_soundname) // TODO: well, we need to change that option name
+	tryPlaySimpleSound(this.open_soundname)
 	canvasResize()
 }
 
@@ -82,10 +98,21 @@ MenuScreen.prototype.closeMenu = function()
 	if (this.escaped_screen === null)
 		return
 	screen_layout.content = this.escaped_screen
+	// TODO: closing the title screen back to the pause menu does not play pausescreen sound.
 	canvasResize()
 }
 
-// uses: isContinuePossible
+function getLevelName(lvl = curlevel)
+{
+	var result = 1
+	for (var i=0; i<lvl; ++i)
+	{
+		if (state.levels[i].message === undefined)
+			result++
+	}
+	return result
+}
+
 // sets: this.text
 MenuScreen.prototype.makeTitle = function()
 {
@@ -132,7 +159,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
-	this.makeMenuItems(3,  isContinuePossible() ? [['continue', titleMenuContinue], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from level '+getLevelName(this.curlevel), () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -177,17 +204,18 @@ function wordwrap(str, width = terminal_width)
 MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [ empty_terminal_line, state.fgcolor]
-	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], empty_line ]
-	this.makeMenuItems(terminal_height - 4, [
+	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+getLevelName()), state.titlecolor], empty_line ]
+	var menu_entries = [
 		['resume game', () => this.closeMenu()],
-		[execution_context.hasUsedCheckpoint ? 'restart from checkpoint' : 'restart level', titleMenuContinue],
+		execution_context.is_message_level ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
 		['exit to title screen', goToTitleScreen]
-	])
+	]
+	this.makeMenuItems(terminal_height - 5, menu_entries)
 	this.text.push( empty_line )
 }
 
 
-// uses messagetext, state
+// uses messagetext, state, curlevel
 TextModeScreen.prototype.doMessage = function()
 {
 	screen_layout.content = this
