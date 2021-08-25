@@ -98,61 +98,57 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	forceRegenImages() // why do we need that?
 	
 	execution_context.resetUndoStack()
-	execution_context.is_message_level = (leveldat.message !== undefined)
+	// <---
 
-	if (execution_context.is_message_level)
+	level.restore(leveldat)
+	execution_context.setRestartTarget()
+
+	screen_layout.content = level_screen
+	if (state.metadata.flickscreen !== undefined)
 	{
-		execution_context.restartTarget = null
-		showTempMessage()
+		screen_layout.content = tiled_world_screen
 	}
-	else
+	else if (state.metadata.zoomscreen !== undefined)
 	{
-		level.restore(leveldat)
-		execution_context.setRestartTarget()
+		screen_layout.content = camera_on_player_screen
+	}
+	screen_layout.content.level = level
 
-		screen_layout.content = level_screen
-		if (state.metadata.flickscreen !== undefined)
-		{
-			screen_layout.content = tiled_world_screen
-		}
-		else if (state.metadata.zoomscreen !== undefined)
-		{
-			screen_layout.content = camera_on_player_screen
-		}
-		screen_layout.content.level = level
+	// init oldflickscreendat
+	if ( (state.metadata.flickscreen !== undefined) || (state.metadata.zoomscreen !== undefined) )
+	{
+		oldflickscreendat = undefined
+		screen_layout.content.get_viewport()
+	}
 
-		// init oldflickscreendat
-		if ( (state.metadata.flickscreen !== undefined) || (state.metadata.zoomscreen !== undefined) )
-		{
-			oldflickscreendat = undefined
-			screen_layout.content.get_viewport()
-		}
+	keybuffer = []
 
-		keybuffer = []
-
-		execution_context.run_rules_on_level_start_phase = ('run_rules_on_level_start' in state.metadata)
-		if (execution_context.run_rules_on_level_start_phase)
-		{
-			processInput(processing_causes.run_rules_on_level_start)
-		}
+	execution_context.run_rules_on_level_start_phase = ('run_rules_on_level_start' in state.metadata)
+	if (execution_context.run_rules_on_level_start_phase)
+	{
+		processInput(processing_causes.run_rules_on_level_start)
 	}
 
 	clearInputHistory()
 	canvasResize()
 }
 
-function loadLevelFromState(state, levelindex, randomseed, set_save = true)
+function loadLevelFromState(state, levelindex, randomseed, set_save = true, save_data = undefined)
 {
 	const leveldat = state.levels[levelindex]
 	curlevel = levelindex
 	if (leveldat.message === undefined)
 	{
 		tryPlaySimpleSound('startlevel')
+		loadLevelFromLevelDat(state, (save_data !== undefined) ? save_data.lev : leveldat, randomseed)
 	}
-	loadLevelFromLevelDat(state, leveldat, randomseed)
+	else
+	{
+		showTempMessage()
+	}
 	if (set_save)
 	{
-		setSavePoint(levelindex) // always set the save point at the start of level
+		setSavePoint(levelindex, save_data) // always set the save point at the start of level
 	}
 }
 
@@ -167,7 +163,6 @@ function executionContext()
 	// Undo/restart/checkpoints data
 	this.backups = [] // only used in doUndo
 	this.restartTarget = null // last checkpoint reached.
-	this.is_message_level = null
 	this.run_rules_on_level_start_phase = null
 
 	// Output queue
@@ -325,7 +320,7 @@ function setGameState(_state, level_index, randomseed = null)
 		}
 		else
 		{
-			// go to given level
+			// go to given level (can only happen when called from makeGIF or from the level editor with a callback level func)
 			loadLevelFromState(state, level_index, randomseed, false)
 		}
 	}

@@ -28,14 +28,9 @@ function titleMenuNewGame()
 
 MenuScreen.prototype.titleMenuContinue = function()
 {
-	curlevel = this.curlevel
-	if (state.levels[curlevel].message === undefined)
-	{
-		tryPlaySimpleSound('startlevel')
-	}
-	loadLevelFromLevelDat(state, (this.curlevelTarget !== undefined) ? this.curlevelTarget.lev : state.levels[curlevel])
-	setSavePoint(this.curlevel, this.curlevelTarget)
+	loadLevelFromState(state, this.curlevel, undefined, true, this.curlevelTarget)
 }
+
 
 function pauseMenuRestart()
 {
@@ -203,11 +198,11 @@ function wordwrap(str, width = terminal_width)
 
 MenuScreen.prototype.makePauseMenu = function()
 {
-	const empty_line = [ empty_terminal_line, state.fgcolor]
+	const empty_line = [empty_terminal_line, state.fgcolor]
 	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+getLevelName()), state.titlecolor], empty_line ]
 	var menu_entries = [
 		['resume game', () => this.closeMenu()],
-		execution_context.is_message_level ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
+		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
 		['exit to title screen', goToTitleScreen]
 	]
 	this.makeMenuItems(terminal_height - 5, menu_entries)
