@@ -512,7 +512,7 @@ const dirMasksDelta = {
 	 3:[ 0, 0]//'no'
 }
 
-Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_CanMove)
+Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_CanMove, nb_layers)
 {
 	var movementMask = this.getMovements(positionIndex)
 	if (movementMask.iszero())
@@ -522,7 +522,7 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_C
 	const [sx, sy] = this.cellCoord(positionIndex)
 
 	var moved = false
-	for (var layer=0; layer<this.layerCount; layer++)
+	for (var layer=0; layer<nb_layers; layer++)
 	{
 		const dirMask = movementMask.getshiftor(0x1f, 5*layer)
 		if (dirMask === 0)
@@ -577,7 +577,7 @@ Level.prototype.repositionEntitiesAtCell = function(positionIndex, seedsToPlay_C
 }
 
 //if this returns!=null, need to go back and reprocess
-function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove)
+function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove, nb_layers)
 {
 	var moved = true
 	while(moved)
@@ -585,7 +585,7 @@ function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_C
 		moved = false
 		for (var i=0; i<level.n_tiles; i++)
 		{
-			moved |= level.repositionEntitiesAtCell(i, seedsToPlay_CanMove)
+			moved |= level.repositionEntitiesAtCell(i, seedsToPlay_CanMove, nb_layers)
 		}
 	}
 	var doUndo = false
@@ -603,7 +603,7 @@ function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_C
 				if ( ! movementMask.iszero() )
 				{
 					//find what layer was restricted
-					for (var j=0; j<level.layerCount; j++)
+					for (var j=0; j<nb_layers; j++)
 					{
 						if (movementMask.getshiftor(0x1f, 5*j) !== 0)
 						{
@@ -765,7 +765,7 @@ function processInput(input)
 		applyRules(state.rules, level, state.loopPoint, bannedGroup)
 
 		// not particularly elegant, but it'll do for now - should copy the world state and check after each iteration
-		if ( ! resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove) )
+		if ( ! resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_CantMove, state.collisionLayers.length) )
 		{
 			if (verbose_logging) { consolePrint('applying late rules') }
 			applyRules(state.lateRules, level, state.lateLoopPoint)

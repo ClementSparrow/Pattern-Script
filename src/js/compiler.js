@@ -78,7 +78,7 @@ function generateExtraMembers(state)
 	STRIDE_MOV = Math.ceil(layerCount/5)|0;
 	state.STRIDE_OBJ=STRIDE_OBJ;
 	state.STRIDE_MOV=STRIDE_MOV;
-	
+
 	debugMode = ('debug' in state.metadata)
 	throttle_movement = ('throttle_movement' in state.metadata)
 	if (debugMode||verbose_logging)
@@ -263,7 +263,7 @@ function levelFromString(state, level)
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	var o = new Level(level[1].length, level.length-1, state.collisionLayers.length, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ))
+	var o = new Level(level[1].length, level.length-1, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ))
 	o.lineNumber = level[0]
 	execution_context.resetCommands()
 
