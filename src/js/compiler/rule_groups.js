@@ -105,25 +105,21 @@ function arrangeRulesByGroupNumber(state)
 
 function generateRigidGroupList(state)
 {
-	var rigidGroupIndex_to_GroupIndex = [];
-	var groupIndex_to_RigidGroupIndex = [];
-	var groupNumber_to_GroupIndex = [];
-	var groupNumber_to_RigidGroupIndex = [];
-	var rigidGroups = [];
-	for (var i=0; i<state.rules.length; i++)
+	var rigidGroupIndex_to_GroupIndex = []
+	var groupIndex_to_RigidGroupIndex = []
+	var groupNumber_to_GroupIndex = []
+	var rigidGroups = []
+	for (const [i, ruleset] of state.rules.entries())
 	{
-		const ruleset = state.rules[i];
-		const rigidFound = ruleset.some( rule => rule.isRigid );
-		rigidGroups[i] = rigidFound;
-		if (rigidFound)
-		{
-			var groupNumber = ruleset[0].groupNumber;
-			groupNumber_to_GroupIndex[groupNumber] = i;
-			var rigid_group_index = rigidGroupIndex_to_GroupIndex.length;
-			groupIndex_to_RigidGroupIndex[i] = rigid_group_index;
-			groupNumber_to_RigidGroupIndex[groupNumber] = rigid_group_index;
-			rigidGroupIndex_to_GroupIndex.push(i);
-		}
+		const rigidFound = rigidGroups[i] = ruleset.some( rule => rule.isRigid )
+		if ( ! rigidFound )
+			continue
+		const groupNumber = ruleset[0].groupNumber
+		groupNumber_to_GroupIndex[groupNumber] = i
+		const rigid_group_index = rigidGroupIndex_to_GroupIndex.length
+		groupIndex_to_RigidGroupIndex[i] = rigid_group_index
+		ruleset.forEach( rule => rule.makeRigidMask(state.collisionLayers.length, state.STRIDE_MOV, rigid_group_index + 1) ) //don't forget to -1 it when decoding :O
+		rigidGroupIndex_to_GroupIndex.push(i)
 	}
 	if (rigidGroupIndex_to_GroupIndex.length>30)
 	{
@@ -132,7 +128,6 @@ function generateRigidGroupList(state)
 
 	state.rigidGroups = rigidGroups;
 	state.rigidGroupIndex_to_GroupIndex = rigidGroupIndex_to_GroupIndex;
-	state.groupNumber_to_RigidGroupIndex = groupNumber_to_RigidGroupIndex;
 	state.groupIndex_to_RigidGroupIndex = groupIndex_to_RigidGroupIndex;
 }
 

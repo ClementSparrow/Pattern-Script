@@ -16,6 +16,7 @@ function Rule(rule) {
 	this.ruleMask = this.cellRowMasks.reduce( (acc, m) => { acc.ior(m); return acc }, new BitVec(STRIDE_OBJ) )
 	/* TODO: eliminate isRigid, groupNumber, isRandom
 	from this class by moving them up into a RuleGroup class */
+	this.makeRigidMask()
 }
 
 function computePatternMask(cellRow)
@@ -338,6 +339,27 @@ Rule.prototype.queueCommands = function()
 		{
 			consolePrint('<font color="green">Rule ' + makeLinkToLine(this.lineNumber) + ' triggers command ' + command + '.</font>', true)
 			execution_context.commandQueue.sourceRules[CommandsSet.command_keys[command]] = this
+		}
+	}
+}
+
+
+Rule.prototype.makeRigidMask = function(nb_layers, STRIDE_MOV, rigidGroupIndex)
+{
+	if ( ! this.isRigid )
+		return
+
+	// write the rigidGroupIndex in all layers identified by replacementMovementLayerMask
+	this.rigidMask = new BitVec(STRIDE_MOV)
+	for (var layer = 0; layer < nb_layers; layer++)
+	{
+		this.rigidMask.ishiftor(rigidGroupIndex, layer * 5)
+	}
+	for (const pattern of this.patterns)
+	{
+		for (const cell_pattern of pattern)
+		{
+			cell_pattern.makeRigidMask(this.rigidMask)
 		}
 	}
 }

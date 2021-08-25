@@ -641,7 +641,7 @@ function ruleToMask(state, rule, layerTemplate, layerCount)
 			if (objectsClear || objectsSet || movementsClear || movementsSet || postMovementsLayerMask_r)
 			{
 				// only set a replacement if something would change
-				cellrow_l[k].replacement = new CellReplacement([objectsClear, objectsSet, movementsClear, movementsSet, postMovementsLayerMask_r, randomMask_r, randomDirMask_r]);
+				cellrow_l[k].replacement = new CellReplacement([objectsClear, objectsSet, movementsClear, movementsSet, postMovementsLayerMask_r, randomMask_r, randomDirMask_r])
 			}
 		}
 	}

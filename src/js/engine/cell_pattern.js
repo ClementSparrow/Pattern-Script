@@ -139,32 +139,39 @@ CellPattern.prototype.toJSON = function() {
 	];
 };
 
-function replaceRigid(rule, level, cell_index, replacementMovementLayerMask)
+CellPattern.prototype.replaceRigid = function(rule, level, cell_index)
 {
-	if ( ! rule.isRigid )
+	if (this.rigidMask === undefined)
 		return false
 
-	var rigidGroupIndex = state.groupNumber_to_RigidGroupIndex[rule.groupNumber] // TODO pass that as function parameter instead of rule (null if rule is not rigid)
-	rigidGroupIndex++;//don't forget to -- it when decoding :O
+	const replacementMovementLayerMask = this.replacement.movementsLayerMask
 
-	// write the rigidGroupIndex in all layers identified by replacementMovementLayerMask
-	var rigidMask = new BitVec(STRIDE_MOV); // TODO: use a static variable
-	for (var layer = 0; layer < level.layerCount; layer++) {
-		rigidMask.ishiftor(rigidGroupIndex, layer * 5);
-	}
-	rigidMask.iand(replacementMovementLayerMask)
+	var curRigidGroupIndexMask = level.rigidGroupIndexMask[cell_index] || new BitVec(STRIDE_MOV)
+	var curRigidMovementAppliedMask = level.rigidMovementAppliedMask[cell_index] || new BitVec(STRIDE_MOV)
 
-	var curRigidGroupIndexMask = level.rigidGroupIndexMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
-	var curRigidMovementAppliedMask = level.rigidMovementAppliedMask[cell_index] || new BitVec(STRIDE_MOV); // TODO: use a static variable
-
-	if ( rigidMask.bitsSetInArray(curRigidGroupIndexMask.data) || replacementMovementLayerMask.bitsSetInArray(curRigidMovementAppliedMask.data) )
+	// if level.rigidGroupIndexMask[cell_index] is undefined, we take a blank BitVec, so the test bellow will only succeed if rigidMask is zero. Which can only be true if
+	// replacementMovementLayerMask is zero. But in that case, the content of the cell will not change, so we could simply not do replaceRigid in that case. And once
+	// we have eliminated this possibility we know that if level.rigidGroupIndexMask[cell_index] is undefined, the test bellow will fail
+	if ( this.rigidMask.bitsSetInArray(curRigidGroupIndexMask.data) || replacementMovementLayerMask.bitsSetInArray(curRigidMovementAppliedMask.data) )
 		return false
 
-	curRigidGroupIndexMask.ior(rigidMask);
-	curRigidMovementAppliedMask.ior(replacementMovementLayerMask);
-	level.rigidGroupIndexMask[cell_index] = curRigidGroupIndexMask;
-	level.rigidMovementAppliedMask[cell_index] = curRigidMovementAppliedMask;
+	curRigidGroupIndexMask.ior(this.rigidMask)
+	level.rigidGroupIndexMask[cell_index] = curRigidGroupIndexMask
+	curRigidMovementAppliedMask.ior(replacementMovementLayerMask)
+	level.rigidMovementAppliedMask[cell_index] = curRigidMovementAppliedMask
 	return true
+}
+
+CellPattern.prototype.makeRigidMask = function(rule_rigidMask)
+{
+	if (this.replacement === null)
+		return
+
+	var replacementMovementLayerMask = this.replacement.movementsLayerMask.clone()
+	replacementMovementLayerMask.iand(rule_rigidMask)
+	if ( replacementMovementLayerMask.iszero() )
+		return
+	this.rigidMask = replacementMovementLayerMask
 }
 
 var _o2_5,_o3,_o6,_o7,_o8,_o9,_o10,_o11;
@@ -189,7 +196,7 @@ CellPattern.prototype.replace = function(rule, level, currentIndex)
 	var curMovementMask = oldMovementMask.iClearAddInto(static_CellReplacement.movementsClear, static_CellReplacement.movementsSet, _m3)
 
 	// Rigid + check if something changed
-	if ( ( ! replaceRigid(rule, level, currentIndex, this.replacement.movementsLayerMask) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
+	if ( ( ! this.replaceRigid(rule, level, currentIndex) ) && oldCellMask.equals(curCellMask) && oldMovementMask.equals(curMovementMask) )
 		return false
 
 	// Sfx
