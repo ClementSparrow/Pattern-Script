@@ -745,7 +745,8 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		if (copy_from_identifier_index < 0)
 		{
 			this.logError('I cannot copy the sprite of unknown object '+copy_from_id.toUpperCase()+'.')
-			return 'ERROR';
+			this.current_layer_expansion = []
+			return 'ERROR'
 		}
 		// Now we need to replace the tag classes in the identifier according to the expansion parameters in the currently defined object
 		var new_expansion = []
