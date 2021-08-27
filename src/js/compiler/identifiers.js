@@ -304,8 +304,16 @@ Identifiers.prototype.identifierIsWellFormed = function(identifier, accepts_mapp
 	if ( (identifier_tags.length === 0) || (identifier_base.length === 0) ) // it's OK to have an identifier starting with a semicolon or being just a semicolon
 		return [0, identifier_base, []];
 
-//	These tags must be known
 	const tags = identifier_tags.map( tagname => [this.names.indexOf(tagname), tagname] );
+
+//	Tags must not be empty
+	if (identifier_tags.some(x => (x.length === 0)))
+	{
+		log.logError('Empty tag used in object name. You cannot have :: in an object name!')
+		return [-1, identifier_base, tags]
+	}
+
+//	These tags must be known
 	const unknown_tags = tags.filter( ([tag_index, tn]) => (tag_index < 0) );
 	if ( unknown_tags.length > 0 )
 	{

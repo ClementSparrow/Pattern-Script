@@ -26,7 +26,7 @@ const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 
 
 const reg_commands = /(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\b/u;
 const reg_name = /[\p{Letter}\p{Number}_]+/u;
-const reg_tagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_]+)*/u;
+const reg_tagged_name = /[\p{Letter}\p{Number}_:]+/u
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
@@ -517,9 +517,12 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 	{
 		const new_identifier_index = this.identifiers.checkAndRegisterNewObjectIdentifier(candname, findOriginalCaseName(candname, this.mixedCase), this);
 		if (new_identifier_index < 0)
-			return 'ERROR';
-		this.current_identifier_index = new_identifier_index;
-		return 'NAME';
+		{
+			this.current_identifier_index = undefined
+			return 'ERROR'
+		}
+		this.current_identifier_index = new_identifier_index
+		return 'NAME'
 	}
 	// set up alias
 	if ( ! this.identifiers.checkIfNewIdentifierIsValid(candname, false, this) )
@@ -617,23 +620,30 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			const match_color = stream.match(reg_color, true);
 			if (match_color == null)
 			{
-				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true);
-				this.logError('Was looking for color for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() + ', got "' + str + '" instead.');
+				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true)
+				this.logError(
+					'Was looking for color' +
+					( (this.current_identifier_index !== undefined) ? ' for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() : '' ) +
+					', got "' + str + '" instead.'
+				)
 				return 'ERROR';
 			}
 
 			const color = match_color[0].trim();
 
-			for (const object_index of this.identifiers.getObjectsForIdentifier(this.current_identifier_index))
+			if (this.current_identifier_index !== undefined)
 			{
-				var o = this.identifiers.objects[object_index];
-				if ( (o.identifier_index != this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
-					continue; // do not change the palette of an object that has been explicitely defined unless we're currently explicitly defining it.
-				if ( is_start_of_line || (o.colors === undefined) )
+				for (const object_index of this.identifiers.getObjectsForIdentifier(this.current_identifier_index))
 				{
-					o.colors = [color];
-				} else {
-					o.colors.push(color);
+					var o = this.identifiers.objects[object_index];
+					if ( (o.identifier_index != this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
+						continue; // do not change the palette of an object that has been explicitely defined unless we're currently explicitly defining it.
+					if ( is_start_of_line || (o.colors === undefined) )
+					{
+						o.colors = [color];
+					} else {
+						o.colors.push(color);
+					}
 				}
 			}
 
@@ -658,6 +668,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 						return this.tryParseName(is_start_of_line, stream);
 					}
 					this.objects_section = 4
+					if (this.current_identifier_index === undefined)
+					{
+						this.current_layer_parameters = []
+						this.current_layer_expansion = []
+						return null
+					}
 					const classes = this.identifiers.getTagClassesInIdentifier(this.current_identifier_index);
 					if ( (new Set(classes)).size !== classes.length )
 					{
@@ -672,7 +688,10 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					)
 					return null; // TODO: new lexer type?
 				}
-				this.logError('Unknown junk in spritematrix for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() + '.');
+				this.logError(
+					'Unknown junk in spritematrix' +
+					( (this.current_identifier_index !== undefined) ? ' for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() : '') + '.'
+				)
 				stream.match(reg_notcommentstart, true);
 				return null;
 			}
@@ -692,13 +711,16 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			}
 			if (spritematrix.length === sprite_h && spritematrix[spritematrix.length - 1].length == sprite_w) // last char of the sprite
 			{
-				this.objects_section = 0;
-				for (const object_index of this.identifiers.object_set[this.current_identifier_index])
+				this.objects_section = 0
+				if (this.current_identifier_index !== undefined)
 				{
-					var o = this.identifiers.objects[object_index];
-					if ( (o.identifier_index !== this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
-						continue; // do not change the spritematrix of an object that has been explicitely defined unless we're currently explicitly defining it.
-					o.spritematrix = Array.from(spritematrix);
+					for (const object_index of this.identifiers.object_set[this.current_identifier_index])
+					{
+						var o = this.identifiers.objects[object_index];
+						if ( (o.identifier_index !== this.current_identifier_index) && (this.identifiers.implicit[o.identifier_index] === 0) )
+							continue; // do not change the spritematrix of an object that has been explicitely defined unless we're currently explicitly defining it.
+						o.spritematrix = Array.from(spritematrix);
+					}
 				}
 			}
 
@@ -708,11 +730,16 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			const n = parseInt(ch);
 			if (isNaN(n))
 			{
-				this.logError('Invalid character "' + ch + '" in sprite for ' +this.identifiers.names[this.current_identifier_index].toUpperCase());
+				this.logError(
+					'Invalid character "' + ch + '" in sprite' +
+					( (this.current_identifier_index !== undefined) ? ' for ' +this.identifiers.names[this.current_identifier_index].toUpperCase() : '') + '.'
+				)
 				return 'ERROR';
 			}
 			var token_colors = new Set();
 			var ok = true;
+			if (this.current_identifier_index == undefined)
+				return null // TODO: we should keep the palette defined and use it to display the pixel color
 			for (const object_index of this.identifiers.object_set[this.current_identifier_index])
 			{
 				var o = this.identifiers.objects[object_index];
