@@ -10,320 +10,322 @@
 })(function(CodeMirror) {
         "use strict";
 
-        var WORD = /[\p{Letter}\p{Number}_:]+/u,
-            RANGE = 500;
+        const WORD = /[\p{Letter}\p{Number}_:]+/u
+        const RANGE = 500
 
-        var PRELUDE_COMMAND_WORDS = [
+        const PRELUDE_COMMAND_WORDS = [
             "METADATA",//tag
 			['author', 'Gill Bloggs'],
 			['author_color', 'blue'],
 			['color_palette', 'arne'],
 			['again_interval', '0.1'],
 			['background_color', 'blue'],
-			['debug', ''],
+			'debug',
 			['flickscreen', '8x5'],
 			['homepage', 'www.puzzlescript.net'],
 			['keyhint_color', 'brown'],
 			['key_repeat_interval', '0.1'],
-			['noaction', ''],
-			['norepeat_action', ''],
-			['noundo', ''],
-			['norestart', ''],
-			['realtime_interval', ''],
-			['require_player_movement', ''],
-			['run_rules_on_level_start', ''],
+			'noaction',
+			'norepeat_action',
+			'noundo',
+			'norestart',
+			'realtime_interval',
+			'require_player_movement',
+			'run_rules_on_level_start',
 			['sprite_size', 'WxH'],
 			['text_color', 'orange'],
 			['title', 'My Amazing Puzzle Game'],
 			['title_color', 'blue'],
-			['throttle_movement', ''],
+			'throttle_movement',
 			['zoomscreen', 'WxH'],
         ];
         const color_keywords = [ 'author_color', 'background_color', 'keyhint_color', 'text_color', 'title_color' ]
 
-        var COLOR_WORDS = [
+        const COLOR_WORDS = [
             "COLOR",//special tag
             "black", "white", "darkgray", "lightgray", "gray", "red", "darkred", "lightred", "brown", "darkbrown", "lightbrown", "orange", "yellow", "green", "darkgreen", "lightgreen", "blue", "lightblue", "darkblue", "purple", "pink", "transparent"];
-        var RULE_COMMAND_WORDS = [
+        const RULE_COMMAND_WORDS = [
             "COMMAND",
             "sfx0", "sfx1", "sfx2", "sfx3", "sfx4", "sfx5", "sfx6", "sfx7", "sfx8", "sfx9", "sfx10", "cancel", "checkpoint", "restart", "win", "message", "again"];
 
-        var CARDINAL_DIRECTION_WORDS = [
+        const CARDINAL_DIRECTION_WORDS = [
             "DIRECTION",
             "up","down","left","right","horizontal","vertical"]
 
-        var RULE_DIRECTION_WORDS = [
+        const RULE_DIRECTION_WORDS = [
             "DIRECTION",//tag
             "up", "down", "left", "right", "random", "horizontal", "vertical","late","rigid"]
 
-        var LOOP_WORDS = [
+        const LOOP_WORDS = [
             "BRACKET",//tag
             "startloop","endloop"]
             
-        var PATTERN_DIRECTION_WORDS = [
+        const PATTERN_DIRECTION_WORDS = [
             "DIRECTION",
             "up", "down", "left", "right", "moving", "stationary", "no", "randomdir", "random", "horizontal", "vertical", "orthogonal", "perpendicular", "parallel", "action"]
 
-        var SOUND_WORDS = [
+        const SOUND_WORDS = [
             "SOUNDVERB",
             'gamescreen', 'pausescreen', "startgame", "cancel", "endgame", "startlevel", "undo", "restart", "endlevel", "showmessage", "closemessage", "sfx0", "sfx1", "sfx2", "sfx3", "sfx4", "sfx5", "sfx6", "sfx7", "sfx8", "sfx9", "sfx10", "create", "destroy", "move", "cantmove", "action"];
 
-        var WINCONDITION_WORDS = [
+        const WINCONDITION_WORDS = [
             "LOGICWORD",
             "some", "on", "no", "all"]
 
-        var LEGEND_LOGICWORDS = [
+        const LEGEND_LOGICWORDS = [
                 "LOGICWORD",
                 "and","or"
             ]
 
-        var PRELUDE_COLOR_PALETTE_WORDS = [
+        const PRELUDE_COLOR_PALETTE_WORDS = [
             "mastersystem", "gameboycolour", "amiga", "arnecolors", "famicom", "atari", "pastel", "ega", "amstrad", "proteus_mellow", "proteus_rich", "proteus_night", "c64", "whitingjp"
         ]
 
-        function renderHint(elt,data,cur)
+        function renderHint(elt, data, cur)
         {
-            var t1=cur.text;
-            var t2=cur.extra;
-            var tag=cur.tag;
-            if (t1.length==0){
-                t1=cur.extra;
-                t2=cur.text;
-            }
-            var wrapper = document.createElement("span")
-            wrapper.className += " cm-s-midnight cm-s-midday-hint ";
+			var t1 = cur.text
+			var t2 = cur.extra
+			var tag = cur.tag
 
-            var h = document.createElement("span"); // Create a <h1> element
-            var t = document.createTextNode(t1);    // Create a text node
+			var h = document.createElement('span') // Create a <h1> element
+			var t = document.createTextNode(t1)    // Create a text node
+			h.appendChild(t)
 
-            h.appendChild(t);   
-            wrapper.appendChild(h); 
+			if (tag !== null)
+			{
+				h.className += 'cm-' + tag
+			}
 
-            if (tag!=null){
-                h.className += "cm-" + tag;
-            }
+			var wrapper = document.createElement('span')
+			wrapper.className += ' cm-s-midnight cm-s-midday-hint '
+			wrapper.appendChild(h)
+			elt.appendChild(wrapper)
 
-            elt.appendChild(wrapper);//document.createTextNode(cur.displayText || getText(cur)));
-
-            if (t2.length>0){
-                var h2 = document.createElement("span")                // Create a <h1> element
-                h2.style.color="orange";
-                var t2 = document.createTextNode(" "+t2);     // Create a text node
-                h2.appendChild(t2);  
-                h2.style.color="orange";
-                elt.appendChild(t2);
-            }
+			if (t2.length > 0)
+			{
+				// TODO: that code looks suspicious to me
+				var h2 = document.createElement('span') // Create a <h1> element
+				h2.style.color = 'orange'
+				var t2 = document.createTextNode(' '+t2) // Create a text node
+				h2.appendChild(t2)
+				h2.style.color = 'orange'
+				elt.appendChild(t2)
+			}
         }
+
+		function list_identifiers(state, def_types, curWord, seen, list)
+		{
+			for (const [identifier_index, w] of state.identifiers.names.entries())
+			{
+				if ( ! def_types.includes(state.identifiers.deftype[identifier_index]) )
+					continue
+
+				const matchWord = w.toLowerCase()
+				if ((curWord && matchWord.lastIndexOf(curWord, 0) !== 0) || seen.has(matchWord))
+					continue
+
+				seen.add(matchWord)
+				const hint = state.identifiers.original_case_names[identifier_index]
+				list.push({text: hint, extra: '', tag: 'NAME', render: renderHint})
+			}
+		}
+
+		function list_possible_tags(state, tag_def_types, curTag, obj_deftypes, curTagPrefix, seen, list)
+		{
+			for (const [identifier_index, w] of state.identifiers.names.entries())
+			{
+				if ( ! tag_def_types.includes(state.identifiers.deftype[identifier_index]) )
+					continue
+
+				const matchWord = w.toLowerCase()
+				if ((curTag && matchWord.lastIndexOf(curTag, 0) !== 0) || seen.has(matchWord))
+					continue
+
+				// check that some object exists for that tag
+				const obj_name_start = curTagPrefix.toLowerCase() + matchWord
+				if ( ! state.identifiers.names.some( (n, ii) => (n.startsWith(obj_name_start) && obj_deftypes.includes(state.identifiers.deftype[ii])) ) )
+					continue
+
+				seen.add(matchWord)
+				const hint = state.identifiers.original_case_names[identifier_index]
+				list.push({text: hint, extra: '', tag: 'NAME', render: renderHint})
+			}
+		}
 
         CodeMirror.registerHelper("hint", "anyword", function(editor, options)
         {
             var word = options && options.word || WORD;
             var range = options && options.range || RANGE;
-            var cur = editor.getCursor(),
-                curLine = editor.getLine(cur.line);
+            var cursor = editor.getCursor()
+            var curLine = editor.getLine(cursor.line)
 
-            var end = cur.ch,
-                start = end;
+            const lineToCursor = curLine.substr(0, cursor.ch)
 
-            var lineToCursor = curLine.substr(0,end);
-
+            var end = cursor.ch
+            var start = end
             while (start && word.test(curLine.charAt(start - 1)))
                 --start;
-            var curWord = (start != end) && curLine.slice(start, end);
+            var curWord = (start != end) && curLine.slice(start, end)
 
-            var current_token = editor.getTokenAt(cur)
+            var current_token = editor.getTokenAt(cursor)
             var state = current_token.state
 
-            // ignore empty word
-            if (!curWord || state.commentLevel>0)
-            {
-                // if ( 
-                //         ( state.section=="" && curLine.trim()=="")  
-                //         // || ( state.section=="objects" && state.objects_section==2 ) 
-                //     ) {
-                //     curWord="";
-                // } else {
-                    return {
-                        list: []
-                    };
-                // }            
-            }
+            // ignore empty word + if you're editing mid-word rather than at the end, no hints.
+            if ( (! curWord) || (state.commentLevel > 0) || (current_token.string.trim().length > curWord.length) )
+                return { list: [] }
 
-            var addTags = false;
-            var addTagsAfterSemicolon = false;
-            var addObjects = false;
-            var excludeProperties = false;
-            var excludeAggregates = false;
-            var candlists = [];
-            switch (state.section) {
+            var addTags = false
+            var addObjects = false
+            var addTagsAfterSemicolon = false // should we add the tags in an object name? We should always do it if addObjects is true and we are after a semicolon, but we
+                                              // should also do it in object definitions when addObjects is false.
+            var addMappings = false
+            var excludeProperties = false
+            var excludeAggregates = false
+            var candlists = []
+            switch (state.section)
+            {
                 case 'tags':
-                    {
-                        addTags = true;
-                        break;
-                    }
+					addTags = true
+					break
                 case 'objects':
-                    {
-                        addTagsAfterSemicolon = true;
-                        if (state.objects_section==2){
-                            candlists.push(COLOR_WORDS);
-                        }
-                        break;
-                    }
+					switch (state.objects_section)
+					{
+					case 3:
+						addObjects = true // for 'copy:'. TODO: we should only set it to true if we are right after 'copy:'. Also, we should add the transformation keywords.
+						addMappings = true
+						break
+					case 2:
+						candlists.push(COLOR_WORDS)
+						break
+					case 0:
+					case 1:
+					default:
+						addTagsAfterSemicolon = true
+					}
+					break
+                case 'mappings':
+                	// TODO
+                	break
                 case 'legend':
-                    {
-                        if (lineToCursor.indexOf('=')>=0){
-                            const tokindex = lineToCursor.trim().split(/\s+/ );
-                            if ((tokindex.length%2)===1){
-                                addObjects=true;
-                                addTagsAfterSemicolon = true;
-                            } else {
-                                candlists.push(LEGEND_LOGICWORDS);                      
-                            }
-                        } //no hints before equals
-                        break;
-                    }
+					if (lineToCursor.indexOf('=') >= 0)
+					{
+						const tokindex = lineToCursor.trim().split(/\s+/ )
+						if ((tokindex.length % 2) === 1)
+						{
+							addObjects = true
+							addTagsAfterSemicolon = true
+						} else {
+							candlists.push(LEGEND_LOGICWORDS)
+						}
+					} //no hints before equals
+					break
                 case 'sounds':
-                    {
-                        candlists.push(CARDINAL_DIRECTION_WORDS);
-                        candlists.push(SOUND_WORDS);
-                        addObjects=true;
-                        excludeAggregates=true;
-                        break;
-                    }
+					candlists.push(CARDINAL_DIRECTION_WORDS)
+					candlists.push(SOUND_WORDS)
+					addObjects = true
+					excludeAggregates = true
+					break
                 case 'collisionlayers':
-                    {
-                        addObjects=true;
-                        break;
-                    }
+					addObjects = true // TODO: add tags if at beginning or before an arrow
+					addMappings = true
+					break
                 case 'rules':
-                    {   
-                        //if inside of roles,can use some extra directions
-                        if (lineToCursor.indexOf("[")==-1) {
-                            candlists.push(RULE_DIRECTION_WORDS);
-                            candlists.push(LOOP_WORDS);
-                        } else {
-                            candlists.push(PATTERN_DIRECTION_WORDS);                            
-                        }
-                        if (lineToCursor.indexOf("->")>=0) {
-                            candlists.push(RULE_COMMAND_WORDS);
-                        }
-                        addObjects=true;
-                        break;
-                    }
+					if (lineToCursor.indexOf('[') == -1) {
+						candlists.push(RULE_DIRECTION_WORDS);
+						candlists.push(LOOP_WORDS);
+					} else {
+						candlists.push(PATTERN_DIRECTION_WORDS);                            
+					}
+					if (lineToCursor.indexOf('->') >= 0) {
+						candlists.push(RULE_COMMAND_WORDS);
+					}
+					addObjects = true
+					addMappings = true
+					break
                 case 'winconditions':
-                    {
-                        if ((lineToCursor.trim().split(/\s+/ ).length%2)===0){
-                            addObjects=true;
-                        }
-                        candlists.push(WINCONDITION_WORDS);
-                        break;
-                    }
+					if ( (lineToCursor.trim().split(/\s+/).length % 2) === 0)
+					{
+						addObjects = true
+					}
+					candlists.push(WINCONDITION_WORDS)
+					break
                 case 'levels':
-                    {
-                        if ("message".indexOf(lineToCursor.trim())===0) {
-                            candlists.push(["MESSAGE_VERB","message"]);
-                        }
-                        break;
-                    }
+					if ('message'.indexOf(lineToCursor.trim()) === 0)
+					{
+						candlists.push(['MESSAGE_VERB', 'message'])
+					}
+					break
                 default: //preamble
-                    {
-                        var lc = lineToCursor.toLowerCase();
-                        if (color_keywords.some( c => lc.includes(c) ) ) {
-                            candlists.push(COLOR_WORDS);
-                        } else {
-                            var linewords =lineToCursor.trim().split(/\s+/ );
-
-                            if (linewords.length<2) {
-                                candlists.push(PRELUDE_COMMAND_WORDS);
-                            } else if (linewords.length==2 && linewords[0].toLowerCase()=='color_palette'){
-                                candlists.push(PRELUDE_COLOR_PALETTE_WORDS);
-                            }
-                        }
-
-                        break;
-                    }
+					var lc = lineToCursor.toLowerCase()
+					if (color_keywords.some( c => lc.includes(c) ) )
+					{
+						candlists.push(COLOR_WORDS)
+					}
+					else
+					{
+						const linewords =lineToCursor.trim().split(/\s+/ )
+						if (linewords.length < 2)
+						{
+							candlists.push(PRELUDE_COMMAND_WORDS)
+						}
+						else if (linewords.length == 2 && linewords[0].toLowerCase() == 'color_palette')
+						{
+							candlists.push(PRELUDE_COLOR_PALETTE_WORDS)
+						}
+					}
             }
 
-            var curTag = curWord;
-            var curTagPrefix = '';
-            const semicolon_pos = curWord.lastIndexOf(':');
-            if (addTagsAfterSemicolon && (semicolon_pos >= 0) )
+            var curTag = curWord
+            var curTagPrefix = ''
+            const semicolon_pos = curWord.lastIndexOf(':')
+            if ( (semicolon_pos >= 0) && (addTagsAfterSemicolon||addObjects) )
             {
-                addTags = true;
-                curTagPrefix = curWord.substr(0, semicolon_pos+1);
-                curTag = curWord.substr(semicolon_pos+1);
+            	start += semicolon_pos+1
+                curTagPrefix = curWord.substr(0, semicolon_pos+1)
+                curTag = curWord.substr(semicolon_pos+1)
             }
 
             // case insensitive
-            curWord = curWord.toLowerCase();
-            curTag = curTag.toLowerCase();
+            curWord = curWord.toLowerCase()
+            curTag = curTag.toLowerCase()
 
             var list = options && options.list || [];
-            var seen = new Set();
-
+            var seen = new Set()
 
             if (addTags)
             {
-                for (const [identifier_index, w] of state.identifiers.names.entries())
-                {
-                    if ([identifier_type_tag, identifier_type_tagset].includes(state.identifiers.deftype[identifier_index]))
-                    {
-                        const matchWord = curTagPrefix.toLowerCase()+w.toLowerCase();
-                        // if (matchWord === curTag) continue;
-                        if ((!curTag || matchWord.lastIndexOf(curTag, 0) == 0) && !seen.has(matchWord))
-                        {
-                            seen.add(matchWord);
-                            const hint = curTagPrefix+state.identifiers.original_case_names[identifier_index];
-	                        // console.log('adding '+matchWord+' as tag -> '+hint)
-                            list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
-                        }
-                    }
-                }
+				list_identifiers(state, [identifier_type_tag, identifier_type_tagset], curWord, seen, list)
             }
 
-            //first, add objects if needed
-            if (addObjects)
+            // find the set of acceptable identifiers deftypes
+			var legendbits_types = [ identifier_type_synonym ]
+			if ( ! excludeProperties )
+			{
+				legendbits_types.push(identifier_type_property)
+			}
+			if ( ! excludeAggregates )
+			{
+				legendbits_types.push(identifier_type_aggregate)
+			}
+
+            if (addObjects && (semicolon_pos < 0) )
             {
-                for (const [object_index, o] of state.identifiers.objects.entries())
-                {
-                    const w = o.name;
-                    var matchWord = w.toLowerCase();
-                    // if (matchWord === curWord) continue;
-                    if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord))
-                    {
-                        seen.add(matchWord);
-                        // console.log('adding '+matchWord+' as object')
-                        const hint = state.identifiers.original_case_names[o.identifier_index]
-                        list.push({text:hint, extra:'', tag:'NAME', render:renderHint})
-                    }
-                }
-
-                var legendbits_types = [ identifier_type_synonym ];
-                if ( !excludeProperties )
-                {
-                    legendbits_types.push(identifier_type_property);
-                }
-                if ( !excludeAggregates )
-                {
-                    legendbits_types.push(identifier_type_aggregate);
-                }
-
-                //go through all derived objects
-                for (const [identifier_index, w] of state.identifiers.names.entries())
-                {
-                    if (legendbits_types.includes(state.identifiers.deftype[identifier_index]))
-                    {
-                        const matchWord = w.toLowerCase();
-                        // if (matchWord === curWord) continue;
-                        if ((!curWord || matchWord.lastIndexOf(curWord, 0) == 0) && !seen.has(matchWord)) {
-                            seen.add(matchWord);
-	                        // console.log('adding '+matchWord+' as derived object')
-                            const hint = state.identifiers.original_case_names[identifier_index];
-                            list.push({text:hint,extra:"",tag:"NAME",render:renderHint});
-                        }
-                    }
-                }
-
+				// first, add objects if needed
+				list_identifiers(state, [identifier_type_object], curWord, seen, list)
+                // then add other accepted types
+				list_identifiers(state, legendbits_types, curWord, seen, list)
+            }
+            else if ( (addTagsAfterSemicolon||addObjects) && (semicolon_pos >= 0))
+            {
+            	// first add tags for which an object has been defined
+            	// TODO: predefined tags, tag sets, and tag mappings (directional keywords) should come after the user-defined ones.
+				list_possible_tags(state, [identifier_type_tagset],  curTag, legendbits_types, curTagPrefix, seen, list)
+				list_possible_tags(state, [identifier_type_tag],     curTag, legendbits_types, curTagPrefix, seen, list)
+				list_possible_tags(state, [identifier_type_mapping], curTag, legendbits_types, curTagPrefix, seen, list)
+				// then add all other tags
+				list_identifiers(state, [identifier_type_tagset],  curTag, seen, list)
+				list_identifiers(state, [identifier_type_tag],     curTag, seen, list)
+				list_identifiers(state, [identifier_type_mapping], curTag, seen, list)
             }
 
             // go through random names
@@ -334,52 +336,33 @@
                 {
                     var m = candlist[j]
                     var extra = ''
-                    if (typeof m !== 'string')
+                    if (typeof m !== 'string') // only for PRELUDE_COMMAND_WORDS
                     {
-                        if (m.length > 1)
-                        {
-                            extra = m[1]
-                        }
+                        extra = m[1]
                         m = m[0]
                     }
                     const matchWord = m.toLowerCase()
                     if ( (curWord && matchWord.lastIndexOf(curWord, 0) != 0) || seen.has(matchWord) )
                     	continue
                     seen.add(matchWord)
-                    // console.log('adding "'+matchWord+'" as random name for "'+curWord+'" '+(!curWord)+' '+matchWord.lastIndexOf(curWord, 0))
                     const mytag = (tag === 'COLOR') ? 'COLOR-' + m.toUpperCase() : tag
-                    list.push({text:m, extra:extra, tag:mytag, render:renderHint})
+                    list.push({text: m, extra: extra, tag: mytag, render: renderHint})
                 }
             }
 
 			//if list is a single word and that matches what the current word is, don't show hint
 			if ( (list.length === 1) && (list[0].text.toLowerCase() === curWord) )
-			{
-				list = []
-			}
+				return { list: [] }
+
 			//if list contains the word that you've typed, put it to top of autocomplete list
-			for (var i=1; i<list.length; i++)
-			{
-				if (list[i].text.toLowerCase() === curWord)
-				{
-					const newhead = list[i]
-					list.splice(i, 1)
-					list.unshift(newhead)
-					break
-				}
-			}
-			//if you're editing mid-word rather than at the end, no hints.
-			if (current_token.string.trim().length > curWord.length)
-			{
-				list = []
-			}
+			list.splice( 1, 0, ...list.splice(0, list.findIndex( x => (x.text.toLowerCase() === curWord) )) )
 
             return {
                 list: list,
-                from: CodeMirror.Pos(cur.line, start),
-                to: CodeMirror.Pos(cur.line, end)
-            };
-        });
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            }
+        })
 
     // https://statetackoverflow.com/questions/13744176/codemirror-autocomplete-after-any-keyup
     CodeMirror.ExcludedIntelliSenseTriggerKeys = {
