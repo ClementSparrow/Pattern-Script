@@ -180,14 +180,14 @@ LevelEditorScreen.prototype.updateResources = function(magnification)
 // REDRAW EDITOR
 // =============
 
-LevelEditorScreen.prototype.redraw = function(magnification)
+LevelEditorScreen.prototype.redraw = function(ctx, magnification)
 {
 	// draw the level's content
 	// ========================
 
 	ctx.save()
 	ctx.translate(magnification * sprite_width, magnification * sprite_height * (1+this.editorRowCount) )
-	this.content.redraw.call(this.content, magnification)
+	this.content.redraw(ctx, magnification)
 	ctx.restore()
 
 	if (glyphImages === undefined)
@@ -278,9 +278,9 @@ LevelEditorScreen.prototype.redraw = function(magnification)
 
 // highlight the cell hovered in the output of verbose_logging.
 const level_redraw = LevelScreen.prototype.redraw
-LevelScreen.prototype.redraw = function(magnification)
+LevelScreen.prototype.redraw = function(ctx, magnification)
 {
-	level_redraw.call(this, magnification)
+	level_redraw.call(this, ctx, magnification)
 	if (highlighted_cell === null)
 		return
 

@@ -18,7 +18,7 @@ function EmptyScreen(screen_type = 'empty')
 	all_screen_types.push(this)
 }
 EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
-EmptyScreen.prototype.redraw = () => null
+EmptyScreen.prototype.redraw = (ctx, magnification) => null
 EmptyScreen.prototype.updateResources = function(magnification)
 {
 	if (this.last_magnification !== magnification)

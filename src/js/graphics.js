@@ -78,7 +78,7 @@ LevelScreen.prototype.regenResources = function(magnification)
 var canvas = document.getElementById('gameCanvas');
 var ctx = canvas.getContext('2d');
 
-TextModeScreen.prototype.redraw = function(magnification)
+TextModeScreen.prototype.redraw = function(ctx, magnification)
 {
 	const char_width  = magnification * font_width
 	const char_height = magnification * font_height
@@ -96,7 +96,7 @@ TextModeScreen.prototype.redraw = function(magnification)
 	}
 }
 
-LevelScreen.prototype.redraw = function(magnification)
+LevelScreen.prototype.redraw = function(ctx, magnification)
 {
 	if (this.spriteimages === undefined)
 	{
@@ -132,11 +132,8 @@ function redraw()
 	ctx.save()
 	ctx.translate(screen_layout.margins[0], screen_layout.margins[1])
 
-	const redraw_func = screen_layout.content.redraw
-	if (redraw_func !== null)
-	{
-		redraw_func.call(screen_layout.content, screen_layout.magnification)
-	}
+	// Draw content
+	screen_layout.content.redraw(ctx, screen_layout.magnification)
 
 	ctx.restore()
 }
