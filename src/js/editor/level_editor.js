@@ -16,7 +16,7 @@ function LevelEditorScreen()
 	this.hovered_level_cell = null
 	this.hovered_glyph_index = null
 	this.hovered_level_resize = null
-	this.glyphSelectedIndex = null
+	this.glyphSelectedIndex = 0
 	this.anyEditsSinceMouseDown = false
 }
 LevelEditorScreen.prototype = Object.create(EmptyScreen.prototype)
@@ -518,7 +518,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		}
 		else
 		{
-			glyphSelectedIndex = this.hovered_glyph_index
+			this.glyphSelectedIndex = this.hovered_glyph_index
 			redraw()
 		}
 		return;
@@ -526,7 +526,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 
 	if (this.hovered_level_cell !== null)
 	{
-		var glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[glyphSelectedIndex] ] );
+		var glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[this.glyphSelectedIndex] ] );
 
 		var backgroundMask = state.layerMasks[state.backgroundlayer];
 		if (glyphmask.bitsClearInArray(backgroundMask.data))
@@ -582,7 +582,7 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
 		// TODO: shouldn't this be the same code than in levelEditorClick?
-		glyphSelectedIndex = this.hovered_glyph_index
+		this.glyphSelectedIndex = this.hovered_glyph_index
 		redraw()
 		return
 	}
@@ -680,7 +680,7 @@ LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 
 			if (num < glyphImages.length)
 			{
-				glyphSelectedIndex = num;
+				this.glyphSelectedIndex = num;
 			}
 			else
 			{
@@ -692,9 +692,9 @@ LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 		}
 		case 189://-
 		{
-			if (glyphSelectedIndex > 0)
+			if (this.glyphSelectedIndex > 0)
 			{
-				glyphSelectedIndex--
+				this.glyphSelectedIndex--
 				canvasResize()
 				return true;
 			}	
@@ -702,9 +702,9 @@ LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 		}
 		case 187://+
 		{
-			if (glyphSelectedIndex+1 < glyphImages.length)
+			if (this.glyphSelectedIndex+1 < glyphImages.length)
 			{
-				glyphSelectedIndex++
+				this.glyphSelectedIndex++
 				canvasResize()
 				return true;
 			} 
