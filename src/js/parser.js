@@ -618,7 +618,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			this.tokenIndex = 0;
 
 			const match_color = stream.match(reg_color, true);
-			if (match_color == null)
+			if (match_color === null)
 			{
 				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true)
 				this.logError(
@@ -626,7 +626,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					( (this.current_identifier_index !== undefined) ? ' for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() : '' ) +
 					', got "' + str + '" instead.'
 				)
-				return 'ERROR';
+				return 'ERROR'
 			}
 
 			const color = match_color[0].trim();
