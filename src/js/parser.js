@@ -1208,13 +1208,16 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 	if (stream.match(/->/, true) !== null)
 	{
 		// finalize the list of parameters and create the collision layers
-		this.current_layer_expansion = Array.from(
-			this.identifiers.expand_parameters(this.current_layer_parameters),
-			(expansion, i) => [this.collisionLayers.length+i, expansion]
-		)
-		this.current_layer_expansion.forEach( e => this.collisionLayers.push( new Set() ) )
+		if (this.current_layer_parameters.length > 0)
+		{
+			this.current_layer_expansion = Array.from(
+				this.identifiers.expand_parameters(this.current_layer_parameters),
+				(expansion, i) => [this.collisionLayers.length+i, expansion]
+			)
+			this.current_layer_expansion.forEach( e => this.collisionLayers.push( new Set() ) )
+		}
 		this.tokenIndex = 1
-		return 'ARROW';
+		return 'ARROW'
 	}
 
 	const match_name = stream.match(reg_tagged_name, true);
@@ -1230,7 +1233,7 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 			this.logError("error detected - unexpected character " + stream.peek());
 			stream.next();
 		}
-		return null;
+		return null
 	}
 	
 	const identifier = match_name[0].trim()
