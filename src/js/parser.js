@@ -1371,12 +1371,12 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 			return 'LOGICWORD'
 		case 1: // expect an identifier
 		case 3:
-			if (this.identifiers.checkKnownIdentifier(candword, false, this) === -1)
+			if (this.identifiers.checkKnownIdentifier(candword, true, this) < 0)
 			{
 				this.logError('Error in win condition: "' + candword.toUpperCase() + '" is not a valid object name.');
-				return 'ERROR';
+				return 'ERROR'
 			}
-			return 'NAME';
+			return 'NAME'
 	}
 }
 
