@@ -92,7 +92,7 @@ var glyphPrintButton;
 var glyphMouseOver;
 
 
-LevelEditorScreen.prototype.regenHighlight = function(name, color, sprite_w, sprite_h, border_width=1)
+function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
 {
 	var result = makeSpriteCanvas(name)
 	var spritectx = result.getContext('2d')
@@ -138,7 +138,7 @@ function regenEditorImages()
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy for hovering the level's cells
-	glyphHighlight = LevelEditorScreen.prototype.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+	glyphHighlight = regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
 
 	{ // TODO: should be an icon loaded from an image
 		const [mag, margins] = centerAndMagnify([5, 5], [sprite_width, sprite_height])
@@ -161,7 +161,7 @@ function regenEditorImages()
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy. This one is for the mouse hover on legend glyphs
-	glyphMouseOver = LevelEditorScreen.prototype.regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
+	glyphMouseOver = regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
 }
 
 function forceRegenImages() // redeclaration from the one in graphics.js
@@ -276,11 +276,6 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 		return
 
 	const [ sprite_w, sprite_h ] = [ sprite_width, sprite_height ]
-
-	if (glyphHighlight === undefined)
-	{
-		glyphHighlight = LevelEditorScreen.prototype.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
-	}
 
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
 	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_w, (highlighted_cell[1]-minj) * sprite_h)
