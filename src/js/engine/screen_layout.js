@@ -3,13 +3,12 @@ var all_screen_types = []
 
 function forceRegenImages()
 {
-	all_screen_types.forEach( s => {s.last_magnification = null} )
+	regenSpriteImages()
 }
 
 // Base class, implements an empty screen
 function EmptyScreen(screen_type = 'empty')
 {
-	this.last_magnification = null
 	this.screen_type = screen_type
 	this.noAutoTick = true
 	this.noSwipe = false
@@ -18,16 +17,7 @@ function EmptyScreen(screen_type = 'empty')
 	all_screen_types.push(this)
 }
 EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
-EmptyScreen.prototype.redraw = (ctx, magnification) => null
-EmptyScreen.prototype.updateResources = function(magnification)
-{
-	if (this.last_magnification !== magnification)
-	{
-		this.regenResources.call(this, magnification)
-	}
-	this.last_magnification = magnification
-}
-EmptyScreen.prototype.regenResources = (m) => null
+EmptyScreen.prototype.redraw_virtual_screen = (ctx) => null
 EmptyScreen.prototype.leftMouseClick = (e) => false
 EmptyScreen.prototype.rightMouseClick = (e) => false
 EmptyScreen.prototype.mouseMove = (e) => null
@@ -66,7 +56,6 @@ function LevelScreen(screen_type = 'level')
 {
 	EmptyScreen.call(this, screen_type)
 	this.noAutoTick = false
-	this.spriteimages = []
 }
 LevelScreen.prototype = Object.create(EmptyScreen.prototype)
 LevelScreen.prototype.get_nb_tiles = () => [ this.level.width, this.level.height ]
@@ -128,9 +117,6 @@ ScreenLayout.prototype.resize = function(canvas_size)
 {
 	// Update layout parameters
 	[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), canvas_size)
-
-	// Should we update sprites?
-	this.content.updateResources(this.magnification)
 }
 
 ScreenLayout.prototype.leftMouseClick = function(event) { return this.content.leftMouseClick(event); }

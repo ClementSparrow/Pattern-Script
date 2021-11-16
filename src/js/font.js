@@ -34,9 +34,9 @@ font.addEventListener('load', function()
 
 font.colored_fonts = { '1-#FFFFFFFF': font }
 
-font.colored_font = function(css_color, magnification = 1)
+font.colored_font = function(css_color)
 {
-	const key = magnification.toString() + '-' + css_color
+	const key = css_color
 	if (key in this.colored_fonts)
 		return this.colored_fonts[key]
 
@@ -47,8 +47,8 @@ font.colored_font = function(css_color, magnification = 1)
 	const f_alpha = parseInt(css_color.substr(7,2), 16) || 255
 
 	var canvas = document.createElement('canvas')
-	canvas.width = this.width * magnification
-	canvas.height = this.height * magnification
+	canvas.width = this.width
+	canvas.height = this.height
 	var fctx = canvas.getContext('2d')
 
 	for (var i = 0; i < this.pixels.length; i += 4)
@@ -57,7 +57,7 @@ font.colored_font = function(css_color, magnification = 1)
 		if (alpha === 0)
 			continue
 		fctx.fillStyle = 'rgba(' + color.map(x => Math.round(x*alpha)).join() + ',' + f_alpha + ')'
-		fctx.fillRect( ((i/4) % this.width) * magnification, Math.floor((i/4) / this.width) * magnification, magnification, magnification)
+		fctx.fillRect( ((i/4) % this.width), Math.floor((i/4) / this.width), 1, 1)
 	}
 	this.colored_fonts[key] = canvas
 	return canvas

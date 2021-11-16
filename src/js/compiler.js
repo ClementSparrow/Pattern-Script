@@ -1079,7 +1079,6 @@ function loadFile(str)
 function compile(level, text, randomseed) // level = -1 means restart, level = undefined means rebuild
 {
 	matchCache = {}
-	forceRegenImages()
 	lastDownTarget = canvas
 
 	if (text === undefined)
@@ -1126,6 +1125,7 @@ function compile(level, text, randomseed) // level = -1 means restart, level = u
 	}
 
 	setGameState(state, level, randomseed)
+	forceRegenImages()
 
 	clearInputHistory()
 

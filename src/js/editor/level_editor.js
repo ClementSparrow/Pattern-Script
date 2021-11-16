@@ -102,18 +102,15 @@ LevelEditorScreen.prototype.regenHighlight = function(name, color, sprite_w, spr
 	spritectx.fillRect(0, 0,  border_width, sprite_h)
 	spritectx.fillRect(0, sprite_h-border_width,  sprite_w, border_width)
 	spritectx.fillRect(sprite_w-border_width, 0,  border_width, sprite_h)
-	return result;
+	return result
 }
 
 
 // uses state.glyphDict and state.identifiers
-LevelEditorScreen.prototype.regenResources = function(magnification)
+function regenEditorImages()
 {
-	if (magnification === 0)
-		return;
-
-	glyphImagesCorrespondance = [];
-	glyphImages = [];
+	glyphImagesCorrespondance = []
+	glyphImages = []
 	
 	// loop on legend symbols
 	for (const [identifier_index, g] of state.glyphDict.entries())
@@ -121,28 +118,27 @@ LevelEditorScreen.prototype.regenResources = function(magnification)
 		const n = state.identifiers.names[identifier_index];
 		
 		if ( (n.length > 1) || (! [identifier_type_object, identifier_type_property, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index])) )
-			continue;
+			continue
 
 		var sprite = makeSpriteCanvas("C"+n)
-		var spritectx = sprite.getContext('2d');
-		glyphImagesCorrespondance.push(identifier_index);
+		var spritectx = sprite.getContext('2d')
+		glyphImagesCorrespondance.push(identifier_index)
 		// TODO: shouldn't we always start by drawing a background tile, since it will always be created if not present in the legend symbol definition?
 		for (const id of g)
 		{
 			if (id === -1)
-				continue;
-			if (this.content.spriteimages === undefined) console.log(this)
-			spritectx.drawImage(this.content.spriteimages[id], 0, 0);
+				continue
+			spritectx.drawImage(spriteimages[id], 0, 0)
 		}
-		glyphImages.push(sprite);
+		glyphImages.push(sprite)
 	}
 
-	const sprite_w = sprite_width  * magnification
-	const sprite_h = sprite_height * magnification
+	const sprite_w = sprite_width
+	const sprite_h = sprite_height
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy for hovering the level's cells
-	glyphHighlight = this.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+	glyphHighlight = LevelEditorScreen.prototype.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
 
 	{ // TODO: should be an icon loaded from an image
 		const [mag, margins] = centerAndMagnify([5, 5], [sprite_width, sprite_height])
@@ -165,13 +161,13 @@ LevelEditorScreen.prototype.regenResources = function(magnification)
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy. This one is for the mouse hover on legend glyphs
-	glyphMouseOver = this.regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
+	glyphMouseOver = LevelEditorScreen.prototype.regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
 }
 
-LevelEditorScreen.prototype.updateResources = function(magnification)
+function forceRegenImages() // redeclaration from the one in graphics.js
 {
-	this.content.updateResources(magnification) // will update spriteimages if necessary so that we can use it too.
-	EmptyScreen.prototype.updateResources.call(this, magnification)
+	regenSpriteImages()
+	regenEditorImages()
 }
 
 
@@ -180,25 +176,20 @@ LevelEditorScreen.prototype.updateResources = function(magnification)
 // REDRAW EDITOR
 // =============
 
-LevelEditorScreen.prototype.redraw = function(ctx, magnification)
+LevelEditorScreen.prototype.redraw_virtual_screen = function(ctx)
 {
 	// draw the level's content
 	// ========================
 
 	ctx.save()
-	ctx.translate(magnification * sprite_width, magnification * sprite_height * (1+this.editorRowCount) )
-	this.content.redraw(ctx, magnification)
+	ctx.translate(sprite_width, sprite_height * (1+this.editorRowCount) )
+	this.content.redraw_virtual_screen(ctx)
 	ctx.restore()
-
-	if (glyphImages === undefined)
-	{
-		this.regenResources(magnification)
-	}
 
 	const [ mini, minj, maxi, maxj ] = this.content.get_viewport.call(this.content)
 
-	const sprite_w = sprite_width  * magnification
-	const sprite_h = sprite_height * magnification
+	const sprite_w = sprite_width
+	const sprite_h = sprite_height
 	const [w, h] = this.get_nb_tiles()
 
 	const glyphsToDisplay = glyphImages.length
@@ -277,18 +268,18 @@ LevelEditorScreen.prototype.redraw = function(ctx, magnification)
 }
 
 // highlight the cell hovered in the output of verbose_logging.
-const level_redraw = LevelScreen.prototype.redraw
-LevelScreen.prototype.redraw = function(ctx, magnification)
+const level_redraw = LevelScreen.prototype.redraw_virtual_screen
+LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 {
-	level_redraw.call(this, ctx, magnification)
+	level_redraw.call(this, ctx)
 	if (highlighted_cell === null)
 		return
 
-	const [ sprite_w, sprite_h ] = [ sprite_width*magnification, sprite_height*magnification ]
+	const [ sprite_w, sprite_h ] = [ sprite_width, sprite_height ]
 
-	if ( (glyphHighlight === undefined) || (level_editor_screen.last_magnification !== magnification) )
+	if (glyphHighlight === undefined)
 	{
-		glyphHighlight = level_editor_screen.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+		glyphHighlight = LevelEditorScreen.prototype.regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
 	}
 
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()

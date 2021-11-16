@@ -9,17 +9,19 @@ var canvasdict = {}
 
 function makeSpriteCanvas(name)
 {
-	var canvas;
+	var canvas
 	if (name in canvasdict)
 	{
-		canvas = canvasdict[name];
-	} else {
-		canvas = document.createElement('canvas');
-		canvasdict[name] = canvas;
+		canvas = canvasdict[name]
 	}
-	canvas.width  = screen_layout.magnification * sprite_width
-	canvas.height = screen_layout.magnification * sprite_height
-	return canvas;
+	else
+	{
+		canvas = document.createElement('canvas')
+		canvasdict[name] = canvas
+	}
+	canvas.width  = sprite_width
+	canvas.height = sprite_height
+	return canvas
 }
 
 function createSprite(name, spritegrid, colors, margins, mag = 1)
@@ -36,11 +38,11 @@ function createSprite(name, spritegrid, colors, margins, mag = 1)
 	var sprite = makeSpriteCanvas(name);
 	var spritectx = sprite.getContext('2d');
 
-	spritectx.clearRect(0, 0, sprite_width * screen_layout.magnification, sprite_height * screen_layout.magnification)
+	spritectx.clearRect(0, 0, sprite_width, sprite_height)
 
 	const sprite_w = spritegrid[0].length
 	const sprite_h = spritegrid.length
-	const pixel_size = mag * screen_layout.magnification
+	const pixel_size = mag
 
 	spritectx.fillStyle = state.fgcolor
 	for (var j = 0; j < sprite_h; j++) {
@@ -57,15 +59,16 @@ function createSprite(name, spritegrid, colors, margins, mag = 1)
 	return sprite;
 }
 
-LevelScreen.prototype.regenResources = function(magnification)
+var spriteimages = []
+function regenSpriteImages()
 {
-	this.spriteimages = []
+	spriteimages = []
 
 	for (var i = 0; i < sprites.length; i++)
 	{
 		if (sprites[i] !== undefined)
 		{
-			this.spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors);
+			spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors);
 		}
 	}
 }
@@ -78,15 +81,15 @@ LevelScreen.prototype.regenResources = function(magnification)
 var canvas = document.getElementById('gameCanvas');
 var ctx = canvas.getContext('2d');
 
-TextModeScreen.prototype.redraw = function(ctx, magnification)
+TextModeScreen.prototype.redraw_virtual_screen = function(ctx)
 {
-	const char_width  = magnification * font_width
-	const char_height = magnification * font_height
-	const grid_width  = magnification * (1+font_width)
-	const grid_height = magnification * (1+font_height)
+	const char_width  = font_width
+	const char_height = font_height
+	const grid_width  = (1+font_width)
+	const grid_height = (1+font_height)
 	for (const [j, [line, color]] of this.text.entries() )
 	{
-		const f = font.colored_font(color, magnification)
+		const f = font.colored_font(color)
 		if (f === null)
 			return
 		for (var i = 0; i < line.length; i++)
@@ -96,24 +99,19 @@ TextModeScreen.prototype.redraw = function(ctx, magnification)
 	}
 }
 
-LevelScreen.prototype.redraw = function(ctx, magnification)
+LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 {
-	if (this.spriteimages === undefined)
-	{
-		this.regenResources(magnification)
-	}
-
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
 
-	const sprite_w = sprite_width  * magnification
-	const sprite_h = sprite_height * magnification
+	const sprite_w = sprite_width
+	const sprite_h = sprite_height
 
 	for (var i = mini; i < maxi; i++)
 	{
 		for (var j = minj; j < maxj; j++)
 		{
 			this.level.mapCellObjects( j + i*this.level.height,
-				k => ctx.drawImage(this.spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
+				k => ctx.drawImage(spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
 			)
 		}
 	}
@@ -122,7 +120,7 @@ LevelScreen.prototype.redraw = function(ctx, magnification)
 function redraw()
 {
 	if (screen_layout.magnification === 0)
-		return;
+		return
 
 	// clear background
 	ctx.fillStyle = state.bgcolor;
@@ -133,7 +131,7 @@ function redraw()
 	ctx.translate(screen_layout.margins[0], screen_layout.margins[1])
 
 	// Draw content
-	screen_layout.content.redraw(ctx, screen_layout.magnification)
+	screen_layout.content.redraw_virtual_screen(ctx, screen_layout.magnification)
 
 	ctx.restore()
 }
