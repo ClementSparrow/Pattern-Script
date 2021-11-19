@@ -309,15 +309,14 @@ function getData(){
 		if(githubHTTPClient.readyState!=4) {
 			return;
 		}		
-		var result = JSON.parse(githubHTTPClient.responseText);
+		const result = JSON.parse(githubHTTPClient.responseText);
 		if (githubHTTPClient.status===403) {
 			displayError(result.message);
 		} else if (githubHTTPClient.status!==200&&githubHTTPClient.status!==201) {
 			displayError("HTTP Error "+ githubHTTPClient.status + ' - ' + githubHTTPClient.statusText);
 		}
-		var result = JSON.parse(githubHTTPClient.responseText);
-		var code=result["files"]["script.txt"]["content"];
-		compile(["restart"],code);
+		const code = result["files"]["script.txt"]["content"]
+		compile(-1, code)
 
 		if (state.metadata.homepage!==undefined) {
 			var homepage=state.metadata.homepage;
