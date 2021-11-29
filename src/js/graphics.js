@@ -143,9 +143,11 @@ function redraw()
 
 function canvasResize()
 {
+	const pixel_ratio = window.devicePixelRatio || 1
+
 	// Resize canvas
-	canvas.width  = canvas.parentNode.clientWidth
-	canvas.height = canvas.parentNode.clientHeight
+	canvas.width  = pixel_ratio * canvas.parentNode.clientWidth
+	canvas.height = pixel_ratio * canvas.parentNode.clientHeight
 
 	screen_layout.resize( [canvas.width, canvas.height] )
 	redraw()
