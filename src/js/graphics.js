@@ -78,9 +78,6 @@ function regenSpriteImages()
 // REDRAW
 // ==========
 
-var canvas = document.getElementById('gameCanvas');
-var ctx = canvas.getContext('2d');
-
 TextModeScreen.prototype.redraw_virtual_screen = function(ctx)
 {
 	const char_width  = font_width
@@ -117,23 +114,46 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	}
 }
 
-function redraw()
+ScreenLayout.prototype.init_graphics = function(canvas_id = 'gameCanvas')
 {
-	if (screen_layout.magnification === 0)
+	this.canvas = document.getElementById(canvas_id)
+	this.ctx = this.canvas.getContext('2d')
+	this.virtual_screen_canvas = document.createElement('canvas')
+	this.vc_ctx = this.virtual_screen_canvas.getContext('2d')
+}
+screen_layout.init_graphics()
+
+ScreenLayout.prototype.redraw = function()
+{
+	if (this.magnification === 0)
 		return
 
 	// clear background
-	ctx.fillStyle = state.bgcolor;
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
 	// Center screen content
-	ctx.save()
-	ctx.translate(screen_layout.margins[0], screen_layout.margins[1])
+	this.ctx.save()
+	this.ctx.translate(this.margins[0], this.margins[1])
+	this.ctx.scale(this.magnification, this.magnification)
 
 	// Draw content
-	screen_layout.content.redraw_virtual_screen(ctx, screen_layout.magnification)
+	this.vc_ctx.clearRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
+	this.content.redraw_virtual_screen(this.vc_ctx)
+	const vc_pixels = this.vc_ctx.getImageData(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height).data
+	for (var i = 0; i < vc_pixels.length; i += 4)
+	{
+		this.ctx.fillStyle = 'rgba(' + vc_pixels.slice(i, i+4).join() + ')'
+		this.ctx.fillRect( ((i/4) % this.virtual_screen_canvas.width), Math.floor((i/4) / this.virtual_screen_canvas.width), 1, 1)
+	}
+	this.content.redraw_hidef(this.ctx)
 
-	ctx.restore()
+	this.ctx.restore()
+}
+
+function redraw()
+{
+	screen_layout.redraw()
 }
 
 
@@ -141,16 +161,26 @@ function redraw()
 // RESIZE
 // ==========
 
+ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
+{
+	// Resize canvas
+	var c = this.canvas
+	c.width  = pixel_ratio * c.parentNode.clientWidth
+	c.height = pixel_ratio * c.parentNode.clientHeight
+	this.resize( [c.width, c.height] )
+
+	var vc = this.virtual_screen_canvas
+	var vc_size = this.content.get_virtual_screen_size()
+	vc.width  = vc_size[0]
+	vc.height = vc_size[1]
+
+	this.redraw()
+}
+
 function canvasResize()
 {
 	const pixel_ratio = window.devicePixelRatio || 1
-
-	// Resize canvas
-	canvas.width  = pixel_ratio * canvas.parentNode.clientWidth
-	canvas.height = pixel_ratio * canvas.parentNode.clientHeight
-
-	screen_layout.resize( [canvas.width, canvas.height] )
-	redraw()
+	screen_layout.resize_canvas(pixel_ratio)
 }
 
 window.addEventListener('resize', canvasResize, false)

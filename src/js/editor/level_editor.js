@@ -186,8 +186,6 @@ LevelEditorScreen.prototype.redraw_virtual_screen = function(ctx)
 	this.content.redraw_virtual_screen(ctx)
 	ctx.restore()
 
-	const [ mini, minj, maxi, maxj ] = this.content.get_viewport.call(this.content)
-
 	const sprite_w = sprite_width
 	const sprite_h = sprite_height
 	const [w, h] = this.get_nb_tiles()
@@ -222,36 +220,6 @@ LevelEditorScreen.prototype.redraw_virtual_screen = function(ctx)
 		} 		
 	}
 
-	// Tooltips
-	// ========
-
-	var tooltip_string = ''
-	var tooltip_objects = null
-	// prepare tooltip: legend for highlighted editor icon
-	if ( (this.hovered_glyph_index !== null) && (this.hovered_glyph_index >= 0) )
-	{
-		const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
-		tooltip_string = state.identifiers.names[identifier_index] + ' = '
-		tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
-	}
-	// prepare tooltip: content of a level's cell
-	else if ( this.hovered_level_cell !== null )
-	{
-		tooltip_objects = []
-		this.content.level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*this.content.level.height, k => tooltip_objects.push(state.idDict[k]) )
-	}
-	// prepare tooltip: object names
-	if (tooltip_objects !== null)
-	{
-		tooltip_string = tooltip_string + Array.from(tooltip_objects, oi => state.identifiers.objects[oi].name).join(' ')
-	}
-	// show tooltip
-	if (tooltip_string.length > 0)
-	{
-		ctx.fillStyle = state.fgcolor
-		ctx.fillText(tooltip_string, 0, (this.editorRowCount + 0.6) * sprite_h)
-	}
-
 	// Mouse hover level
 	// =================
 
@@ -275,10 +243,42 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	if (highlighted_cell === null)
 		return
 
-	const [ sprite_w, sprite_h ] = [ sprite_width, sprite_height ]
-
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
-	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_w, (highlighted_cell[1]-minj) * sprite_h)
+	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_width, (highlighted_cell[1]-minj) * sprite_height)
+}
+
+LevelEditorScreen.prototype.redraw_hidef = function(ctx)
+{
+	// Tooltips
+	// ========
+
+	var tooltip_string = ''
+	var tooltip_objects = null
+	// prepare tooltip: legend for highlighted editor icon
+	if ( (this.hovered_glyph_index !== null) && (this.hovered_glyph_index >= 0) )
+	{
+		const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
+		tooltip_string = state.identifiers.names[identifier_index] + ' = '
+		tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
+	}
+	// prepare tooltip: content of a level's cell
+	else if ( this.hovered_level_cell !== null )
+	{
+		tooltip_objects = []
+		const [ mini, minj, maxi, maxj ] = this.content.get_viewport.call(this.content)
+		this.content.level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*this.content.level.height, k => tooltip_objects.push(state.idDict[k]) )
+	}
+	// prepare tooltip: object names
+	if (tooltip_objects !== null)
+	{
+		tooltip_string = tooltip_string + Array.from(tooltip_objects, oi => state.identifiers.objects[oi].name).join(' ')
+	}
+	// show tooltip
+	if (tooltip_string.length > 0)
+	{
+		ctx.fillStyle = state.fgcolor
+		ctx.fillText(tooltip_string, 0, (this.editorRowCount + 0.6) * sprite_height)
+	}
 }
 
 
@@ -451,9 +451,9 @@ function relMouseCoords(event, canvas)
 
 LevelEditorScreen.prototype.setMouseCoord = function(e)
 {
-	const coords = relMouseCoords(e, canvas);
-	const virtualscreenCoordX = Math.floor( (coords.x - screen_layout.margins[0]) / screen_layout.magnification )
-	const virtualscreenCoordY = Math.floor( (coords.y - screen_layout.margins[1]) / screen_layout.magnification )
+	const coords = relMouseCoords(e, screen_layout.canvas)
+	const virtualscreenCoordX = Math.floor( (coords.x*window.devicePixelRatio - screen_layout.margins[0]) / screen_layout.magnification )
+	const virtualscreenCoordY = Math.floor( (coords.y*window.devicePixelRatio - screen_layout.margins[1]) / screen_layout.magnification )
 	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width  );
 	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height );
 

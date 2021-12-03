@@ -18,6 +18,7 @@ function EmptyScreen(screen_type = 'empty')
 }
 EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
 EmptyScreen.prototype.redraw_virtual_screen = (ctx) => null
+EmptyScreen.prototype.redraw_hidef = (ctx) => null
 EmptyScreen.prototype.leftMouseClick = (e) => false
 EmptyScreen.prototype.rightMouseClick = (e) => false
 EmptyScreen.prototype.mouseMove = (e) => null

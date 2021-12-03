@@ -37,7 +37,7 @@ function onMouseDown(event)
 	{
         lastDownTarget = event.target;
         keybuffer=[];
-        if (event.target===canvas || event.target.className==="tapFocusIndicator")
+        if (event.target===screen_layout.canvas || event.target.className==="tapFocusIndicator")
         {
         	if (screen_layout.leftMouseClick(event))
         		return;
@@ -47,7 +47,7 @@ function onMouseDown(event)
     }
     else if (rmb)
     {
-    	if (event.target===canvas || event.target.className==="tapFocusIndicator")
+    	if (event.target===screen_layout.canvas || event.target.className==="tapFocusIndicator")
     	{
 		    dragging=false;
 		    rightdragging=true;
@@ -100,7 +100,7 @@ function onKeyDown(event)
     if (keybuffer.includes(event.keyCode))
     	return
 
-    if( (lastDownTarget === canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
+    if( (lastDownTarget === screen_layout.canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
     {
     	if ( ! keybuffer.includes(event.keyCode) )
     	{
@@ -127,7 +127,7 @@ function onKeyDown(event)
             saveClick();
             prevent(event);
         } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
-			canvas.focus();
+			screen_layout.canvas.focus();
 			editor.display.input.blur();
             if (event.shiftKey) {
 				runClick()

@@ -179,14 +179,8 @@ loadDropdown.selectedIndex=0;
 
 function levelEditorClick_Fn()
 {
-	// if ( (screen_layout.content === msg_screen) || (state.levels.length === 0) )
-	// {
-	// 	compile(0)
-	// }
 	level_editor_screen.toggle()
-	// forceRegenImages()
-	// canvasResize()
-	lastDownTarget = canvas
+	lastDownTarget = screen_layout.canvas
 }
 
 /* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,

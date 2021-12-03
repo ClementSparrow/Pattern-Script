@@ -1079,7 +1079,7 @@ function loadFile(str)
 function compile(level, text, randomseed) // level = -1 means restart, level = undefined means rebuild
 {
 	matchCache = {}
-	lastDownTarget = canvas
+	lastDownTarget = screen_layout.canvas
 
 	if (text === undefined)
 	{
