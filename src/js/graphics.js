@@ -128,6 +128,10 @@ ScreenLayout.prototype.redraw = function()
 	if (this.magnification === 0)
 		return
 
+	// Draw virtual screen's content
+	this.vc_ctx.clearRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
+	this.content.redraw_virtual_screen(this.vc_ctx)
+
 	// clear background
 	this.ctx.fillStyle = state.bgcolor
 	this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
@@ -138,13 +142,18 @@ ScreenLayout.prototype.redraw = function()
 	this.ctx.scale(this.magnification, this.magnification)
 
 	// Draw content
-	this.vc_ctx.clearRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
-	this.content.redraw_virtual_screen(this.vc_ctx)
-	const vc_pixels = this.vc_ctx.getImageData(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height).data
-	for (var i = 0; i < vc_pixels.length; i += 4)
+	if (this.magnification == 1)
 	{
-		this.ctx.fillStyle = 'rgba(' + vc_pixels.slice(i, i+4).join() + ')'
-		this.ctx.fillRect( ((i/4) % this.virtual_screen_canvas.width), Math.floor((i/4) / this.virtual_screen_canvas.width), 1, 1)
+		this.ctx.drawImage(this.virtual_screen_canvas, 0, 0)
+	}
+	else
+	{
+		const vc_pixels = this.vc_ctx.getImageData(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height).data
+		for (var i = 0; i < vc_pixels.length; i += 4)
+		{
+			this.ctx.fillStyle = 'rgba(' + vc_pixels.slice(i, i+4).join() + ')'
+			this.ctx.fillRect( ((i/4) % this.virtual_screen_canvas.width), Math.floor((i/4) / this.virtual_screen_canvas.width), 1, 1)
+		}
 	}
 	this.content.redraw_hidef(this.ctx)
 
