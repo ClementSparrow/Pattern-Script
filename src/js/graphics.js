@@ -123,23 +123,48 @@ ScreenLayout.prototype.init_graphics = function(canvas_id = 'gameCanvas')
 }
 screen_layout.init_graphics()
 
+function rescale_canvas(m, ctx_from, ctx_to, w, h, margins)
+{
+	const vc_pixels = ctx_from.getImageData(0, 0, w, h).data
+	var scaled_imagedata = ctx_to.getImageData(margins[0], margins[1], w*m, h*m)
+	var pixels = scaled_imagedata.data
+
+	const delta_j = w*m*4
+	for (var y=0, i=0, j=0; y<h; ++y)
+	{
+		const jstart = j
+		for (var x=0; x<w; ++x, i+=4)
+		{
+			for (var x2=0; x2<m; ++x2, j+=4)
+			{
+				pixels[j  ] = vc_pixels[i  ]
+				pixels[j+1] = vc_pixels[i+1]
+				pixels[j+2] = vc_pixels[i+2]
+				pixels[j+3] = vc_pixels[i+3]
+			}
+		}
+		const jend = j
+		for (var y2=1; y2<m; ++y2, j+=delta_j)
+		{
+			pixels.copyWithin(j, jstart, jend)
+		}
+	}
+	return scaled_imagedata
+}
+
 ScreenLayout.prototype.redraw = function()
 {
 	if (this.magnification === 0)
 		return
 
 	// Draw virtual screen's content
-	this.vc_ctx.clearRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
+	this.vc_ctx.fillStyle = state.bgcolor
+	this.vc_ctx.fillRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
 	this.content.redraw_virtual_screen(this.vc_ctx)
-
-	// clear background
-	this.ctx.fillStyle = state.bgcolor
-	this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height)
 
 	// Center screen content
 	this.ctx.save()
 	this.ctx.translate(this.margins[0], this.margins[1])
-	this.ctx.scale(this.magnification, this.magnification)
 
 	// Draw content
 	if (this.magnification == 1)
@@ -148,14 +173,12 @@ ScreenLayout.prototype.redraw = function()
 	}
 	else
 	{
-		const vc_pixels = this.vc_ctx.getImageData(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height).data
-		for (var i = 0; i < vc_pixels.length; i += 4)
-		{
-			this.ctx.fillStyle = 'rgba(' + vc_pixels.slice(i, i+4).join() + ')'
-			this.ctx.fillRect( ((i/4) % this.virtual_screen_canvas.width), Math.floor((i/4) / this.virtual_screen_canvas.width), 1, 1)
-		}
+		this.ctx.scale(this.magnification, this.magnification)
+		this.ctx.putImageData(
+			rescale_canvas(this.magnification, this.vc_ctx, this.ctx, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height, this.margins),
+			...this.margins
+		)
 	}
-	this.content.redraw_hidef(this.ctx)
 
 	this.ctx.restore()
 }
@@ -178,8 +201,13 @@ ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
 	c.height = pixel_ratio * c.parentNode.clientHeight
 	this.resize( [c.width, c.height] )
 
+	// clear background
+	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillRect(0, 0, c.width, c.height)
+
+	// Resize virtual canvas
 	var vc = this.virtual_screen_canvas
-	var vc_size = this.content.get_virtual_screen_size()
+	const vc_size = this.content.get_virtual_screen_size()
 	vc.width  = vc_size[0]
 	vc.height = vc_size[1]
 

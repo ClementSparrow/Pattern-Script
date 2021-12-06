@@ -247,7 +247,7 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_width, (highlighted_cell[1]-minj) * sprite_height)
 }
 
-LevelEditorScreen.prototype.redraw_hidef = function(ctx)
+LevelEditorScreen.prototype.redraw_tooltip = function(ctx, m, width)
 {
 	// Tooltips
 	// ========
@@ -255,11 +255,18 @@ LevelEditorScreen.prototype.redraw_hidef = function(ctx)
 	var tooltip_string = ''
 	var tooltip_objects = null
 	// prepare tooltip: legend for highlighted editor icon
-	if ( (this.hovered_glyph_index !== null) && (this.hovered_glyph_index >= 0) )
+	if (this.hovered_glyph_index !== null)
 	{
-		const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
-		tooltip_string = state.identifiers.names[identifier_index] + ' = '
-		tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
+		if (this.hovered_glyph_index === -1)
+		{
+			tooltip_string = 'Print current level state to console.'
+		}
+		else
+		{
+			const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
+			tooltip_string = state.identifiers.names[identifier_index] + ' = '
+			tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
+		}
 	}
 	// prepare tooltip: content of a level's cell
 	else if ( this.hovered_level_cell !== null )
@@ -277,10 +284,25 @@ LevelEditorScreen.prototype.redraw_hidef = function(ctx)
 	if (tooltip_string.length > 0)
 	{
 		ctx.fillStyle = state.fgcolor
-		ctx.fillText(tooltip_string, 0, (this.editorRowCount + 0.6) * sprite_height)
+		ctx.font = 10*m + 'px sans-serif'
+		ctx.textAlign = 'center'
+		ctx.fillText(tooltip_string, width/2, (this.editorRowCount + 0.6) * sprite_height*m, width)
 	}
 }
 
+const screenlayout_redraw = ScreenLayout.prototype.redraw
+ScreenLayout.prototype.redraw = function()
+{
+	if (this.content.editorRowCount === undefined)
+	{
+		screenlayout_redraw.call(this)
+		return
+	}
+	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillRect(0, this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
+	screenlayout_redraw.call(this)
+	this.content.redraw_tooltip(this.ctx, this.magnification, this.canvas.width)
+}
 
 
 // ===================
