@@ -247,7 +247,7 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_width, (highlighted_cell[1]-minj) * sprite_height)
 }
 
-LevelEditorScreen.prototype.redraw_tooltip = function(ctx, m, width)
+LevelEditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
 {
 	// Tooltips
 	// ========
@@ -286,7 +286,7 @@ LevelEditorScreen.prototype.redraw_tooltip = function(ctx, m, width)
 		ctx.fillStyle = state.fgcolor
 		ctx.font = 10*m + 'px sans-serif'
 		ctx.textAlign = 'center'
-		ctx.fillText(tooltip_string, width/2, (this.editorRowCount + 0.6) * sprite_height*m, width)
+		ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.6) * sprite_height*m, width)
 	}
 }
 
@@ -299,9 +299,9 @@ ScreenLayout.prototype.redraw = function()
 		return
 	}
 	this.ctx.fillStyle = state.bgcolor
-	this.ctx.fillRect(0, this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
+	this.ctx.fillRect(0, this.margins[1]+this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
 	screenlayout_redraw.call(this)
-	this.content.redraw_tooltip(this.ctx, this.magnification, this.canvas.width)
+	this.content.redraw_tooltip(this.ctx, this.margins[1], this.magnification, this.canvas.width)
 }
 
 
