@@ -103,19 +103,19 @@ var camera_on_player_screen = new CameraOnPlayerScreen()
 
 
 // Main screen: has a virtual screen for content, magnifies and centers it
-function ScreenLayout()
+function ScreenLayout(canvas)
 {
 	// content of the virtual screen
 	this.content = title_screen
 	// layout parameters
 	this.magnification = 0
 	this.margins = [0, 0]
-}
-
-ScreenLayout.prototype.resize = function(canvas_size)
-{
-	// Update layout parameters
-	[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), canvas_size)
+	// drawing
+	this.canvas = canvas
+	this.ctx = this.canvas.getContext('2d')
+	this.virtual_screen_canvas = document.createElement('canvas')
+	this.vc_ctx = this.virtual_screen_canvas.getContext('2d')
+	window.addEventListener('resize',  () => this.resize_canvas(), false)
 }
 
 ScreenLayout.prototype.leftMouseClick = function(event) { return this.content.leftMouseClick(event); }
@@ -128,4 +128,3 @@ ScreenLayout.prototype.noSwipe = function() { return this.content.noSwipe; }
 ScreenLayout.prototype.alwaysAllowUndo = function() { return this.content.alwaysAllowUndo; }
 ScreenLayout.prototype.dontDoWin = function() { return this.content.dontDoWin; }
 
-var screen_layout = new ScreenLayout()
