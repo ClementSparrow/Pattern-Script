@@ -8,6 +8,7 @@ function redraw() {}
 
 function forceRegenImages() {}
 
+var screen_layout = new ScreenLayout( { getContext: () => null } )
 var levelString;
 var inputString;
 var outputString;

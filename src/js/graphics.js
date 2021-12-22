@@ -149,15 +149,6 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	}
 }
 
-ScreenLayout.prototype.init_graphics = function(canvas_id = 'gameCanvas')
-{
-	this.canvas = document.getElementById(canvas_id)
-	this.ctx = this.canvas.getContext('2d')
-	this.virtual_screen_canvas = document.createElement('canvas')
-	this.vc_ctx = this.virtual_screen_canvas.getContext('2d')
-}
-screen_layout.init_graphics()
-
 // creates a buffer. To save memory, use rescale_canvas_into.
 function rescale_canvas(m, ctx_from, ctx_to, w, h, margins)
 {
@@ -232,13 +223,16 @@ function redraw()
 // RESIZE
 // ==========
 
+var screen_layout = new ScreenLayout(document.getElementById('gameCanvas'))
+
 ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
 {
 	// Resize canvas
 	const c = this.canvas
 	c.width  = pixel_ratio * c.parentNode.clientWidth
 	c.height = pixel_ratio * c.parentNode.clientHeight
-	this.resize( [c.width, c.height] )
+	// this.resize(  )
+	;[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), [c.width, c.height])
 
 	// clear background
 	this.ctx.fillStyle = state.bgcolor
@@ -261,6 +255,4 @@ function canvasResize()
 	const pixel_ratio = window.devicePixelRatio || 1
 	screen_layout.resize_canvas(pixel_ratio)
 }
-
-window.addEventListener('resize', canvasResize, false)
 
