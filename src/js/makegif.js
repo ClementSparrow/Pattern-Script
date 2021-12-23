@@ -2,8 +2,6 @@ function makeGIF()
 {
 	var randomseed = RandomGen.seed;
 
-	var inputDat = inputHistory.concat([]);
-
 	unitTesting=true;
 	levelString=compiledText;
 
@@ -12,6 +10,8 @@ function makeGIF()
 	encoder.setDelay(200);
 	encoder.start();
 
+	// TODO: we should not have to recompile. Actually, we don't want to recompile. We want to use the replay the inputHistory in the same state (already compiled) than
+	// when we created the inputHistory.
 	compile(curlevel, levelString, randomseed)
 
 	var gifcanvas = document.createElement('canvas');
@@ -24,17 +24,22 @@ function makeGIF()
   	encoder.addFrame(gifctx);
 	var autotimer=0;
 
-  	for(const val of inputDat)
+  	for(const val of inputHistory)
   	{
   		var realtimeframe = false
-		if (val === 'undo') {
+  		switch (val)
+  		{
+		case 'undo':
 			execution_context.doUndo()
-		} else if (val === 'restart') {
-			DoRestart();
-		} else if (val === 'tick') {			
+			break
+		case 'restart':
+			DoRestart()
+			break
+		case 'tick':
 			processInput(processing_causes.autotick)
 			realtimeframe = true
-		} else {
+			break
+		default:
 			processInput(val)
 		}
 
@@ -60,7 +65,5 @@ function makeGIF()
 	consolePrint('<img class="generatedgif" src="'+data_url+'">');
 	consolePrint('<a href="'+data_url+'" download>Download GIF</a>');
   	
-  	unitTesting = false;
-
-    inputHistory = inputDat
+  	unitTesting = false
 }
