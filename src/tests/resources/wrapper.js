@@ -2,17 +2,11 @@ var lastDownTarget = null;
 var canvas = null;
 var input = document.createElement('TEXTAREA');
 
-function canvasResize() {
+function canvasResize() {}
 
-}
+function redraw() {}
 
-function redraw() {
-
-}
-
-function forceRegenImages(){
-
-}
+function forceRegenImages() {}
 
 var levelString;
 var inputString;

@@ -59,6 +59,11 @@ function createSprite(name, spritegrid, colors, margins, mag = 1)
 	return sprite;
 }
 
+function forceRegenImages()
+{
+	regenSpriteImages()
+}
+
 var spriteimages = []
 function regenSpriteImages()
 {

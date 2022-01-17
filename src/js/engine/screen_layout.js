@@ -1,11 +1,6 @@
 
 var all_screen_types = []
 
-function forceRegenImages()
-{
-	regenSpriteImages()
-}
-
 // Base class, implements an empty screen
 function EmptyScreen(screen_type = 'empty')
 {
