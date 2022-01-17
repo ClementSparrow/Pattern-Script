@@ -146,14 +146,14 @@ function regenEditorImages()
 	}
 	{ // TODO: do we really need a sprite for that?
 		//make + symbol to add rows/columns
-		glyphHighlightResize = makeSpriteCanvas("highlightresize");
-		var spritectx = glyphHighlightResize.getContext('2d');
-		spritectx.fillStyle = '#FFFFFF';
+		glyphHighlightResize = makeSpriteCanvas('highlightresize')
+		var spritectx = glyphHighlightResize.getContext('2d')
+		spritectx.fillStyle = '#FFFFFF'
 		
-		const minx = Math.floor((sprite_w/2) )-1
-		const miny = Math.floor((sprite_h/2))-1
-		const xsize = sprite_w - minx - 1 - minx
-		const ysize = sprite_h - miny - 1 - minx
+		const minx = Math.floor((sprite_w-1)/2)
+		const miny = Math.floor((sprite_h-1)/2)
+		const xsize = sprite_w - 2*minx
+		const ysize = sprite_h - 2*miny
 
 		spritectx.fillRect(minx, 0,  xsize, sprite_h)
 		spritectx.fillRect(0, miny,  sprite_w, ysize)
