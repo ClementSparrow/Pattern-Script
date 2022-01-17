@@ -284,9 +284,10 @@ LevelEditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
 	if (tooltip_string.length > 0)
 	{
 		ctx.fillStyle = state.fgcolor
-		ctx.font = 10*m + 'px sans-serif'
+		ctx.font = 4*m + 'px sans-serif'
 		ctx.textAlign = 'center'
-		ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.6) * sprite_height*m, width)
+		ctx.textBaseline = 'middle'
+		ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.5) * sprite_height*m, width)
 	}
 }
 
