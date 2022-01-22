@@ -77,6 +77,7 @@ Identifiers.prototype.copy = function()
 			identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
 			spritematrix: o.spritematrix.concat([]),
+			sprite_offset: Array.from(o.sprite_offset),
 			layer: o.layer
 		}))
 	result.mappings = Array.from(this.mappings, (m) => ({
@@ -147,7 +148,8 @@ Identifiers.prototype.registerNewObject = function(identifier, original_case, im
 		name: identifier,
 		identifier_index: this.names.length,
 		colors: [],
-		spritematrix: []
+		spritematrix: [],
+		sprite_offset: [0, 0]
 	});
 	return this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), [], implicit, lineNumber)
 }
@@ -695,4 +697,66 @@ Identifiers.prototype.replace_parameters = function(start_identifier_index, from
 Identifiers.prototype.getTagClassesInIdentifier = function(identifier_index)
 {
 	return Array.from( this.tag_mappings[identifier_index].filter( x => (x !== null) ), mapping_index => this.mappings[mapping_index].from)
+}
+
+
+// A class to ease the creation of syntaxes/features that rely on expansion.
+function ExpansionContext(params = [], expansion = [])
+{
+	this.parameters = params
+	this.expansion = expansion // an array of pairs [expansion_result, parameter_values] where expansion_result is the result of each expansion (should be copyable by the default js copy function) and parameter_values is the array of the values taken by each expansion parameter in this expansion
+}
+
+ExpansionContext.prototype.copy = function()
+{
+	return new ExpansionContext(
+		Array.from( this.parameters ),
+		Array.from( this.expansion, ([target, parameter_values]) => [target, Array.from(parameter_values)] )
+	)
+}
+
+// Filters some expansions based on the given function (removes the expansion for which the function returns false)
+ExpansionContext.prototype.filter = function(test_func)
+{
+	this.expansion = this.expansion.filter( test_func )
+}
+
+// Create an expansion context from an identifier by using each of the tag classes its name contains as an expansion parameter.
+Identifiers.prototype.expansion_context_from_identifier = function(identifier_index)
+{
+	if (identifier_index === undefined)
+		return new ExpansionContext()
+
+	const classes = this.getTagClassesInIdentifier(identifier_index)
+	if (classes.length === 0)
+		return new ExpansionContext(
+			[],
+			[ [ this.getObjectFromIdentifier(identifier_index), [] ] ]
+		)
+
+	return new ExpansionContext(
+		classes,
+		Array.from(
+			this.expand_parameters(classes),
+			(expansion, i) => [ this.getObjectFromIdentifier(this.replace_parameters(identifier_index, classes, expansion)), expansion]
+		)
+	)
+}
+
+// Create an expansion context from a list of expansion parameters, using the given function to generate the object attached to each expansion
+Identifiers.prototype.expansion_context = function(parameter_list, default_object, func)
+{
+	if (parameter_list.length === 0)
+		return new ExpansionContext(
+			[],
+			[ [ default_object, [] ] ]
+		)
+
+	return new ExpansionContext(
+		parameter_list,
+		Array.from(
+			this.expand_parameters(parameter_list),
+			(expansion, i) => [ func(expansion, i), expansion ]
+		)
+	)
 }

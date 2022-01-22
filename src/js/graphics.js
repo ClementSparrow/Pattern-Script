@@ -7,7 +7,7 @@ function centerAndMagnify(content_size, container_size)
 
 var canvasdict = {}
 
-function makeSpriteCanvas(name)
+function makeSpriteCanvas(name, width=sprite_width, height=sprite_height)
 {
 	var canvas
 	if (name in canvasdict)
@@ -19,12 +19,12 @@ function makeSpriteCanvas(name)
 		canvas = document.createElement('canvas')
 		canvasdict[name] = canvas
 	}
-	canvas.width  = sprite_width
-	canvas.height = sprite_height
+	canvas.width  = width
+	canvas.height = height
 	return canvas
 }
 
-function createSprite(name, spritegrid, colors, margins, mag = 1)
+function createSprite(name, spritegrid, colors, margins, mag = 1, offset = [0,0])
 {
 	if (colors === undefined)
 	{
@@ -35,23 +35,24 @@ function createSprite(name, spritegrid, colors, margins, mag = 1)
 		margins = [0, 0]
 	}
 
-	var sprite = makeSpriteCanvas(name);
-	var spritectx = sprite.getContext('2d');
-
-	spritectx.clearRect(0, 0, sprite_width, sprite_height)
-
-	const sprite_w = spritegrid[0].length
+	const sprite_w = spritegrid.reduce( (m, line) => Math.max(m, line.length), 0 )
 	const sprite_h = spritegrid.length
-	const pixel_size = mag
 
+	var sprite = makeSpriteCanvas(name, sprite_w, sprite_h)
+	sprite.offset = offset
+
+	var spritectx = sprite.getContext('2d')
+	spritectx.clearRect(0, 0, sprite_w, sprite_h)
 	spritectx.fillStyle = state.fgcolor
-	for (var j = 0; j < sprite_h; j++) {
-		for (var k = 0; k < sprite_w; k++) {
-			var val = spritegrid[j][k]
+	spritectx.translate(margins[0]*mag, margins[1]*mag)
+	for (const [j, line] of spritegrid.entries())
+	{
+		for (const [k, val] of line.entries())
+		{
 			if (val >= 0)
 			{
 				spritectx.fillStyle = colors[val]
-				spritectx.fillRect(Math.floor( (k+margins[0]) * pixel_size ), Math.floor( (j+margins[1]) * pixel_size ), pixel_size, pixel_size)
+				spritectx.fillRect(Math.floor(k*mag), Math.floor(j*mag), mag, mag)
 			}
 		}
 	}
@@ -73,7 +74,7 @@ function regenSpriteImages()
 	{
 		if (sprites[i] !== undefined)
 		{
-			spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors);
+			spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors, undefined, undefined, sprites[i].offset)
 		}
 	}
 }
@@ -105,15 +106,14 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 {
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
 
-	const sprite_w = sprite_width
-	const sprite_h = sprite_height
-
 	for (var i = mini; i < maxi; i++)
 	{
+		const x = (i-mini) * sprite_width
 		for (var j = minj; j < maxj; j++)
 		{
+			const y = (j+1-minj) * sprite_height
 			this.level.mapCellObjects( j + i*this.level.height,
-				k => ctx.drawImage(spriteimages[k], (i-mini) * sprite_w, (j-minj) * sprite_h)
+				k => ctx.drawImage(spriteimages[k], x+spriteimages[k].offset[0], y+spriteimages[k].offset[1]-spriteimages[k].height)
 			)
 		}
 	}

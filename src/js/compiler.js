@@ -29,7 +29,7 @@ function generateSpriteMatrix(dat)
 		function(line)
 		{
 			var row = [];
-			for (var j = 0; j < dat.length; j++)
+			for (var j = 0; j < line.length; j++)
 			{
 				const ch = line.charAt(j);
 				row.push( (ch == '.') ? -1 : ch );

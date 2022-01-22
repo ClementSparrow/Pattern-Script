@@ -287,7 +287,8 @@ function setGameState(_state, level_index, randomseed = null)
 	{
 		sprites[object.id] = {
 			colors: object.colors,
-			dat: object.spritematrix
+			dat: object.spritematrix,
+			offset: object.sprite_offset
 		}
 	}
 

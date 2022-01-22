@@ -51,7 +51,7 @@ const error_messages = { // actually also warning messages
 	// prelude:
 	unknown_metadata: 'Unrecognised stuff in the prelude.',
 	// objects:
-	wrong_spritematrix_size: (w,h) => 'Sprites must be ' + w + ' wide and ' + h + ' high.',
+	palette_too_small: (i,n,l) => 'Trying to access color number ' + i + ' from the color palette of sprite ' + n + ', but there are only ' + l + ' defined in it.',
 	// sounds:
 	unexpected_sound_token: candname => 'unexpected sound token "'+candname+'".',
 	// collision layers:
