@@ -905,7 +905,8 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			const old_identifier_index = this.identifiers.checkKnownIdentifier(splits[2].toLowerCase(), false, this);
 			if (old_identifier_index < 0)
 			{
-				// TODO: log error.
+				this.logError('Unknown object or property name '+splits[2].toUpperCase()+' found in the definition of the synonym '+splits[0].toUpperCase()+'!')
+				ok = false
 			}
 			else
 			{
