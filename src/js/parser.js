@@ -151,7 +151,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 PuzzleScriptParser.prototype.logError = function(msg)
 {
-	// console.log(msg, this.lineNumber); console.assert(false)
+	// console.log(msg, this.lineNumber);// console.assert(false)
 	logError(msg, this.lineNumber);
 }
 
@@ -911,7 +911,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 			{
 				// TODO: deal with tags. It should be OK to declare a synonym for an identifier with tag classes (and even tag functions!) as tags, but only if
 				// the set of tag classes is the same in the new and old identifiers.
-				this.identifiers.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], this.mixedCase), old_identifier_index, [], this.lineNumber)
+				this.current_identifier_index = this.identifiers.registerNewSynonym(splits[0], findOriginalCaseName(splits[0], this.mixedCase), old_identifier_index, [], this.lineNumber)
 			}
 		} else if (splits.length % 2 === 0) {
 			ok = false;
@@ -940,57 +940,64 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 				}
 				else
 				{
-					var objects_in_compound
-					;[ok, objects_in_compound] = this.identifiers.checkCompoundDefinition(new_definition, new_identifier, compound_type, this)
+					var [ok2, objects_in_compound] = this.identifiers.checkCompoundDefinition(new_definition, new_identifier, compound_type, this)
 					// TODO: deal with tag classes in the tags of new_identifier or in the objects_in_compound, and manage tag_mappings?
-					this.identifiers.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, [], compound_type, 0, this.lineNumber);
+					this.current_identifier_index = this.identifiers.registerNewLegend(new_identifier, findOriginalCaseName(new_identifier, this.mixedCase), objects_in_compound, [], compound_type, 0, this.lineNumber)
+					if (ok2 === false)
+					{
+						stream.match(/[^=]*/, true)
+						this.tokenIndex = 1
+						return 'ERROR'
+					}
 				} 
 			}
 		}
 
 		if (ok === false)
 		{
-			this.logError('incorrect format of legend - should be one of A = B, A = B or C ( or D ...), A = B and C (and D ...)');
-			stream.match(reg_notcommentstart, true);
-			return 'ERROR';
+			this.logError('incorrect format of legend - should be one of A = B, A = B or C ( or D ...), A = B and C (and D ...)')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR'
 		}
 
-		this.tokenIndex = 0;
+		this.tokenIndex = 0
 	}
 
 	// the line has been parsed, now we just consume the words, returning the appropriate token type
-	this.tokenIndex++;
+	this.tokenIndex++
 	switch (this.tokenIndex)
 	{
 	case 1: // the new identifier
 		{
-			stream.match(/[^=]*/, true);
-			return 'NAME';
+			stream.match(/[^=]*/, true)
+			return 'NAME'
 		}
 	case 2: // =
 		{
-			stream.next();
-			stream.match(/[\p{Separator}\s]*/u, true);
-			return 'ASSIGNMENT';
+			stream.next()
+			stream.match(/[\p{Separator}\s]*/u, true)
+			return 'ASSIGNMENT'
 		}
 	default:
 		{
-			var match_name = stream.match(reg_tagged_name, true);
-			if (match_name === null) {
-				this.logError("Something bad's happening in the LEGEND");
-				stream.match(reg_notcommentstart, true);
-				return 'ERROR';
+			const match_name = stream.match(reg_tagged_name, true)
+			if (match_name === null)
+			{
+				this.logError("Something bad's happening in the LEGEND")
+				stream.match(reg_notcommentstart, true)
+				return 'ERROR'
 			}
-			const candname = match_name[0].trim();
+			const candname = match_name[0].trim()
 
 			if (this.tokenIndex % 2 === 0)
-				return 'LOGICWORD';
-			if (this.identifiers.checkKnownIdentifier(candname.toLowerCase(), false, this) < 0) // TODO: why do we need to test that again?
-			{
-				this.logError('Cannot reference "' + candname.toUpperCase() + '" in the LEGEND section; it has not been defined yet.');
-				return 'ERROR';
-			}
-			return 'NAME';
+				return 'LOGICWORD'
+			const identifier_index = this.identifiers.checkKnownIdentifier(candname.toLowerCase(), false)
+			if (identifier_index < 0)
+				return 'ERROR'
+			const objects = this.identifiers.object_set[identifier_index]
+			if ([...objects].some( object => ! this.identifiers.object_set[this.current_identifier_index].has(object) ))
+				return 'ERROR'
+			return 'NAME'
 		}
 	}
 }
