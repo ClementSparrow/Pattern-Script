@@ -992,7 +992,7 @@ PuzzleScriptParser.prototype.tokenInLegendSection = function(is_start_of_line, s
 
 			if (this.tokenIndex % 2 === 0)
 				return 'LOGICWORD'
-			const identifier_index = this.identifiers.checkKnownIdentifier(candname.toLowerCase(), false)
+			const identifier_index = this.identifiers.checkKnownIdentifier(candname.toLowerCase(), false, this)
 			if (identifier_index < 0)
 				return 'ERROR'
 			const objects = this.identifiers.object_set[identifier_index]
@@ -1248,8 +1248,8 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 {
 	if (is_start_of_line)
 	{
-		this.current_expansion_context = null
-		this.tokenIndex = (/->/.test(stream.string)) ? 0 : 1;
+		this.current_expansion_context = new ExpansionContext()
+		this.tokenIndex = (/->/.test(stream.string)) ? 0 : 1
 	}
 
 	if (stream.match(/->/, true) !== null)
@@ -1259,19 +1259,19 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 	}
 
 	// define the expansion context if possible
-	if ( (this.tokenIndex >= 1) && (this.current_expansion_context === null) )
+	if ( (this.tokenIndex >= 1) && (this.current_expansion_context.expansion.length == 0) )
 	{
 		this.current_expansion_context = this.identifiers.expansion_context(
 			this.current_layer_parameters,
 			this.collisionLayers.length,
-			(expansion, i) => [this.collisionLayers.length+i, expansion]
+			(expansion, i) => this.collisionLayers.length+i
 		)
 		this.current_layer_parameters = []
 		// finalize the list of parameters and create the collision layers
 		this.current_expansion_context.expansion.forEach( e => this.collisionLayers.push( new Set() ) )
 	}
 
-	const match_name = stream.match(reg_tagged_name, true);
+	const match_name = stream.match(reg_tagged_name, true)
 
 	// ignore spaces and commas in the list
 	if (match_name === null)
