@@ -68,13 +68,13 @@ function printCellRow(identifiers, cellRow)
 function cacheRuleStringRep(identifiers, rule)
 {
 	var result='('+makeLinkToLine(rule.lineNumber)+') '+ rule.direction.toString().toUpperCase()+ ' ';
-	if (rule.tag_classes.length > 0)
+	if (rule.tag_classes.size > 0)
 	{
-		result += rule.tag_classes.map( (tc_ii, i) => (identifiers.names[tc_ii].toUpperCase()+'='+identifiers.names[rule.tag_classes_replacements[i]]) ).join(', ') + ' '
+		result += [...rule.tag_classes].map( (tc_ii, i) => (identifiers.names[tc_ii].toUpperCase()+'='+identifiers.names[rule.tag_classes_replacements[i]]) ).join(', ') + ' '
 	}
-	if (rule.parameter_properties.length > 0)
+	if (rule.parameter_properties.size > 0)
 	{
-		result += rule.tag_classes.map( (pp_ii, i) => (identifiers.names[pp_ii].toUpperCase()+'='+identifiers.names[rule.parameter_properties_replacements[i]]) ).join(', ') + ' '
+		result += [...rule.parameter_properties].map( (pp_ii, i) => (identifiers.names[pp_ii].toUpperCase()+'='+identifiers.names[rule.parameter_properties_replacements[i]]) ).join(', ') + ' '
 	}
 	if (rule.rigid) {
 		result = "RIGID "+result+" ";
