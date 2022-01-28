@@ -116,3 +116,14 @@ function pushInput(inp) {
 		inputHistory.push(inp);
 	}
 }
+
+
+function print_ruleset(rule_set)
+{
+	var output = ''
+	for (const rulegroup of rule_set)
+	{
+		output += '&nbsp; ' + rulegroup.map(rule => rule.string_representation).join('<br>+ ') + '<br>'
+	}
+	return output
+}

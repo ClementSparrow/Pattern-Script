@@ -173,3 +173,13 @@ function highlightCell(coords)
 	redraw()
 }
 
+
+function debugRulesClick()
+{
+	if ( (state === undefined) || (state.rules === undefined) )
+		compile()
+	if (state.rules === undefined)
+		consolePrint('There\'s no rule to show.')
+	else
+		consolePrint(print_ruleset(state.rules) + '\n\nLATE RULES\n\n' + print_ruleset(state.lateRules))
+}

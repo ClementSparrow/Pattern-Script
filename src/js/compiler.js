@@ -1037,12 +1037,6 @@ function loadFile(str)
 
 	rulesToMask(state);
 
-	
-	if (debugMode)
-	{
-		printRules(state);
-	}
-
 	arrangeRulesByGroupNumber(state);
 	collapseRules(state.rules);
 	collapseRules(state.lateRules);

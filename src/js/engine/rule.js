@@ -1,6 +1,7 @@
 var ellipsisPattern = ['ellipsis'];
 
-function Rule(rule) {
+function Rule(rule, string_representation)
+{
 	this.direction = rule[0]; 		/* direction rule scans in */
 	this.patterns = rule[1];		/* lists of CellPatterns to match */
 	this.hasReplacements = rule[2];
@@ -16,6 +17,7 @@ function Rule(rule) {
 	this.ruleMask = this.cellRowMasks.reduce( (acc, m) => { acc.ior(m); return acc }, new BitVec(STRIDE_OBJ) )
 	/* TODO: eliminate isRigid, groupNumber, isRandom
 	from this class by moving them up into a RuleGroup class */
+	this.string_representation = string_representation
 	this.makeRigidMask()
 }
 

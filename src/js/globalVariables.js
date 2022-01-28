@@ -7,6 +7,7 @@ const storage_has = (key) => (localStorage.getItem(key) !== null)
 const storage_set = (key, value) => localStorage.setItem(key, value)
 const storage_remove = (key) => localStorage.removeItem(key)
 
+var debug = false
 var verbose_logging=false;
 var throttle_movement=false;
 var cache_console_messages=false;

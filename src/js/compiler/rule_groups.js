@@ -28,7 +28,7 @@ function collapseRules(groups)
 				}
 			}
 			newrule.push(ellipses, oldrule.groupNumber, oldrule.rigid, oldrule.commands, oldrule.randomRule, oldrule.parameter_expansion_string)
-			rules[i] = new Rule(newrule)
+			rules[i] = new Rule(newrule, oldrule.stringRep)
 		}
 	}
 	matchCache = {}; // clear match cache so we don't slowly leak memory
