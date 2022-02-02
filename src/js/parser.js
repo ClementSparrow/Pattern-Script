@@ -27,6 +27,7 @@ const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 
 const reg_commands = /(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\b/u;
 const reg_name = /[\p{Letter}\p{Number}_]+/u;
 const reg_tagged_name = /[\p{Letter}\p{Number}_:]+/u
+const reg_maptagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_<^>]+)*/u
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+\b/;
@@ -231,7 +232,7 @@ PuzzleScriptParser.prototype.addIdentifierInCollisionLayer = function(candname, 
 	
 	// list other layers that contain an object that candname can be, as an object cannot appear in two different layers
 	// Note: a better way to report this would be to tell "candname {is/can be a X, which} is already defined in layer N" depending on the type of candname
-	const cand_index = this.identifiers.checkKnownIdentifier(candname, false, this);
+	const cand_index = this.identifiers.checkKnownIdentifier(candname, false, this)
 	if (cand_index < 0)
 	{
 		this.logWarning('You are trying to add an object named '+candname.toUpperCase()+' in a collision layer, but no object with that name has been defined.');
@@ -843,7 +844,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	}
 	case 5: // copy spritematrix: transformations to apply
 	{
-		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])|-|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
+		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
 		if (transform_match === null)
 		{
 			this.logError('I do not understand this sprite transformation! Did you forget to insert a blank line between two object declarations?')
@@ -1271,7 +1272,7 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 		this.current_expansion_context.expansion.forEach( e => this.collisionLayers.push( new Set() ) )
 	}
 
-	const match_name = stream.match(reg_tagged_name, true)
+	const match_name = stream.match(reg_maptagged_name, true)
 
 	// ignore spaces and commas in the list
 	if (match_name === null)
