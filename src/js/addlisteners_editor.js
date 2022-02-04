@@ -40,16 +40,11 @@ if (gestureHandler) {
 }
 
 
-const onmousemove = "mouseMove(event)" 
-const onmouseout = "mouseOut()"
-
 var el = document.getElementById("gameCanvas");
 if (el.addEventListener) {
     el.addEventListener("contextmenu", rightClickCanvas, false);
-    el.addEventListener("mousemove", mouseMove, false);
-    el.addEventListener("mouseout", mouseOut, false);
+    el.addEventListener("mousemove", screen_layout, false)
 } else {
     el.attachEvent('oncontextmenu', rightClickCanvas);
-    el.attachEvent('onmousemove', mouseMove);
-    el.attachEvent('onmouseout', mouseOut);
+    el.attachEvent('onmousemove', screen_layout)
 }  

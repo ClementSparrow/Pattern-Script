@@ -13,11 +13,6 @@ function EmptyScreen(screen_type = 'empty')
 }
 EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
 EmptyScreen.prototype.redraw_virtual_screen = (ctx) => null
-EmptyScreen.prototype.leftMouseClick = (e) => false
-EmptyScreen.prototype.rightMouseClick = (e) => false
-EmptyScreen.prototype.mouseMove = (e) => null
-EmptyScreen.prototype.checkKey = (e, inputdir) => false
-EmptyScreen.prototype.checkRepeatableKey = (e, inputdir) => false
 var empty_screen = new EmptyScreen()
 
 
@@ -118,11 +113,6 @@ function ScreenLayout(canvas)
 	window.addEventListener('resize',  () => this.resize_canvas(), false)
 }
 
-ScreenLayout.prototype.leftMouseClick = function(event) { return this.content.leftMouseClick(event); }
-ScreenLayout.prototype.rightMouseClick = function(event) { return this.content.rightMouseClick(event); }
-ScreenLayout.prototype.mouseMove = function(event) { return this.content.mouseMove(event); }
-ScreenLayout.prototype.checkKey = function(event, inputdir) { return this.content.checkKey(event, inputdir); }
-ScreenLayout.prototype.checkRepeatableKey = function(event, inputdir) { return this.content.checkRepeatableKey(event, inputdir); }
 ScreenLayout.prototype.noAutoTick = function() { return this.content.noAutoTick; }
 ScreenLayout.prototype.noSwipe = function() { return this.content.noSwipe; }
 ScreenLayout.prototype.alwaysAllowUndo = function() { return this.content.alwaysAllowUndo; }
