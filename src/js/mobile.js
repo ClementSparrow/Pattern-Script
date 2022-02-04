@@ -423,19 +423,17 @@ Mobile.log = function (message) {
 
         this.fakeCanvasFocus();
         // Press, then release key.
-        onKeyDown(event);
-        onKeyUp(event);
+        screen_layout.onKeyDown(event)
+        screen_layout.onKeyUp(event)
     };
 
-    proto.fakeCanvasFocus = function () {
-        var canvas;
-
-        canvas = document.getElementById('gameCanvas');
-        onMouseDown({
-            button: 0,
-            target: canvas
-        });
-    };
+	proto.fakeCanvasFocus = function ()
+	{
+		screen_layout.onMouseDown({
+			button: 0,
+			target: screen_layout.canvas
+		})
+	}
 
     proto.toggleMenu = function () {
         if (this.isMenuVisible) {

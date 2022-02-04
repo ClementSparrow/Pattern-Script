@@ -14,7 +14,54 @@ var rightdragging=false;
 
 var lastDownTarget;
 
-function onMouseDown(event)
+window.addEventListener('focus', onMyFocusOrBlur, false)
+window.addEventListener('blur', onMyFocusOrBlur, false)
+
+function prevent(e)
+{
+	if (e.preventDefault) e.preventDefault();
+	if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+	if (e.stopPropagation) e.stopPropagation();
+	e.returnValue=false;
+	return false;
+}
+
+function onMyFocusOrBlur(event)
+{
+	keybuffer = []
+	keyRepeatIndex = 0
+	keyRepeatTimer = 0
+}
+
+
+// MOUSE
+// -----
+
+EmptyScreen.prototype.leftMouseClick = (e) => false
+EmptyScreen.prototype.rightMouseClick = (e) => false
+EmptyScreen.prototype.mouseMove = (e) => null
+
+ScreenLayout.prototype.handleEvent = function(event)
+{
+	switch(event.type)
+	{
+		case 'touchstart': return this.onMouseDown(event)
+		case 'touchmove': return this.mouseMove(event)
+		case 'touchend': return this.onMouseUp(event)
+		case 'mousedown': return this.onMouseDown(event)
+		case 'mousemove': return this.mouseMove(event)
+		case 'mouseup': return this.onMouseUp(event)
+	}
+}
+ScreenLayout.prototype.register_listeners = function()
+{
+	(['touchstart', 'touchmove', 'touchend', 'mousedown', 'mouseup']).forEach(
+		n => document.addEventListener(n, this, false)
+	)
+}
+screen_layout.register_listeners()
+
+ScreenLayout.prototype.onMouseDown = function(event)
 {
 	if (event.handled)
 		return;
@@ -37,42 +84,62 @@ function onMouseDown(event)
 	{
         lastDownTarget = event.target;
         keybuffer=[];
-        if (event.target===screen_layout.canvas || event.target.className==="tapFocusIndicator")
+        if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
         {
-        	if (screen_layout.leftMouseClick(event))
-        		return;
+        	if (this.content.leftMouseClick(event))
+        		return
         }
         dragging=false;
         rightdragging=false; 
     }
     else if (rmb)
     {
-    	if (event.target===screen_layout.canvas || event.target.className==="tapFocusIndicator")
+    	if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
     	{
 		    dragging=false;
 		    rightdragging=true;
-		    if (screen_layout.rightMouseClick(event))
-		    	return;
+		    if (this.content.rightMouseClick(event))
+		    	return
         }
 	}
 	
 	event.handled=true;
 }
 
-function rightClickCanvas(event) {
-    return prevent(event);
+function rightClickCanvas(event) // prevent opening contextual menu on right click in canvas
+{
+    return prevent(event)
 }
 
-function onMouseUp(event) {
-	if (event.handled){
-		return;
-	}
+ScreenLayout.prototype.mouseMove = function(event)
+{	
+	if (event.handled)
+		return
+	this.content.mouseMove(event)
+	event.handled = true
+}
 
-	dragging=false;
-	rightdragging=false;
+ScreenLayout.prototype.onMouseUp = function(event)
+{
+	if (event.handled)
+		return
+
+	dragging = false
+	rightdragging = false
 	
-	event.handled=true;
+	event.handled = true
 }
+
+
+
+// KEYS
+// ----
+
+EmptyScreen.prototype.checkKey = (e, inputdir) => false
+EmptyScreen.prototype.checkRepeatableKey = (e, inputdir) => false
+
+document.addEventListener('keydown', onKeyDown, false)
+document.addEventListener('keyup', onKeyUp, false)
 
 function onKeyDown(event)
 {
@@ -127,7 +194,7 @@ function onKeyDown(event)
             saveClick();
             prevent(event);
         } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
-			screen_layout.canvas.focus();
+			screen_layout.canvas.focus()
 			editor.display.input.blur();
             if (event.shiftKey) {
 				runClick()
@@ -142,7 +209,7 @@ function onKeyDown(event)
 function onKeyUp(event)
 {
 	event = event || window.event
-	var index = keybuffer.indexOf(event.keyCode)
+	const index = keybuffer.indexOf(event.keyCode)
 	if (index >= 0)
 	{
 		keybuffer.splice(index, 1)
@@ -153,67 +220,15 @@ function onKeyUp(event)
     }
 }
 
-function onMyFocus(event)
-{
-	keybuffer = []
-	keyRepeatIndex = 0
-	keyRepeatTimer = 0
-}
-
-function onMyBlur(event)
-{
-	keybuffer = []
-	keyRepeatIndex = 0
-	keyRepeatTimer = 0
-}
-
-function mouseMove(event)
-{	
-	if (event.handled)
-		return
-
-	screen_layout.mouseMove(event)
-
-	event.handled = true
-    //window.console.log("showcoord ("+ canvas.width+","+canvas.height+") ("+x+","+y+")");
-}
-
-function mouseOut() {
-//  window.console.log("clear");
-}
-
-document.addEventListener('touchstart', onMouseDown, false);
-document.addEventListener('touchmove', mouseMove, false);
-document.addEventListener('touchend', onMouseUp, false);
-
-document.addEventListener('mousedown', onMouseDown, false);
-document.addEventListener('mouseup', onMouseUp, false);
-
-document.addEventListener('keydown', onKeyDown, false);
-document.addEventListener('keyup', onKeyUp, false);
-
-window.addEventListener('focus', onMyFocus, false);
-window.addEventListener('blur', onMyBlur, false);
-
-
-function prevent(e) {
-    if (e.preventDefault) e.preventDefault();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-    if (e.stopPropagation) e.stopPropagation();
-    e.returnValue=false;
-    return false;
-}
 
 function checkKey(e, justPressed)
 {
 	ULBS()
 	
-    if (winning) {
-    	return;
-	}
-	if (e&&(e.ctrlKey || e.metaKey|| e.altKey)){
-		return;
-	}
+    if (winning)
+    	return
+	if (e&&(e.ctrlKey || e.metaKey|| e.altKey))
+		return
 	
     var inputdir=-1;
     switch(e.keyCode)
@@ -293,9 +308,9 @@ function checkKey(e, justPressed)
 		lastinput = inputdir;
 		input_throttle_timer = 0;
     }
-	if (justPressed && screen_layout.checkKey(e, inputdir))
+	if (justPressed && screen_layout.content.checkKey(e, inputdir))
 		return prevent(e);
-	if (screen_layout.checkRepeatableKey(e, inputdir))
+	if (screen_layout.content.checkRepeatableKey(e, inputdir))
 		return prevent(e);
 }
 
@@ -398,6 +413,10 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	}
 	return true;
 }
+
+
+// UPDATE LOOP
+// -----------
 
 function update()
 {
