@@ -1,16 +1,12 @@
 
 // =============
-// SCREEN LAYOUT
+// EDITOR SCREEN
 // =============
 
-// TODO: the level editor should be split into a legend_EditorScreen and a levelContent_EditorScreen
-function LevelEditorScreen()
+// TODO: editors should be split into a legend_EditorScreen and a content_EditorScreen
+function EditorScreen(screen_type)
 {
-	EmptyScreen.call(this, 'levelEditor')
-	this.noAutoTick = true
-	this.noSwipe = true
-	this.alwaysAllowUndo = true
-	this.dontDoWin = true
+	EmptyScreen.call(this, screen_type)
 	this.content = empty_screen
 	this.editorRowCount = 1
 	this.hovered_level_cell = null
@@ -19,18 +15,142 @@ function LevelEditorScreen()
 	this.glyphSelectedIndex = 0
 	this.anyEditsSinceMouseDown = false
 }
-LevelEditorScreen.prototype = Object.create(EmptyScreen.prototype)
-LevelEditorScreen.prototype.get_nb_tiles = function()
+EditorScreen.prototype = Object.create(EmptyScreen.prototype)
+EditorScreen.prototype.get_palette_length = () => 0
+
+EditorScreen.prototype.get_nb_tiles = function()
 {
 	const [w, h] = this.content.get_nb_tiles()
-	this.editorRowCount = Math.ceil( state.abbrevNames.length / (w+1) ) // we could do better than that and use more space horizontally
-	return [ w + 2, h + 2 + this.editorRowCount ];
+	this.editorRowCount = Math.ceil( this.get_palette_length() / (w+1) ) // we could do better than that and use more space horizontally
+	return [w+2, h+2+this.editorRowCount]
 }
-LevelEditorScreen.prototype.get_virtual_screen_size = function()
+
+EditorScreen.prototype.get_virtual_screen_size = function()
 {
 	const [w, h] = this.get_nb_tiles()
-	return [ w*sprite_width, h*sprite_height ]
+	return [w*sprite_width, h*sprite_height]
 }
+
+
+var glyphHighlight
+var glyphHighlightResize
+var glyphMouseOver
+
+function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
+{
+	var result = makeSpriteCanvas(name)
+	var spritectx = result.getContext('2d')
+	spritectx.fillStyle = color
+
+	spritectx.fillRect(0, 0,  sprite_w, border_width)
+	spritectx.fillRect(0, 0,  border_width, sprite_h)
+	spritectx.fillRect(0, sprite_h-border_width,  sprite_w, border_width)
+	spritectx.fillRect(sprite_w-border_width, 0,  border_width, sprite_h)
+	return result
+}
+
+function regenEditorImages()
+{
+	const sprite_w = sprite_width
+	const sprite_h = sprite_height
+
+	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
+	//make highlight thingy for hovering the level's cells
+	glyphHighlight = regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+
+	{ // TODO: do we really need a sprite for that?
+		//make + symbol to add rows/columns
+		glyphHighlightResize = makeSpriteCanvas('highlightresize')
+		var spritectx = glyphHighlightResize.getContext('2d')
+		spritectx.fillStyle = '#FFFFFF'
+		
+		const minx = Math.floor((sprite_w-1)/2)
+		const miny = Math.floor((sprite_h-1)/2)
+		const xsize = sprite_w - 2*minx
+		const ysize = sprite_h - 2*miny
+
+		spritectx.fillRect(minx, 0,  xsize, sprite_h)
+		spritectx.fillRect(0, miny,  sprite_w, ysize)
+	}
+
+	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
+	//make highlight thingy. This one is for the mouse hover on legend glyphs
+	glyphMouseOver = regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
+}
+
+
+EditorScreen.prototype.redraw_virtual_screen = function(ctx)
+{
+	// Draw the edited content
+	// =======================
+
+	ctx.save()
+	ctx.translate(sprite_width, sprite_height * (1+this.editorRowCount) )
+	this.content.redraw_virtual_screen(ctx)
+	ctx.restore()
+
+	// Draw the palette
+	// ================
+
+	this.redraw_palette(ctx)
+
+	// Mouse hover level
+	// =================
+
+	if ( this.hovered_level_resize !== null)
+	{
+		// show "+" cursor to resize the edited content
+		ctx.drawImage(glyphHighlightResize, this.hovered_level_resize[0] * sprite_width, this.hovered_level_resize[1] * sprite_height)
+	}
+	else if (this.hovered_level_cell !== null)
+	{
+		// highlight cell in edited content
+		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * sprite_width, this.hovered_level_cell[1] * sprite_height)
+	}
+}
+
+EditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
+{
+	var tooltip_string = this.compute_tooltip()
+	if (tooltip_string.length <= 0)
+		return
+	// show tooltip
+	ctx.fillStyle = state.fgcolor
+	ctx.font = 4*m + 'px sans-serif'
+	ctx.textAlign = 'center'
+	ctx.textBaseline = 'middle'
+	ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.5) * sprite_height*m, width)
+}
+
+const screenlayout_redraw = ScreenLayout.prototype.redraw
+ScreenLayout.prototype.redraw = function()
+{
+	if (this.content.editorRowCount === undefined)
+	{
+		screenlayout_redraw.call(this)
+		return
+	}
+	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillRect(0, this.margins[1]+this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
+	screenlayout_redraw.call(this)
+	this.content.redraw_tooltip(this.ctx, this.margins[1], this.magnification, this.canvas.width)
+}
+
+
+// =============
+// SCREEN LAYOUT
+// =============
+
+function LevelEditorScreen()
+{
+	EditorScreen.call(this, 'levelEditor')
+	this.noAutoTick = true
+	this.noSwipe = true
+	this.alwaysAllowUndo = true
+	this.dontDoWin = true
+}
+LevelEditorScreen.prototype = Object.create(EditorScreen.prototype)
+LevelEditorScreen.prototype.get_palette_length = () => state.abbrevNames.length
 
 LevelEditorScreen.prototype.toggle = function()
 {
@@ -74,32 +194,14 @@ const editor_s_grille = [
 	[0,1,1,1,0],
 	[0,0,0,0,1],
 	[0,1,1,1,0]
-];
+]
 
-var glyphImagesCorrespondance;
-var glyphImages;
-var glyphHighlight;
-var glyphHighlightResize;
-var glyphPrintButton;
-var glyphMouseOver;
-
-
-function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
-{
-	var result = makeSpriteCanvas(name)
-	var spritectx = result.getContext('2d')
-	spritectx.fillStyle = color
-
-	spritectx.fillRect(0, 0,  sprite_w, border_width)
-	spritectx.fillRect(0, 0,  border_width, sprite_h)
-	spritectx.fillRect(0, sprite_h-border_width,  sprite_w, border_width)
-	spritectx.fillRect(sprite_w-border_width, 0,  border_width, sprite_h)
-	return result
-}
-
+var glyphImagesCorrespondance
+var glyphImages
+var glyphPrintButton
 
 // uses state.glyphDict and state.identifiers
-function regenEditorImages()
+function regenLevelEditorImages()
 {
 	glyphImagesCorrespondance = []
 	glyphImages = []
@@ -125,41 +227,18 @@ function regenEditorImages()
 		glyphImages.push(sprite)
 	}
 
-	const sprite_w = sprite_width
-	const sprite_h = sprite_height
-
-	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-	//make highlight thingy for hovering the level's cells
-	glyphHighlight = regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
-
 	{ // TODO: should be an icon loaded from an image
 		const [mag, margins] = centerAndMagnify([5, 5], [sprite_width, sprite_height])
 		glyphPrintButton = createSprite('chars', editor_s_grille, undefined, margins, mag)
 	}
-	{ // TODO: do we really need a sprite for that?
-		//make + symbol to add rows/columns
-		glyphHighlightResize = makeSpriteCanvas('highlightresize')
-		var spritectx = glyphHighlightResize.getContext('2d')
-		spritectx.fillStyle = '#FFFFFF'
-		
-		const minx = Math.floor((sprite_w-1)/2)
-		const miny = Math.floor((sprite_h-1)/2)
-		const xsize = sprite_w - 2*minx
-		const ysize = sprite_h - 2*miny
-
-		spritectx.fillRect(minx, 0,  xsize, sprite_h)
-		spritectx.fillRect(0, miny,  sprite_w, ysize)
-	}
-
-	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-	//make highlight thingy. This one is for the mouse hover on legend glyphs
-	glyphMouseOver = regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
 }
+
 
 function forceRegenImages() // redeclaration from the one in graphics.js
 {
 	regenSpriteImages()
 	regenEditorImages()
+	regenLevelEditorImages()
 }
 
 
@@ -168,28 +247,17 @@ function forceRegenImages() // redeclaration from the one in graphics.js
 // REDRAW EDITOR
 // =============
 
-LevelEditorScreen.prototype.redraw_virtual_screen = function(ctx)
+LevelEditorScreen.prototype.redraw_palette = function(ctx)
 {
-	// draw the level's content
-	// ========================
-
-	ctx.save()
-	ctx.translate(sprite_width, sprite_height * (1+this.editorRowCount) )
-	this.content.redraw_virtual_screen(ctx)
-	ctx.restore()
-
-	const sprite_w = sprite_width
-	const sprite_h = sprite_height
 	const [w, h] = this.get_nb_tiles()
-
 	const glyphsToDisplay = glyphImages.length
 
 	// draw the print icon
 	// ===================
 
-	ctx.drawImage(glyphPrintButton, 0, 0, sprite_w, sprite_h)
+	ctx.drawImage(glyphPrintButton, 0, 0, sprite_width, sprite_height)
 	// draw a mouse hover if the mouse is on the print button
-	if ( this.hovered_glyph_index === -1 )
+	if (this.hovered_glyph_index === -1)
 	{
 		ctx.drawImage(glyphMouseOver, 0, 0)
 	}
@@ -201,29 +269,15 @@ LevelEditorScreen.prototype.redraw_virtual_screen = function(ctx)
 	{
 		const xpos = i%(w-1);
 		const ypos = Math.floor(i/(w-1));
-		ctx.drawImage(sprite, (xpos+1)*sprite_w, ypos*sprite_h)
+		ctx.drawImage(sprite, (xpos+1)*sprite_width, ypos*sprite_height)
 		if (this.hovered_glyph_index === i)
 		{
-			ctx.drawImage(glyphMouseOver, (xpos+1)*sprite_w, ypos*sprite_h)
+			ctx.drawImage(glyphMouseOver, (xpos+1)*sprite_width, ypos*sprite_height)
 		}
 		if (i === this.glyphSelectedIndex)
 		{
-			ctx.drawImage(glyphHighlight, (xpos+1)*sprite_w, ypos*sprite_h)
+			ctx.drawImage(glyphHighlight, (xpos+1)*sprite_width, ypos*sprite_height)
 		} 		
-	}
-
-	// Mouse hover level
-	// =================
-
-	if ( this.hovered_level_resize !== null)
-	{
-		// show "+" cursor to resize the level
-		ctx.drawImage(glyphHighlightResize, this.hovered_level_resize[0] * sprite_w, this.hovered_level_resize[1] * sprite_h);
-	}
-	else if (this.hovered_level_cell !== null)
-	{
-		// highlight cell in level
-		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * sprite_w, this.hovered_level_cell[1] * sprite_h)
 	}
 }
 
@@ -239,62 +293,33 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_width, (highlighted_cell[1]-minj) * sprite_height)
 }
 
-LevelEditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
+LevelEditorScreen.prototype.compute_tooltip = function()
 {
-	// Tooltips
-	// ========
-
 	var tooltip_string = ''
 	var tooltip_objects = null
-	// prepare tooltip: legend for highlighted editor icon
+
+	// Legend for highlighted editor icon
 	if (this.hovered_glyph_index !== null)
 	{
 		if (this.hovered_glyph_index === -1)
-		{
-			tooltip_string = 'Print current level state to console.'
-		}
-		else
-		{
-			const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
-			tooltip_string = state.identifiers.names[identifier_index] + ' = '
-			tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
-		}
+			return 'Print current level state to console.'
+		const identifier_index = glyphImagesCorrespondance[this.hovered_glyph_index]
+		tooltip_string = state.identifiers.names[identifier_index] + ' = '
+		tooltip_objects = state.identifiers.getObjectsForIdentifier(identifier_index)
 	}
-	// prepare tooltip: content of a level's cell
+	// Content of a level's cell
 	else if ( this.hovered_level_cell !== null )
 	{
 		tooltip_objects = []
 		const [ mini, minj, maxi, maxj ] = this.content.get_viewport.call(this.content)
 		this.content.level.mapCellObjects(this.hovered_level_cell[3]+minj + (this.hovered_level_cell[2]+mini)*this.content.level.height, k => tooltip_objects.push(state.idDict[k]) )
 	}
-	// prepare tooltip: object names
+	// Object names
 	if (tooltip_objects !== null)
 	{
 		tooltip_string = tooltip_string + Array.from(tooltip_objects, oi => state.identifiers.objects[oi].name).join(' ')
 	}
-	// show tooltip
-	if (tooltip_string.length > 0)
-	{
-		ctx.fillStyle = state.fgcolor
-		ctx.font = 4*m + 'px sans-serif'
-		ctx.textAlign = 'center'
-		ctx.textBaseline = 'middle'
-		ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.5) * sprite_height*m, width)
-	}
-}
-
-const screenlayout_redraw = ScreenLayout.prototype.redraw
-ScreenLayout.prototype.redraw = function()
-{
-	if (this.content.editorRowCount === undefined)
-	{
-		screenlayout_redraw.call(this)
-		return
-	}
-	this.ctx.fillStyle = state.bgcolor
-	this.ctx.fillRect(0, this.margins[1]+this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
-	screenlayout_redraw.call(this)
-	this.content.redraw_tooltip(this.ctx, this.margins[1], this.magnification, this.canvas.width)
+	return tooltip_string
 }
 
 
