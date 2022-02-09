@@ -43,14 +43,20 @@ EmptyScreen.prototype.mouseMove = (e) => null
 
 ScreenLayout.prototype.handleEvent = function(event)
 {
+	if (event.handled)
+		return
+
 	switch(event.type)
 	{
-		case 'touchstart': return this.onMouseDown(event)
-		case 'touchmove': return this.mouseMove(event)
-		case 'touchend': return this.onMouseUp(event)
-		case 'mousedown': return this.onMouseDown(event)
-		case 'mousemove': return this.mouseMove(event)
-		case 'mouseup': return this.onMouseUp(event)
+		case 'touchstart':
+		case 'mousedown':
+			return this.onMouseDown(event)
+		case 'touchmove':
+		case 'mousemove':
+			return this.onMouseMove(event)
+		case 'touchend':
+		case 'mouseup':
+			return this.onMouseUp(event)
 	}
 }
 ScreenLayout.prototype.register_listeners = function()
@@ -63,24 +69,12 @@ screen_layout.register_listeners()
 
 ScreenLayout.prototype.onMouseDown = function(event)
 {
-	if (event.handled)
-		return;
-
 	ULBS();
 	
-	var lmb = event.button===0;
-	var rmb = event.button===2 ;
-	if (event.type=="touchstart")
-	{
-		lmb=true;
-	}
-	if (lmb && (event.ctrlKey||event.metaKey))
-	{
-		lmb=false;
-		rmb=true;
-	}
+	const lmb = (event.button === 0) || (event.type == 'touchstart')
+	const rmb = (event.button === 2) || (lmb && (event.ctrlKey||event.metaKey))
 	
-	if (lmb)
+	if (lmb && !rmb)
 	{
         lastDownTarget = event.target;
         keybuffer=[];
@@ -103,7 +97,7 @@ ScreenLayout.prototype.onMouseDown = function(event)
         }
 	}
 	
-	event.handled=true;
+	event.handled = true
 }
 
 function rightClickCanvas(event) // prevent opening contextual menu on right click in canvas
@@ -111,22 +105,16 @@ function rightClickCanvas(event) // prevent opening contextual menu on right cli
     return prevent(event)
 }
 
-ScreenLayout.prototype.mouseMove = function(event)
+ScreenLayout.prototype.onMouseMove = function(event)
 {	
-	if (event.handled)
-		return
 	this.content.mouseMove(event)
 	event.handled = true
 }
 
 ScreenLayout.prototype.onMouseUp = function(event)
 {
-	if (event.handled)
-		return
-
 	dragging = false
 	rightdragging = false
-	
 	event.handled = true
 }
 
@@ -167,6 +155,7 @@ function onKeyDown(event)
     if (keybuffer.includes(event.keyCode))
     	return
 
+    // TODO: this is the only place in the code where lastDownTarget is used, so instead of comparing it to something, we should directly set it to true/false where it is curently set to a specific target
     if( (lastDownTarget === screen_layout.canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
     {
     	if ( ! keybuffer.includes(event.keyCode) )
