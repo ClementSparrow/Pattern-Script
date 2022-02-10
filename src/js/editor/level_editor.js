@@ -248,95 +248,82 @@ LevelEditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenC
 	}
 }
 
-
-// only called by LevelEditorScreen.prototype.leftMouseClick et mouseMove
-// returns 2 if a relayout is required, 1 if a redraw is required, 0 otherwise
-LevelEditorScreen.prototype.levelEditorClick = function(click) // click is false if we're in a drag gesture
+LevelEditorScreen.prototype.select_hovered_legend_item = function()
 {
-	if ( click && (this.hovered_glyph_index !== null) )
+	if (this.hovered_glyph_index == -1)
 	{
-		if (this.hovered_glyph_index == -1)
-		{
-			this.content.level.printToConsole()
-			return 0
-		}
-		this.glyphSelectedIndex = this.hovered_glyph_index
-		return 1
-	}
-
-	if (this.hovered_level_cell !== null)
-	{
-		var glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[this.glyphSelectedIndex] ] );
-
-		var backgroundMask = state.layerMasks[state.backgroundlayer];
-		if (glyphmask.bitsClearInArray(backgroundMask.data))
-		{
-			// If we don't already have a background layer, mix in  the default one.
-			glyphmask.ibitset(state.backgroundid);
-		}
-
-		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*level.height
-		const getcell = this.content.level.getCell(coordIndex)
-		if (getcell.equals(glyphmask))
-			return 0
-		if (this.anyEditsSinceMouseDown === false)
-		{
-			this.anyEditsSinceMouseDown = true
-			execution_context.pushToUndoStack() // todo: should use 'this' directly instead of through global var 'level'
-		}
-		this.content.level.setCell(coordIndex, glyphmask)
-		return 1
-	}
-
-	if ( ( ! click ) || (this.hovered_level_resize === null) )
+		this.content.level.printToConsole()
 		return 0
-
-	const [w, h] = this.content.get_nb_tiles()
-
-	if (this.hovered_level_resize[2] == -1)
-	{
-		this.content.level.addLeftColumn()
 	}
-	else if (this.hovered_level_resize[2] == w)
-	{
-		this.content.level.addRightColumn()
-	}
-
-	if (this.hovered_level_resize[3] == -1)
-	{
-		this.content.level.addTopRow()
-	}
-	else if (this.hovered_level_resize[3] == h)
-	{
-		this.content.level.addBottomRow()
-	}
-
-	return 2
+	this.glyphSelectedIndex = this.hovered_glyph_index
+	return 1
 }
 
-// only called by LevelEditorScreen.prototype.rightMouseClick et mouseMove
+LevelEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
+{
+	const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*this.content.level.height
+
+	var glyphmask
+	if (right_mouse_button)
+	{
+		glyphmask = new BitVec(STRIDE_OBJ)
+		glyphmask.ibitset(state.backgroundid)
+	}
+	else
+	{
+		glyphmask = makeMaskFromGlyph( state.glyphDict[ glyphImagesCorrespondance[this.glyphSelectedIndex] ] )
+
+		if ( glyphmask.bitsClearInArray(state.layerMasks[state.backgroundlayer].data) )
+		{
+			// If we don't already have a background layer, mix in the default one.
+			glyphmask.ibitset(state.backgroundid)
+		}
+	}
+
+	const getcell = this.content.level.getCell(coordIndex)
+	if (getcell.equals(glyphmask))
+		return 0
+	if (this.anyEditsSinceMouseDown === false)
+	{
+		this.anyEditsSinceMouseDown = true
+		execution_context.pushToUndoStack() // todo: should use 'this' directly instead of through global var 'level'
+	}
+
+	this.content.level.setCell(coordIndex, glyphmask)
+	return 1
+}
+
+LevelEditorScreen.prototype.resize_content = function(horizontal, near_origin, shrink)
+{
+	this.content.level.resize(horizontal, near_origin, shrink)
+}
+
 // returns 2 if a relayout is required, 1 if a redraw is required, 0 otherwise
-LevelEditorScreen.prototype.levelEditorRightClick = function(click)
-{	
+LevelEditorScreen.prototype.editor_click = function(click, right_mouse_button) // click is false if we're in a drag gesture
+{
+	if (click)
+	{
+		this.anyEditsSinceMouseDown = false
+	}
+
+	// Select legend item
+	// ------------------
+
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
-		if (this.hovered_glyph_index == -1)
-		{
-			this.content.level.printToConsole()
-			return 0
-		}
-		this.glyphSelectedIndex = this.hovered_glyph_index
-		return 1
+		return this.select_hovered_legend_item()
 	}
+
+	// Edit content
+	// ------------
 
 	if (this.hovered_level_cell !== null)
 	{
-		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*this.content.level.height
-		var glyphmask = new BitVec(STRIDE_OBJ)
-		glyphmask.ibitset(state.backgroundid) // TODO: shouldn't it be the same code than in levelEditorClick?
-		this.content.level.setCell(coordIndex, glyphmask)
-		return 1
+		return this.edit_hovered_cell(right_mouse_button)
 	}
+
+	// Resize content
+	// --------------
 
 	if ( ( ! click ) || (this.hovered_level_resize === null) )
 		return 0
@@ -345,21 +332,20 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(click)
 
 	if (this.hovered_level_resize[2] == -1)
 	{
-		//add a left row to the map
-		this.content.level.removeLeftColumn()
+		this.resize_content(true, true, right_mouse_button)
 	}
 	else if (this.hovered_level_resize[2] == w)
 	{
-		this.content.level.removeRightColumn()
-	} 
+		this.resize_content(true, false, right_mouse_button)
+	}
 
 	if (this.hovered_level_resize[3] == -1)
 	{
-		this.content.level.removeTopRow()
+		this.resize_content(false, true, right_mouse_button)
 	}
 	else if (this.hovered_level_resize[3] == h)
 	{
-		this.content.level.removeBottomRow()
+		this.resize_content(false, false, right_mouse_button)
 	}
 
 	return 2
@@ -369,17 +355,14 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(click)
 // Mouse events logic
 // ==================
 
-// Only called by ScreenLayout.prototype.onMouseDown
 LevelEditorScreen.prototype.leftMouseClick = function()
 {
-	this.anyEditsSinceMouseDown = false
-	return this.levelEditorClick(true)
+	return this.editor_click(true, false)
 }
 
-// Only called by ScreenLayout.prototype.onMouseDown
 LevelEditorScreen.prototype.rightMouseClick = function()
 {
-	return this.levelEditorRightClick(true)
+	return this.editor_click(true, true)
 }
 
 
@@ -387,9 +370,9 @@ LevelEditorScreen.prototype.rightMouseClick = function()
 LevelEditorScreen.prototype.mouseMove = function(drag_state)
 {
 	if (drag_state === 1)
-		return this.levelEditorClick(false)
+		return this.editor_click(false, false)
 	if (drag_state === 2)
-		return this.levelEditorRightClick(false)
+		return this.editor_click(false, true)
 	return 1 // redraw on mouse hover to update tooltips
 }
 
