@@ -376,8 +376,6 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 LevelEditorScreen.prototype.leftMouseClick = function(event)
 {
 	this.setMouseCoord(event)
-	dragging = true
-	rightdragging = false
 	this.anyEditsSinceMouseDown = false
 	this.levelEditorClick(event,true)
 	return true
@@ -391,14 +389,14 @@ LevelEditorScreen.prototype.rightMouseClick = function(event)
 }
 
 
-LevelEditorScreen.prototype.mouseMove = function(event)
+LevelEditorScreen.prototype.mouseMove = function(event, drag_state)
 {
 	this.setMouseCoord(event)
-	if (dragging)
+	if (drag_state === 1)
 	{
 		this.levelEditorClick(event, false)
 	}
-	else if (rightdragging)
+	else if (drag_state === 2)
 	{
 		this.levelEditorRightClick(event, false)
 	}
