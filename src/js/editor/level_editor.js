@@ -189,9 +189,8 @@ LevelEditorScreen.prototype.compute_tooltip = function()
 // MOUSE EVENTS
 // ============
 
-ScreenLayout.prototype.relMouseCoords = function(event)
+ScreenLayout.prototype.hover = function(origin)
 {
-	const origin = (event.touches == null) ? event : event.touches[0]
 	var result = { x: origin.pageX, y: origin.pageY }
 
 	var currentElement = this.canvas
@@ -202,17 +201,16 @@ ScreenLayout.prototype.relMouseCoords = function(event)
 	}
 	while(currentElement = currentElement.offsetParent)
 
-	return [
+	return this.content.hover(
 		Math.floor( (result.x*window.devicePixelRatio - this.margins[0]) / this.magnification ),
 		Math.floor( (result.y*window.devicePixelRatio - this.margins[1]) / this.magnification )
-	]
+	)
 }
 
-LevelEditorScreen.prototype.setMouseCoord = function(event)
+LevelEditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY)
 {
-	const [ virtualscreenCoordX, virtualscreenCoordY] = screen_layout.relMouseCoords(event)
-	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width  );
-	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height );
+	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width )
+	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height)
 
 	this.hovered_glyph_index  = null
 	this.hovered_level_cell   = null
@@ -251,20 +249,19 @@ LevelEditorScreen.prototype.setMouseCoord = function(event)
 }
 
 
-LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click is false if we're in a drag gesture
+// only called by LevelEditorScreen.prototype.leftMouseClick et mouseMove
+// returns 2 if a relayout is required, 1 if a redraw is required, 0 otherwise
+LevelEditorScreen.prototype.levelEditorClick = function(click) // click is false if we're in a drag gesture
 {
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
 		if (this.hovered_glyph_index == -1)
 		{
 			this.content.level.printToConsole()
+			return 0
 		}
-		else
-		{
-			this.glyphSelectedIndex = this.hovered_glyph_index
-			screen_layout.redraw()
-		}
-		return;
+		this.glyphSelectedIndex = this.hovered_glyph_index
+		return 1
 	}
 
 	if (this.hovered_level_cell !== null)
@@ -281,19 +278,18 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		const coordIndex = this.hovered_level_cell[3] + this.hovered_level_cell[2]*level.height
 		const getcell = this.content.level.getCell(coordIndex)
 		if (getcell.equals(glyphmask))
-			return
+			return 0
 		if (this.anyEditsSinceMouseDown === false)
 		{
 			this.anyEditsSinceMouseDown = true
 			execution_context.pushToUndoStack() // todo: should use 'this' directly instead of through global var 'level'
 		}
 		this.content.level.setCell(coordIndex, glyphmask)
-		screen_layout.redraw()
-		return
+		return 1
 	}
 
 	if ( ( ! click ) || (this.hovered_level_resize === null) )
-		return;
+		return 0
 
 	const [w, h] = this.content.get_nb_tiles()
 
@@ -315,19 +311,18 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		this.content.level.addBottomRow()
 	}
 
-	screen_layout.resize_canvas()
-	this.setMouseCoord(event)
-	screen_layout.redraw()
+	return 2
 }
 
-LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
+// only called by LevelEditorScreen.prototype.rightMouseClick et mouseMove
+// returns 2 if a relayout is required, 1 if a redraw is required, 0 otherwise
+LevelEditorScreen.prototype.levelEditorRightClick = function(click)
 {	
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
 		// TODO: shouldn't this be the same code than in levelEditorClick?
 		this.glyphSelectedIndex = this.hovered_glyph_index
-		screen_layout.redraw()
-		return
+		return 1
 	}
 
 	if (this.hovered_level_cell !== null)
@@ -336,12 +331,11 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 		var glyphmask = new BitVec(STRIDE_OBJ)
 		glyphmask.ibitset(state.backgroundid) // TODO: shouldn't it be the same code than in levelEditorClick?
 		this.content.level.setCell(coordIndex, glyphmask)
-		screen_layout.redraw()
-		return
+		return 1
 	}
 
 	if ( ( ! click ) || (this.hovered_level_resize === null) )
-		return;
+		return 0
 
 	const [w, h] = this.content.get_nb_tiles()
 
@@ -364,43 +358,35 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 		this.content.level.removeBottomRow()
 	}
 
-	screen_layout.resize_canvas()
-	this.setMouseCoord(event)
-	screen_layout.redraw()
+	return 2
 }
 
 
 // Mouse events logic
 // ==================
 
-LevelEditorScreen.prototype.leftMouseClick = function(event)
+// Only called by ScreenLayout.prototype.onMouseDown
+LevelEditorScreen.prototype.leftMouseClick = function()
 {
-	this.setMouseCoord(event)
 	this.anyEditsSinceMouseDown = false
-	this.levelEditorClick(event,true)
-	return true
+	return this.levelEditorClick(true)
 }
 
-LevelEditorScreen.prototype.rightMouseClick = function(event)
+// Only called by ScreenLayout.prototype.onMouseDown
+LevelEditorScreen.prototype.rightMouseClick = function()
 {
-	this.setMouseCoord(event)
-	this.levelEditorRightClick(event, true)
-	return true
+	return this.levelEditorRightClick(true)
 }
 
 
-LevelEditorScreen.prototype.mouseMove = function(event, drag_state)
+// only called by ScreenLayout.prototype.mouseMove
+LevelEditorScreen.prototype.mouseMove = function(drag_state)
 {
-	this.setMouseCoord(event)
 	if (drag_state === 1)
-	{
-		this.levelEditorClick(event, false)
-	}
-	else if (drag_state === 2)
-	{
-		this.levelEditorRightClick(event, false)
-	}
-	screen_layout.redraw() // TODO: should not be necessary?
+		return this.levelEditorClick(false)
+	if (drag_state === 2)
+		return this.levelEditorRightClick(false)
+	return 1 // redraw on mouse hover to update tooltips
 }
 
 
