@@ -3,9 +3,7 @@ var keyRepeatIndex=0;
 var input_throttle_timer=0.0;
 var lastinput=-100;
 
-var dragging=false;
-var rightdragging=false;
-
+var drag_state = 0 // 0 = no dragging, 1 = left mouse dragging, 2 = right mouse dragging
 
 
 
@@ -39,7 +37,7 @@ function onMyFocusOrBlur(event)
 
 EmptyScreen.prototype.leftMouseClick = (e) => false
 EmptyScreen.prototype.rightMouseClick = (e) => false
-EmptyScreen.prototype.mouseMove = (e) => null
+EmptyScreen.prototype.mouseMove = (e, drag_state) => null
 
 ScreenLayout.prototype.handleEvent = function(event)
 {
@@ -86,18 +84,19 @@ ScreenLayout.prototype.onMouseDown = function(event)
         keybuffer=[];
         if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
         {
-        	if (this.content.leftMouseClick(event))
+        	if (this.content.leftMouseClick(event)) // only for level editor
+        	{
+				drag_state = 1
         		return true
+        	}
         }
-        dragging=false;
-        rightdragging=false; 
+		drag_state = 0
     }
     else if (rmb)
     {
     	if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
     	{
-		    dragging=false;
-		    rightdragging=true;
+		    drag_state = 2
 		    if (this.content.rightMouseClick(event))
 		    	return true
         }
@@ -113,13 +112,12 @@ function rightClickCanvas(event) // prevent opening contextual menu on right cli
 
 ScreenLayout.prototype.onMouseMove = function(event)
 {	
-	this.content.mouseMove(event)
+	this.content.mouseMove(event, drag_state)
 }
 
 ScreenLayout.prototype.onMouseUp = function(event)
 {
-	dragging = false
-	rightdragging = false
+	drag_state = 0
 }
 
 
