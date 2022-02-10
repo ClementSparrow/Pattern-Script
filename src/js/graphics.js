@@ -225,13 +225,13 @@ function redraw()
 
 var screen_layout = new ScreenLayout(document.getElementById('gameCanvas'))
 
-ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
+ScreenLayout.prototype.resize_canvas = function()
 {
+	const pixel_ratio = window.devicePixelRatio || 1
 	// Resize canvas
 	const c = this.canvas
 	c.width  = pixel_ratio * c.parentNode.clientWidth
 	c.height = pixel_ratio * c.parentNode.clientHeight
-	// this.resize(  )
 	;[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), [c.width, c.height])
 
 	// clear background
@@ -252,7 +252,6 @@ ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
 
 function canvasResize()
 {
-	const pixel_ratio = window.devicePixelRatio || 1
-	screen_layout.resize_canvas(pixel_ratio)
+	screen_layout.resize_canvas()
 }
 
