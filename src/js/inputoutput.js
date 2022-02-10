@@ -35,31 +35,49 @@ function onMyFocusOrBlur(event)
 // MOUSE
 // -----
 
-EmptyScreen.prototype.leftMouseClick = (e) => false
-EmptyScreen.prototype.rightMouseClick = (e) => false
-EmptyScreen.prototype.mouseMove = (e, drag_state) => null
+EmptyScreen.prototype.leftMouseClick = () => -1 // event ignored
+EmptyScreen.prototype.rightMouseClick = () => -1
+EmptyScreen.prototype.mouseMove = (drag_state) => -1
+EmptyScreen.prototype.hover = (coords) => null
 
 ScreenLayout.prototype.handleEvent = function(event)
 {
 	if (event.handled)
 		return
 
+	const coords = (event.touches == null) ? event : event.touches[0]
+	this.hover(coords)
+
+	var result = -1
+	var allow_event_rethrow = false
 	switch(event.type)
 	{
 		case 'touchstart':
 		case 'mousedown':
-			if (this.onMouseDown(event))
-				return
+			result = this.onMouseDown(event)
+			allow_event_rethrow = true
 			break
 		case 'touchmove':
 		case 'mousemove':
-			this.onMouseMove(event)
+			result = this.onMouseMove(event)
 			break
 		case 'touchend':
 		case 'mouseup':
-			this.onMouseUp(event)
+			result = this.onMouseUp(event)
 	}
 
+	switch (result)
+	{
+		case 2:
+			this.resize_canvas()
+			this.hover(coords)
+		case 1:
+			this.redraw()
+		case 0:
+			if (allow_event_rethrow)
+				return
+		default:
+	}
 	event.handled = true
 }
 
@@ -84,10 +102,11 @@ ScreenLayout.prototype.onMouseDown = function(event)
         keybuffer=[];
         if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
         {
-        	if (this.content.leftMouseClick(event)) // only for level editor
+        	const result = this.content.leftMouseClick()
+        	if (result >= 0) // click event not ignored
         	{
 				drag_state = 1
-        		return true
+        		return result
         	}
         }
 		drag_state = 0
@@ -97,12 +116,11 @@ ScreenLayout.prototype.onMouseDown = function(event)
     	if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
     	{
 		    drag_state = 2
-		    if (this.content.rightMouseClick(event))
-		    	return true
+		    return this.content.rightMouseClick()
         }
 	}
 	
-	return false
+	return -1
 }
 
 function rightClickCanvas(event) // prevent opening contextual menu on right click in canvas
@@ -112,12 +130,13 @@ function rightClickCanvas(event) // prevent opening contextual menu on right cli
 
 ScreenLayout.prototype.onMouseMove = function(event)
 {	
-	this.content.mouseMove(event, drag_state)
+	return this.content.mouseMove(drag_state)
 }
 
 ScreenLayout.prototype.onMouseUp = function(event)
 {
 	drag_state = 0
+	return -1
 }
 
 
