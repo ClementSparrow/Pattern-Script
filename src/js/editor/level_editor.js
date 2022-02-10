@@ -320,7 +320,11 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(click)
 {	
 	if ( click && (this.hovered_glyph_index !== null) )
 	{
-		// TODO: shouldn't this be the same code than in levelEditorClick?
+		if (this.hovered_glyph_index == -1)
+		{
+			this.content.level.printToConsole()
+			return 0
+		}
 		this.glyphSelectedIndex = this.hovered_glyph_index
 		return 1
 	}
