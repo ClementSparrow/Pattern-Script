@@ -2,7 +2,6 @@
 // CHANGE LEVEL'S SIZE
 // ===================
 
-// TODO: the new Level function should be in a new file named editor/level.js
 Level.prototype.adjust = function(widthdelta, heightdelta)
 {
 	execution_context.pushToUndoStack() // todo: this should use 'this' directly instead of indirectly using global var 'level'
@@ -38,16 +37,14 @@ Level.prototype.copyRegion = function(oldlevel, dx, dy)
 	}
 }
 
-Level.prototype.addLeftColumn = function()  { this.copyRegion(this.adjust(1, 0), 1, 0) }
-Level.prototype.addRightColumn = function() { this.copyRegion(this.adjust(1, 0), 0, 0) }
-Level.prototype.addTopRow = function()      { this.copyRegion(this.adjust(0, 1), 0, 1) }
-Level.prototype.addBottomRow = function()   { this.copyRegion(this.adjust(0, 1), 0, 0) }
-
-Level.prototype.removeLeftColumn = function()  { if (this.width > 1)  this.copyRegion(this.adjust(-1, 0), -1,  0) }
-Level.prototype.removeRightColumn = function() { if (this.width > 1)  this.copyRegion(this.adjust(-1, 0),  0,  0) }
-Level.prototype.removeTopRow = function()      { if (this.height > 1) this.copyRegion(this.adjust(0, -1),  0, -1) }
-Level.prototype.removeBottomRow = function()   { if (this.height > 1) this.copyRegion(this.adjust(0, -1),  0,  0) }
-
+Level.prototype.resize = function(horizontal, near_origin, shrink)
+{
+	const base_deltas = horizontal ? [1,0] : [0,1]
+	const size_deltas = shrink ? [ - base_deltas[0], - base_deltas[1] ] : base_deltas
+	const pos_deltas = near_origin ? size_deltas : [0, 0]
+	if ( (this.width + size_deltas[0] > 0) && (this.height + size_deltas[1] > 0) )
+		this.copyRegion(this.adjust(...size_deltas), ...pos_deltas)
+}
 
 
 
