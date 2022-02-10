@@ -50,15 +50,21 @@ ScreenLayout.prototype.handleEvent = function(event)
 	{
 		case 'touchstart':
 		case 'mousedown':
-			return this.onMouseDown(event)
+			if (this.onMouseDown(event))
+				return
+			break
 		case 'touchmove':
 		case 'mousemove':
-			return this.onMouseMove(event)
+			this.onMouseMove(event)
+			break
 		case 'touchend':
 		case 'mouseup':
-			return this.onMouseUp(event)
+			this.onMouseUp(event)
 	}
+
+	event.handled = true
 }
+
 ScreenLayout.prototype.register_listeners = function()
 {
 	(['touchstart', 'touchmove', 'touchend', 'mousedown', 'mouseup']).forEach(
@@ -81,7 +87,7 @@ ScreenLayout.prototype.onMouseDown = function(event)
         if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
         {
         	if (this.content.leftMouseClick(event))
-        		return
+        		return true
         }
         dragging=false;
         rightdragging=false; 
@@ -93,11 +99,11 @@ ScreenLayout.prototype.onMouseDown = function(event)
 		    dragging=false;
 		    rightdragging=true;
 		    if (this.content.rightMouseClick(event))
-		    	return
+		    	return true
         }
 	}
 	
-	event.handled = true
+	return false
 }
 
 function rightClickCanvas(event) // prevent opening contextual menu on right click in canvas
@@ -108,14 +114,12 @@ function rightClickCanvas(event) // prevent opening contextual menu on right cli
 ScreenLayout.prototype.onMouseMove = function(event)
 {	
 	this.content.mouseMove(event)
-	event.handled = true
 }
 
 ScreenLayout.prototype.onMouseUp = function(event)
 {
 	dragging = false
 	rightdragging = false
-	event.handled = true
 }
 
 
@@ -155,7 +159,7 @@ function onKeyDown(event)
     if (keybuffer.includes(event.keyCode))
     	return
 
-    // TODO: this is the only place in the code where lastDownTarget is used, so instead of comparing it to something, we should directly set it to true/false where it is curently set to a specific target
+    // TODO: this is the only place in the code where lastDownTarget is used, so instead of comparing it to something, we should directly set it to true/false where it is curently set to a specific target. Basically it's just a way to ensure the canvas has focus and can recive key events.
     if( (lastDownTarget === screen_layout.canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
     {
     	if ( ! keybuffer.includes(event.keyCode) )
