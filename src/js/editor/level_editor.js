@@ -185,18 +185,16 @@ LevelEditorScreen.prototype.compute_tooltip = function()
 }
 
 
-
-
 // ============
 // MOUSE EVENTS
 // ============
 
-function relMouseCoords(event, canvas)
+ScreenLayout.prototype.relMouseCoords = function(event)
 {
 	const origin = (event.touches == null) ? event : event.touches[0]
 	var result = { x: origin.pageX, y: origin.pageY }
 
-	var currentElement = canvas
+	var currentElement = this.canvas
 
 	do {
 		result.x -= currentElement.offsetLeft - currentElement.scrollLeft
@@ -204,14 +202,15 @@ function relMouseCoords(event, canvas)
 	}
 	while(currentElement = currentElement.offsetParent)
 
-	return result;
+	return [
+		Math.floor( (result.x*window.devicePixelRatio - this.margins[0]) / this.magnification ),
+		Math.floor( (result.y*window.devicePixelRatio - this.margins[1]) / this.magnification )
+	]
 }
 
-LevelEditorScreen.prototype.setMouseCoord = function(e)
+LevelEditorScreen.prototype.setMouseCoord = function(event)
 {
-	const coords = relMouseCoords(e, screen_layout.canvas)
-	const virtualscreenCoordX = Math.floor( (coords.x*window.devicePixelRatio - screen_layout.margins[0]) / screen_layout.magnification )
-	const virtualscreenCoordY = Math.floor( (coords.y*window.devicePixelRatio - screen_layout.margins[1]) / screen_layout.magnification )
+	const [ virtualscreenCoordX, virtualscreenCoordY] = screen_layout.relMouseCoords(event)
 	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width  );
 	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height );
 
@@ -263,7 +262,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		else
 		{
 			this.glyphSelectedIndex = this.hovered_glyph_index
-			redraw()
+			screen_layout.redraw()
 		}
 		return;
 	}
@@ -289,7 +288,7 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 			execution_context.pushToUndoStack() // todo: should use 'this' directly instead of through global var 'level'
 		}
 		this.content.level.setCell(coordIndex, glyphmask)
-		redraw()
+		screen_layout.redraw()
 		return
 	}
 
@@ -316,9 +315,9 @@ LevelEditorScreen.prototype.levelEditorClick = function(event, click) // click i
 		this.content.level.addBottomRow()
 	}
 
-	canvasResize()
+	screen_layout.resize_canvas()
 	this.setMouseCoord(event)
-	redraw()
+	screen_layout.redraw()
 }
 
 LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
@@ -327,7 +326,7 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 	{
 		// TODO: shouldn't this be the same code than in levelEditorClick?
 		this.glyphSelectedIndex = this.hovered_glyph_index
-		redraw()
+		screen_layout.redraw()
 		return
 	}
 
@@ -337,7 +336,7 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 		var glyphmask = new BitVec(STRIDE_OBJ)
 		glyphmask.ibitset(state.backgroundid) // TODO: shouldn't it be the same code than in levelEditorClick?
 		this.content.level.setCell(coordIndex, glyphmask)
-		redraw()
+		screen_layout.redraw()
 		return
 	}
 
@@ -365,10 +364,14 @@ LevelEditorScreen.prototype.levelEditorRightClick = function(event, click)
 		this.content.level.removeBottomRow()
 	}
 
-	canvasResize()
+	screen_layout.resize_canvas()
 	this.setMouseCoord(event)
-	redraw()
+	screen_layout.redraw()
 }
+
+
+// Mouse events logic
+// ==================
 
 LevelEditorScreen.prototype.leftMouseClick = function(event)
 {
@@ -377,14 +380,14 @@ LevelEditorScreen.prototype.leftMouseClick = function(event)
 	rightdragging = false
 	this.anyEditsSinceMouseDown = false
 	this.levelEditorClick(event,true)
-	return true;
+	return true
 }
 
 LevelEditorScreen.prototype.rightMouseClick = function(event)
 {
 	this.setMouseCoord(event)
 	this.levelEditorRightClick(event, true)
-	return true;
+	return true
 }
 
 
@@ -399,8 +402,12 @@ LevelEditorScreen.prototype.mouseMove = function(event)
 	{
 		this.levelEditorRightClick(event, false)
 	}
-	redraw()
+	screen_layout.redraw() // TODO: should not be necessary?
 }
+
+
+// Key events
+// ==========
 
 LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 {
@@ -431,16 +438,16 @@ LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 				consolePrint("Trying to select tile outside of range in level editor.", true)
 			}
 
-			canvasResize()
-			return true;
+			screen_layout.redraw()
+			return true
 		}
 		case 189://-
 		{
 			if (this.glyphSelectedIndex > 0)
 			{
 				this.glyphSelectedIndex--
-				canvasResize()
-				return true;
+				screen_layout.redraw()
+				return true
 			}	
 			break;	
 		}
@@ -449,8 +456,8 @@ LevelEditorScreen.prototype.checkKey = function (e, inputdir)
 			if (this.glyphSelectedIndex+1 < glyphImages.length)
 			{
 				this.glyphSelectedIndex++
-				canvasResize()
-				return true;
+				screen_layout.redraw()
+				return true
 			} 
 			break;	
 		}
