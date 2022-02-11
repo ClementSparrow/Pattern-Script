@@ -131,3 +131,133 @@ ScreenLayout.prototype.redraw = function()
 	this.content.redraw_tooltip(this.ctx, this.margins[1], this.magnification, this.canvas.width)
 }
 
+
+
+// ============
+// MOUSE EVENTS
+// ============
+
+ScreenLayout.prototype.hover = function(origin)
+{
+	var result = { x: origin.pageX, y: origin.pageY }
+
+	var currentElement = this.canvas
+
+	do {
+		result.x -= currentElement.offsetLeft - currentElement.scrollLeft
+		result.y -= currentElement.offsetTop  - currentElement.scrollTop
+	}
+	while(currentElement = currentElement.offsetParent)
+
+	return this.content.hover(
+		Math.floor( (result.x*window.devicePixelRatio - this.margins[0]) / this.magnification ),
+		Math.floor( (result.y*window.devicePixelRatio - this.margins[1]) / this.magnification )
+	)
+}
+
+EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY)
+{
+	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width )
+	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height)
+
+	this.hovered_glyph_index  = null
+	this.hovered_level_cell   = null
+	this.hovered_level_resize = null
+
+	if (gridCoordY < this.editorRowCount)
+	{
+		this.hovered_glyph_index = this.hover_palette(gridCoordX, gridCoordY)
+		return
+	}
+
+	const [w, h] = this.content.get_nb_tiles()
+	const [x, y] = [ gridCoordX-1, gridCoordY - this.editorRowCount - 1 ]
+	if ( (x < -1) || (x > w) || (y > h) )
+		return
+	if ( (x == -1) || (y == -1) || (x == w) || (y == h) )
+	{
+		this.hovered_level_resize = [ gridCoordX, gridCoordY, x, y ]
+	}
+	else if ( (x >= 0) && (y >= 0) && (x < w) && (y < h) )
+	{
+		this.hovered_level_cell = [ gridCoordX, gridCoordY, x, y ]
+	}
+}
+
+// returns 2 if a relayout is required, 1 if a redraw is required, 0 otherwise
+EditorScreen.prototype.editor_click = function(click, right_mouse_button) // click is false if we're in a drag gesture
+{
+	if (click)
+	{
+		this.anyEditsSinceMouseDown = false
+	}
+
+	// Select legend item
+	// ------------------
+
+	if ( click && (this.hovered_glyph_index !== null) )
+	{
+		return this.select_hovered_legend_item()
+	}
+
+	// Edit content
+	// ------------
+
+	if (this.hovered_level_cell !== null)
+	{
+		return this.edit_hovered_cell(right_mouse_button)
+	}
+
+	// Resize content
+	// --------------
+
+	if ( ( ! click ) || (this.hovered_level_resize === null) )
+		return 0
+
+	const [w, h] = this.content.get_nb_tiles()
+
+	if (this.hovered_level_resize[2] == -1)
+	{
+		this.resize_content(true, true, right_mouse_button)
+	}
+	else if (this.hovered_level_resize[2] == w)
+	{
+		this.resize_content(true, false, right_mouse_button)
+	}
+
+	if (this.hovered_level_resize[3] == -1)
+	{
+		this.resize_content(false, true, right_mouse_button)
+	}
+	else if (this.hovered_level_resize[3] == h)
+	{
+		this.resize_content(false, false, right_mouse_button)
+	}
+
+	return 2
+}
+
+
+// Mouse events logic
+// ==================
+
+EditorScreen.prototype.leftMouseClick = function()
+{
+	return this.editor_click(true, false)
+}
+
+EditorScreen.prototype.rightMouseClick = function()
+{
+	return this.editor_click(true, true)
+}
+
+
+// only called by ScreenLayout.prototype.mouseMove
+EditorScreen.prototype.mouseMove = function(drag_state)
+{
+	if (drag_state === 1)
+		return this.editor_click(false, false)
+	if (drag_state === 2)
+		return this.editor_click(false, true)
+	return 1 // redraw on mouse hover to update tooltips
+}
