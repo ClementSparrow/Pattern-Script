@@ -76,7 +76,7 @@ function regenLevelEditorImages()
 		if ( (n.length > 1) || (! [identifier_type_object, identifier_type_property, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index])) )
 			continue
 
-		var sprite = makeSpriteCanvas('C'+n)
+		var sprite = makeSpriteCanvas()
 		var spritectx = sprite.getContext('2d')
 		glyphImagesCorrespondance.push(identifier_index)
 		// TODO: shouldn't we always start by drawing a background tile, since it will always be created if not present in the legend symbol definition?
@@ -91,7 +91,7 @@ function regenLevelEditorImages()
 
 	{ // TODO: should be an icon loaded from an image
 		const [mag, margins] = centerAndMagnify([5, 5], [sprite_width, sprite_height])
-		glyphPrintButton = createSprite('chars', editor_s_grille, undefined, margins, mag)
+		glyphPrintButton = createSprite(editor_s_grille, undefined, margins, mag)
 	}
 }
 

@@ -29,7 +29,7 @@ var glyphMouseOver
 
 function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
 {
-	const result = makeSpriteCanvas(name)
+	const result = makeSpriteCanvas(sprite_w, sprite_h)
 	const spritectx = result.getContext('2d')
 	spritectx.fillStyle = color
 
@@ -42,31 +42,30 @@ function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
 
 function regenEditorImages()
 {
-	const sprite_w = sprite_width
-	const sprite_h = sprite_height
+	const [tile_w, tile_h] = [sprite_width, sprite_height]
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy for hovering the level's cells
-	glyphHighlight = regenHighlight('highlight', '#FFFFFF', sprite_w, sprite_h)
+	glyphHighlight = regenHighlight('highlight', '#FFFFFF', tile_w, tile_h)
 
 	{ // TODO: do we really need a sprite for that?
 		//make + symbol to add rows/columns
-		glyphHighlightResize = makeSpriteCanvas('highlightresize')
-		let spritectx = glyphHighlightResize.getContext('2d')
+		glyphHighlightResize = makeSpriteCanvas(tile_w, tile_h)
+		const spritectx = glyphHighlightResize.getContext('2d')
 		spritectx.fillStyle = '#FFFFFF'
 		
-		const minx = Math.floor((sprite_w-1)/2)
-		const miny = Math.floor((sprite_h-1)/2)
-		const xsize = sprite_w - 2*minx
-		const ysize = sprite_h - 2*miny
+		const minx = Math.floor((tile_w-1)/2)
+		const miny = Math.floor((tile_h-1)/2)
+		const xsize = tile_w - 2*minx
+		const ysize = tile_h - 2*miny
 
-		spritectx.fillRect(minx, 0,  xsize, sprite_h)
-		spritectx.fillRect(0, miny,  sprite_w, ysize)
+		spritectx.fillRect(minx, 0,  xsize, tile_h)
+		spritectx.fillRect(0, miny,  tile_w, ysize)
 	}
 
 	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
 	//make highlight thingy. This one is for the mouse hover on legend glyphs
-	glyphMouseOver = regenHighlight(undefined, 'yellow', sprite_w, sprite_h, 2)
+	glyphMouseOver = regenHighlight(undefined, 'yellow', tile_w, tile_h, 2)
 }
 
 
