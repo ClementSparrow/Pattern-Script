@@ -7,26 +7,29 @@ var verticaldragbarWidth = document.getElementById("verticaldragbar").clientWidt
 var horizontaldragbarHeight = document.getElementById("horizontaldragbar").clientHeight;
 var minimumDimension = 100;
 
-function resize_widths(verticaldragbarX){
+function resize_widths(verticaldragbarX)
+{
 	document.getElementById("leftpanel").style.width = verticaldragbarX + "px";
 	document.getElementById("righttophalf").style.left = verticaldragbarX + verticaldragbarWidth + "px";
 	document.getElementById("rightbottomhalf").style.left = verticaldragbarX + verticaldragbarWidth + "px";
 	document.getElementById("horizontaldragbar").style.left = verticaldragbarX + verticaldragbarWidth + "px";
 	document.getElementById("verticaldragbar").style.left = verticaldragbarX + "px";
-	canvasResize();
+	screen_layout.resize_canvas()
 }
 
-function resize_heights(horizontaldragbarY){
+function resize_heights(horizontaldragbarY)
+{
 	document.getElementById("leftpanel").style.height = (window.innerHeight - upperbarheight) + "px";
 	document.getElementById("verticaldragbar").style.height = (window.innerHeight - upperbarheight) + "px";
 	
 	document.getElementById("righttophalf").style.height = horizontaldragbarY - upperbarheight + "px";
 	document.getElementById("rightbottomhalf").style.top = horizontaldragbarY + horizontaldragbarHeight + "px";
 	document.getElementById("horizontaldragbar").style.top = horizontaldragbarY + "px";
-	canvasResize();
+	screen_layout.resize_canvas()
 }
 
-function resize_all(e){
+function resize_all(e)
+{
 	smallmovelimit = 100;
 	
 	hdiff = window.innerWidth - winwidth;
@@ -65,7 +68,7 @@ function resize_all(e){
 	
 	winwidth = window.innerWidth;
 	winheight = window.innerHeight;
-};
+}
 
 function verticalDragbarMouseDown(e) {
 	e.preventDefault();

@@ -39,12 +39,17 @@ if (gestureHandler) {
     gestureHandler.setFocusElement(document.getElementById('gameCanvas'));
 }
 
-
-var el = document.getElementById("gameCanvas");
-if (el.addEventListener) {
-    el.addEventListener("contextmenu", rightClickCanvas, false);
-    el.addEventListener("mousemove", screen_layout, false)
-} else {
-    el.attachEvent('oncontextmenu', rightClickCanvas);
-    el.attachEvent('onmousemove', screen_layout)
-}  
+{
+	const sl = screen_layout
+	const el = sl.canvas
+	if (el.addEventListener)
+	{
+		el.addEventListener("contextmenu", rightClickCanvas, false)
+		el.addEventListener("mousemove", sl, false)
+	}
+	else
+	{
+		el.attachEvent('oncontextmenu', rightClickCanvas)
+		el.attachEvent('onmousemove', sl)
+	}
+}
