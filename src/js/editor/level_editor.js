@@ -40,7 +40,7 @@ LevelEditorScreen.prototype.toggle = function()
 		screen_layout.content = this
 	}
 	execution_context.setRestartTarget() // TODO: should use 'this' directly rather than indirectly through global var 'level'
-	canvasResize()
+	screen_layout.resize_canvas()
 }
 
 var level_editor_screen = new LevelEditorScreen()
@@ -99,7 +99,6 @@ function regenLevelEditorImages()
 function forceRegenImages() // redeclaration from the one in graphics.js
 {
 	regenSpriteImages()
-	regenEditorImages()
 	regenLevelEditorImages()
 }
 
@@ -118,11 +117,6 @@ LevelEditorScreen.prototype.redraw_palette = function(ctx)
 	// ===================
 
 	ctx.drawImage(glyphPrintButton, 0, 0, sprite_width, sprite_height)
-	// draw a mouse hover if the mouse is on the print button
-	if (this.hovered_glyph_index === -1)
-	{
-		ctx.drawImage(glyphMouseOver, 0, 0)
-	}
 
 	// draw the legend glyphs
 	// ======================
@@ -132,14 +126,31 @@ LevelEditorScreen.prototype.redraw_palette = function(ctx)
 		const xpos = i%(w-1);
 		const ypos = Math.floor(i/(w-1));
 		ctx.drawImage(sprite, (xpos+1)*sprite_width, ypos*sprite_height)
-		if (this.hovered_glyph_index === i)
+	}
+}
+
+LevelEditorScreen.prototype.draw_palette_highlights = function(ctx)
+{
+	const [w, h] = this.get_nb_tiles()
+
+	// draw a mouse hover if the mouse is on the print button
+	if (this.hovered_glyph_index !== null)
+	{
+		if (this.hovered_glyph_index == -1)
+			this.draw_selected_cell(ctx, 0, 0)
+		else
 		{
-			ctx.drawImage(glyphMouseOver, (xpos+1)*sprite_width, ypos*sprite_height)
+			const xpos = this.hovered_glyph_index % (w-1)
+			const ypos = Math.floor(this.hovered_glyph_index/(w-1))
+			this.draw_selected_cell(ctx, xpos+1, ypos)
 		}
-		if (i === this.glyphSelectedIndex)
-		{
-			ctx.drawImage(glyphHighlight, (xpos+1)*sprite_width, ypos*sprite_height)
-		} 		
+	}
+
+	if (this.glyphSelectedIndex !== null)
+	{
+		const xpos = this.glyphSelectedIndex % (w-1)
+		const ypos = Math.floor(this.glyphSelectedIndex/(w-1))
+		this.draw_highlight(ctx, xpos+1, ypos)
 	}
 }
 
@@ -152,7 +163,7 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 		return
 
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
-	ctx.drawImage(glyphHighlight, (highlighted_cell[0]-mini) * sprite_width, (highlighted_cell[1]-minj) * sprite_height)
+	level_editor_screen.draw_highlight(ctx, highlighted_cell[0]-mini, highlighted_cell[1]-minj)
 }
 
 LevelEditorScreen.prototype.compute_tooltip = function()

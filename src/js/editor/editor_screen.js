@@ -6,7 +6,7 @@ function EditorScreen(screen_type)
 	this.editorRowCount = 1
 	this.hovered_level_cell = null
 	this.hovered_glyph_index = null
-	this.hovered_level_resize = null
+	this.hovered_content_resize = null
 	this.glyphSelectedIndex = 0
 	this.anyEditsSinceMouseDown = false
 }
@@ -23,51 +23,67 @@ EditorScreen.prototype.get_tile_size = function() { return this.content.get_tile
 
 
 
-var glyphHighlight
-var glyphHighlightResize
-var glyphMouseOver
-
-function regenHighlight(name, color, sprite_w, sprite_h, border_width=1)
+EditorScreen.prototype.draw_cell_border = function(ctx, x, y, line_width, color)
 {
-	const result = makeSpriteCanvas(sprite_w, sprite_h)
-	const spritectx = result.getContext('2d')
-	spritectx.fillStyle = color
-
-	spritectx.fillRect(0, 0,  sprite_w, border_width)
-	spritectx.fillRect(0, 0,  border_width, sprite_h)
-	spritectx.fillRect(0, sprite_h-border_width,  sprite_w, border_width)
-	spritectx.fillRect(sprite_w-border_width, 0,  border_width, sprite_h)
-	return result
+	const [tile_w, tile_h] = this.get_tile_size()
+	ctx.lineWidth = line_width
+	ctx.strokeStyle = color
+	ctx.strokeRect(x*tile_w+line_width/2, y*tile_h+line_width/2, tile_w-line_width, tile_h-line_width)
 }
 
-function regenEditorImages()
+EditorScreen.prototype.draw_highlight = function(ctx, x, y)
 {
-	const [tile_w, tile_h] = [sprite_width, sprite_height]
+	this.draw_cell_border(ctx, x, y, 1, '#ffffff')
+}
 
-	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-	//make highlight thingy for hovering the level's cells
-	glyphHighlight = regenHighlight('highlight', '#FFFFFF', tile_w, tile_h)
+EditorScreen.prototype.draw_selected_cell = function(ctx, x, y)
+{
+	this.draw_cell_border(ctx, x, y, 2, 'yellow')
+}
 
-	{ // TODO: do we really need a sprite for that?
-		//make + symbol to add rows/columns
-		glyphHighlightResize = makeSpriteCanvas(tile_w, tile_h)
-		const spritectx = glyphHighlightResize.getContext('2d')
-		spritectx.fillStyle = '#FFFFFF'
-		
-		const minx = Math.floor((tile_w-1)/2)
-		const miny = Math.floor((tile_h-1)/2)
-		const xsize = tile_w - 2*minx
-		const ysize = tile_h - 2*miny
+EditorScreen.prototype.draw_resize_signifier = function(ctx)
+{
+	const [content_w, content_h] = this.get_nb_tiles()
+	const [tile_w, tile_h] = this.get_tile_size()
+	const [horiz, vert] = [this.hovered_content_resize[2], this.hovered_content_resize[3]]
 
-		spritectx.fillRect(minx, 0,  xsize, tile_h)
-		spritectx.fillRect(0, miny,  tile_w, ysize)
+	const arrow_vec = [0, 0]
+	const arrow_start = [
+		(this.hovered_content_resize[0]+0.5)*tile_w,
+		(this.hovered_content_resize[1]+0.5)*tile_h
+	]
+
+	ctx.strokeStyle = '#eeeeee'
+	ctx.lineWidth = 1
+	ctx.lineJoin = 'bevel'
+	ctx.beginPath()
+
+	if (horiz != 0)
+	{
+		arrow_vec[0] += horiz*(tile_w-1)
+		arrow_start[0] += (1-tile_w)*horiz/2
+		ctx.moveTo(arrow_start[0], (this.editorRowCount+1)*tile_h-1)
+		ctx.lineTo(arrow_start[0], (content_h-1)*tile_h+1)
 	}
 
-	// TODO: do we really need a sprite for that, when it could simply be realized as a stroke square?
-	//make highlight thingy. This one is for the mouse hover on legend glyphs
-	glyphMouseOver = regenHighlight(undefined, 'yellow', tile_w, tile_h, 2)
-}
+	if (vert != 0)
+	{
+		arrow_vec[1] += vert*(tile_h-1)
+		arrow_start[1] += (1-tile_h)*vert/2
+		ctx.moveTo(tile_w-1, arrow_start[1])
+		ctx.lineTo((content_w-1)*tile_w+1, arrow_start[1])
+	}
 
+	ctx.moveTo(...arrow_start)
+	ctx.lineTo(arrow_start[0]+arrow_vec[0], arrow_start[1]+arrow_vec[1])
+	const ortho = [arrow_vec[1], -arrow_vec[0]]
+	const ahl = 0.5 // arrow head length
+	ctx.moveTo(arrow_start[0]+arrow_vec[0]*(1-ahl)-ortho[0]*ahl, arrow_start[1]+arrow_vec[1]*(1-ahl)-ortho[1]*ahl)
+	ctx.lineTo(arrow_start[0]+arrow_vec[0], arrow_start[1]+arrow_vec[1])
+	ctx.lineTo(arrow_start[0]+arrow_vec[0]*(1-ahl)+ortho[0]*ahl, arrow_start[1]+arrow_vec[1]*(1-ahl)+ortho[1]*ahl)
+	ctx.stroke()
+
+}
 
 EditorScreen.prototype.redraw_virtual_screen = function(ctx)
 {
@@ -85,20 +101,6 @@ EditorScreen.prototype.redraw_virtual_screen = function(ctx)
 	// ================
 
 	this.redraw_palette(ctx)
-
-	// Mouse hover level
-	// =================
-
-	if ( this.hovered_level_resize !== null)
-	{
-		// show "+" cursor to resize the edited content
-		ctx.drawImage(glyphHighlightResize, this.hovered_level_resize[0] * tile_w, this.hovered_level_resize[1] * tile_h)
-	}
-	else if (this.hovered_level_cell !== null)
-	{
-		// highlight cell in edited content
-		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * tile_w, this.hovered_level_cell[1] * tile_h)
-	}
 }
 
 EditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
@@ -114,6 +116,30 @@ EditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
 	ctx.fillText(tooltip_string, width/2, y+(this.editorRowCount + 0.5) * sprite_height*m, width)
 }
 
+EditorScreen.prototype.redraw_highlights = function(ctx, margins, m, width)
+{
+	ctx.save()
+	ctx.translate(...margins)
+	ctx.scale(m, m)
+	this.draw_palette_highlights(ctx)
+	if (this.hovered_content_resize !== null)
+	{
+		this.draw_resize_signifier(ctx)
+	}
+	else if (this.hovered_level_cell !== null)
+	{
+		this.draw_highlight(ctx, this.hovered_level_cell[0], this.hovered_level_cell[1])
+	}
+	ctx.restore()
+}
+
+EditorScreen.prototype.redraw_hidef = function(ctx, margins, m, width)
+{
+	this.redraw_tooltip(ctx, margins[1], m, width)
+	this.redraw_highlights(ctx, margins, m, width)
+}
+
+
 const screenlayout_redraw = ScreenLayout.prototype.redraw
 ScreenLayout.prototype.redraw = function()
 {
@@ -125,7 +151,8 @@ ScreenLayout.prototype.redraw = function()
 	this.ctx.fillStyle = state.bgcolor
 	this.ctx.fillRect(0, this.margins[1]+this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
 	screenlayout_redraw.call(this)
-	this.content.redraw_tooltip(this.ctx, this.margins[1], this.magnification, this.canvas.width)
+	// high-resolution drawings
+	this.content.redraw_hidef(this.ctx, this.margins, this.magnification, this.canvas.width)
 }
 
 
@@ -160,7 +187,7 @@ EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY
 
 	this.hovered_glyph_index  = null
 	this.hovered_level_cell   = null
-	this.hovered_level_resize = null
+	this.hovered_content_resize = null
 
 	if (gridCoordY < this.editorRowCount)
 	{
@@ -174,7 +201,11 @@ EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY
 		return
 	if ( (x == -1) || (y == -1) || (x == w) || (y == h) )
 	{
-		this.hovered_level_resize = [ gridCoordX, gridCoordY, x, y ]
+		this.hovered_content_resize = [
+			gridCoordX, gridCoordY,
+			(x == -1) ? -1 : (x == w) ? 1 : 0,
+			(y == -1) ? -1 : (y == h) ? 1 : 0
+		]
 	}
 	else if ( (x >= 0) && (y >= 0) && (x < w) && (y < h) )
 	{
@@ -209,27 +240,18 @@ EditorScreen.prototype.editor_click = function(click, right_mouse_button) // cli
 	// Resize content
 	// --------------
 
-	if ( ( ! click ) || (this.hovered_level_resize === null) )
+	if ( ( ! click ) || (this.hovered_content_resize === null) )
 		return 0
 
 	const [w, h] = this.content.get_nb_tiles()
 
-	if (this.hovered_level_resize[2] == -1)
+	if (this.hovered_content_resize[2] != 0)
 	{
-		this.resize_content(true, true, right_mouse_button)
+		this.resize_content(true, this.hovered_content_resize[2] == -1, right_mouse_button)
 	}
-	else if (this.hovered_level_resize[2] == w)
+	if (this.hovered_content_resize[3] != 0)
 	{
-		this.resize_content(true, false, right_mouse_button)
-	}
-
-	if (this.hovered_level_resize[3] == -1)
-	{
-		this.resize_content(false, true, right_mouse_button)
-	}
-	else if (this.hovered_level_resize[3] == h)
-	{
-		this.resize_content(false, false, right_mouse_button)
+		this.resize_content(false, this.hovered_content_resize[3] == -1, right_mouse_button)
 	}
 
 	return 2

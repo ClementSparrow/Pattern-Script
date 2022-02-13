@@ -14,6 +14,12 @@ SpriteEditorScreen.prototype.redraw_palette = function(ctx)
 	// TODO
 }
 
+SpriteEditorScreen.prototype.draw_palette_highlights = function(ctx)
+{
+	// TODO
+}
+
+
 SpriteEditorScreen.prototype.compute_tooltip = function()
 {
 	// Legend for highlighted editor icon
