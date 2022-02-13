@@ -5,26 +5,15 @@ function centerAndMagnify(content_size, container_size)
 	return [ magnification, container_size.map( (s, i) => Math.floor( (s - content_size[i]*magnification)/2 ) ) ];
 }
 
-var canvasdict = {}
-
-function makeSpriteCanvas(name, width=sprite_width, height=sprite_height)
+function makeSpriteCanvas(width=sprite_width, height=sprite_height)
 {
-	var canvas
-	if (name in canvasdict)
-	{
-		canvas = canvasdict[name]
-	}
-	else
-	{
-		canvas = document.createElement('canvas')
-		canvasdict[name] = canvas
-	}
+	var canvas = document.createElement('canvas')
 	canvas.width  = width
 	canvas.height = height
 	return canvas
 }
 
-function createSprite(name, spritegrid, colors, margins, mag = 1, offset = [0,0])
+function createSprite(spritegrid, colors, margins, mag = 1, offset = [0,0])
 {
 	if (colors === undefined)
 	{
@@ -38,7 +27,7 @@ function createSprite(name, spritegrid, colors, margins, mag = 1, offset = [0,0]
 	const sprite_w = spritegrid.reduce( (m, line) => Math.max(m, line.length), 0 )
 	const sprite_h = spritegrid.length
 
-	var sprite = makeSpriteCanvas(name, sprite_w, sprite_h)
+	var sprite = makeSpriteCanvas(sprite_w, sprite_h)
 	sprite.offset = offset
 
 	var spritectx = sprite.getContext('2d')
@@ -74,7 +63,7 @@ function regenSpriteImages()
 	{
 		if (sprites[i] !== undefined)
 		{
-			spriteimages[i] = createSprite(i.toString(), sprites[i].dat, sprites[i].colors, undefined, undefined, sprites[i].offset)
+			spriteimages[i] = createSprite(sprites[i].dat, sprites[i].colors, undefined, undefined, sprites[i].offset)
 		}
 	}
 }
