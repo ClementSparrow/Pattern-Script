@@ -19,12 +19,8 @@ EditorScreen.prototype.get_nb_tiles = function()
 	this.editorRowCount = Math.ceil( this.get_palette_length() / (w+1) ) // we could do better than that and use more space horizontally
 	return [w+2, h+2+this.editorRowCount]
 }
+EditorScreen.prototype.get_tile_size = function() { return this.content.get_tile_size() }
 
-EditorScreen.prototype.get_virtual_screen_size = function()
-{
-	const [w, h] = this.get_nb_tiles()
-	return [w*sprite_width, h*sprite_height]
-}
 
 
 var glyphHighlight
@@ -76,11 +72,13 @@ function regenEditorImages()
 
 EditorScreen.prototype.redraw_virtual_screen = function(ctx)
 {
+	const [tile_w, tile_h] = this.get_tile_size()
+
 	// Draw the edited content
 	// =======================
 
 	ctx.save()
-	ctx.translate(sprite_width, sprite_height * (1+this.editorRowCount) )
+	ctx.translate(tile_w, tile_h * (1+this.editorRowCount) )
 	this.content.redraw_virtual_screen(ctx)
 	ctx.restore()
 
@@ -95,12 +93,12 @@ EditorScreen.prototype.redraw_virtual_screen = function(ctx)
 	if ( this.hovered_level_resize !== null)
 	{
 		// show "+" cursor to resize the edited content
-		ctx.drawImage(glyphHighlightResize, this.hovered_level_resize[0] * sprite_width, this.hovered_level_resize[1] * sprite_height)
+		ctx.drawImage(glyphHighlightResize, this.hovered_level_resize[0] * tile_w, this.hovered_level_resize[1] * tile_h)
 	}
 	else if (this.hovered_level_cell !== null)
 	{
 		// highlight cell in edited content
-		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * sprite_width, this.hovered_level_cell[1] * sprite_height)
+		ctx.drawImage(glyphHighlight, this.hovered_level_cell[0] * tile_w, this.hovered_level_cell[1] * tile_h)
 	}
 }
 
@@ -157,8 +155,9 @@ ScreenLayout.prototype.hover = function(origin)
 
 EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY)
 {
-	const gridCoordX = Math.floor(virtualscreenCoordX/sprite_width )
-	const gridCoordY = Math.floor(virtualscreenCoordY/sprite_height)
+	const [tile_w, tile_h] = this.get_tile_size()
+	const gridCoordX = Math.floor(virtualscreenCoordX/tile_w)
+	const gridCoordY = Math.floor(virtualscreenCoordY/tile_h)
 
 	this.hovered_glyph_index  = null
 	this.hovered_level_cell   = null
