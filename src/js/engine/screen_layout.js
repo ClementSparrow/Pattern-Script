@@ -11,7 +11,14 @@ function EmptyScreen(screen_type = 'empty')
 	this.dontDoWin = false
 	all_screen_types.push(this)
 }
-EmptyScreen.prototype.get_virtual_screen_size = () => [ 0, 0 ]
+EmptyScreen.prototype.get_nb_tiles = () => [0, 0]
+EmptyScreen.prototype.get_tile_size = () => [0, 0]
+EmptyScreen.prototype.get_virtual_screen_size = function()
+{
+	const [w,h] = this.get_nb_tiles()
+	const [tw,th] = this.get_tile_size()
+	return [w*tw, h*th]
+}
 EmptyScreen.prototype.redraw_virtual_screen = (ctx) => null
 var empty_screen = new EmptyScreen()
 
@@ -25,7 +32,7 @@ function TextModeScreen(screen_type = 'text')
 }
 TextModeScreen.prototype = Object.create(EmptyScreen.prototype)
 TextModeScreen.prototype.get_nb_tiles = () => [ terminal_width, terminal_height ]
-TextModeScreen.prototype.get_virtual_screen_size = () => [ terminal_width*(font_width+1), terminal_height*(font_height+1) ]
+TextModeScreen.prototype.get_tile_size = () => [font_width+1, font_height+1]
 var msg_screen = new TextModeScreen()
 
 // Menu screen, based on TextModeScreen
@@ -48,13 +55,9 @@ function LevelScreen(screen_type = 'level')
 	this.noAutoTick = false
 }
 LevelScreen.prototype = Object.create(EmptyScreen.prototype)
-LevelScreen.prototype.get_nb_tiles = () => [ this.level.width, this.level.height ]
-LevelScreen.prototype.get_virtual_screen_size = function()
-{
-	const [w,h] = this.get_nb_tiles()
-	return [ w*sprite_width, h*sprite_height ];
-}
-LevelScreen.prototype.get_viewport = () => [0, 0, this.level.width, this.level.height]
+LevelScreen.prototype.get_nb_tiles = function() { return [this.level.width, this.level.height] }
+LevelScreen.prototype.get_tile_size = () => [sprite_width, sprite_height]
+LevelScreen.prototype.get_viewport = function() { return [0, 0, this.level.width, this.level.height] }
 var level_screen = new LevelScreen()
 
 // Flick screen, also base class for zoomscreen (could be the reverse, it's just to reuse the methods)

@@ -79,11 +79,7 @@ function SpriteScreen()
 }
 SpriteScreen.prototype = Object.create(EmptyScreen.prototype)
 SpriteScreen.prototype.get_nb_tiles = function() { return [this.width, this.height] }
-SpriteScreen.prototype.get_virtual_screen_size = function()
-{
-	const [w,h] = this.get_nb_tiles()
-	return [w*sprite_magnification, h*sprite_magnification]
-}
+SpriteScreen.prototype.get_tile_size = () => [sprite_magnification, sprite_magnification]
 SpriteScreen.prototype.get_viewport = function() { return [0, 0, this.width, this.height] }
 
 SpriteScreen.prototype.redraw_virtual_screen = function(ctx)
