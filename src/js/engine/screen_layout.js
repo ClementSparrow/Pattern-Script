@@ -116,6 +116,8 @@ function ScreenLayout(canvas)
 	window.addEventListener('resize',  () => this.resize_canvas(), false)
 }
 
+ScreenLayout.prototype.hover = function(origin) {}
+
 ScreenLayout.prototype.noAutoTick = function() { return this.content.noAutoTick; }
 ScreenLayout.prototype.noSwipe = function() { return this.content.noSwipe; }
 ScreenLayout.prototype.alwaysAllowUndo = function() { return this.content.alwaysAllowUndo; }

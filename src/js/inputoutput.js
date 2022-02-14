@@ -78,6 +78,11 @@ ScreenLayout.prototype.handleEvent = function(event)
 				return
 		default:
 	}
+	// TODO: what's the use of this? It does not make sense, since it prevents the event
+	// to be passed to another ScreenLayout iff it has NOT been treated...
+	// also, why do we need the ScreenLayout to listen to all mouse events performed in the
+	// whole document even if they are only responding to clicks inside them? Is it a
+	// drag-and-drop grab issue ?
 	event.handled = true
 }
 
