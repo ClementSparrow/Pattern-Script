@@ -221,7 +221,6 @@ EditorScreen.prototype.editor_click = function(click, right_mouse_button) // cli
 		this.anyEditsSinceMouseDown = false
 	}
 
-
 	// Select legend item
 	// ------------------
 
@@ -242,7 +241,7 @@ EditorScreen.prototype.editor_click = function(click, right_mouse_button) // cli
 	// --------------
 
 	if ( ( ! click ) || (this.hovered_content_resize === null) )
-		return 0
+		return 1 // redraw anyway, in case we need to remove some highlight
 
 	const [w, h] = this.content.get_nb_tiles()
 
@@ -280,5 +279,5 @@ EditorScreen.prototype.mouseMove = function(drag_state)
 		return this.editor_click(false, false)
 	if (drag_state === 2)
 		return this.editor_click(false, true)
-	return 1 // redraw on mouse hover to update tooltips
+	return 1 // redraw on mouse hover to update/clear tooltips.
 }

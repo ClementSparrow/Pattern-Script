@@ -54,7 +54,7 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 	const new_color_index = this.glyphSelectedIndex
 	const current_color_index = this.content.pixels[pixel_index]
 	if (new_color_index == current_color_index)
-		return 0
+		return 1 // redraw anyway to update highlight
 	// TODO: UNDO
 	// if (this.anyEditsSinceMouseDown === false)
 	// {

@@ -250,7 +250,7 @@ LevelEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 
 	const getcell = this.content.level.getCell(coordIndex)
 	if (getcell.equals(glyphmask))
-		return 0
+		return 1 // redraw anyway to update highlight
 	if (this.anyEditsSinceMouseDown === false)
 	{
 		this.anyEditsSinceMouseDown = true

@@ -3,9 +3,6 @@ var keyRepeatIndex=0;
 var input_throttle_timer=0.0;
 var lastinput=-100;
 
-var drag_state = 0 // 0 = no dragging, 1 = left mouse dragging, 2 = right mouse dragging
-
-
 
 // GENERIC EVENT HANDLER
 // =====================
@@ -49,13 +46,13 @@ ScreenLayout.prototype.handleEvent = function(event)
 	this.hover(coords)
 
 	var result = -1
-	var allow_event_rethrow = false
+	var stop_event = (this.drag_state > 0)
 	switch(event.type)
 	{
 		case 'touchstart':
 		case 'mousedown':
 			result = this.onMouseDown(event)
-			allow_event_rethrow = true
+			stop_event = (result >= 0)
 			break
 		case 'touchmove':
 		case 'mousemove':
@@ -74,21 +71,16 @@ ScreenLayout.prototype.handleEvent = function(event)
 		case 1:
 			this.redraw()
 		case 0:
-			if (allow_event_rethrow)
-				return
 		default:
 	}
-	// TODO: what's the use of this? It does not make sense, since it prevents the event
-	// to be passed to another ScreenLayout iff it has NOT been treated...
-	// also, why do we need the ScreenLayout to listen to all mouse events performed in the
-	// whole document even if they are only responding to clicks inside them? Is it a
-	// drag-and-drop grab issue ?
-	event.handled = true
+	if (stop_event)
+		event.handled = true
 }
 
 ScreenLayout.prototype.register_listeners = function()
 {
-	(['touchstart', 'touchmove', 'touchend', 'mousedown', 'mouseup']).forEach(
+	this.drag_state = 0 // 0 = no dragging, 1 = left mouse dragging, 2 = right mouse dragging
+	;(['touchstart', 'touchend', 'touchmove', 'mousedown', 'mousemove', 'mouseup']).forEach(
 		n => document.addEventListener(n, this, false)
 	)
 }
@@ -110,17 +102,17 @@ ScreenLayout.prototype.onMouseDown = function(event)
         	const result = this.content.leftMouseClick()
         	if (result >= 0) // click event not ignored
         	{
-				drag_state = 1
+				this.drag_state = 1
         		return result
         	}
         }
-		drag_state = 0
+		this.drag_state = 0
     }
     else if (rmb)
     {
     	if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
     	{
-		    drag_state = 2
+		    this.drag_state = 2
 		    return this.content.rightMouseClick()
         }
 	}
@@ -135,12 +127,12 @@ function rightClickCanvas(event) // prevent opening contextual menu on right cli
 
 ScreenLayout.prototype.onMouseMove = function(event)
 {	
-	return this.content.mouseMove(drag_state)
+	return this.content.mouseMove(this.drag_state)
 }
 
 ScreenLayout.prototype.onMouseUp = function(event)
 {
-	drag_state = 0
+	this.drag_state = 0
 	return -1
 }
 
