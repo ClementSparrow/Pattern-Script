@@ -5,39 +5,40 @@
 window.Mobile = {};
 
 //stolen from https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js
-Mobile.hasTouch = function() {
-    var bool;
-    if(('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch)     {
-      bool = true;
-    } else {
-      /*
-      //don't know what's happening with this, so commented it out
-      var query = ['@media (',prefixes.join('touch-enabled),    ('),'heartz',')','{#modernizr{top:9px;position:absolute}}'].join('');
-      testStyles(query, function( node ) {
-        bool = node.offsetTop === 9;
-      });*/
-    }
-    return bool;
+Mobile.hasTouch = function()
+{
+	if ( ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch)
+		return true
+	/*
+	//don't know what's happening with this, so commented it out
+	var query = ['@media (',prefixes.join('touch-enabled),    ('),'heartz',')','{#modernizr{top:9px;position:absolute}}'].join('');
+	testStyles(query, function( node ) {
+	bool = node.offsetTop === 9;
+	});*/
+    return undefined
 }
 
-Mobile.enable = function (force) {
-    if (force || Mobile.hasTouch() && !Mobile._instance) {
+Mobile.enable = function(force)
+{
+    if (force || Mobile.hasTouch() && !Mobile._instance)
+    {
         Mobile._instance = new Mobile.GestureHandler();
         Mobile._instance.bindEvents();
         Mobile._instance.bootstrap();
     }
     return Mobile._instance;
-};
+}
 
-window.Mobile.GestureHandler = function () {
+window.Mobile.GestureHandler = function()
+{
     this.initialize.apply(this, arguments);
-};
+}
 
-Mobile.log = function (message) {
-    var h1;
-    h1 = document.getElementsByTagName('h1')[0];
+Mobile.log = function(message)
+{
+    var h1 = document.getElementsByTagName('h1')[0];
     h1.innerHTML = "" + Math.random().toString().substring(4, 1) + "-" + message;
-};
+}
 
 // Mobile.debugDot = function (event)
 // {
@@ -46,7 +47,7 @@ Mobile.log = function (message) {
 // 	document.getElementsByTagName('body')[0].appendChild(dot);
 // }
 
-(function (proto) {
+;(function (proto) {
     'use strict';
 
     // Minimum range to begin looking at the swipe direction, in pixels
@@ -359,14 +360,12 @@ Mobile.log = function (message) {
     };
 
     // Find the distance traveled by the swipe along compass directions.
-    proto.cardinalDistance = function (firstPos, currentPos) {
-        var xDist, yDist;
-
-        xDist = Math.abs(firstPos.x - currentPos.x);
-        yDist = Math.abs(firstPos.y - currentPos.y);
-
-        return Math.max(xDist, yDist);
-    };
+    proto.cardinalDistance = function (firstPos, currentPos)
+    {
+        const xDist = Math.abs(firstPos.x - currentPos.x)
+        const yDist = Math.abs(firstPos.y - currentPos.y)
+        return Math.max(xDist, yDist)
+    }
 
     // Decide which direction the touch has moved farthest.
     proto.dominantDirection = function (firstPos, currentPos) {
@@ -417,14 +416,12 @@ Mobile.log = function (message) {
 
     // Fake out keypresses to acheive the desired effect.
     proto.emitKeydown = function (input) {
-        var event;
-
-        event = { keyCode: CODE[input] };
+        var event = { keyCode: CODE[input] };
 
         this.fakeCanvasFocus();
         // Press, then release key.
-        screen_layout.onKeyDown(event)
-        screen_layout.onKeyUp(event)
+        onKeyDown(event)
+        onKeyUp(event)
     };
 
 	proto.fakeCanvasFocus = function ()
@@ -708,9 +705,9 @@ Mobile.log = function (message) {
 
 window.Animator = function () {
     this.initialize.apply(this, arguments);
-};
+}
 
-(function (proto) {
+;(function (proto) {
     proto.initialize = function () {
         this._animations = {};
         this.tick = this.tick.bind(this);
@@ -718,30 +715,21 @@ window.Animator = function () {
 
     proto.animate = function (key, tick) {
         this._animations[key] = tick;
-        this.wakeup();
-    };
-
-    proto.wakeup = function () {
-        if (this._isAnimating) {
-            return;
-        }
+        if (this._isAnimating)
+            return
         this._isAnimating = true;
         this.tick();
     };
 
-    proto.tick = function () {
-        var key;
-        var isFinished, allFinished;
-        var toRemove, index;
+    proto.tick = function ()
+    {
+        var allFinished = true;
+        var toRemove = [];
 
-        toRemove = [];
-        allFinished = true;
-        for (key in this._animations) {
-            if (!this._animations.hasOwnProperty(key)) {
-                return;
-            }
-            isFinished = this._animations[key]();
-            if (!isFinished) {
+        for (const key in this._animations) {
+            if (!this._animations.hasOwnProperty(key))
+                return
+            if ( ! this._animations[key]() ) {
                 allFinished = false;
             } else {
                 toRemove.push(key);
@@ -751,7 +739,7 @@ window.Animator = function () {
         if (!allFinished) {
             requestAnimationFrame(this.tick);
         } else {
-            for (index = 0; index < toRemove.length; toRemove++) {
+            for (var index = 0; index < toRemove.length; toRemove++) {
                 delete this._isAnimating[toRemove[index]];
             }
             this._isAnimating = false;
@@ -765,22 +753,11 @@ window.Animator.getInstance = function () {
         window.Animator._instance = new window.Animator();
     }
     return window.Animator._instance;
-};
+}
 
-function Animatable(key, increment, update) {
-    var ratio;
-    var handles;
-
-    handles = {
-        animateUp: function () {
-            Animator.getInstance().animate(key, tickUp);
-        },
-        animateDown: function () {
-            Animator.getInstance().animate(key, tickDown);
-        }
-    };
-
-    ratio = 0;
+function Animatable(key, increment, update)
+{
+    var ratio = 0
 
     function tickUp () {
         var isFinished;
@@ -791,7 +768,7 @@ function Animatable(key, increment, update) {
         }
         update(ratio);
         return isFinished;
-    };
+    }
 
     function tickDown () {
         var isFinished;
@@ -802,10 +779,17 @@ function Animatable(key, increment, update) {
         }
         update(ratio);
         return isFinished;
-    };
+    }
 
-    return handles;
-};
+	return {
+		animateUp: function () {
+			Animator.getInstance().animate(key, tickUp);
+		},
+		animateDown: function () {
+			Animator.getInstance().animate(key, tickDown);
+		}
+	}
+}
 
 
 // http://paulirish.com/2011/requestanimationframe-for-smart-animating/
@@ -815,7 +799,7 @@ function Animatable(key, increment, update) {
 
 // MIT license
 
-(function() {
+;(function() {
     'use strict';
 
     var VENDORS = ['ms', 'moz', 'webkit', 'o'];
@@ -852,4 +836,4 @@ function Animatable(key, increment, update) {
     }
 
     Mobile.enable();
-}());
+}())
