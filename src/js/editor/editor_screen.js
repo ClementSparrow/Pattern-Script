@@ -221,6 +221,7 @@ EditorScreen.prototype.editor_click = function(click, right_mouse_button) // cli
 		this.anyEditsSinceMouseDown = false
 	}
 
+
 	// Select legend item
 	// ------------------
 

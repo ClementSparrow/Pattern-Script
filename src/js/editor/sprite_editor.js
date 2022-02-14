@@ -27,7 +27,7 @@ SpriteEditorScreen.prototype.compute_tooltip = function()
 		return this.hovered_glyph_index + ': ' // TODO: add hex color representation
 
 	if ( this.hovered_level_cell === null )
-	return ''
+		return ''
 
 	// pixel in the sprite
 	const pixel_index = this.hovered_level_cell[3]*this.content.width + this.hovered_level_cell[2]
@@ -68,8 +68,9 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 
 SpriteEditorScreen.prototype.resize_content = function(horizontal, near_origin, shrink)
 {
-	// TODO
+	this.content.resize(horizontal, near_origin, shrink)
 }
+
 
 // Sprite Screen
 // =============
@@ -81,7 +82,8 @@ function SpriteScreen()
 	EmptyScreen.call(this, 'sprite_screen')
 	this.width = sprite_width
 	this.height = sprite_height
-	this.pixels = new Int32Array(sprite_width*sprite_height)
+	this.palette = ['blue', 'red']
+	this.pixels = Int32Array.from({length: sprite_width*sprite_height}, (_,i) => (i%3)-1)
 }
 SpriteScreen.prototype = Object.create(EmptyScreen.prototype)
 SpriteScreen.prototype.get_nb_tiles = function() { return [this.width, this.height] }
@@ -97,8 +99,32 @@ SpriteScreen.prototype.redraw_virtual_screen = function(ctx)
 		{
 			const x = i * sprite_magnification
 			const pixel_index = i + j*this.width
-			ctx.fillStyle = (pixel_index%2 == 0) ? 'blue' : 'red' // get_color(this.pixels[pixel_index])
+			const color_index = this.pixels[pixel_index]
+			if (color_index == -1)
+				continue
+			ctx.fillStyle = this.palette[color_index] // get_color(color_index)
 			ctx.fillRect(x, y, sprite_magnification, sprite_magnification)
+		}
+	}
+}
+
+SpriteScreen.prototype.resize = function(horizontal, near_origin, shrink)
+{
+	const old_pixels = this.pixels
+	const delta = shrink ? -1 : 1
+	const [size_dx, size_dy] = horizontal ? [delta, 0] : [0, delta]
+	if ( (this.width + size_dx <= 0) || (this.height + size_dy <= 0) )
+		return
+	const [dx, dy] = near_origin ? [size_dx, size_dy] : [0, 0]
+	this.width  += size_dx
+	this.height += size_dy
+	this.pixels = new Int32Array(this.width*this.height)
+	this.pixels.fill(-1)
+	for (var x=Math.max(0, dx); x<Math.min(this.width, this.width-size_dx+dx); ++x)
+	{
+		for(var y=Math.max(0, dy); y<Math.min(this.height, this.height-size_dy+dy); ++y)
+		{
+			this.pixels[y*this.width + x] = old_pixels[(y-dy)*(this.width-size_dx) + x-dx]
 		}
 	}
 }
@@ -115,3 +141,4 @@ function SpriteEditor()
 }
 SpriteEditor.prototype = Object.create(ScreenLayout.prototype)
 // const sprite_editor = new SpriteEditor()
+// sprite_editor.register_listeners()
