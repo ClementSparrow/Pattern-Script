@@ -1,6 +1,7 @@
 function makeGIF()
 {
 	var randomseed = RandomGen.seed;
+	const inputDat = Array.from(inputHistory)
 
 	unitTesting=true;
 	levelString=compiledText;
@@ -20,11 +21,11 @@ function makeGIF()
 	gifcanvas.height = gifcanvas.style.height = virtual_screen_h * screen_layout.magnification
 	var gifctx = gifcanvas.getContext('2d');
 
-	gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
+	gifctx.drawImage(screen_layout.canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
   	encoder.addFrame(gifctx);
 	var autotimer=0;
 
-  	for(const val of inputHistory)
+	for(const val of inputDat)
   	{
   		var realtimeframe = false
   		switch (val)
@@ -44,7 +45,7 @@ function makeGIF()
 		}
 
 		redraw()
-		gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1])
+		gifctx.drawImage(screen_layout.canvas, -screen_layout.margins[0], -screen_layout.margins[1])
 		encoder.addFrame(gifctx)
 		encoder.setDelay(realtimeframe ? autotickinterval : repeatinterval)
 		autotimer += repeatinterval
@@ -55,7 +56,7 @@ function makeGIF()
 			redraw()
 
 			encoder.setDelay(againinterval)
-			gifctx.drawImage(canvas, -screen_layout.margins[0], -screen_layout.margins[1])
+			gifctx.drawImage(screen_layout.canvas, -screen_layout.margins[0], -screen_layout.margins[1])
 	  		encoder.addFrame(gifctx)
 		}
 	}
@@ -65,5 +66,6 @@ function makeGIF()
 	consolePrint('<img class="generatedgif" src="'+data_url+'">');
 	consolePrint('<a href="'+data_url+'" download>Download GIF</a>');
   	
-  	unitTesting = false
+	inputHistory = inputDat
+	unitTesting = false
 }
