@@ -471,7 +471,7 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 		}
 		default:
 		{
-			logError('I reached a part of the code I should never have reached. Please submit a bug repport to ClementSparrow!')
+			logError('I reached a part of the code I should never have reached. Please submit a bug report to ClementSparrow!')
 			stream.match(reg_notcommentstart, true);
 			return null;
 		}
@@ -582,11 +582,15 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 							if (sprite.length === 0)
 								continue
 							const shift_direction = expand_direction(parts[1], replaced_dir)
+							const sprite_size = shift_direction % 2 ? sprite[0].length : sprite.length
+							const delta = (parts.length < 3
+								? 1
+								: parseInt(parts[2]) % sprite_size)
 							f = ([
-									(m => [ ...Array.from(m.slice(1)), m[0] ]), // up
-									(m => Array.from(m, l => l[l.length-1]+l.substr(0,l.length-1)) ), // right
-									(m => [ m[m.length-1], ...Array.from(m.slice(0,-1)) ]), // down
-									(m => Array.from(m, l => l.substr(1)+l[0]) ) // left
+									(m => [ ...Array.from(m.slice(delta)), ...Array.from(m.slice(0, delta)) ]), // up
+									(m => Array.from(m, l => l.slice(-delta) + l.slice(0, -delta))), // right
+									(m => [ ...Array.from(m.slice(-delta)), ...Array.from(m.slice(0, -delta)) ]), // down
+									(m => Array.from(m, l => l.slice(delta) + l.slice(0, delta))) // left
 								])[shift_direction]
 						}
 						break
@@ -844,7 +848,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	}
 	case 5: // copy spritematrix: transformations to apply
 	{
-		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
+		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
 		if (transform_match === null)
 		{
 			this.logError('I do not understand this sprite transformation! Did you forget to insert a blank line between two object declarations?')
