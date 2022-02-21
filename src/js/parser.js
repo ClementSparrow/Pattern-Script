@@ -622,6 +622,48 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 							offset[1] += v[1]*parseInt(parts[2])
 						}
 						break
+					case 'crop':
+						{
+							if (sprite.length == 0)
+								continue
+
+							const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
+							const [width, height] = this.metadata_values[sprite_size_key_index]
+							// Capture offset values because they get modified before these
+							// functions are evaluated.
+							const [offset_x, offset_y] = offset
+							const crop_functions = [
+								( m => offset_y <= -sprite[1].length ? ['.'] : Array.from(offset_y >= 0 ? m : m.slice(-offset_y))), // up
+								( m => width <= offset_x ? ['.'] : Array.from(m, l => l.slice(0, width - offset_x))), // right
+								( m => height <= offset_y ? ['.'] : Array.from(m.slice(0, height - offset_y))), // down
+								( m => offset_x >= 0
+									? Array.from(m)
+									: offset_x <= -sprite[0].length
+										? ['.']
+										: Array.from(m, l => l.slice(-offset_x))), // left
+							]
+
+							if (parts.length > 1)
+							{
+								const crop_direction = expand_direction(parts[1], replaced_dir)
+								f = crop_functions[crop_direction]
+
+								const offset_functions = [
+									( (x, y) => [x, y] ), // up
+									( (x, y) => [x, y] ), // right
+									( (x, y) => [x, Math.min(0, y)] ), // down
+									( (x, y) => [Math.max(0, x), y] ), // left
+								]
+								offset = offset_functions[crop_direction](...offset)
+							}
+							else
+							{
+								// Might be cleaner to define a separate function that performs the
+								// crop with only two slices (one per dimension).
+								f = (m => crop_functions[0](crop_functions[1](crop_functions[2](crop_functions[3](m)))))
+								offset = [Math.max(0, offset[0]), Math.min(0, offset[1])]
+							}
+						}
 					default:
 				}
 			}
@@ -848,7 +890,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	}
 	case 5: // copy spritematrix: transformations to apply
 	{
-		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
+		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+|crop(?::[>v<^])?)\s*/u, true)
 		if (transform_match === null)
 		{
 			this.logError('I do not understand this sprite transformation! Did you forget to insert a blank line between two object declarations?')
