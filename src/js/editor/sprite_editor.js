@@ -7,17 +7,27 @@ function SpriteEditorScreen()
 	EditorScreen.call(this, 'spriteEditor')
 }
 SpriteEditorScreen.prototype = Object.create(EditorScreen.prototype)
-SpriteEditorScreen.prototype.get_palette_length = () => 1
+SpriteEditorScreen.prototype.get_palette_length = function() { return this.content.palette.length }
+
+SpriteEditorScreen.prototype.position_of_palette_item = function(index)
+{
+	const [w, h] = this.get_nb_tiles()
+	const xpos = index % w
+	const ypos = Math.floor(index / w)
+	return [xpos, ypos]
+}
 
 SpriteEditorScreen.prototype.redraw_palette = function(ctx)
 {
-	// TODO
+	const [tile_w, tile_h] = this.get_tile_size()
+	for (const [index, color] of this.content.palette.entries())
+	{
+		const [x, y] = this.position_of_palette_item(index)
+		ctx.fillStyle = color
+		ctx.fillRect(x*tile_w, y*tile_h, tile_w, tile_h)
+	}
 }
 
-SpriteEditorScreen.prototype.draw_palette_highlights = function(ctx)
-{
-	// TODO
-}
 
 
 SpriteEditorScreen.prototype.compute_tooltip = function()
@@ -37,7 +47,9 @@ SpriteEditorScreen.prototype.compute_tooltip = function()
 
 SpriteEditorScreen.prototype.hover_palette = function(gridCoordX, gridCoordY)
 {
-	return null // TODO
+	const [w, h] = this.get_nb_tiles()
+	const index = gridCoordY * w + gridCoordX
+	return (index < this.get_palette_length()) ? index : null
 }
 
 

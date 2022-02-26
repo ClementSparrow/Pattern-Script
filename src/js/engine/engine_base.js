@@ -206,7 +206,7 @@ executionContext.prototype.forSerialization = function()
 executionContext.prototype.restore = function(backup = this.restartTarget)
 {
 	oldflickscreendat = backup.oldflickscreendat.concat([])
-	level.restore(backup.lev)
+	level.restore(backup.lev) // TODO: should not use the global var "level"
 	this.resetCommands()
 }
 
