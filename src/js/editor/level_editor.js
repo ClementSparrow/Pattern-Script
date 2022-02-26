@@ -129,29 +129,14 @@ LevelEditorScreen.prototype.redraw_palette = function(ctx)
 	}
 }
 
-LevelEditorScreen.prototype.draw_palette_highlights = function(ctx)
+LevelEditorScreen.prototype.position_of_palette_item = function(index)
 {
+	if (index == -1)
+		return [0, 0]
 	const [w, h] = this.get_nb_tiles()
-
-	// draw a mouse hover if the mouse is on the print button
-	if (this.hovered_glyph_index !== null)
-	{
-		if (this.hovered_glyph_index == -1)
-			this.draw_selected_cell(ctx, 0, 0)
-		else
-		{
-			const xpos = this.hovered_glyph_index % (w-1)
-			const ypos = Math.floor(this.hovered_glyph_index/(w-1))
-			this.draw_selected_cell(ctx, xpos+1, ypos)
-		}
-	}
-
-	if (this.glyphSelectedIndex !== null)
-	{
-		const xpos = this.glyphSelectedIndex % (w-1)
-		const ypos = Math.floor(this.glyphSelectedIndex/(w-1))
-		this.draw_highlight(ctx, xpos+1, ypos)
-	}
+	const xpos = index % (w-1)
+	const ypos = Math.floor(index / (w-1))
+	return [xpos+1, ypos]
 }
 
 // highlight the cell hovered in the output of verbose_logging.

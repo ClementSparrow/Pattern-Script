@@ -121,8 +121,17 @@ EditorScreen.prototype.redraw_highlights = function(ctx, margins, m, width)
 	ctx.save()
 	ctx.translate(...margins)
 	ctx.scale(m, m)
-	this.draw_palette_highlights(ctx)
-	if (this.hovered_content_resize !== null)
+
+	if (this.glyphSelectedIndex !== null)
+	{
+		this.draw_highlight(ctx, ...this.position_of_palette_item(this.glyphSelectedIndex))
+	}
+
+	if (this.hovered_glyph_index !== null)
+	{
+		this.draw_selected_cell(ctx, ...this.position_of_palette_item(this.hovered_glyph_index))
+	}
+	else if (this.hovered_content_resize !== null)
 	{
 		this.draw_resize_signifier(ctx)
 	}
@@ -130,6 +139,7 @@ EditorScreen.prototype.redraw_highlights = function(ctx, margins, m, width)
 	{
 		this.draw_highlight(ctx, this.hovered_level_cell[0], this.hovered_level_cell[1])
 	}
+
 	ctx.restore()
 }
 
@@ -189,6 +199,10 @@ EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY
 	this.hovered_level_cell   = null
 	this.hovered_content_resize = null
 
+	const [screenw, screenh] = this.get_nb_tiles()
+	if ( (gridCoordX < 0) || (gridCoordY < 0) || (gridCoordX >= screenw) || (gridCoordY >= screenh) )
+		return
+
 	if (gridCoordY < this.editorRowCount)
 	{
 		this.hovered_glyph_index = this.hover_palette(gridCoordX, gridCoordY)
@@ -197,8 +211,6 @@ EditorScreen.prototype.hover = function(virtualscreenCoordX, virtualscreenCoordY
 
 	const [w, h] = this.content.get_nb_tiles()
 	const [x, y] = [ gridCoordX-1, gridCoordY - this.editorRowCount - 1 ]
-	if ( (x < -1) || (x > w) || (y > h) )
-		return
 	if ( (x == -1) || (y == -1) || (x == w) || (y == h) )
 	{
 		this.hovered_content_resize = [
