@@ -49,6 +49,8 @@ function dateToReadable(title, time)
 	return result;
 }
 
+const SAVED_FILES_CAPACITY = 30
+
 function saveClick()
 {
 	const title = (state.metadata.title!==undefined) ? state.metadata.title : "Untitled";
@@ -59,31 +61,25 @@ function saveClick()
 		date: new Date()
 	}
 
-	var curSaveArray = [];
-	if ( ! storage_has('saves'))
-	{
-		var curSaveArray = JSON.parse(storage_get('saves'))
-	}
+	var curSaveArray = storage_has('saves') ? JSON.parse(storage_get('saves')) : []
 
-	if (curSaveArray.length > 20)
+	if (curSaveArray.length > SAVED_FILES_CAPACITY)
 	{
 		curSaveArray.splice(0, 1)
 	}
 	curSaveArray.push(saveDat);
-	var savesDatStr = JSON.stringify(curSaveArray);
-	storage_set('saves', savesDatStr)
+	storage_set('saves', JSON.stringify(curSaveArray))
 
-	repopulateSaveDropdown(curSaveArray);
+	repopulateSaveDropdown(curSaveArray)
 
-	var loadDropdown = document.getElementById('loadDropDown');
-	loadDropdown.selectedIndex=0;
+	document.getElementById('loadDropDown').selectedIndex = 0
 
-	setEditorClean();
+	setEditorClean()
 
 	consolePrint("saved file to local storage", true)
-	if (curSaveArray.length === 20)
+	if (curSaveArray.length === SAVED_FILES_CAPACITY)
 	{
-		consolePrint('WARNING: your <i>locally saved file list</i> has reached its maximum capacity of 20 files - older saved files will be deleted when you save in future. You should consider using the "SHARE ON CLOUD" button!', true)
+		consolePrint('WARNING: your <i>locally saved file list</i> has reached its maximum capacity of '+SAVED_FILES_CAPACITY+' files - older saved files will be deleted when you save in future. You should consider using the "SHARE ON CLOUD" button!', true)
 	}
 }
 
