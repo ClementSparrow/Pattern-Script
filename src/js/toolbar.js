@@ -304,7 +304,7 @@ function shareOnGitHub(is_public, should_fork=false)
 	githubHTTPClient.setRequestHeader("Authorization", "token "+oauthAccessToken);
 	const stringifiedGist = JSON.stringify(gistToCreate);
 	githubHTTPClient.send(stringifiedGist);
-    lastDownTarget=canvas;	
+   lastDownTarget = screen_layout.canvas
 }
 
 function githubLogOut()
