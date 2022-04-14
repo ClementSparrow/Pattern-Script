@@ -236,7 +236,9 @@ function setEditorLightMode(new_mode) // 0 for dark, 1 for light
 {
 	const mode = (new_mode === null) ? 1 : parseInt(new_mode)
 	storage_set('light_mode', mode)
-	editor.setOption('theme', (['midnight', 'midday'])[mode]);
+	editor.setOption('theme', (['midnight', 'midday'])[mode])
+	document.body.classList.remove((['light_mode', 'dark_mode'])[mode])
+	document.body.classList.add((['dark_mode', 'light_mode'])[mode])
 	document.getElementById('switchModeClickLink').innerHTML = (['LIGHT MODE', 'DARK MODE'])[mode]
 }
 setEditorLightMode(storage_get('light_mode'))
@@ -319,9 +321,7 @@ function tryLoadFile(fileName)
 
 function canExit()
 {
- 	if( ! _editorDirty )
- 		return true;
- 	return confirm("You haven't saved your game! Are you sure you want to lose your unsaved changes?")
+ 	return ( ! _editorDirty ) || confirm("You haven't saved your game! Are you sure you want to lose your unsaved changes?")
 }
  
 function dropdownChange() {

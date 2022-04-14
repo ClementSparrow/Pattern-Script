@@ -120,3 +120,25 @@ function reset_panels(){
 	winwidth = window.innerWidth;
 	winheight = window.innerHeight;
 };
+
+
+function activateExclusiveView(view_dict, active_view)
+{
+	for (const n in view_dict)
+	{
+		document.getElementById(n).style.display = 'none'
+		var tab_button = document.getElementById(view_dict[n])
+		tab_button.className = tab_button.className.replace(/\bactive\b/, '')
+	}
+
+	document.getElementById(view_dict[active_view]).className += " active"
+	var result = document.getElementById(active_view)
+	result.style.display = 'block'
+	return result
+}
+
+const editor_tabs = { editor_pane_meta: 'editor_tab_meta', form1: 'editor_tab_code', editor_pane_sprites: 'editor_tab_sprites'}
+function activateEditorTab(active_tab_id)
+{
+	return activateExclusiveView(editor_tabs, active_tab_id)
+}
