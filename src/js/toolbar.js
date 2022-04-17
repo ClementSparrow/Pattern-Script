@@ -61,7 +61,11 @@ function saveClick()
 		date: new Date()
 	}
 
-	var curSaveArray = storage_has('saves') ? JSON.parse(storage_get('saves')) : []
+	var curSaveArray = [];
+	if ( storage_has('saves'))
+	{
+		var curSaveArray = JSON.parse(storage_get('saves'))
+	}
 
 	if (curSaveArray.length > SAVED_FILES_CAPACITY)
 	{
@@ -74,7 +78,7 @@ function saveClick()
 
 	document.getElementById('loadDropDown').selectedIndex = 0
 
-	setEditorClean()
+	tabs.setClean()
 
 	consolePrint("saved file to local storage", true)
 	if (curSaveArray.length === SAVED_FILES_CAPACITY)
@@ -102,7 +106,7 @@ window.addEventListener("popstate", function(event)
 
 function loadDropDownChange()
 {
-	if ( ! canExit() )
+	if ( ! tabs.canExit() )
 	{
  		this.selectedIndex = 0;
  		return;
@@ -291,7 +295,7 @@ function shareOnGitHub(is_public, should_fork=false)
 			}
 
 			window.history.replaceState(null, null, "?hack="+id);
-			setEditorCleanForGithub()
+			tabs.setCleanForGithub()
 
 		}
 	}
@@ -333,5 +337,5 @@ function exportClick()
 function switchLightClick()
 {
 	const clicklink = document.getElementById('switchModeClickLink')
-	setEditorLightMode( ['DARK MODE', 'LIGHT MODE'].indexOf(clicklink.innerHTML) )
+	tabs.setLightMode( ['DARK MODE', 'LIGHT MODE'].indexOf(clicklink.innerHTML) )
 }

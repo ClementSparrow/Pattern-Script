@@ -1121,7 +1121,7 @@ function compile(level, text, randomseed) // level = null means restart, level =
 
 	if (text === undefined)
 	{
-		text = window.form1.code.editorreference.getValue() + '\n'
+		text = window.editor_pane_code.code.editorreference.getValue() + '\n'
 	}
 	if (canDump === true)
 	{

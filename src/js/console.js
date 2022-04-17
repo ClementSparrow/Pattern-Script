@@ -1,6 +1,6 @@
 function jumpToLine(i)
 {
-    var code = parent.form1.code;
+    var code = parent.editor_pane_code.code;
 
     var editor = code.editorreference;
 
