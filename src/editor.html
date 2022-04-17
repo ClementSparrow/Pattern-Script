@@ -28,13 +28,14 @@
 		display: inline-block;
 		border: lightgray 1px solid; border-bottom: none; border-radius: 1em 1em 0 0 / 0.4em 0.4em 0 0;
 		font-variant: small-caps;
+		background-color: black;
 	}
 	#editor_tabs li.active { background-color: #e06f8b !important; }
 	#editor_tabs li.active a { color: black; }
 	/* Light mode */
-	.light_mode #editor_tabs { background-color: lightgray; }
+	#editor_tabs { background-color: #444; }
 	.light_mode #editor_tabs li { background-color: white; }
-	.light_mode #editor_tabs li.active a { color: lightgray; }
+	.light_mode #editor_tabs li.active a { color: white; }
 	.light_mode #editor_tabs a { color: black; }
 </style>
 </head>
@@ -43,12 +44,12 @@
 <div id="leftpanel">
 <div id="editor_tabs"><ul>
 	<li id="editor_tab_meta"><a onclick="activateEditorTab('editor_pane_meta')">Meta</a></li>
-	<li id="editor_tab_code" class="active"><a onclick="activateEditorTab('form1')">Code</a></li>
+	<li id="editor_tab_code" class="active"><a onclick="activateEditorTab('editor_pane_code')">Code</a></li>
 	<li id="editor_tab_sprites"><a onclick="activateEditorTab('editor_pane_sprites')">Sprites</a></li>
 </ul></div>
 <div id="editor_panes">
 <div id="editor_pane_meta"></div>
-<form id="form1" name="form1"  action="javascript:void(0);"><textarea id="code" class="codeform" name="code" rows="20" cols="20" style="display:none;">
+<form id="editor_pane_code" name="editor_pane_code"  action="javascript:void(0);"><textarea id="code" class="codeform" name="code" rows="20" cols="20" style="display:none;">
 title My Game
 author My Name Here
 homepage www.your.homepage.net
@@ -259,6 +260,7 @@ LEVELS
 <script src="js/editor/level.js"></script>
 <script src="js/editor/level_editor.js"></script>
 <script src="js/editor/sprite_editor.js"></script>
+<script src="js/editor/tabs.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/compiler/sprites.js"></script>
 <script src="js/compiler.js"></script>

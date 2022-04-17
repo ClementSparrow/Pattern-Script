@@ -137,7 +137,7 @@ function activateExclusiveView(view_dict, active_view)
 	return result
 }
 
-const editor_tabs = { editor_pane_meta: 'editor_tab_meta', form1: 'editor_tab_code', editor_pane_sprites: 'editor_tab_sprites'}
+const editor_tabs = { editor_pane_meta: 'editor_tab_meta', editor_pane_code: 'editor_tab_code', editor_pane_sprites: 'editor_tab_sprites'}
 function activateEditorTab(active_tab_id)
 {
 	return activateExclusiveView(editor_tabs, active_tab_id)

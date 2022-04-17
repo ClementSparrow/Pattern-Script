@@ -22,7 +22,8 @@ window.onbeforeunload = function (e) {
   var e = e || window.event;
   var msg = 'You have unsaved changes!';
 
-  if(_editorDirty) {      
+  if(tabs.is_dirty)
+  {
 
     // For IE and Firefox prior to version 4
     if (e) {

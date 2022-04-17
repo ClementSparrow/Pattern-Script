@@ -12,10 +12,15 @@ window.CodeMirror.defineMode('puzzle', function()
 	}
 );
 
+function getParameterByName(name)
+{
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
 
 var code = document.getElementById('code')
-var _editorDirty = false
-var _editorCleanState = ''
 
 const fileToOpen = getParameterByName('demo')
 if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
@@ -157,61 +162,18 @@ editor.on('mousedown', function(cm, event)
 	}
 })
 
-_editorCleanState = editor.getValue();
-
-function checkEditorDirty()
+editor.setLightMode = function(mode)
 {
-	_editorDirty = ( _editorCleanState !== editor.getValue() )
-
-	var saveLink = document.getElementById('saveClickLink');
-	if (saveLink)
-	{
-		saveLink.innerHTML = _editorDirty ? 'SAVE*' : 'SAVE';
-	}
-
-	var saveOnGitgubLink = document.getElementById('cloudSaveClickLink')
-	if (saveOnGitgubLink)
-	{
-		const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
-		if (update_gist_id === null)
-		{
-			saveOnGitgubLink.innerHTML = 'SAVE ON CLOUD'
-		}
-		else
-		{
-			saveOnGitgubLink.innerHTML = _editorDirty ? 'UPDATE CLOUD' : 'SAVED ON CLOUD';
-		}
-	}
+	this.setOption('theme', (['midnight', 'midday'])[mode])
 }
 
+tabs.addTab(editor)
+tabs.setLightMode(storage_get('light_mode'))
 
-function setEditorCleanForGithub() // called after a game has been loaded in the editor from GitHub or after it has been saved on GitHub
-{
-	var saveOnGitgubLink = document.getElementById('cloudSaveClickLink')
-	if (saveOnGitgubLink)
-	{
-		const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
-		saveOnGitgubLink.innerHTML = (update_gist_id === null) ? 'SAVE ON CLOUD' : 'SAVED ON CLOUD';
-	}
-}
-
-function setEditorClean() // called after a game has been loaded in the editor or after it has been saved (locally or on cloud)
-{
-	_editorCleanState = editor.getValue();
-	if (_editorDirty === true)
-	{
-		var saveLink = document.getElementById('saveClickLink');
-		if(saveLink)
-		{
-			saveLink.innerHTML = 'SAVE';
-		}
-		_editorDirty = false;
-	}
-}
 
 
 /* https://github.com/ndrake/PuzzleScript/commit/de4ac2a38865b74e66c1d711a25f0691079a290d */
-editor.on('change', (cm, changeObj) => checkEditorDirty() );
+editor.on('change', (cm, changeObj) => tabs.checkDirty() )
 
 var mapObj = {
    parallel:"&#8741;",
@@ -231,26 +193,6 @@ editor.on("beforeChange", function(instance, change) {
 
 code.editorreference = editor;
 
-
-function setEditorLightMode(new_mode) // 0 for dark, 1 for light
-{
-	const mode = (new_mode === null) ? 1 : parseInt(new_mode)
-	storage_set('light_mode', mode)
-	editor.setOption('theme', (['midnight', 'midday'])[mode])
-	document.body.classList.remove((['light_mode', 'dark_mode'])[mode])
-	document.body.classList.add((['dark_mode', 'light_mode'])[mode])
-	document.getElementById('switchModeClickLink').innerHTML = (['LIGHT MODE', 'DARK MODE'])[mode]
-}
-setEditorLightMode(storage_get('light_mode'))
-
-
-function getParameterByName(name)
-{
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
 
 function tryLoadGist(id)
 {
@@ -289,17 +231,17 @@ function tryLoadGist(id)
 		{
 			loadText( result["files"]["script.txt"]["content"] )
 			editor.clearHistory();
-			setEditorCleanForGithub()
+			tabs.setCleanForGithub()
 		}
 	}
 	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	githubHTTPClient.send();
 }
 
-function loadText(txt)
+function loadText(txt) // WIP TODO
 {
 	editor.setValue(txt)
-	setEditorClean()
+	tabs.setClean()
 	state = introstate
 	level = new Level(5, 5, new Int32Array(0))
 	title_screen.makeTitle()
@@ -318,14 +260,11 @@ function tryLoadFile(fileName)
 	}
 	fileOpenClient.send();
 }
-
-function canExit()
-{
- 	return ( ! _editorDirty ) || confirm("You haven't saved your game! Are you sure you want to lose your unsaved changes?")
-}
  
-function dropdownChange() {
-	if(!canExit()) {
+function dropdownChange()
+{
+	if( ! tabs.canExit() )
+	{
  		this.selectedIndex = 0;
  		return;
  	}
@@ -337,14 +276,7 @@ function dropdownChange() {
 editor.on('keyup', function (editor, event) {
 	if (!CodeMirror.ExcludedIntelliSenseTriggerKeys[(event.keyCode || event.which).toString()])
 	{
-		var dosuggest=true;
-		// if (editor.doc.sel.ranges.length>0){
-		// 	console.log(editor.getRange(editor.doc.sel.ranges[0].anchor, {line:53,ch:59}));
-		// }
-
-		if (dosuggest){
-			CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
-		}
+		CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
 	}
 })
 
