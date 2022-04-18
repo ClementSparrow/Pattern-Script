@@ -141,7 +141,7 @@ LEVELS
 	<a id="saveClickLink" href="javascript:void(0);" onclick="saveClick()">SAVE</a> - 
 	<a id="cloudSaveClickLink" href="javascript:void(0);" title="Save your game securely as a private Gist on GitHub so that you can access it from anywhere." onclick="cloudSaveClick()">SAVE ON CLOUD</a> - 
 	<form action="" style="display:inline;"><select id="loadDropDown" name="default" style="display:inline; width:100px"> -
-</select></form> - <form action="" style="display:inline;"> <select  id="exampleDropdown"  name="default" style="display:inline; width:150px">
+</select></form> - <form action="" style="display:inline;"><select id="exampleDropdown" name="default" style="display:inline; width:150px">
 <option value="sokoban_basic">Load Example</option>
 <optgroup label="Tutorial">
 <option value="sokoban_basic">Basic</option>
@@ -262,12 +262,15 @@ LEVELS
 <script src="js/editor/level.js"></script>
 <script src="js/editor/level_editor.js"></script>
 <script src="js/editor/sprite_editor.js"></script>
+<script src="js/layout.js"></script>
 <script src="js/editor/tabs.js"></script>
+<script src="js/editor/game_hosting_services/demos.js"></script>
+<script src="js/editor/game_hosting_services/local_storage.js"></script>
+<script src="js/editor/game_hosting_services/github.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/compiler.js"></script>
 <script src="js/soundbar.js"></script>
 <script src="js/toolbar.js"></script>
-<script src="js/layout.js"></script>
 <script src="js/addlisteners_editor.js"></script>
 <script src="js/makegif.js"></script>
 
