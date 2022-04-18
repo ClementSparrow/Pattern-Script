@@ -87,14 +87,14 @@ function getParameterByName(name)
 function CodeEditorTabManager(html_element_id)
 {
 
-	this.code = document.getElementById(html_element_id)
+	var code = document.getElementById(html_element_id)
 
 	// WIP TODO: this should not be in this function
 	const fileToOpen = getParameterByName('demo')
 	if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
 	{
 		tryLoadFile(fileToOpen)
-		this.code.value = 'loading...'
+		code.value = 'loading...'
 	}
 	else
 	{
@@ -102,7 +102,7 @@ function CodeEditorTabManager(html_element_id)
 		if ( (gistToLoad !== null) && (gistToLoad.length > 0) )
 		{
 			tryLoadGist( gistToLoad.replace(/[\\\/]/, '') )
-			this.code.value = 'loading...'
+			code.value = 'loading...'
 		}
 		else
 		{
@@ -110,14 +110,14 @@ function CodeEditorTabManager(html_element_id)
 				if (storage_has('saves'))
 				{
 					const curSaveArray = JSON.parse(storage_get('saves'))
-					this.code.value = curSaveArray[curSaveArray.length-1].text
+					code.value = curSaveArray[curSaveArray.length-1].text
 					document.getElementById('loadDropDown').selectedIndex = 0
 				}
 			} catch(ex) { }
 		}
 	}
 
-	this.editor = window.CodeMirror.fromTextArea(this.code, {
+	this.editor = window.CodeMirror.fromTextArea(code, {
 	//	viewportMargin: Infinity,
 		lineWrapping: true,
 		lineNumbers: true,
@@ -167,8 +167,6 @@ function CodeEditorTabManager(html_element_id)
 	/* https://github.com/ndrake/PuzzleScript/commit/de4ac2a38865b74e66c1d711a25f0691079a290d */
 	this.editor.on('change', (cm, changeObj) => tabs.checkDirty() )
 
-	this.code.editorreference = this.editor
-
 	this.editor.on('keyup', function (editor, event) {
 		if (!CodeMirror.ExcludedIntelliSenseTriggerKeys[(event.keyCode || event.which).toString()])
 		{
@@ -206,52 +204,6 @@ editor_tabmanager = new CodeEditorTabManager('code')
 tabs.addTab(editor_tabmanager)
 tabs.setLightMode(storage_get('light_mode'))
 
-
-
-function tryLoadGist(id)
-{
-	const githubURL = 'https://api.github.com/gists/'+id
-
-	consolePrint("Contacting GitHub", true)
-	var githubHTTPClient = new XMLHttpRequest()
-	githubHTTPClient.open('GET', githubURL)
-	if (storage_has('oauth_access_token'))
-	{
-		var oauthAccessToken = storage_get('oauth_access_token')
-		if (typeof oauthAccessToken === 'string')
-		{
-			githubHTTPClient.setRequestHeader('Authorization', 'token '+oauthAccessToken)
-		}
-	}
-	githubHTTPClient.onreadystatechange = function() {
-	
-		if(githubHTTPClient.readyState != 4)
-			return;
-
-		if (githubHTTPClient.responseText==="") {
-			consoleError("GitHub request returned nothing.  A connection fault, maybe?");
-		}
-
-		var result = JSON.parse(githubHTTPClient.responseText);
-		if (githubHTTPClient.status === 403)
-		{
-			consoleError(result.message);
-		}
-		else if (githubHTTPClient.status !== 200 && githubHTTPClient.status !== 201)
-		{
-			consoleError("HTTP Error "+ githubHTTPClient.status + ' - ' + githubHTTPClient.statusText);
-		}
-		else
-		{
-			loadText( result["files"]["script.txt"]["content"] )
-			editor_tabmanager.editor.clearHistory();
-			tabs.setCleanForGithub()
-		}
-	}
-	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	githubHTTPClient.send();
-}
-
 function loadText(txt) // WIP TODO
 {
 	editor_tabmanager.editor.setValue(txt)
@@ -260,29 +212,6 @@ function loadText(txt) // WIP TODO
 	setPageTitle()
 }
 
-function tryLoadFile(fileName)
-{
-	var fileOpenClient = new XMLHttpRequest();
-	fileOpenClient.open('GET', 'demo/'+fileName+".txt");
-	fileOpenClient.onreadystatechange = function()
-	{		
-		if(fileOpenClient.readyState == 4)
-			loadText(fileOpenClient.responseText)
-	}
-	fileOpenClient.send();
-}
- 
-function dropdownChange()
-{
-	if( ! tabs.canExit() )
-	{
- 		this.selectedIndex = 0;
- 		return;
- 	}
-
-	tryLoadFile(this.value);
-	this.selectedIndex=0;
-}
 
 title_screen.makeTerminalScreen()
 // TODO: This one should not play sound, but it does not matter because the sound has not been compiled yet.
