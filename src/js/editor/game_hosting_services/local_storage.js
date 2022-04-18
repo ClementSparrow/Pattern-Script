@@ -3,32 +3,24 @@ const SAVED_FILES_CAPACITY = 30
 
 function saveClick()
 {
-	const title = (state.metadata.title!==undefined) ? state.metadata.title : "Untitled";
-	const text = editor_tabmanager.getContent()
-	var saveDat = {
-		title: title,
-		text: text,
+	const saveDat = {
+		title: (state.metadata.title!==undefined) ? state.metadata.title : 'Untitled',
+		text: editor_tabmanager.getContent(),
 		date: new Date()
 	}
 
-	var curSaveArray = [];
-	if ( storage_has('saves'))
-	{
-		var curSaveArray = JSON.parse(storage_get('saves'))
-	}
+	var curSaveArray = storage_has('saves') ? JSON.parse(storage_get('saves')) : []
 
 	if (curSaveArray.length > SAVED_FILES_CAPACITY)
 	{
 		curSaveArray.splice(0, 1)
 	}
-	curSaveArray.push(saveDat);
-	var savesDatStr = JSON.stringify(curSaveArray);
-	storage_set('saves', savesDatStr)
+	curSaveArray.push(saveDat)
+	storage_set('saves', JSON.stringify(curSaveArray))
 
-	repopulateSaveDropdown(curSaveArray);
+	repopulateSaveDropdown(curSaveArray)
 
-	var loadDropdown = document.getElementById('loadDropDown');
-	loadDropdown.selectedIndex=0;
+	document.getElementById('loadDropDown').selectedIndex = 0
 
 	tabs.setClean()
 
@@ -43,66 +35,64 @@ function loadDropDownChange()
 {
 	if ( ! tabs.canExit() )
 	{
- 		this.selectedIndex = 0;
- 		return;
+ 		this.selectedIndex = 0
+ 		return
  	}
 
 	const saveString = storage_get('saves')
 	if (saveString === null)
 	{
-		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!",true);
+		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!", true)
 	} 
 
-	saves = JSON.parse(saveString);
+	saves = JSON.parse(saveString)
 	
 	for (const sd of saves)
 	{
-	    var key = dateToReadable(sd.title, new Date(sd.date));
-	    if (key == this.value)
+	    if (dateToReadable(sd.title, new Date(sd.date)) == this.value)
 	    {
-	    	const saveText = sd.text;
-			document.getElementById('loadDropDown').selectedIndex = 0;
-			loadText(saveText)
-			return;
+			document.getElementById('loadDropDown').selectedIndex = 0
+			loadText(sd.text)
+			return
 	    }
 	}		
 
-	consolePrint("Eek, trying to load a save, but couldn't find it. :(",true);
+	consolePrint("Eek, trying to load a save, but couldn't find it. :(", true)
 }
 
 
 function repopulateSaveDropdown(saves)
 {
-	var loadDropdown = document.getElementById('loadDropDown');
-	loadDropdown.options.length = 0;
+	var loadDropdown = document.getElementById('loadDropDown')
+	loadDropdown.options.length = 0
 
 	if (saves === undefined)
 	{
 		try
 		{
 			if ( ! storage_has('saves') )
-				return;
+				return
 			saves = JSON.parse(storage_get('saves'))
 		}
-		catch (ex)
+		catch (ex) // TODO: we should probably do something here?
 		{
-			return;
+			return
 		}
 	}
 
-    var optn = document.createElement("OPTION");
-    optn.text = "Load";
-    optn.value = "Load";
-    loadDropdown.options.add(optn);  
+    var optn = document.createElement("OPTION")
+    optn.text = 'Load'
+    optn.value = 'Load'
+    loadDropdown.options.add(optn)
 
 	for (var i=saves.length-1; i >= 0; i--)
 	{
-		const sd = saves[i];
-	    var optn = document.createElement("OPTION");
-	    const key = dateToReadable(sd.title, new Date(sd.date));
-	    optn.text = key;
-	    optn.value = key;
-	    loadDropdown.options.add(optn);  
+		const sd = saves[i]
+	    var optn = document.createElement("OPTION")
+	    const key = dateToReadable(sd.title, new Date(sd.date))
+	    optn.text = key
+	    optn.value = key
+	    loadDropdown.options.add(optn)
 	}
 	loadDropdown.selectedIndex = 0;
 }

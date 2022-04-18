@@ -12,12 +12,9 @@ function tryLoadFile(fileName)
 
 function dropdownChange()
 {
-	if( ! tabs.canExit() )
+	if(tabs.canExit())
 	{
- 		this.selectedIndex = 0
- 		return
- 	}
-
-	tryLoadFile(this.value)
+		tryLoadFile(this.value)
+	}
 	this.selectedIndex = 0
 }
