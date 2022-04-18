@@ -187,17 +187,17 @@ Mobile.log = function(message)
         return false;
     };
 
-    proto.handleFocusChange = function (event) {
-        if (!this.focusElement) {
-            return;
-        }
+    proto.handleFocusChange = function (event)
+    {
+        if (!this.focusElement)
+            return
 
         this.isFocused = this.isTouchInsideFocusElement(event);
         this.setFocusIndicatorVisibility(this.isFocused);
         
-        canvas.focus();
-        editor.display.input.blur();
-    };
+        canvas.focus()
+        tabs.removeFocus()
+    }
 
     proto.isTouchInsideFocusElement = function (event) {
         var canvasPosition;

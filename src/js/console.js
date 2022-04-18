@@ -1,28 +1,6 @@
 function jumpToLine(i)
 {
-    var code = parent.editor_pane_code.code;
-
-    var editor = code.editorreference;
-
-    // editor.getLineHandle does not help as it does not return the reference of line.
-    var ll = editor.doc.lastLine();
-    var low=i-1-10;    
-    var high=i-1+10;    
-    var mid=i-1;
-    if (low<0){
-    	low=0;
-    }
-    if (high>ll){
-    	high=ll;
-    }
-    if (mid>ll){
-    	mid=ll;
-    }
-
-    editor.scrollIntoView(low);
-    editor.scrollIntoView(high);
-    editor.scrollIntoView(mid);
-    editor.setCursor(mid, 0);
+    editor_tabmanager.editor.jumpToLine(i)
 }
 
 // Selectable text in console
@@ -149,8 +127,7 @@ function consoleError(text) {
         consolePrint(errorString,true);
 }
 function clearConsole() {
-	var code = document.getElementById('consoletextarea');
-	code.innerHTML = '';
+	document.getElementById('consoletextarea').innerHTML = ''
 	var objDiv = document.getElementById('lowerarea');
 	objDiv.scrollTop = objDiv.scrollHeight;
 }

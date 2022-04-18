@@ -54,7 +54,7 @@ const SAVED_FILES_CAPACITY = 30
 function saveClick()
 {
 	const title = (state.metadata.title!==undefined) ? state.metadata.title : "Untitled";
-	const text = editor.getValue();
+	const text = editor_tabmanager.getContent()
 	var saveDat = {
 		title: title,
 		text: text,
@@ -222,7 +222,7 @@ function shareOnGitHub(is_public, should_fork=false)
 	compile()
 
 	const title = (state.metadata.title !== undefined) ? state.metadata.title + " ("+PSFORKNAME+" Script)" : ("Untitled "+PSFORKNAME+" Script");
-	const source = editor.getValue();
+	const source = editor_tabmanager.getContent()
 
 	var gistToCreate = {
 		"description" : title,
@@ -328,7 +328,7 @@ function rebuildClick()
 
 function exportClick()
 {
-	const sourceCode = editor.getValue();
+	const sourceCode = editor_tabmanager.getContent()
 	compile(null)
 	buildStandalone(JSON.stringify(sourceCode));
 }

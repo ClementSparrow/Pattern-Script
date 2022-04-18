@@ -1,7 +1,4 @@
 
-var audio;
-
-
 function newSound(instrument)
 {
 	const seed = instrument + 100 * ((Math.random() * 1000000) | 0)
@@ -15,8 +12,7 @@ function newSound(instrument)
 
 function buttonPress() {
 	var generatortype = 3;
-	var seed = document.getElementById('sounddat').value;
-	var params = generateFromSeed(seed);
+	var params = generateFromSeed( document.getElementById('sounddat').value )
 	params.sample_rate = SAMPLE_RATE;
 	params.bit_depth = BIT_DEPTH;
 	var sound = SoundEffect.generate(params);
