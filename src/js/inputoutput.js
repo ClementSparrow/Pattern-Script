@@ -202,7 +202,7 @@ function onKeyDown(event)
             prevent(event);
         } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
 			screen_layout.canvas.focus()
-			editor.display.input.blur();
+			tabs.removeFocus()
             if (event.shiftKey) {
 				runClick()
 			} else {

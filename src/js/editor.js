@@ -12,44 +12,6 @@ window.CodeMirror.defineMode('puzzle', function()
 	}
 );
 
-function getParameterByName(name)
-{
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
-var code = document.getElementById('code')
-
-const fileToOpen = getParameterByName('demo')
-if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
-{
-	tryLoadFile(fileToOpen)
-	code.value = 'loading...'
-}
-else
-{
-	const gistToLoad = getParameterByName('hack')
-	if ( (gistToLoad !== null) && (gistToLoad.length > 0) )
-	{
-		var id = gistToLoad.replace(/[\\\/]/,"")
-		tryLoadGist(id)
-		code.value = 'loading...'
-	}
-	else
-	{
-		try {
-			if (storage_has('saves'))
-			{
-				const curSaveArray = JSON.parse(storage_get('saves'))
-				code.value = curSaveArray[curSaveArray.length-1].text
-				document.getElementById('loadDropDown').selectedIndex = 0
-			}
-		} catch(ex) { }
-	}
-}
-
 moveSelectedLines = function(cm, dir)
 {
 	var selected_line_ranges = cm.listSelections().map( range => [ Math.min(range.anchor.line, range.head.line), Math.max(range.head.line, range.anchor.line) ] )
@@ -114,84 +76,136 @@ CodeMirror.commands.selectLine = function(cm)
 	}))
 }
 
-
-var editor = window.CodeMirror.fromTextArea(code, {
-//	viewportMargin: Infinity,
-	lineWrapping: true,
-	lineNumbers: true,
-	styleActiveLine: true,
-	extraKeys: {
-		'Ctrl-/': 'toggleComment',
-		'Cmd-/': 'toggleComment',
-		'Esc': CodeMirror.commands.clearSearch,
-		'Shift-Ctrl-Up': 'moveSelectedLinesUp',
-		// 'Shift-Cmd-Up':  'moveSelectedLinesUp', // conflicts with "select to the beginning/end of the document", and Ctrl works on mac.
-		'Shift-Ctrl-Down': 'moveSelectedLinesDown',
-		// 'Shift-Cmd-Down':  'moveSelectedLinesDown',
-		// 'Ctrl-L': 'selectLine', // shortcut conflicts with URL bar activation in many browsers.
-		// 'Cmd-L': 'selectLine',
-	}
-})
-	
-editor.on('mousedown', function(cm, event)
+function getParameterByName(name)
 {
-	if (event.target.className == 'cm-SOUND')
-	{
-		playSound(event.target.innerHTML)
-	}
-	else if (event.target.className == 'cm-LEVEL')
-	{
-		if (event.ctrlKey || event.metaKey)
-		{
-			document.activeElement.blur()  // unfocus code panel
-			editor.display.input.blur()
-			prevent(event)         // prevent refocus
-			const targetLine = cm.posFromMouse(event).line + 1
-			compile(
-				function(levels)
-				{
-					for (let i=levels.length-1; i>=0; i--)
-					{
-						if (levels[i].lineNumber <= targetLine)
-							return new LevelState(i, 2)
-					}
-					return undefined
-				}
-			)
-		}
-	}
-})
-
-editor.setLightMode = function(mode)
-{
-	this.setOption('theme', (['midnight', 'midday'])[mode])
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
-tabs.addTab(editor)
+function CodeEditorTabManager(html_element_id)
+{
+
+	this.code = document.getElementById(html_element_id)
+
+	// WIP TODO: this should not be in this function
+	const fileToOpen = getParameterByName('demo')
+	if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
+	{
+		tryLoadFile(fileToOpen)
+		this.code.value = 'loading...'
+	}
+	else
+	{
+		const gistToLoad = getParameterByName('hack')
+		if ( (gistToLoad !== null) && (gistToLoad.length > 0) )
+		{
+			tryLoadGist( gistToLoad.replace(/[\\\/]/, '') )
+			this.code.value = 'loading...'
+		}
+		else
+		{
+			try {
+				if (storage_has('saves'))
+				{
+					const curSaveArray = JSON.parse(storage_get('saves'))
+					this.code.value = curSaveArray[curSaveArray.length-1].text
+					document.getElementById('loadDropDown').selectedIndex = 0
+				}
+			} catch(ex) { }
+		}
+	}
+
+	this.editor = window.CodeMirror.fromTextArea(this.code, {
+	//	viewportMargin: Infinity,
+		lineWrapping: true,
+		lineNumbers: true,
+		styleActiveLine: true,
+		extraKeys: {
+			'Ctrl-/': 'toggleComment',
+			'Cmd-/': 'toggleComment',
+			'Esc': CodeMirror.commands.clearSearch,
+			'Shift-Ctrl-Up': 'moveSelectedLinesUp',
+			// 'Shift-Cmd-Up':  'moveSelectedLinesUp', // conflicts with "select to the beginning/end of the document", and Ctrl works on mac.
+			'Shift-Ctrl-Down': 'moveSelectedLinesDown',
+			// 'Shift-Cmd-Down':  'moveSelectedLinesDown',
+			// 'Ctrl-L': 'selectLine', // shortcut conflicts with URL bar activation in many browsers.
+			// 'Cmd-L': 'selectLine',
+		}
+	})
+		
+	this.editor.on('mousedown', function(cm, event)
+	{
+		if (event.target.className == 'cm-SOUND')
+		{
+			playSound( parseInt(event.target.innerHTML) )
+		}
+		else if (event.target.className == 'cm-LEVEL')
+		{
+			if (event.ctrlKey || event.metaKey)
+			{
+				document.activeElement.blur()  // unfocus code panel
+				tabs.removeFocus()
+				prevent(event)         // prevent refocus
+				const targetLine = cm.posFromMouse(event).line + 1
+				compile(
+					function(levels)
+					{
+						for (let i=levels.length-1; i>=0; i--)
+						{
+							if (levels[i].lineNumber <= targetLine+1)
+								return new LevelState(i, 2)
+						}
+						return undefined
+					}
+				)
+			}
+		}
+	})
+
+	/* https://github.com/ndrake/PuzzleScript/commit/de4ac2a38865b74e66c1d711a25f0691079a290d */
+	this.editor.on('change', (cm, changeObj) => tabs.checkDirty() )
+
+	this.code.editorreference = this.editor
+
+	this.editor.on('keyup', function (editor, event) {
+		if (!CodeMirror.ExcludedIntelliSenseTriggerKeys[(event.keyCode || event.which).toString()])
+		{
+			CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
+		}
+	})
+}
+
+CodeEditorTabManager.prototype =
+{
+
+	getContent: function() { return this.editor.getValue() },
+
+	removeFocus: function() { this.editor.display.input.blur() },
+
+	setLightMode: function(mode)
+	{
+		this.editor.setOption('theme', (['midnight', 'midday'])[mode])
+	},
+
+	jumpToLine: function(i)
+	{
+		// editor.getLineHandle does not help as it does not return the reference of line.
+		const ll = this.editor.doc.lastLine()
+		const mid = Math.min(i-1, ll)
+
+		this.editor.scrollIntoView(Math.max(i-1-10, 0))
+		this.editor.scrollIntoView(Math.min(i-1+10, ll))
+		this.editor.scrollIntoView(mid)
+		this.editor.setCursor(mid, 0)
+	},
+}
+
+editor_tabmanager = new CodeEditorTabManager('code')
+tabs.addTab(editor_tabmanager)
 tabs.setLightMode(storage_get('light_mode'))
 
-
-
-/* https://github.com/ndrake/PuzzleScript/commit/de4ac2a38865b74e66c1d711a25f0691079a290d */
-editor.on('change', (cm, changeObj) => tabs.checkDirty() )
-
-var mapObj = {
-   parallel:"&#8741;",
-   perpendicular:"&#8869;"
-};
-
-/*
-editor.on("beforeChange", function(instance, change) {
-    var startline = 
-    for (var i = 0; i < change.text.length; ++i)
-      text.push(change.text[i].replace(/parallel|perpendicular/gi, function(matched){ 
-        return mapObj[matched];
-      }));
-
-    change.update(null, null, text);
-});*/
-
-code.editorreference = editor;
 
 
 function tryLoadGist(id)
@@ -230,7 +244,7 @@ function tryLoadGist(id)
 		else
 		{
 			loadText( result["files"]["script.txt"]["content"] )
-			editor.clearHistory();
+			editor_tabmanager.editor.clearHistory();
 			tabs.setCleanForGithub()
 		}
 	}
@@ -240,11 +254,8 @@ function tryLoadGist(id)
 
 function loadText(txt) // WIP TODO
 {
-	editor.setValue(txt)
+	editor_tabmanager.editor.setValue(txt)
 	tabs.setClean()
-	state = introstate
-	level = new Level(5, 5, new Int32Array(0))
-	title_screen.makeTitle()
 	compile(null, txt)
 	setPageTitle()
 }
@@ -272,13 +283,6 @@ function dropdownChange()
 	tryLoadFile(this.value);
 	this.selectedIndex=0;
 }
-
-editor.on('keyup', function (editor, event) {
-	if (!CodeMirror.ExcludedIntelliSenseTriggerKeys[(event.keyCode || event.which).toString()])
-	{
-		CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
-	}
-})
 
 title_screen.makeTerminalScreen()
 // TODO: This one should not play sound, but it does not matter because the sound has not been compiled yet.

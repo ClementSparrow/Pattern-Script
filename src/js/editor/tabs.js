@@ -11,13 +11,13 @@ PatternScriptEditorTabsManager.prototype = {
 addTab: function(tab_manager)
 {
 	this.tabs.push(tab_manager)
-	this.clean_states.push(tab_manager.getValue())
+	this.clean_states.push(tab_manager.getContent())
 },
 
 checkDirty: function()
 {
 	this.is_dirty = this.tabs.some(
-		(tab_manager, tab_index) => (this.clean_states[tab_index] !== tab_manager.getValue())
+		(tab_manager, tab_index) => (this.clean_states[tab_index] !== tab_manager.getContent())
 	)
 
 	const saveLink = document.getElementById('saveClickLink')
@@ -59,7 +59,7 @@ setCleanForGithub: function() // called after a game has been loaded in the edit
 
 setClean: function() // called after a game has been loaded in the editor or after it has been saved (locally or on cloud)
 {
-	this.clean_states = this.tabs.map( tab_manager => tab_manager.getValue() )
+	this.clean_states = this.tabs.map( tab_manager => tab_manager.getContent() )
 	if (this.is_dirty === true)
 	{
 		var saveLink = document.getElementById('saveClickLink')
@@ -71,9 +71,13 @@ setClean: function() // called after a game has been loaded in the editor or aft
 	}
 },
 
+removeFocus: function()
+{
+	this.tabs.forEach( tab_manager => tab_manager.removeFocus() )
+},
+
 setLightMode: function(new_mode) // 0 for dark, 1 for light. Call once all tabs have been added
 {
-	console.log('setting light mode to:', new_mode)
 	const mode = (new_mode === null) ? 0 : parseInt(new_mode)
 	storage_set('light_mode', mode)
 	this.tabs.map( tab_manager => tab_manager.setLightMode(mode) )

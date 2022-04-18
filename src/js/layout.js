@@ -1,6 +1,7 @@
 var soundbarwidth = 100;
 var lowerbarheight = document.getElementById("soundbar").clientHeight;
 var upperbarheight = document.getElementById("uppertoolbar").clientHeight;
+var tabsheight = document.getElementById('editor_tabs').clientHeight
 var winwidth = window.innerWidth;
 var winheight = window.innerHeight;
 var verticaldragbarWidth = document.getElementById("verticaldragbar").clientWidth;
@@ -20,6 +21,7 @@ function resize_widths(verticaldragbarX)
 function resize_heights(horizontaldragbarY)
 {
 	document.getElementById("leftpanel").style.height = (window.innerHeight - upperbarheight) + "px";
+	document.getElementById('editor_panes').style.height = (window.innerHeight - upperbarheight - tabsheight) + "px";
 	document.getElementById("verticaldragbar").style.height = (window.innerHeight - upperbarheight) + "px";
 	
 	document.getElementById("righttophalf").style.height = horizontaldragbarY - upperbarheight + "px";
