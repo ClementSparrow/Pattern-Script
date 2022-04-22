@@ -1,19 +1,9 @@
 const HOSTPAGEURL = 'https://clementsparrow.github.io/Pattern-Script/src'
-const PSFORKNAME = 'Pattern:Script'
-
-function setPageTitle()
-{
-	if (state.metadata.title !== undefined)
-	{
-		document.title = PSFORKNAME + ' - ' + state.metadata.title
-	}
-}
 
 function runClick()
 {
 	clearConsole()
 	compile(null)
-	setPageTitle()
 }
 
 function dateToReadable(title, time)
@@ -95,7 +85,6 @@ function rebuildClick()
 {
 	clearConsole()
 	compile()
-	setPageTitle()
 }
 
 function exportClick()

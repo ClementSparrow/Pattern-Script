@@ -1,4 +1,7 @@
-function tryLoadFile(fileName)
+
+function demoHostingManager() {}
+
+demoHostingManager.prototype.tryLoadSource = function(fileName)
 {
 	var fileOpenClient = new XMLHttpRequest()
 	fileOpenClient.open('GET', 'demo/'+fileName+".txt")
@@ -10,11 +13,14 @@ function tryLoadFile(fileName)
 	fileOpenClient.send()
 }
 
+const demos_manager = new demoHostingManager()
+hosting_managers.push( [ 'demo', demos_manager ])
+
 function dropdownChange()
 {
 	if(tabs.canExit())
 	{
-		tryLoadFile(this.value)
+		demos_manager.tryLoadSource(this.value)
 	}
 	this.selectedIndex = 0
 }

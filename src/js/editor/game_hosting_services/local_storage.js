@@ -1,3 +1,30 @@
+// This file must be the last hosting manager loaded!!
+
+function localHostingManager() {}
+
+localHostingManager.prototype.tryLoadSource = function(date = null)
+{
+	const saveString = storage_get('saves')
+	if (saveString === null)
+	{
+		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!", true)
+	} 
+
+	var saves = JSON.parse(saveString)
+	const index = (date === null) ? saves.length-1 : saves.findIndex( sd => (dateToReadable(sd.title, new Date(sd.date)) == date) )
+
+	if (index == -1)
+	{
+		consolePrint("Eek, trying to load a save, but couldn't find it. :(", true)
+		return
+	}
+
+	document.getElementById('loadDropDown').selectedIndex = 0
+	loadText(saves[index].text)
+}
+
+const localhosting_manager = new localHostingManager()
+hosting_managers.push( [ null, localhosting_manager ])
 
 const SAVED_FILES_CAPACITY = 30
 
@@ -38,26 +65,7 @@ function loadDropDownChange()
  		this.selectedIndex = 0
  		return
  	}
-
-	const saveString = storage_get('saves')
-	if (saveString === null)
-	{
-		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!", true)
-	} 
-
-	saves = JSON.parse(saveString)
-	
-	for (const sd of saves)
-	{
-	    if (dateToReadable(sd.title, new Date(sd.date)) == this.value)
-	    {
-			document.getElementById('loadDropDown').selectedIndex = 0
-			loadText(sd.text)
-			return
-	    }
-	}		
-
-	consolePrint("Eek, trying to load a save, but couldn't find it. :(", true)
+ 	localhosting_manager.tryLoadSource(this.value)
 }
 
 

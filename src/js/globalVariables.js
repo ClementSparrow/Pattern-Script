@@ -1,3 +1,5 @@
+const PSFORKNAME = 'Pattern:Script'
+
 var unitTesting=false;
 var curlevel=0;
 var muted=0;

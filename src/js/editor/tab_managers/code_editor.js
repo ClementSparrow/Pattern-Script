@@ -76,44 +76,8 @@ CodeMirror.commands.selectLine = function(cm)
 	}))
 }
 
-function getParameterByName(name)
-{
-    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-        results = regex.exec(location.search);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-}
-
 function CodeEditorTabManager(code)
 {
-	// WIP TODO: this should not be in this function
-	const fileToOpen = getParameterByName('demo')
-	if ( (fileToOpen !== null) && (fileToOpen.length > 0) )
-	{
-		tryLoadFile(fileToOpen)
-		code.value = 'loading...'
-	}
-	else
-	{
-		const gistToLoad = getParameterByName('hack')
-		if ( (gistToLoad !== null) && (gistToLoad.length > 0) )
-		{
-			tryLoadGist( gistToLoad.replace(/[\\\/]/, '') )
-			code.value = 'loading...'
-		}
-		else
-		{
-			try {
-				if (storage_has('saves'))
-				{
-					const curSaveArray = JSON.parse(storage_get('saves'))
-					code.value = curSaveArray[curSaveArray.length-1].text
-					document.getElementById('loadDropDown').selectedIndex = 0
-				}
-			} catch(ex) { }
-		}
-	}
-
 	this.editor = window.CodeMirror.fromTextArea(code, {
 	//	viewportMargin: Infinity,
 		lineWrapping: true,
@@ -176,6 +140,8 @@ CodeEditorTabManager.prototype =
 {
 
 	getContent: function() { return this.editor.getValue() },
+
+	setLoading: function() { this.editor.setValue('loading…') },
 
 	removeFocus: function() { this.editor.display.input.blur() },
 
