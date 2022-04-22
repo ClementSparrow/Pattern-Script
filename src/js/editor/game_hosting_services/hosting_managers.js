@@ -7,7 +7,7 @@ function parseURLtoLoadGame()
 		var parameter_value = null
 		if (parameter_name !== null)
 		{
-			var regex = new RegExp("[\\?&]" + parameter_name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]") + "=([^&#]*)")
+			var regex = new RegExp("[\\?&]" + parameter_name + "=([^&#]*)")
 			const results = regex.exec(location.search)
 			if (results === null)
 				continue
