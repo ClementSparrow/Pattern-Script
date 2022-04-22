@@ -1081,6 +1081,8 @@ function compile(level, text, randomseed) // level = null means restart, level =
 	clearInputHistory()
 
 	consoleCacheDump()
+
+	document.title = PSFORKNAME + ( (state.metadata.title !== undefined) ? ' - ' + state.metadata.title : '' )
 }
 
 

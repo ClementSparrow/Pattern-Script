@@ -2,6 +2,17 @@
 // The “callback URL” of that app points to https://www.puzzlescript.net/auth.html.
 // If you’re running from another host name, sharing might not work.
 
+
+function GistHostingManager() {}
+
+GistHostingManager.prototype.tryLoadSource = function(id_string)
+{
+	tryLoadGist( id_string.replace(/[\\\/]/, '') )
+}
+
+const gist_manager = new GistHostingManager()
+hosting_managers.push( [ 'hack', gist_manager ])
+
 function tryLoadGist(id)
 {
 	const githubURL = 'https://api.github.com/gists/'+id

@@ -14,6 +14,11 @@ addTab: function(tab_manager)
 	this.clean_states.push(tab_manager.getContent())
 },
 
+setLoading: function()
+{
+	this.tabs.map( tab_manager => tab_manager.setLoading() )
+},
+
 checkDirty: function()
 {
 	this.is_dirty = this.tabs.some(
