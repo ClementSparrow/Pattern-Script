@@ -6,11 +6,12 @@ demoHostingManager.prototype = {
 tryLoadSource: function(fileName)
 {
 	var fileOpenClient = new XMLHttpRequest()
-	fileOpenClient.open('GET', 'demo/'+fileName+".txt")
+	fileOpenClient.open('GET', 'demo/'+fileName)
 	fileOpenClient.onreadystatechange = function()
 	{		
-		if(fileOpenClient.readyState == 4)
-			loadGameFromDict({ code: fileOpenClient.responseText}) // TODO: convert the demos as dicts
+		if(fileOpenClient.readyState != 4)
+			return
+		loadGameFromDict({ code: fileOpenClient.responseText}) // TODO: convert the demos as dicts
 	}
 	fileOpenClient.send()
 },
