@@ -78,6 +78,7 @@ CodeMirror.commands.selectLine = function(cm)
 
 function CodeEditorTabManager(code)
 {
+	this.name = 'code'
 	this.editor = window.CodeMirror.fromTextArea(code, {
 	//	viewportMargin: Infinity,
 		lineWrapping: true,
@@ -140,8 +141,9 @@ CodeEditorTabManager.prototype =
 {
 
 	getContent: function() { return this.editor.getValue() },
+	setContent: function(txt) { this.editor.setValue(txt) }, // WIP TODO: does not work when the editor is hidden
 
-	setLoading: function() { this.editor.setValue('loading…') },
+	setLoading: function() { this.setContent('loading…') },
 
 	removeFocus: function() { this.editor.display.input.blur() },
 
