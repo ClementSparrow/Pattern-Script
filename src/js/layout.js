@@ -124,23 +124,22 @@ function reset_panels(){
 };
 
 
-function activateExclusiveView(view_dict, active_view)
+function activateExclusiveView(view_dict, active_view, ctrl_class_name='active', view_class_name='active')
 {
 	for (const n in view_dict)
 	{
-		document.getElementById(n).style.display = 'none'
-		var tab_button = document.getElementById(view_dict[n])
-		tab_button.className = tab_button.className.replace(/\bactive\b/, '')
+		document.getElementById(n).classList.remove(view_class_name)
+		document.getElementById(view_dict[n]).classList.remove(ctrl_class_name)
 	}
 
-	document.getElementById(view_dict[active_view]).className += " active"
+	document.getElementById(view_dict[active_view]).classList.add(ctrl_class_name)
 	var result = document.getElementById(active_view)
-	result.style.display = 'block'
+	result.classList.add(view_class_name)
 	return result
 }
 
 const editor_tabs = { editor_pane_meta: 'editor_tab_meta', editor_pane_code: 'editor_tab_code', editor_pane_sprites: 'editor_tab_sprites'}
 function activateEditorTab(active_tab_id)
 {
-	return activateExclusiveView(editor_tabs, active_tab_id)
+	return activateExclusiveView(editor_tabs, active_tab_id, 'active_tab', 'active_tabview')
 }

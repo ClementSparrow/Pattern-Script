@@ -5,13 +5,27 @@
 
 function GistHostingManager() {}
 
-GistHostingManager.prototype.tryLoadSource = function(id_string)
+GistHostingManager.prototype = {
+
+tryLoadSource: function(id_string)
 {
 	tryLoadGist( id_string.replace(/[\\\/]/, '') )
+},
+
+updateInterfaceForDirtyness: function(is_dirty)
+{
+	const saveOnGithubLink = document.getElementById('cloudSaveClickLink')
+	if ( ! saveOnGithubLink )
+		return
+	const update_gist_id = new URL(window.location).searchParams.get('hack') // null if no such URL parameter
+	saveOnGithubLink.innerHTML = (update_gist_id === null) ? 'SAVE ON CLOUD' :
+								 (is_dirty ? 'UPDATE CLOUD' : 'SAVED ON CLOUD')
+},
+
 }
 
 const gist_manager = new GistHostingManager()
-hosting_managers.push( [ 'hack', gist_manager ])
+hosting_managers.push( ['hack', gist_manager] )
 
 function tryLoadGist(id)
 {
@@ -49,9 +63,13 @@ function tryLoadGist(id)
 		}
 		else
 		{
-			loadText( result["files"]["script.txt"]["content"] )
+			const files = result['files']
+			if (files['script.txt'] !== undefined)
+				loadGameFromDict( ({code: files['script.txt']['content']}) )
+			else
+				loadGameFromDict(  ) // WIP TODO: make a dict from the files 'content'. But also we need the version of the engine that was used to generate the file.
 			editor_tabmanager.editor.clearHistory()
-			tabs.setCleanForGithub()
+			gist_manager.updateInterfaceForDirtyness(false)
 		}
 	}
 	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
@@ -82,22 +100,19 @@ function shareOnGitHub(is_public, should_fork=false)
 
 	compile()
 
+	const game_name = (state.metadata.title !== undefined) ? state.metadata.title : 'Untitled'
 	const gistToCreate = {
-		"description" : (state.metadata.title !== undefined) ? state.metadata.title + " ("+PSFORKNAME+" Script)" : ("Untitled "+PSFORKNAME+" Script"),
+		"description" : game_name + ' ('+PSFORKNAME+' Game)',
 		"public" : is_public,
-		"files": {
-			"readme.txt" : {
-				"content": "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html"
-			},
-			"script.txt" : {
-				"content": editor_tabmanager.getContent()
-			}
-		}
+		"files": Object.fromEntries([
+			['\''+game_name+'\'', { "content": "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html" }],
+			...Array.from( tabs.tabs, tab_manager => [ tab_manager.name+'.json', {'content': tab_manager.getContent()} ] )
+		])
 	}
 
 	const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
 
-	consolePrint("<br>Sending code to github...", true)
+	consolePrint("<br>Sending code to github…", true)
 	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id+(should_fork ? '/forks' : '') : '' )
 	var githubHTTPClient = new XMLHttpRequest();
 	githubHTTPClient.open('POST', githubURL);
@@ -153,7 +168,7 @@ function shareOnGitHub(is_public, should_fork=false)
 			}
 
 			window.history.replaceState(null, null, "?hack="+id)
-			tabs.setCleanForGithub()
+			gist_manager.updateInterfaceForDirtyness(false)
 		}
 	}
 	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded")

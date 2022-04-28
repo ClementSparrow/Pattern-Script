@@ -2,15 +2,18 @@
 
 function localHostingManager() {}
 
-localHostingManager.prototype.tryLoadSource = function(date = null)
+localHostingManager.prototype = {
+
+tryLoadSource: function(date = null)
 {
 	const saveString = storage_get('saves')
-	if (saveString === null)
+	if ( (saveString === null) && (date !== null) )
 	{
 		consolePrint("Eek, trying to load a file, but there's no local storage found. Eek!", true)
+		return
 	} 
 
-	var saves = JSON.parse(saveString)
+	const saves = (saveString === null) ? new Array() : JSON.parse(saveString)
 	const index = (date === null) ? saves.length-1 : saves.findIndex( sd => (dateToReadable(sd.title, new Date(sd.date)) == date) )
 
 	if (index == -1)
@@ -20,19 +23,32 @@ localHostingManager.prototype.tryLoadSource = function(date = null)
 	}
 
 	document.getElementById('loadDropDown').selectedIndex = 0
-	loadText(saves[index].text)
+	const save = saves[index]
+	loadGameFromDict( (save.text !== undefined) ? ({code:save.text}) : save.game )
+},
+
+updateInterfaceForDirtyness: function(is_dirty)
+{
+	const saveLink = document.getElementById('saveClickLink')
+	if (saveLink)
+	{
+		saveLink.innerHTML = this.is_dirty ? 'SAVE*' : 'SAVE'
+	}
+},
+
 }
 
+
 const localhosting_manager = new localHostingManager()
-hosting_managers.push( [ null, localhosting_manager ])
+hosting_managers.push( [null, localhosting_manager] )
 
 const SAVED_FILES_CAPACITY = 30
 
 function saveClick()
 {
 	const saveDat = {
-		title: (state.metadata.title!==undefined) ? state.metadata.title : 'Untitled',
-		text: editor_tabmanager.getContent(),
+		title: (state.metadata.title !== undefined) ? state.metadata.title : 'Untitled',
+		game: tabs.getContent(),
 		date: new Date()
 	}
 
