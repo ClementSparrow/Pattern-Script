@@ -334,12 +334,7 @@ function getData(){
 			window.document.title=title+" - Pattern:Script Game";
 		}
                 
-		var hacklink = document.getElementById("hacklink");
-
-		var url = "editor.html?hack="+id;
-		url=qualifyURL(url);
-
-		hacklink.href=url;
+		document.getElementById('hacklink').href = qualifyURL('editor.html?hack='+id)
 	}
   if (storage_has('oauth_access_token'))
   {

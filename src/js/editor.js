@@ -1,5 +1,5 @@
 editor_tabmanager = new CodeEditorTabManager(document.getElementById('code'))
-tabs.addTab(editor_tabmanager)
+tabs.addTab('code', editor_tabmanager)
 tabs.setLightMode(storage_get('light_mode'))
 
 parseURLtoLoadGame()

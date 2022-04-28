@@ -21,10 +21,9 @@ function parseURLtoLoadGame()
 	}
 }
 
-
-function loadText(txt) // WIP TODO
+function loadGameFromDict(game_dict) // WIP TODO
 {
-	editor_tabmanager.editor.setValue(txt)
+	editor_tabmanager.setContent(game_dict.code)
 	tabs.setClean()
-	compile(null, txt)
+	compile(null, game_dict.code)
 }

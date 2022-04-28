@@ -4,14 +4,22 @@ function PatternScriptEditorTabsManager() // Provides the logic for editor tabs,
 	this.is_dirty = false
 	this.clean_states = []
 	this.tabs = []
+	this.tab_names = []
 }
 
 PatternScriptEditorTabsManager.prototype = {
 
-addTab: function(tab_manager)
+addTab: function(tab_name, tab_manager)
 {
 	this.tabs.push(tab_manager)
+	this.tab_names.push(tab_name)
 	this.clean_states.push(tab_manager.getContent())
+},
+
+getContent: function() {
+	return Object.fromEntries(
+		Array.from(this.tab_names, (tab_name, i) => [tab_name, this.tabs[i].getContent()])
+	)
 },
 
 setLoading: function()
@@ -21,29 +29,12 @@ setLoading: function()
 
 checkDirty: function()
 {
+	// WIP TODO: the should be hosting_managers.every( hosting_manager => this.tabs.some(...))
 	this.is_dirty = this.tabs.some(
 		(tab_manager, tab_index) => (this.clean_states[tab_index] !== tab_manager.getContent())
 	)
 
-	const saveLink = document.getElementById('saveClickLink')
-	if (saveLink)
-	{
-		saveLink.innerHTML = this.is_dirty ? 'SAVE*' : 'SAVE'
-	}
-
-	const saveOnGithubLink = document.getElementById('cloudSaveClickLink')
-	if (saveOnGithubLink)
-	{
-		const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
-		if (update_gist_id === null)
-		{
-			saveOnGithubLink.innerHTML = 'SAVE ON CLOUD'
-		}
-		else
-		{
-			saveOnGithubLink.innerHTML = this.is_dirty ? 'UPDATE CLOUD' : 'SAVED ON CLOUD';
-		}
-	}
+	hosting_managers.forEach( ([,hosting_manager]) => hosting_manager.updateInterfaceForDirtyness(this.is_dirty) )
 },
 
 canExit: function()
@@ -52,26 +43,14 @@ canExit: function()
 },
 
 
-setCleanForGithub: function() // called after a game has been loaded in the editor from GitHub or after it has been saved on GitHub
-{
-	const saveOnGithubLink = document.getElementById('cloudSaveClickLink')
-	if (saveOnGithubLink)
-	{
-		const update_gist_id = new URL(window.location).searchParams.get("hack") // null if no such URL parameter
-		saveOnGithubLink.innerHTML = (update_gist_id === null) ? 'SAVE ON CLOUD' : 'SAVED ON CLOUD'
-	}
-},
-
+// WIP TODO: setClean should be functions of the game hosting services managers,
+// which should also have their own clean_state field (but "is_dirty" should stay here).
 setClean: function() // called after a game has been loaded in the editor or after it has been saved (locally or on cloud)
 {
 	this.clean_states = this.tabs.map( tab_manager => tab_manager.getContent() )
 	if (this.is_dirty === true)
 	{
-		var saveLink = document.getElementById('saveClickLink')
-		if(saveLink)
-		{
-			saveLink.innerHTML = 'SAVE'
-		}
+		localhosting_manager.updateInterfaceForDirtyness(false)
 		this.is_dirty = false
 	}
 },
