@@ -28,7 +28,7 @@ HTML, BODY
 #rightbottomhalf
 {
 	position: absolute;
-	top: 50% + 3px;
+	top: calc(50% + 3px);
 	right: 0;
 	bottom: 0;
 	left: 50%;
