@@ -1,5 +1,35 @@
 // This file must be the last hosting manager loaded!!
 
+function dateToReadable(saved_date)
+{
+	const time = new Date(saved_date)
+	const year = time.getFullYear()
+	var month = time.getMonth()+1
+	var date1 = time.getDate()
+	var hour = time.getHours()
+	var minutes = time.getMinutes()
+	var seconds = time.getSeconds()
+
+	if (month < 10) {
+    	month = "0"+month
+	}
+	if (date1 < 10) {
+		date1 = "0"+date1
+	}
+	if (hour < 10) {
+		hour = "0"+hour
+	}
+	if (minutes < 10) {
+		minutes = "0"+minutes
+	}
+	if (seconds < 10) {
+		seconds = "0"+seconds
+	}
+
+	return hour+":"+minutes+" "+year + "-" + month+"-"+date1+" "
+}
+
+
 function localHostingManager() {}
 
 localHostingManager.prototype = {
@@ -14,7 +44,7 @@ tryLoadSource: function(date = null)
 	} 
 
 	const saves = (saveString === null) ? new Array() : JSON.parse(saveString)
-	const index = (date === null) ? saves.length-1 : saves.findIndex( sd => (dateToReadable(sd.title, new Date(sd.date)) == date) )
+	const index = (date === null) ? saves.length-1 : saves.findIndex( sd => (dateToReadable(sd.date)+sd.title == date) )
 
 	if (index == -1)
 	{
@@ -113,7 +143,7 @@ function repopulateSaveDropdown(saves)
 	{
 		const sd = saves[i]
 	    var optn = document.createElement("OPTION")
-	    const key = dateToReadable(sd.title, new Date(sd.date))
+	    const key = dateToReadable(sd.date) + sd.title
 	    optn.text = key
 	    optn.value = key
 	    loadDropdown.options.add(optn)
