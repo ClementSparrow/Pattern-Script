@@ -24,6 +24,7 @@ function parseURLtoLoadGame()
 function loadGameFromDict(game_dict) // WIP TODO
 {
 	editor_tabmanager.setContent(game_dict.code)
+	metadata_tabmanager.setContent(game_dict.metadata)
 	tabs.setClean()
 	compile(null, game_dict.code)
 }
