@@ -615,8 +615,6 @@ function cacheSeed(seed){
 	}
 
 	var params = generateFromSeed(seed);
-	params.sample_rate = SAMPLE_RATE;
-	params.bit_depth = BIT_DEPTH;
 
 	var sound = SoundEffect.generate(params);
 	sfxCache[seed] = sound;
@@ -632,13 +630,14 @@ function cacheSeed(seed){
 }
 
 
-function playSound(seed) {
-	if (muted){
-		return;
-	}
-	checkAudioContextExists();
-	if (unitTesting) return;
-	cacheSeed(seed).play();
+function playSound(seed)
+{
+	if (muted)
+		return
+	checkAudioContextExists()
+	if (unitTesting)
+		return
+	cacheSeed(seed).play()
 }
 
 

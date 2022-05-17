@@ -52,10 +52,10 @@ function Params()
 		p_hpf_ramp: 0.0,     // High-pass filter cutoff sweep (SIGNED)
 
 		// Sample parameters
-		sound_vol: 0.5,
-		sample_rate: 44100,
-		bit_depth: 8,
-	};
+		sound_vol: SOUND_VOL,
+		sample_rate: SAMPLE_RATE,
+		bit_depth: BIT_DEPTH,
+	}
 }
 
 // This var is only used in this file
