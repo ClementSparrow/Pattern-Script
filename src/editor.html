@@ -22,17 +22,25 @@
 <link rel="shortcut icon" type="image/x-icon" href="Documentation/ico/favicon.ico" />
 
 <style type="text/css">
+	/* TABS */
 	body { overflow: hidden; }
-	#editor_panes { overflow: scroll; color: white; }
-	#editor_panes > * { visibility: hidden; z-index: -1; }
-	#editor_panes > .active_tabview { visibility: visible; z-index: 10; }
+	#leftpanel { display: flex; flex-flow: column; height: 100%;}
+	#editor_panes { color: white; flex-grow: 1; flex-basis: 0; position: relative; }
+	#editor_panes > * {
+		overflow: scroll; z-index: -1;
+		visibility: hidden; opacity: 0; transition: opacity 0.2s ease-in;
+		position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+		border-top: 1px solid white;
+	}
+	#editor_panes > .active_tabview { visibility: visible; opacity: 1; z-index: 10; }
+	#editor_tabs { flex-grow: 0; }
 	#editor_tabs a { color: lightgray; cursor: pointer; padding: 0 1em; }
 	#editor_tabs ul { display: block; margin: 0; padding: 0; }
 	#editor_tabs li {
 		display: inline-block;
 		border: lightgray 1px solid; border-bottom: none; border-radius: 1em 1em 0 0 / 0.4em 0.4em 0 0;
 		font-variant: small-caps;
-		background-color: black;
+		background-color: black; transition: background-color 0.2s ease-in;
 	}
 	#editor_tabs li.active_tab { background-color: #e06f8b !important; }
 	#editor_tabs li.active_tab a { color: black; }
@@ -41,6 +49,79 @@
 	.light_mode #editor_tabs li { background-color: white; }
 	.light_mode #editor_tabs li.active_tab a { color: white; }
 	.light_mode #editor_tabs a { color: black; }
+
+	/* FIELDS */
+	#editor_panes > div { padding: 0 1em; }
+	#editor_pane_meta { display: flex; flex-flow: row wrap; align-items: flex-start; justify-content: flex-start; column-gap: 1em; }
+	#editor_pane_meta fieldset:first-child { width: 100%; }
+	/* Sections  */
+	#editor_panes fieldset {
+		margin: 1em 0; padding: 0 1.5ex 1em; flex-grow: 1; /*flex-grow: 0; flex-basis: min-width;*/
+		border: none; border-radius: 0.75em; background-color: #444;
+	}
+	#editor_panes fieldset legend {
+		font-size: 1.2em; line-height: 1.3em; font-variant: small-caps; 
+		margin: 0 auto; padding: 0 0.5em;
+		background-color: #777; border-radius: 0.2em;
+	}
+	/* data widget */
+	#editor_panes fieldset > div {
+		display: flex; flex-direction: row; flex-wrap: wrap; flex-basis: max-content;
+		align-items: baseline; justify-content: space-between;
+	}
+	#editor_panes fieldset > div > span { flex-grow: 1; }
+	#editor_panes label { margin: 0.5em 1em 0 0; flex-grow: 1; }
+	#editor_panes label, #editor_panes label * { transition: color 0.3s ease-out, border-bottom-color 0.3s ease-in; }
+	#editor_panes label:hover, #editor_panes label:hover * { color: #e06f8b; border-bottom-color: #e06f8b !important; }
+	#editor_panes textarea {
+		background-color: inherit; color: white; border: 1px solid #777; height: 4em;
+	}
+	#editor_panes fieldset:first-child label[for] { font-variant: small-caps; margin-top: 1.25em; }
+	#editor_panes input:last-child, #editor_panes textarea { flex-grow: 1; flex-basis: 100%; }
+	#editor_panes input[type="number"] { width: 5em; }
+	#editor_panes input
+	{
+		background: transparent; color: white;
+		border: none; border-bottom: 1px solid gray; outline: none;
+		font-size: inherit;
+		padding: 0;
+	}
+	#editor_panes input:focus, #editor_panes textarea:focus { border-color: white; outline: none; }
+	#editor_panes input:invalid { border-color: red; color: red; }
+	#editor_panes [type="checkbox"], #editor_panes [type="radio"] {
+		margin: 0 0.5em 0 0;
+		outline: none; border: none; appearance: none; -webkit-appearance: none; display: inline-block;
+	}
+	#editor_panes [type="checkbox"] {
+		border-bottom: 1px solid white; color: white;
+		width: 0.75em; height: 1em;
+		align-self: center;
+	}
+	#editor_panes [type="checkbox"]:after {
+		content: "✓"; display: block; visibility: hidden;
+	}
+	#editor_panes [type="checkbox"]:checked:after { visibility: visible; }
+	#editor_panes [type="radio"] {
+		width: 1.2ch; height: 1.2ch; align-self: baseline;
+		background-color: black; border-radius: 50%; border: 2px solid black;
+	}
+	#editor_panes [type="radio"]:checked { background-color: white; border-color: black; }
+	/* help tooltips  */
+	.form-info { display: inline-block; flex-grow: 0; margin: 0 0 0 0.7em; }
+	.form-info::before {
+		content: "?"; display: block;
+		font-size: 0.933em; width: 1.5em; height: 1.5em; text-align: center;
+		color: #222; background: #777;
+		border-radius: .75em; transition: border-radius 0.2s ease-in;
+	}
+	.form-info > :first-child {
+		visibility: hidden; opacity: 0;
+		transition: opacity 0.3s ease-in;
+		position: absolute; left: 0; right: 0; padding: 1em;
+		border: 1px solid white; border-radius: 1em; background: black;
+	}
+	.form-info:hover::before { background-color: white; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
+	.form-info:hover > :first-child { visibility: visible; opacity: 1; border-radius: 0em; }
 </style>
 </head>
 <body>
@@ -52,7 +133,44 @@
 	<li id="editor_tab_sprites"><a onclick="activateEditorTab('editor_pane_sprites')">Sprites</a></li>
 </ul></div>
 <div id="editor_panes">
-<div id="editor_pane_meta"></div>
+<div id="editor_pane_meta">
+<fieldset>
+	<legend>About the game</legend>
+	<div><label for="meta_title">Title</label><div class="form-info"><p>The name of your game.<br />Appears on the title screen.</p></div><input type="text" name="meta_title" placeholder="My Game" required /></div>
+	<div><label for="meta_author">Author(s)</label><div class="form-info"><p>Your name goes here.<br />This will appear in the title screen of the game.</p></div><input type="text" name="meta_author" placeholder="My Name Here" required /></div>
+ 	<div><label for="meta_homepage">Website</label><div class="form-info"><p>The homepage of the author(s) or game.<br />This doesn't appear directly in the game itself, but is included in the exported HTML build.</p></div><input type="url" autocomplete="url" name="meta_homepage" /></div>
+	<div><label for="meta_description">Description</label><div class="form-info"><p>Describe your game here.<br />This is currently unused but in the future this text may be included in previews when the game is linked on twitter/discord/etc.</p></div><textarea name="meta_description" spellcheck="true"></textarea></div>
+<!-- 	<div><label>Vignette image:</label>
+		'vignette', false, null, null, image_picker<div class="form-info"><p>A screenshot of the game or illustration to complement the description.</p></div></div>
+ --></fieldset><fieldset>
+	<legend>Colours</legend>
+<!--		['Palette', 'color_palette', true, 'arne', check_palette_name, dropdown_menu, 'By default, when you use colour names, they are pulled from a variation of <a href="http://androidarts.com/palette/16pal.htm">Arne</a>\'s 16-Colour palette.  However, there are other palettes to choose from.' ],
+	['Background', 'background_color', true, '#000000FF', color_picker, 'Background color of title/message screens, as well as the background color of the web page for exported games.' ],
+	['Text', 'text_color', true, '#FFFFFFFF', color_picker, 'Color of text in message screens and of options in menus, as well as the font color in the web page of exported games. Also the default value for the color options below.' ],
+	['Titles', 'title_color', false, undefined(text_color), color_picker, 'Text color of titles in the title screen and pause menu.' ],
+	['Author', 'author_color', false, undefined(text_color), color_picker, 'Text color of the author(s) name(s) in the title screen.' ],
+	['Keyboard hints', 'keyhint_color', false, undefined(text_color), color_picker, 'Text color of the lines giving hints about the keys to use, at the bottom of the title screen, pause menu, and message screens.' ], -->
+</fieldset><fieldset>
+	<legend>Timing & Reactivity</legend>
+	<div><label for="meta_realtime_interval">Frame duration</label><input type="number" min="0" step="any" name="meta_realtime_interval" placeholder="0" required /><div class="form-info"><p>The number indicates how long each realtime frame should be. For instance when set to 0.5, twice a second the game engine will tick, but with no input. Player input is processed as regular. See <a href="../Documentation/realtime.html">this documentation</a> for more info on making realtime games. Set to 0 to disable real time.</p></div></div>
+	<div><label for="meta_again_interval">Delay before "again" frame</label><input type="number" min="0" step="any" name="meta_again_interval" placeholder="0.15" required /><div class="form-info"><p>The amount of time it takes an 'again' event to trigger.</p></div></div>
+	<div><label for="meta_key_repeat_interval">Key repeat</label><input type="number" min="0" step="any" name="meta_key_repeat_interval" placeholder="0.15" required /><div class="form-info"><p>When you hold down a key, how long is the delay between repeated presses getting sent to the game (in seconds)?</p></div></div>
+	<div><label><input type="checkbox" name="meta_throttle_movement" checked="true" />Prevent smashing keys</label><div class="form-info"><p>For use in conjunction with frame duration - this stops you from moving crazy fast - repeated keypresses of the same movement direction will not increase your speed. This doesn't apply to the action button.</p></div></div>
+</fieldset><fieldset>
+	<legend>Dimensions</legend>
+	<div><label>Camera type</label><span><label><input type="radio" name="meta_camera_type" value="fixed" checked="true" />fixed</label><label><input type="radio" name="meta_camera_type" value="flickscreen" />by screen</label><label><input type="radio" name="meta_camera_type" value="zoomscreen" />centered on player</label></span><div class="form-info"><div>Camera types:<br /><dl><dt>Fixed (default):</dt><dd>The camera never moves and the whole level is displayed.</dd><dt>By screen (flickscreen):</dt><dd>The world is divided in a grid of screens and only the screen that contains the player's avatar(s) is displayed.</dd><dt>Centered on player (zoomscreen):</dt><dd>The camera follows the player's avatar so that it's at the center of the fixed-size screen.</dd></dl></div></div></div>
+	<div><label>Viewport dimensions</label><span><input type="number" min="1" name="meta_viewport_width" /> × <input type="number" min="1" name="meta_viewport_height" /></span><div class="form-info"><p>Width and height of the part of the level that is visible, in number of cells (not pixels!)</p></div></div>
+	<div><label>Grid cells dimensions</label><span><input type="number" min="1" name="meta_cell_width" /> × <input type="number" min="1" name="meta_cell_height" /></span><div class="form-info"><p>The size (in pixels) of the grid cells.</p></div></div>
+</fieldset><fieldset>
+	<legend>Gameplay options</legend>
+	<div><label><input type="checkbox" name="meta_run_rules_on_level_start" />Run rules on level start</label><div class="form-info"><p>For some games, you will want the rules to be applied once before the player sees the level.</p></div></div>
+	<div><label><input type="checkbox" name="meta_noaction" />Disable action key</label><div class="form-info"><p>Hides the action key (X) instruction from the title screen, and does not respond when the player presses it (outside of menus and cutscenes and the like).</p></div></div>
+	<div><label><input type="checkbox" name="meta_noundo">Disable UNDO</label><div class="form-info"><p>Disables the undo key (Z).</p></div></div>
+	<div><label><input type="checkbox" name="meta_norestart" />Disable RESTART</label><div class="form-info"><p>Disables the restart key (R).</p></div></div>
+	<div><label><input type="checkbox" name="meta_norepeat_action" />Do not repeat action key</label><div class="form-info"><p>For many games, you don't want holding action down to retrigger it - games where you're toggling a switch, say.  For these games, check this box, and the action button will only respond to individual presses.</p></div></div>
+	<div><label><input type="checkbox" name="meta_require_player_movement" />Require player movement</label><div class="form-info"><div>This is a common requirement in games - if the player doesn't move, cancel the whole move. This is equivalent, where there's only one player character, to the following:<pre><code>[ Player ] -> [ Player Temp ]<br/>late [ Player Temp ] -> CANCEL<br/>late [ Temp ] -> [ ]</code></pre></div></div></div>
+ </fieldset>
+</div>
 <form id="editor_pane_code" name="editor_pane_code" action="javascript:void(0);" class="active_tabview"><textarea id="code" class="codeform" name="code" rows="20" cols="20">
 title My Game
 author My Name Here
@@ -273,6 +391,7 @@ LEVELS
 <script src="js/editor/game_hosting_services/demos.js"></script>
 <script src="js/editor/game_hosting_services/github.js"></script>
 <script src="js/editor/game_hosting_services/local_storage.js"></script>
+<script src="js/editor/tab_managers/metadata.js"></script>
 <script src="js/editor/tab_managers/code_editor.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/soundbar.js"></script>
