@@ -1103,17 +1103,12 @@ function loadFile(str)
 	delete state.objects_spritematrix;
 	delete state.section;
 	delete state.tokenIndex;
-	// delete state.visitedSections;
 	delete state.loops;
-	/*
-	var lines = stripComments(str);
-	window.console.log(lines);
-	var sections = generateSections(lines);
-	window.console.log(sections);
-	var sss = generateSemiStructuredSections(sections);*/
 	return state;
 }
 
+// This function is misnammed as the compilation is actually done in loadFile, called
+// by this function, which principal job is to reinitialize the game and editor states.
 function compile(level, text, randomseed) // level = null means restart, level = undefined means rebuild
 {
 	matchCache = {}
