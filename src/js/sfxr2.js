@@ -603,13 +603,8 @@ window.console.log(psstring);*/
 	return sound;
 };
 
-if (typeof exports != 'undefined') {
-	// For node.js
-	var RIFFWAVE = require('./riffwave').RIFFWAVE;
-	exports.Params = Params;
-	exports.generate = generate;
-}
 
+// TODO: the rest of this file is technically not directly a part of sfxr and should be moved in engine/audio.js
 var sfxCache = {};
 var cachedSeeds = [];
 var CACHE_MAX = 50;
