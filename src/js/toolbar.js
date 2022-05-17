@@ -6,35 +6,6 @@ function runClick()
 	compile(null)
 }
 
-function dateToReadable(title, time)
-{
-	var year = time.getFullYear();
-	var month = time.getMonth()+1;
-	var date1 = time.getDate();
-	var hour = time.getHours();
-	var minutes = time.getMinutes();
-	var seconds = time.getSeconds();
-
-	if (month < 10) {
-    	month = "0"+month;
-	}
-	if (date1 < 10) {
-		date1 = "0"+date1;
-	}
-	if (hour < 10) {
-		hour = "0"+hour;
-	}
-	if (minutes < 10) {
-		minutes = "0"+minutes;
-	}
-	if (seconds < 10) {
-		seconds = "0"+seconds;
-	}
-
-	var result = hour+":"+minutes+" "+year + "-" + month+"-"+date1+" "+title;
-	return result;
-}
-
 
 window.addEventListener("pageshow", function (event)
 {
