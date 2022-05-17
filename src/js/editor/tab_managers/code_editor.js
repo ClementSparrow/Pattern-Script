@@ -139,9 +139,8 @@ function CodeEditorTabManager(code)
 
 CodeEditorTabManager.prototype =
 {
-
 	getContent: function() { return this.editor.getValue() },
-	setContent: function(txt) { this.editor.setValue(txt) }, // WIP TODO: does not work when the editor is hidden
+	setContent: function(txt) { this.editor.setValue(txt) },
 
 	setLoading: function() { this.setContent('loading…') },
 

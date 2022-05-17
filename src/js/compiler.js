@@ -1019,14 +1019,7 @@ function compileTextCode(str)
 	delete state.objects_spritematrix;
 	delete state.section;
 	delete state.tokenIndex;
-	// delete state.visitedSections;
 	delete state.loops;
-	/*
-	var lines = stripComments(str);
-	window.console.log(lines);
-	var sections = generateSections(lines);
-	window.console.log(sections);
-	var sss = generateSemiStructuredSections(sections);*/
 	return state;
 }
 
