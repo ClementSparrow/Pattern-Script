@@ -97,7 +97,7 @@ function dumpTestCase()
 	if (level !== undefined)
 	{
 		const resultstring = '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
-			JSON.stringify( [levelDat, inputHistory.concat([]), level.convertToString(), recordingStartsFromLevel, loadedLevelSeed] ) + '<br>\t],<br>'
+			JSON.stringify( [levelDat, inputHistory.concat([]), level.convertToString(), recordingStartsFromLevel, RandomGen.seed] ) + '<br>\t],<br>'
 		consolePrint('<br>Recorded play session data (for play session tests - testdata.js):<br><br>'+makeSelectableText(resultstring) + '<br>', true)
 	}
 }

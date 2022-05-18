@@ -1,7 +1,7 @@
 
 var sprites = [ ]
 
-var RandomGen = new RNG();
+var RandomGen = new RNG() // only used for execution of random movements and properties in rules.
 
 const introstate = {
 	title: "EMPTY GAME",
@@ -98,18 +98,13 @@ function getSavePoint()
 // LOADING LEVELS
 // ==============
 
-var loadedLevelSeed = 0
-
 function loadLevelFromLevelDat(state, leveldat, randomseed)
 {
-	if (randomseed==null) {
-		randomseed = (Math.random() + Date.now()).toString();
-	}
-	loadedLevelSeed = randomseed;
-	RandomGen = new RNG(loadedLevelSeed);
+	RandomGen = new RNG(randomseed)
 	forceRegenImages() // why do we need that?
 	
 	execution_context.resetUndoStack()
+
 	level.restore(leveldat)
 	execution_context.setRestartTarget()
 
@@ -507,7 +502,7 @@ function applyRandomRuleGroup(ruleGroup, level)
 	if (matches.length === 0)
 		return false
 
-	const [rule, tuple] = matches[Math.floor(RandomGen.uniform()*matches.length)];
+	const [rule, tuple] = RandomGen.pickInArray(matches)
 	const modified = rule.applyAt(level, tuple, false)
 	rule.queueCommands()
 	return modified

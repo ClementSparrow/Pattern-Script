@@ -43,7 +43,7 @@ CellReplacement.prototype.applyRandoms = function()
 				choices.push(i)
 			}
 		}
-		const rand = choices[Math.floor(RandomGen.uniform() * choices.length)]
+		const rand = RandomGen.pickInArray(choices)
 		const layer = state.identifiers.objects[state.idDict[rand]].layer
 		this.objectsSet.ibitset(rand)
 		this.objectsClear.ior(state.layerMasks[layer])
@@ -53,7 +53,7 @@ CellReplacement.prototype.applyRandoms = function()
 	// replace random dirs
 	for (const layerIndex of this.randomDirMask)
 	{
-		this.movementsSet.ibitset(Math.floor(RandomGen.uniform()*4) + 5*layerIndex)
+		this.movementsSet.ibitset(RandomGen.integer(4) + 5*layerIndex)
 	}
 }
 

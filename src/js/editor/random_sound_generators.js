@@ -58,17 +58,18 @@ function Params()
 	};
 }
 
+// This var is only used in this file
+var rng
+
 // These functions are only used in the generators bellow
-var rng;
-var seeded = false;
 function frnd(range)
 {
-	return range * ((seeded) ? rng.uniform() : Math.random());
+	return range * rng.uniform()
 }
 
 function rnd(max)
 {
-	return Math.floor( (max + 1) * ((seeded) ? rng.uniform() : Math.random()) );
+	return rng.integer(max + 1)
 }
 
 
@@ -574,12 +575,10 @@ generateFromSeed = function(seed)
 
 	rng = new RNG( (seed / 100) | 0 );
 	const generatorindex = seed % 100;
-	var soundGenerator = generators[generatorindex % generators.length];
-	seeded = true;
+	const soundGenerator = generators[generatorindex % generators.length];
 	var result = soundGenerator();
 
 	result.sound_vol = volume * SOUND_VOL
 	result.seed = seed;
-	seeded = false;
 	return result;
 }
