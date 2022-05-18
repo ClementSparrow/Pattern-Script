@@ -109,5 +109,3 @@ setLoading: function() { },
 removeFocus: function() { },
 setLightMode: function(mode) { },
 }
-
-var metadata_tabmanager = new MetaDataTabManager(document.getElementById('editor_pane_meta'))
