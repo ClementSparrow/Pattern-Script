@@ -1,4 +1,6 @@
-editor_tabmanager = new CodeEditorTabManager(document.getElementById('code'))
+var metadata_tabmanager = new MetaDataTabManager(document.getElementById('editor_pane_meta'))
+
+var editor_tabmanager = new CodeEditorTabManager(document.getElementById('code'))
 tabs.addTab('code', editor_tabmanager)
 tabs.setLightMode(storage_get('light_mode'))
 
