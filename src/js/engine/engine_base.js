@@ -1,7 +1,5 @@
 
-var sprites = [ ]
-
-var RandomGen = new RNG() // only used for execution of random movements and properties in rules.
+var RandomGen = new RNG() // only used for execution of random movements and properties in rules, and selection of random rules.
 
 const introstate = {
 	title: "EMPTY GAME",
@@ -334,17 +332,17 @@ LevelState.prototype.shouldSetSavePoint = function()
 // TODO: level_index being anything else than null is editor/unit_tests only features and should be removed from exported games.
 function setGameState(_state, level_index, randomseed = null)
 {
-	oldflickscreendat=[];
-	timer=0;
-	autotick=0;
-	winning=false;
-	againing=false;
+	oldflickscreendat = []
+	timer = 0
+	autotick = 0
+	winning = false
+	againing = false
 	msg_screen.done = false
-	STRIDE_MOV=_state.STRIDE_MOV;
-	STRIDE_OBJ=_state.STRIDE_OBJ;
+	STRIDE_MOV = _state.STRIDE_MOV
+	STRIDE_OBJ = _state.STRIDE_OBJ
 	
-	sfxCreateMask=new BitVec(STRIDE_OBJ);
-	sfxDestroyMask=new BitVec(STRIDE_OBJ);
+	sfxCreateMask = new BitVec(STRIDE_OBJ)
+	sfxDestroyMask = new BitVec(STRIDE_OBJ)
 
 	// show the title screen if there's no level_index
 	if ( (level_index === undefined) && ( (state.levels.length === 0) || (_state.levels.length === 0) ) )
@@ -354,17 +352,6 @@ function setGameState(_state, level_index, randomseed = null)
 	RandomGen = new RNG(randomseed)
 
 	state = _state
-
-	//set sprites
-	sprites = []
-	for (var object of state.identifiers.objects)
-	{
-		sprites[object.id] = {
-			colors: object.colors,
-			dat: object.spritematrix,
-			offset: object.sprite_offset
-		}
-	}
 
 	autotick = 0
 	autotickinterval = (state.metadata.realtime_interval !== undefined) ? state.metadata.realtime_interval*1000 : 0
