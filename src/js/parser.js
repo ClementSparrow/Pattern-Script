@@ -97,7 +97,7 @@ function PuzzleScriptParser()
 
 	this.winconditions = []
 
-	this.levels = [[]]
+	this.levels = [{type: 'level', grid: []}]
 }
 
 PuzzleScriptParser.prototype.copy = function()
@@ -139,7 +139,13 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.abbrevNames = this.abbrevNames.concat([])
 
-	result.levels = this.levels.map( i => i.concat([]) )
+	// TODO: replace this with structuredClone
+	result.levels = this.levels.map( level => { 
+		level = Object.assign({}, level)
+		if (level.hasOwnProperty('grid'))
+			level.grid = level.grid.concat([])
+		return level
+	})
 
 	result.STRIDE_OBJ = this.STRIDE_OBJ
 	result.STRIDE_MOV = this.STRIDE_MOV
@@ -309,9 +315,10 @@ PuzzleScriptParser.prototype.blankLine = function() // called when the line is e
 	}
 	else if (this.section === 'levels')
 	{
-		if (this.levels[this.levels.length - 1].length > 0)
+		let lastLevel = this.levels[this.levels.length - 1]
+		if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 		{
-			this.levels.push([]);
+			this.levels.push({type: 'level', grid: []});
 		}
 	}
 }
@@ -327,7 +334,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 	{
 		this.tokenIndex = 0;
 	}
-	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessiraly in the metadata value's text
+	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessarily in the metadata value's text
 	{
 		stream.match(reg_notcommentstart, true); // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
 		return "METADATATEXT";
@@ -1467,32 +1474,46 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 	{
 		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
 		{
-			this.tokenIndex = 1;//1/2 = message/level
-			var newdat = ['\n', this.mixedCase.slice(stream.pos).trim(), this.lineNumber];
-			if (this.levels[this.levels.length - 1].length == 0) {
-				this.levels.splice(this.levels.length - 1, 0, newdat);
-			} else {
-				this.levels.push(newdat);
+			this.tokenIndex = 1 // 1/2 = message/level
+			let messageData = {
+				type: 'message',
+				message: this.mixedCase.slice(stream.pos).trim(),
+				lineNumber: this.lineNumber,
 			}
-			return 'MESSAGE_VERB';
-		} else {
-			var line = stream.match(reg_notcommentstart, false)[0].trim();
-			this.tokenIndex = 2;
-			var lastlevel = this.levels[this.levels.length - 1];
-			if (lastlevel[0] == '\n') {
-				this.levels.push([this.lineNumber, line]);
+			let lastLevel = this.levels[this.levels.length - 1]
+			if (lastLevel.type === 'level' && lastLevel.grid.length === 0) {
+				this.levels.splice(this.levels.length - 1, 0, messageData)
 			} else {
-				if (lastlevel.length == 0)
+				this.levels.push(messageData)
+			}
+			return 'MESSAGE_VERB'
+		} else {
+			let line = stream.match(reg_notcommentstart, false)[0].trim()
+			this.tokenIndex = 2
+			let lastLevel = this.levels[this.levels.length - 1]
+			if (lastLevel.type !== 'level') {
+				this.levels.push({
+					type: 'level',
+					lineNumber: this.lineNumber,
+					grid: [line],
+					width: line.length,
+				})
+			} else {
+				if (!lastLevel.hasOwnProperty('lineNumber'))
 				{
-					lastlevel.push(this.lineNumber);
+					lastLevel.lineNumber = this.lineNumber
 				}
-				lastlevel.push(line);  
+				lastLevel.grid.push(line)
 
-				if (lastlevel.length > 1) 
+				if (lastLevel.hasOwnProperty('width')) 
 				{
-					if (line.length != lastlevel[1].length) {
+					if (line.length != lastLevel.width) {
 						this.logWarning(['non_rectangular_level'])
 					}
+				}
+				else
+				{
+					lastLevel.width = line.length
 				}
 			}
 			
@@ -1502,14 +1523,14 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 	{
 		if (this.tokenIndex == 1)
 		{
-			stream.skipToEnd();
-			return 'MESSAGE';
+			stream.skipToEnd()
+			return 'MESSAGE'
 		}
 	}
 
 	if (this.tokenIndex === 2 && !stream.eol())
 	{
-		var ch = stream.peek()
+		let ch = stream.peek()
 		stream.next()
 		return (this.abbrevNames.indexOf(ch) >= 0) ? 'LEVEL' : 'ERROR'
 		// if (this.abbrevNames.indexOf(ch) >= 0)
