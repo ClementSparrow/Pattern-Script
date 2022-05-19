@@ -263,49 +263,49 @@ function levelFromString(state, level)
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	var o = new Level(level[1].length, level.length-1, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ))
-	o.lineNumber = level[0]
+	let o = new Level(level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
+	o.lineNumber = level.lineNumber
 	execution_context.resetCommands()
 
-	for (var i = 0; i < o.width; i++)
+	for (let i = 0; i < o.width; i++)
 	{
-		for (var j = 0; j < o.height; j++)
+		for (let j = 0; j < o.height; j++)
 		{
-			var ch = level[j+1].charAt(i);
+			let ch = level.grid[j].charAt(i);
 			if (ch.length == 0) // TODO: why is it possible to have that from the parser?
 			{
-				ch = level[j+1].charAt(level[j+1].length-1);
+				ch = level.grid[j].charAt(level.grid[j].length-1);
 			}
 
 			const identifier_index = state.identifiers.names.indexOf(ch); // TODO: this should be done in the parser
 			if (identifier_index < 0)
 			{
-				logError(['unknown_symbol_in_level', ch], level[0]+j)
+				logError(['unknown_symbol_in_level', ch], level.lineNumber+j)
 				continue
 			}
 			if (state.identifiers.comptype[identifier_index] == identifier_type_property)
 			{
-				logError(['property_symbol_in_level', ch], level[0]+j)
+				logError(['property_symbol_in_level', ch], level.lineNumber+j)
 				continue
 			}
 			if ( ! [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
 			{
-				logError(['wrong_symbol_type_in_level', ch, state.identifiers.comptype[identifier_index]], level[0]+j)
+				logError(['wrong_symbol_type_in_level', ch, state.identifiers.comptype[identifier_index]], level.lineNumber+j)
 				continue
 			}
 
 			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
-			for (var w = 0; w < STRIDE_OBJ; ++w)
+			for (let w = 0; w < STRIDE_OBJ; ++w)
 			{
 				o.objects[STRIDE_OBJ * (i * o.height + j) + w] = maskint.data[w];
 			}
 		}
 	}
 
-	var levelBackgroundMask = o.calcBackgroundMask(state);
-	for (var i=0; i<o.n_tiles; i++)
+	let levelBackgroundMask = o.calcBackgroundMask(state);
+	for (let i=0; i<o.n_tiles; i++)
 	{
-		var cell = o.getCell(i);
+		let cell = o.getCell(i);
 		if ( ! backgroundLayerMask.anyBitsInCommon(cell) )
 		{
 			cell.ior(levelBackgroundMask);
@@ -318,34 +318,30 @@ function levelFromString(state, level)
 //also assigns glyphDict
 function levelsToArray(state)
 {
-	var levels = state.levels;
-	var processedLevels = [];
+	let levels = state.levels
+	let processedLevels = []
 
 	for (var level of levels)
 	{
-		if (level.length == 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
-			continue;
-
-		if (level[0] == '\n')
+		if (level.type === 'message')
 		{
-			var o = {
-				message: level[1]
-			};
 			// TODO: we should keep the result of wordwrap so that we don't have to recompute it in doMessage
-			if (wordwrap(o.message).length >= terminal_height)
+			if (wordwrap(level.message).length >= terminal_height)
 			{
-				logWarning('Message too long to fit on screen.', level[2]);
+				logWarning('Message too long to fit on screen.', level.lineNumber)
 			}
-			processedLevels.push(o);
+			processedLevels.push(Object.assign({}, level))
 		}
-		else
+		else if (level.type === 'level')
 		{
-			var o = levelFromString(state, level);
-			processedLevels.push(o);
+			if (level.grid.length === 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
+				continue
+			let o = levelFromString(state, level)
+			processedLevels.push(o)
 		}
 
 	}
-	state.levels = processedLevels;
+	state.levels = processedLevels
 }
 
 var dirMasks = {
