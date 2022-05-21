@@ -78,15 +78,18 @@ A puzzlescript file is divided into 8 sections:
 
 
 <p>
-<h2>Sounds</h2>
+<h2>Adding Sounds</h2>
+  <h3>The SOUNDS section</h3>
     <p>
-    Here's where you hook up sounds to in-game actions.
+    This is where you hook up sounds to in-game actions.
     <p>
     There are sound buttons above the console, that produce sound seeds that you can use in this section.  
     <p>
     <img src="images/soundbuttons.png">
     <p>
-    These numbers are saved representations of the sounds, and you use them in the sound sections.
+    These numbers are saved representations of the sounds, and you use them in the sound section by associating an event with a seed. The possible events will be described in the next section of this documentation page.
+    <p>Useful tip: just click on a seed to play the sound, in the editor or in the console!
+  <h3>Example SOUNDS section</h3>
     <p>
     A sound section could look like the following:
     <p>
@@ -100,7 +103,11 @@ Crate Create 41234123
 CloseMessage 1241234
 Sfx0 213424
 Sfx3 213424</code></pre>
+  <h3>Adjusting the volume of a sound</h3>
+  <p>You can specify a volume after the seed and a colon, like that: <pre><code>player move up 142315:12</code></pre>
+  <p>This will boost the sound effect's volume by 12 tenths, i.e. 120%. The default sound volume is thus 10, and you can use any integer value between 1 and 39 included, although values higher than 27 may distort the original sound.
 <p>
+  <h2>Events that can trigger a sound</h2>
 here are the possible sound events declarations:
 
 <h3>Object-related sound events</h3>

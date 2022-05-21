@@ -1,4 +1,5 @@
 const SOUND_VOL = 0.25;
+const MAX_SOUND_VOL = 39
 const SAMPLE_RATE = 5512;
 const BIT_DEPTH = 8;
 
@@ -619,7 +620,6 @@ function cacheSeed(seed){
 	}
 
 	var params = generateFromSeed(seed);
-	params.sound_vol = SOUND_VOL;
 	params.sample_rate = SAMPLE_RATE;
 	params.bit_depth = BIT_DEPTH;
 

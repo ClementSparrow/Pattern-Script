@@ -132,7 +132,7 @@ editor.on('mousedown', function(cm, event)
 {
 	if (event.target.className == 'cm-SOUND')
 	{
-		playSound( parseInt(event.target.innerHTML) )
+		playSound(event.target.innerHTML)
 	}
 	else if (event.target.className == 'cm-LEVEL')
 	{

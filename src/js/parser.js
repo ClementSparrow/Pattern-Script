@@ -30,7 +30,7 @@ const reg_tagged_name = /[\p{Letter}\p{Number}_:]+/u
 const reg_maptagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_<^>]+)*/u
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
-const reg_soundseed = /\d+\b/;
+const reg_soundseed = /\d+(?::[1-3]\d|:[1-9])?\b/
 const reg_spriterow = /[\.0-9]+[\p{Separator}\s]*/u;
 const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)\b/u;
 const reg_equalsrow = /[\=]+/;

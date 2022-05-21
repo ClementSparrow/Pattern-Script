@@ -787,9 +787,31 @@ var soundMaskedEvents =["create","destroy","move","cantmove","action"];
 var soundVerbs = soundEvents.concat(soundMaskedEvents);
 
 
-function validSeed (seed)
+function validSeed(seed, lineNumber)
 {
-	return /^\s*\d+\s*$/.exec(seed) !== null;
+	const match = /^\s*\d+(?::(\d\d?))?\s*$/.exec(seed)
+	if (match === null)
+	{
+		logError(['bad_seed', seed], lineNumber)
+		return false
+	}
+	if (match[1])
+	{
+		const volume = parseInt(match[1])
+		if (volume == 0)
+		{
+			logError(['null_seed', seed], lineNumber)
+			return false
+		}
+		if (volume > MAX_SOUND_VOL)
+		{
+			logError(['too_loud', seed, MAX_SOUND_VOL], lineNumber)
+			return false
+		}
+		if (volume > 10*Math.log(2)/SOUND_VOL)
+			logWarning(['high_volume_seed', seed, volume], lineNumber)
+	}
+	return true
 }
 
 
@@ -835,7 +857,7 @@ function generateSoundData(state)
 				logError("too much stuff to define a sound event.", lineNumber);
 			}
 			var seed = sound[1];
-			if (validSeed(seed))
+			if (validSeed(seed, lineNumber))
 			{
 				const sound_names = (sound[0] === 'titlescreen') ? [ 'gamescreen', 'pausescreen' ] : [ sound[0] ]
 				for (const sound_name of sound_names)
@@ -845,8 +867,6 @@ function generateSoundData(state)
 					} 
 					sfx_Events[sound_name] = sound[1]
 				}
-			} else {
-				logError("Expecting sfx data, instead found \""+sound[1]+"\".", lineNumber);
 			}
 		}
 		else
@@ -922,9 +942,8 @@ function generateSoundData(state)
 			}
 
 
-			if (!validSeed(seed)) {
-				logError("Expecting sfx data, instead found \""+seed+"\".",lineNumber);	
-			}
+			if ( ! validSeed(seed, lineNumber) )
+			{ }
 
 			switch (verb)
 			{

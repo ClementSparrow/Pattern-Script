@@ -568,11 +568,17 @@ const generatorNames = [
 
 generateFromSeed = function(seed)
 {
+	var seedSplit = seed.toString().split(':')
+	seed = seedSplit[0]
+	var volume = seedSplit[1] / 10 || 1
+
 	rng = new RNG( (seed / 100) | 0 );
 	const generatorindex = seed % 100;
 	var soundGenerator = generators[generatorindex % generators.length];
 	seeded = true;
 	var result = soundGenerator();
+
+	result.sound_vol = volume * SOUND_VOL
 	result.seed = seed;
 	seeded = false;
 	return result;
