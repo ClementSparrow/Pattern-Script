@@ -863,7 +863,14 @@ function processInput(input)
 	// Add the frame to undo stack if something changed in the frame and it has some actual player input (not ticks, not apply rules on level start, not againing)
 	if (modified && (input >= 0) )
 	{
-		execution_context.backups.push(bak)
+		if ( execution_context.commandQueue.get(CommandsSet.command_keys.nosave) )
+		{
+			if (verbose_logging) consolePrintFromRule('NOSAVE command executed, this frame will NOT be pushed on the undo stack.', execution_context.commandQueue.sourceRules[CommandsSet.command_keys.nosave])
+		}
+		else
+		{
+			execution_context.backups.push(bak)
+		}
 	}
 
 	for (const seed of seedsToPlay_CantMove)

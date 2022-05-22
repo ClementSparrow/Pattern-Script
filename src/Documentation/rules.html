@@ -189,6 +189,9 @@ late [Shadow] -> []</code></pre>
       <dd>cancels the entire turn, and reverts back to how it was at the start of the turn. basically "forget everything and pretend nothing happened"</dd>
       <dt>checkpoint</dt>
       <dd>saves the game state.  Now, whenever the person presses <b>R</b> to restart, or your do the RESTART command, they'll spawn here instead.</dd>
+      <dt>nosave</dt>
+      <dd>When this command is executed, the current state of the game will not be pushed to the undo stack. Undoing at a later point in the game will skip that frame.<br />
+        One possible use of the function is to combine one input with another (for instance, pressing action then a direction to shoot a missile in this direction). In that case you don't want an UNDO to bring you back to the state where you wait for a direction so you should use <code>NOSAVE</code> when the direction is input. Another similar use case is when an input can be understood as undoing the previous action (e.g., entering a mode then exiting it). Finally, a possible use is to prevent animations (especially, randomized animations) forcing an UNDO state even when the player did not move.<br />Please do not use this command systematically to prevent players from ever undoing. Instead, use the <code>noundo</code> option in the preamble, since that option adapts the key hint message in the title screen.</dd>
       <dt>restart</dt>
       <dd>Same as pressing R</dd>
       <dt>Win</dt>

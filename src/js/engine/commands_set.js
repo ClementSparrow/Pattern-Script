@@ -8,7 +8,7 @@ function CommandsSet()
 CommandsSet.prototype = Object.create(BitVec.prototype)
 
 // DO NOT CHANGE THE ORDER OF COMMANDS
-CommandsSet.commandwords = [ 'cancel', 'restart', 'again', 'win', 'checkpoint', 'sfx0', 'sfx1', 'sfx2', 'sfx3', 'sfx4', 'sfx5', 'sfx6', 'sfx7', 'sfx8', 'sfx9', 'sfx10', 'message' ]
+CommandsSet.commandwords = [ 'cancel', 'restart', 'again', 'win', 'checkpoint', 'nosave', 'sfx0', 'sfx1', 'sfx2', 'sfx3', 'sfx4', 'sfx5', 'sfx6', 'sfx7', 'sfx8', 'sfx9', 'sfx10', 'message' ]
 CommandsSet.command_keys = {}
 CommandsSet.commandwords.forEach( (word, index) => { CommandsSet.command_keys[word] = index} )
 
