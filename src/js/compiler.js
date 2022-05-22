@@ -808,8 +808,6 @@ function validSeed(seed, lineNumber)
 			logError(['too_loud', seed, MAX_SOUND_VOL], lineNumber)
 			return false
 		}
-		if (volume > 10*Math.log(2)/SOUND_VOL)
-			logWarning(['high_volume_seed', seed, volume], lineNumber)
 	}
 	return true
 }

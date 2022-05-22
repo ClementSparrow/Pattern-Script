@@ -43,7 +43,6 @@ const error_messages = { // actually also warning messages
 	incorrect_sound_declaration: 'Incorrect sound declaration.', // TODO: explain what is incorrect
 	bad_seed: seed => 'Expecting sfx data, instead found "' + seed + '".',
 	null_seed: seed => 'Sound seed "' + seed + '" contains a null volume!',
-	high_volume_seed: (seed, volume) => 'Sound seed "' + seed + '" contains a volume boost of ' + volume + '0% that may introduce distortion.',
 	too_loud: (seed, max_volume) => 'Sorry, the volume defined in the seed "' + seed + '" is too loud. By respect to players\' audition, I will not accept seeds with a volume higher than ' + max_volume + '.',
 
 	// compile

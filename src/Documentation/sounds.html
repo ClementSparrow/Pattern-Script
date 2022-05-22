@@ -105,7 +105,8 @@ Sfx0 213424
 Sfx3 213424</code></pre>
   <h3>Adjusting the volume of a sound</h3>
   <p>You can specify a volume after the seed and a colon, like that: <pre><code>player move up 142315:12</code></pre>
-  <p>This will boost the sound effect's volume by 12 tenths, i.e. 120%. The default sound volume is thus 10, and you can use any integer value between 1 and 39 included, although values higher than 27 may distort the original sound.
+  <p>This will boost the sound effect's volume by 12 tenths, i.e. 120%. The default sound volume is thus 10, and you can use any integer value between 1 and 39 included.
+  <p>Note that increasing the volume of a sound can add distortion to it, and conversely, decreasing the volume of a sound can make it sound smoother. The reason is that the volume setting directly multiply the soundwave's amplitude before it is capped to 1, and this capping causes distortion.
 <p>
   <h2>Events that can trigger a sound</h2>
 here are the possible sound events declarations:
