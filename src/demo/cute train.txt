@@ -79,14 +79,19 @@ yellow black
 
 GhostVTrack
 yellow
+
 GhostHTrack
 yellow
+
 GhostURTrack
 yellow
+
 GhostULTrack
 yellow
+
 GhostDLTrack
 yellow
+
 GhostDRTrack
 yellow
 
