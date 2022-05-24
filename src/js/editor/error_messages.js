@@ -58,7 +58,7 @@ const error_messages = { // actually also warning messages
 	object_in_multiple_layers: object_name => 'Object "' + object_name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!',
 	// levels
 	non_rectangular_level: 'Maps must be rectangular, yo (In a level, the length of each row must be the same).',
-
+	long_level_number: 'Level numbers should not be longer than 10 characters to fit on the title screen'
 	// rule_parser.js
 	// ==============
 

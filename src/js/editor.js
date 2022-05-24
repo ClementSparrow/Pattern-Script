@@ -299,7 +299,7 @@ function loadText(txt)
 	editor.setValue(txt)
 	setEditorClean()
 	state = introstate
-	level = new Level(5, 5, new Int32Array(0))
+	level = new Level(0, 5, 5, new Int32Array(0))
 	title_screen.makeTitle()
 	compile(-1, txt)
 	setPageTitle()

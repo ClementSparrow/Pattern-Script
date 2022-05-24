@@ -263,7 +263,7 @@ function levelFromString(state, level)
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	let o = new Level(level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
+	let o = new Level(level.number, level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
 	o.lineNumber = level.lineNumber
 	execution_context.resetCommands()
 
@@ -320,6 +320,7 @@ function levelsToArray(state)
 {
 	let levels = state.levels
 	let processedLevels = []
+	let levelNumber = 1;
 
 	for (var level of levels)
 	{
@@ -336,8 +337,11 @@ function levelsToArray(state)
 		{
 			if (level.grid.length === 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
 				continue
+			if (!level.hasOwnProperty('number'))
+				level.number = levelNumber
 			let o = levelFromString(state, level)
 			processedLevels.push(o)
+			++levelNumber
 		}
 
 	}

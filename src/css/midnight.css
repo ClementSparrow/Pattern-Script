@@ -56,6 +56,8 @@
 .cm-s-midnight span.cm-COMMAND {color: #AE81FF;font-weight:bold;}
 .cm-s-midnight span.cm-MESSAGE_VERB {color: #AE81FF;font-weight:bold;}
 .cm-s-midnight span.cm-MESSAGE {color: orange;font-style:italic;}
+.cm-s-midnight span.cm-LEVEL_NUMBER_VERB {color: #AE81FF;font-weight:bold;}
+.cm-s-midnight span.cm-LEVEL_NUMBER {color: orange;font-style:italic;}
 .cm-s-midnight span.cm-METADATA {color: #AE81FF;font-weight:bold;}
 .cm-s-midnight span.cm-METADATATEXT {color: orange;font-style:italic;}
 

@@ -254,6 +254,10 @@
 					{
 						candlists.push(['MESSAGE_VERB', 'message'])
 					}
+					if ('number'.indexOf(lineToCursor.trim()) === 0)
+					{
+						candlists.push(['LEVEL_NUMBER_VERB', 'number'])
+					}
 					break
                 default: //preamble
 					var lc = lineToCursor.toLowerCase()
