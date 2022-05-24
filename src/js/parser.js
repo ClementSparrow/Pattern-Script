@@ -1470,35 +1470,63 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 
 PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, stream, ch)
 {
+	// Token indices:
+	// 1 = level
+	// 2 = message
+	// 3 = number
 	if (is_start_of_line)
 	{
 		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
 		{
-			this.tokenIndex = 1 // 1/2 = message/level
+			this.tokenIndex = 2
 			let messageData = {
 				type: 'message',
 				message: this.mixedCase.slice(stream.pos).trim(),
 				lineNumber: this.lineNumber,
 			}
 			let lastLevel = this.levels[this.levels.length - 1]
-			if (lastLevel.type === 'level' && lastLevel.grid.length === 0) {
+			if (lastLevel.type === 'level' && lastLevel.grid.length === 0)
+			{
 				this.levels.splice(this.levels.length - 1, 0, messageData)
-			} else {
+			}
+			else
+			{
 				this.levels.push(messageData)
 			}
 			return 'MESSAGE_VERB'
-		} else {
-			let line = stream.match(reg_notcommentstart, false)[0].trim()
-			this.tokenIndex = 2
+		}
+		else if (stream.match(/[\p{Separator}\s]*number\b[\p{Separator}\s]*/u, true))
+		{
+			this.tokenIndex = 3
+			let levelNumber = this.mixedCase.slice(stream.pos).trim()
+			if (levelNumber.length > 10)
+				this.logWarning(['long_level_number'])
 			let lastLevel = this.levels[this.levels.length - 1]
-			if (lastLevel.type !== 'level') {
+			if (lastLevel.type !== 'level')
+			{
+				lastLevel = {type: 'level', grid: [],}
+				this.levels.push(lastLevel)
+			}
+			lastLevel.number = levelNumber
+			// TODO: add check on maximum string length
+			return 'LEVEL_NUMBER_VERB'
+		}
+		else
+		{
+			let line = stream.match(reg_notcommentstart, false)[0].trim()
+			this.tokenIndex = 1
+			let lastLevel = this.levels[this.levels.length - 1]
+			if (lastLevel.type !== 'level')
+			{
 				this.levels.push({
 					type: 'level',
 					lineNumber: this.lineNumber,
 					grid: [line],
 					width: line.length,
 				})
-			} else {
+			}
+			else
+			{
 				if (!lastLevel.hasOwnProperty('lineNumber'))
 				{
 					lastLevel.lineNumber = this.lineNumber
@@ -1516,19 +1544,22 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 					lastLevel.width = line.length
 				}
 			}
-			
 		}
 	}
 	else
 	{
-		if (this.tokenIndex == 1)
+		if (this.tokenIndex > 1)
 		{
 			stream.skipToEnd()
-			return 'MESSAGE'
+			
+			return [
+				'MESSAGE', // 2
+				'LEVEL_NUMBER', // 3
+			][this.tokenIndex - 2]
 		}
 	}
 
-	if (this.tokenIndex === 2 && !stream.eol())
+	if (this.tokenIndex === 1 && !stream.eol())
 	{
 		let ch = stream.peek()
 		stream.next()
