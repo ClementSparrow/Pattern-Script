@@ -1502,7 +1502,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			if (levelNumber.length > 10)
 				this.logWarning(['long_level_number'])
 			let lastLevel = this.levels[this.levels.length - 1]
-			if (lastLevel.type !== 'level')
+			if (lastLevel.type !== 'level' || lastLevel.grid !== [])
 			{
 				lastLevel = {type: 'level', grid: [],}
 				this.levels.push(lastLevel)
