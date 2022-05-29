@@ -105,16 +105,46 @@ TextModeScreen.prototype.redraw_virtual_screen = function(ctx)
 LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 {
 	const [ mini, minj, maxi, maxj ] = this.get_viewport()
+	const [ size_x, size_y ] = [ maxi-mini, maxj-minj ]
 
-	for (var i = mini; i < maxi; i++)
+	for (const layer_group of state.collision_layer_groups)
 	{
-		const x = (i-mini) * sprite_width
-		for (var j = minj; j < maxj; j++)
+		const Δhoriz = layer_group.leftward ? -sprite_width  : sprite_width
+		const Δvert  = layer_group.upward   ? -sprite_height : sprite_height
+		const Δi_horiz = layer_group.leftward ? -this.level.height : this.level.height
+		const Δi_vert  = layer_group.upward ? -1 : 1
+		const initial_col = layer_group.leftward ? size_x-1 : 0
+		const initial_row = layer_group.upward   ? size_y-1 : 0
+
+		const [ size1, size2 ] = layer_group.horizontal_first ? [ size_x, size_y ] : [ size_y, size_x ]
+		const [ Δx1, Δy1, Δx2, Δy2 ] = layer_group.horizontal_first ? [ Δhoriz, 0, 0, Δvert ] : [ 0, Δvert, Δhoriz, 0 ]
+		const [ Δi1, Δi2 ] = layer_group.horizontal_first ? [ Δi_horiz, Δi_vert] : [ Δi_vert, Δi_horiz ]
+
+		let x2 = initial_col*sprite_width
+		let y2 = (initial_row+1)*sprite_height
+		let i2 = (mini+initial_row) + (minj+initial_col)*this.level.height
+
+		for (let counter2 = size2; counter2 > 0; counter2--)
 		{
-			const y = (j+1-minj) * sprite_height
-			this.level.mapCellObjects( j + i*this.level.height,
-				k => ctx.drawImage(spriteimages[k], x+spriteimages[k].offset[0], y+spriteimages[k].offset[1]-spriteimages[k].height)
-			)
+			let i1 = i2
+			let x1 = x2
+			let y1 = y2
+			for (let counter1 = size1; counter1 > 0; counter1--)
+			{
+				this.level.mapCellObjects(
+					i1,
+					function(k) {
+						if ( (k >= layer_group.first_id) && (k <= layer_group.last_id) )
+							ctx.drawImage(spriteimages[k], x1+spriteimages[k].offset[0], y1+spriteimages[k].offset[1]-spriteimages[k].height)
+					}
+				)
+				i1 += Δi1
+				x1 += Δx1
+				y1 += Δy1
+			}
+			i2 += Δi2
+			x2 += Δx2
+			y2 += Δy2
 		}
 	}
 }

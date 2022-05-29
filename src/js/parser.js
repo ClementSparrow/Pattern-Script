@@ -35,6 +35,7 @@ const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winc
 const reg_equalsrow = /[\=]+/;
 const reg_notcommentstart = /[^\(]+/;
 const reg_csv_separators = /[ \,]*/;
+const reg_layergroups_separator = /\s*--([v^|][<>-]|[<>-][v^|])?(?:--)?\s*/
 const reg_soundverbs = /(move|action|create|destroy|cantmove|undo|restart|titlescreen|gamescreen|pausescreen|startgame|cancel|endgame|startlevel|endlevel|showmessage|closemessage|sfx0|sfx10?|sfx2|sfx3|sfx4|sfx5|sfx6|sfx7|sfx8|sfx9)\b/u
 const reg_directions = /^(action|up|down|left|right|\^|v|\<|\>|moving|stationary|parallel|perpendicular|horizontal|orthogonal|vertical|no|randomdir|random)$/;
 const reg_loopmarker = /^(startloop|endloop)$/;
@@ -87,6 +88,7 @@ function PuzzleScriptParser()
 	this.sounds = []
 
 	this.collisionLayers = [] // an array of collision layers (from bottom to top), each as a Set of the indexes of the objects belonging to that layer
+	this.collision_layer_groups = [ {first_layer: 0, horizontal_first: true, leftward: false, upward: false }]
 	this.backgroundlayer = null;
 	this.current_expansion_context = new ExpansionContext()
 	this.current_layer_parameters = []
@@ -126,6 +128,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
 	result.collisionLayers = this.collisionLayers.map( s => new Set(s) )
+	result.collision_layer_groups = this.collision_layer_groups.concat()
 	result.backgroundlayer = this.backgroundlayer
 	result.current_expansion_context = this.current_expansion_context.copy()
 	result.current_layer_parameters = Array.from( this.current_layer_parameters )
@@ -1252,6 +1255,19 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 {
 	if (is_start_of_line)
 	{
+		const sep_match = stream.match(reg_layergroups_separator, true)
+		if (sep_match !== null)
+		{
+			const last_group = this.collision_layer_groups[-1]
+			const direction_string = sep_match[1] || '>v'
+			this.collision_layer_groups.push( {
+				first_layer: this.collisionLayers.length,
+				horizontal_first: '<->'.includes(direction_string[0]),
+				leftward: direction_string.includes('<'),
+				upward: direction_string.includes('^')
+			} )
+			return 'COLGROUPSEP' // TODO: add CSS
+		}
 		this.current_expansion_context = new ExpansionContext()
 		this.tokenIndex = (/->/.test(stream.string)) ? 0 : 1
 	}
@@ -1263,6 +1279,7 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 	}
 
 	// define the expansion context if possible
+	// TODO: we need to make the expansion in the parser instead of the compiler, only to repport errors, but it is a costly operation that can slow down the editor a lot.
 	if ( (this.tokenIndex >= 1) && (this.current_expansion_context.expansion.length == 0) )
 	{
 		this.current_expansion_context = this.identifiers.expansion_context(
@@ -1293,7 +1310,7 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 	
 	const identifier = match_name[0].trim()
 
-	if (this.tokenIndex == 0) // list of expansion parameters
+	if (this.tokenIndex == 0) // in the list of expansion parameters
 	{
 		const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(identifier, [identifier_type_property, identifier_type_tagset], false, this)
 		if (identifier_index === -2) // unknown identifier
@@ -1309,6 +1326,8 @@ PuzzleScriptParser.prototype.tokenInCollisionLayersSection = function(is_start_o
 		this.current_layer_parameters.push(identifier_index)
 		return 'NAME'
 	}
+
+	// object name (possibly, to be expanded)
 	if ( this.current_expansion_context.expansion.every( ([layer_index, expansion]) => this.addIdentifierInCollisionLayer(identifier, layer_index, this.current_expansion_context.parameters, expansion) ) )
 		return 'NAME'
 	return 'ERROR' // this is a semantic rather than a syntactic error

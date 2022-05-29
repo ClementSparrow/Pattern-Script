@@ -39,9 +39,6 @@ function generateSpriteMatrix(dat)
 	);
 }
 
-var debugMode;
-var colorPalette;
-
 
 
 function generateExtraMembers(state)
@@ -52,18 +49,32 @@ function generateExtraMembers(state)
 		logError(['no_collision_layers'])
 	}
 
+	// compute layer groups
+	for (const [group_index, layer_group] of state.collision_layer_groups.entries())
+	{
+		layer_group.last_layer =
+			(group_index+1 == state.collision_layer_groups.length)
+			? state.collisionLayers.length - 1
+			: state.collision_layer_groups[group_index+1].first_layer - 1
+	}
+	state.collision_layer_groups = state.collision_layer_groups.filter( g => g.last_layer >= g.first_layer )
+
 	//annotate objects with layers
 	//assign ids at the same time
 	// TODO: This could be done directly in the parser -- ClementSparrow
 	state.idDict = []; // TODO: this is a bad name...
-	for (var [layerIndex, layer] of state.collisionLayers.entries())
+	for (const layer_group of state.collision_layer_groups)
 	{
-		for (const object_index of layer)
+		layer_group.first_id = state.idDict.length
+		for (let layerIndex = layer_group.first_layer; layerIndex <= layer_group.last_layer; ++layerIndex)
 		{
-			var o = state.identifiers.objects[object_index];
-			o.id = state.idDict.length;
-			state.idDict.push(object_index);
+			for (const object_index of state.collisionLayers[layerIndex])
+			{
+				state.identifiers.objects[object_index].id = state.idDict.length
+				state.idDict.push(object_index)
+			}
 		}
+		layer_group.last_id = state.idDict.length - 1
 	}
 
 	//set object count
@@ -79,15 +90,15 @@ function generateExtraMembers(state)
 	state.STRIDE_OBJ=STRIDE_OBJ;
 	state.STRIDE_MOV=STRIDE_MOV;
 
-	debugMode = ('debug' in state.metadata)
 	throttle_movement = ('throttle_movement' in state.metadata)
-	if (debugMode||verbose_logging)
+	if ( ('debug' in state.metadata) || verbose_logging )
 	{
 		cache_console_messages = true;
 	}
 
 	// get colorpalette name
 	// TODO: move that in the parser so that it can display the exact colors
+	let colorPalette = colorPalettes.arnecolors
 	if ('color_palette' in state.metadata)
 	{
 		var val = state.metadata.color_palette
@@ -101,10 +112,6 @@ function generateExtraMembers(state)
 		} else {
 			colorPalette = colorPalettes[val];
 		}
-	}
-	else
-	{
-		colorPalette = colorPalettes.arnecolors;
 	}
 
 	const color_metadata = [
