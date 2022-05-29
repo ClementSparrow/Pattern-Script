@@ -1456,6 +1456,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 	// 1 = level
 	// 2 = message
 	// 3 = number
+	// 4 = title
 	if (is_start_of_line)
 	{
 		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
@@ -1484,14 +1485,30 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			if (levelNumber.length > 10)
 				this.logWarning(['long_level_number'])
 			let lastLevel = this.levels[this.levels.length - 1]
-			if (lastLevel.type !== 'level' || lastLevel.grid !== [])
+			if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 			{
 				lastLevel = {type: 'level', grid: [],}
 				this.levels.push(lastLevel)
 			}
+			if (lastLevel.hasOwnProperty('number'))
+				this.logWarning(['repeated_level_number'])
 			lastLevel.number = levelNumber
-			// TODO: add check on maximum string length
 			return 'LEVEL_NUMBER_VERB'
+		}
+		else if (stream.match(/[\p{Separator}\s]*title\b[\p{Separator}\s]*/u, true))
+		{
+			this.tokenIndex = 4
+			let levelTitle = this.mixedCase.slice(stream.pos).trim()
+			let lastLevel = this.levels[this.levels.length - 1]
+			if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
+			{
+				lastLevel = {type: 'level', grid: [],}
+				this.levels.push(lastLevel)
+			}
+			if (lastLevel.hasOwnProperty('title'))
+				this.logWarning(['repeated_level_title'])
+			lastLevel.title = levelTitle
+			return 'LEVEL_TITLE_VERB'
 		}
 		else
 		{
@@ -1537,6 +1554,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			return [
 				'MESSAGE', // 2
 				'LEVEL_NUMBER', // 3
+				'LEVEL_TITLE', // 4
 			][this.tokenIndex - 2]
 		}
 	}

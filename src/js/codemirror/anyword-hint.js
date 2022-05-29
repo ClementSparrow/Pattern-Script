@@ -258,6 +258,10 @@
 					{
 						candlists.push(['LEVEL_NUMBER_VERB', 'number'])
 					}
+					if ('title'.indexOf(lineToCursor.trim()) === 0)
+					{
+						candlists.push(['LEVEL_TITLE_VERB', 'title'])
+					}
 					break
                 default: //preamble
 					var lc = lineToCursor.toLowerCase()
