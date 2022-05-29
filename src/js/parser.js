@@ -315,7 +315,7 @@ PuzzleScriptParser.prototype.blankLine = function() // called when the line is e
 	}
 	else if (this.section === 'levels')
 	{
-		let lastLevel = this.levels[this.levels.length - 1]
+		const lastLevel = this.levels[this.levels.length - 1]
 		if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 		{
 			this.levels.push({type: 'level', grid: []});
@@ -1480,12 +1480,12 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 2
-			let messageData = {
+			const messageData = {
 				type: 'message',
 				message: this.mixedCase.slice(stream.pos).trim(),
 				lineNumber: this.lineNumber,
 			}
-			let lastLevel = this.levels[this.levels.length - 1]
+			const lastLevel = this.levels[this.levels.length - 1]
 			if (lastLevel.type === 'level' && lastLevel.grid.length === 0)
 			{
 				this.levels.splice(this.levels.length - 1, 0, messageData)
@@ -1499,7 +1499,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		else if (stream.match(/[\p{Separator}\s]*number\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 3
-			let levelNumber = this.mixedCase.slice(stream.pos).trim()
+			const levelNumber = this.mixedCase.slice(stream.pos).trim()
 			if (levelNumber.length > 10)
 				this.logWarning(['long_level_number'])
 			let lastLevel = this.levels[this.levels.length - 1]
@@ -1516,7 +1516,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		else if (stream.match(/[\p{Separator}\s]*title\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 4
-			let levelTitle = this.mixedCase.slice(stream.pos).trim()
+			const levelTitle = this.mixedCase.slice(stream.pos).trim()
 			let lastLevel = this.levels[this.levels.length - 1]
 			if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 			{
@@ -1530,7 +1530,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		}
 		else
 		{
-			let line = stream.match(reg_notcommentstart, false)[0].trim()
+			const line = stream.match(reg_notcommentstart, false)[0].trim()
 			this.tokenIndex = 1
 			let lastLevel = this.levels[this.levels.length - 1]
 			if (lastLevel.type !== 'level')
@@ -1579,17 +1579,9 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 
 	if (this.tokenIndex === 1 && !stream.eol())
 	{
-		let ch = stream.peek()
+		const ch = stream.peek()
 		stream.next()
 		return (this.abbrevNames.indexOf(ch) >= 0) ? 'LEVEL' : 'ERROR'
-		// if (this.abbrevNames.indexOf(ch) >= 0)
-		// 	return 'LEVEL'
-
-		// if (this.identifiers.names.indexOf(ch) < 0)
-		// {
-		// 	this.logError('Key "' + ch.toUpperCase() + '" not found. Do you need to add it to the legend, or define a new object?')
-		// }
-		// return 'ERROR'
 	}
 }
 

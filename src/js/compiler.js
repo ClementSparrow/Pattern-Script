@@ -309,7 +309,7 @@ function levelFromString(state, level)
 		}
 	}
 
-	let levelBackgroundMask = o.calcBackgroundMask(state);
+	const levelBackgroundMask = o.calcBackgroundMask(state);
 	for (let i=0; i<o.n_tiles; i++)
 	{
 		let cell = o.getCell(i);
@@ -325,9 +325,9 @@ function levelFromString(state, level)
 //also assigns glyphDict
 function levelsToArray(state)
 {
-	let levels = state.levels
+	const levels = state.levels
 	let processedLevels = []
-	let levelNumber = 1;
+	let levelNumber = 1
 
 	for (var level of levels)
 	{
@@ -377,8 +377,7 @@ function levelsToArray(state)
 				})
 			}
 
-			let o = levelFromString(state, level)
-			processedLevels.push(o)
+			processedLevels.push(levelFromString(state, level))
 			++levelNumber
 		}
 
