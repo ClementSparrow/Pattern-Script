@@ -348,6 +348,35 @@ function levelsToArray(state)
 				level.number = '' + levelNumber
 			if (!level.hasOwnProperty('title'))
 				level.title = level.number
+
+			if ('show_level_number' in state.metadata)
+			{
+				if ('show_level_title' in state.metadata)
+				{
+					processedLevels.push({
+						type: 'message',
+						message: 'Level ' + level.number + '\n' + level.title,
+						lineNumber: level.lineNumber,
+					})
+				}
+				else
+				{
+					processedLevels.push({
+						type: 'message',
+						message: 'Level ' + level.number,
+						lineNumber: level.lineNumber,
+					})
+				}
+			}
+			else if ('show_level_title' in state.metadata)
+			{
+				processedLevels.push({
+					type: 'message',
+					message: level.title,
+					lineNumber: level.lineNumber,
+				})
+			}
+
 			let o = levelFromString(state, level)
 			processedLevels.push(o)
 			++levelNumber

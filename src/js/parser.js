@@ -181,7 +181,7 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 //	------- METADATA --------
 
 const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','show_level_number','show_level_title']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
