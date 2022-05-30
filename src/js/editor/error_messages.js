@@ -5,6 +5,7 @@ const error_messages = { // actually also warning messages
 
 	identifier_name_is_keyword: (candname) => 'You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!',
 	identifier_already_defined: (candname, definition_string, l) => 'Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()),
+	wrong_identifier_type_generic: (identifier, identifier_type, accepted_types_descr) => 'You cannot use '+identifier.toUpperCase()+' here because it is ' + identifier_type_as_text[identifier_type] + ' but I was expecting ' + accepted_types_descr,
 
 	// compiler.js
 	// ===========

@@ -284,20 +284,21 @@ function levelFromString(state, level)
 				ch = level.grid[j].charAt(level.grid[j].length-1);
 			}
 
-			const identifier_index = state.identifiers.names.indexOf(ch); // TODO: this should be done in the parser
+			// TODO: this should be done in the parser
+			const identifier_index = state.identifiers.checkIdentifierIsKnownWithType(ch, [identifier_type_object, identifier_type_aggregate], false,
+				{
+					logError: function(err_args)
+					{
+						logError( (err_args[2] == identifier_type_property) ? ['property_symbol_in_level', err_args[1]] : ['wrong_symbol_type_in_level', err_args[1], err_args[2]], level.lineNumber+j)
+					}
+				})
+
 			if (identifier_index < 0)
 			{
-				logError(['unknown_symbol_in_level', ch], level.lineNumber+j)
-				continue
-			}
-			if (state.identifiers.comptype[identifier_index] == identifier_type_property)
-			{
-				logError(['property_symbol_in_level', ch], level.lineNumber+j)
-				continue
-			}
-			if ( ! [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
-			{
-				logError(['wrong_symbol_type_in_level', ch, state.identifiers.comptype[identifier_index]], level.lineNumber+j)
+				if (identifier_index == -2)
+				{
+					logError(['unknown_symbol_in_level', ch], level.lineNumber+j)
+				}
 				continue
 			}
 

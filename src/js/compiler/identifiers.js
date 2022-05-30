@@ -271,7 +271,7 @@ Identifiers.prototype.replaceTag = function(replacement_tag_identifier_index, ta
 //	======= CHECK IDENTIFIERS ======
 
 // forbidden_keywords cannot be used as tags or object names
-const forbidden_keywords = ['checkpoint','tags','objects', 'collisionlayers', 'legend', 'sounds', 'rules', '...','winconditions', 'levels','|','[',']','late','rigid', 'no','randomdir','random', 'any', 'all', 'some', 'moving','stationary','action','message'];
+const forbidden_keywords = sectionNames.concat(['checkpoint', '...','|','[',']','late','rigid', 'no','randomdir','random', 'any', 'all', 'some', 'moving','stationary','action','message'])
 
 Identifiers.prototype.checkIdentifierType = function(identifier_index, accepted_types, accepts_mapping)
 {
@@ -386,13 +386,13 @@ Identifiers.prototype.checkIfNewIdentifierIsValid = function(candname, accept_im
 // also we should define error functions for logging the messages, so that the caller can change the message or do something appropriate in case of error.
 Identifiers.prototype.checkIdentifierIsKnownWithType = function(identifier, accepted_types, accepts_mapping, log)
 {
-	const result = this.names.indexOf(identifier);
+	const result = this.names.indexOf(identifier)
 	if (result < 0)
-		return -2;
+		return -2
 	if (this.checkIdentifierType(result, accepted_types, accepts_mapping))
-		return result;
-	log.logError('You cannot use '+identifier.toUpperCase()+' here because it is '+identifier_type_as_text[this.comptype[result]]+' but I was expecting '+accepted_types.map(t => identifier_type_as_text[t]).join(' or ')+(accepts_mapping ? ' or a mapping giving one.' : '.'))
-	return -1;
+		return result
+	log.logError(['wrong_identifier_type_generic', identifier, this.comptype[result], accepted_types.map(t => identifier_type_as_text[t]).join(' or ')+(accepts_mapping ? ' or a mapping giving one.' : '.')])
+	return -1
 }
 
 // check if an identifier used somewhere is a known object or property.
