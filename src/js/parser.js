@@ -1496,7 +1496,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			}
 			return 'MESSAGE_VERB'
 		}
-		else if (stream.match(/[\p{Separator}\s]*number\b[\p{Separator}\s]*/u, true))
+		if (stream.match(/[\p{Separator}\s]*number\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 3
 			const levelNumber = this.mixedCase.slice(stream.pos).trim()
@@ -1513,7 +1513,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			lastLevel.number = levelNumber
 			return 'LEVEL_NUMBER_VERB'
 		}
-		else if (stream.match(/[\p{Separator}\s]*title\b[\p{Separator}\s]*/u, true))
+		if (stream.match(/[\p{Separator}\s]*title\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 4
 			const levelTitle = this.mixedCase.slice(stream.pos).trim()
@@ -1528,53 +1528,48 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			lastLevel.title = levelTitle
 			return 'LEVEL_TITLE_VERB'
 		}
+
+		const line = stream.match(reg_notcommentstart, false)[0].trim()
+		this.tokenIndex = 1
+		let lastLevel = this.levels[this.levels.length - 1]
+		if (lastLevel.type !== 'level')
+		{
+			this.levels.push({
+				type: 'level',
+				lineNumber: this.lineNumber,
+				grid: [line],
+				width: line.length,
+			})
+		}
 		else
 		{
-			const line = stream.match(reg_notcommentstart, false)[0].trim()
-			this.tokenIndex = 1
-			let lastLevel = this.levels[this.levels.length - 1]
-			if (lastLevel.type !== 'level')
+			if ( ! lastLevel.hasOwnProperty('lineNumber') )
 			{
-				this.levels.push({
-					type: 'level',
-					lineNumber: this.lineNumber,
-					grid: [line],
-					width: line.length,
-				})
+				lastLevel.lineNumber = this.lineNumber
+			}
+			lastLevel.grid.push(line)
+
+			if (lastLevel.hasOwnProperty('width'))
+			{
+				if (line.length != lastLevel.width)
+				{
+					this.logWarning(['non_rectangular_level'])
+				}
 			}
 			else
 			{
-				if (!lastLevel.hasOwnProperty('lineNumber'))
-				{
-					lastLevel.lineNumber = this.lineNumber
-				}
-				lastLevel.grid.push(line)
-
-				if (lastLevel.hasOwnProperty('width')) 
-				{
-					if (line.length != lastLevel.width) {
-						this.logWarning(['non_rectangular_level'])
-					}
-				}
-				else
-				{
-					lastLevel.width = line.length
-				}
+				lastLevel.width = line.length
 			}
 		}
 	}
-	else
+	else if (this.tokenIndex > 1)
 	{
-		if (this.tokenIndex > 1)
-		{
-			stream.skipToEnd()
-			
-			return [
-				'MESSAGE', // 2
-				'LEVEL_NUMBER', // 3
-				'LEVEL_TITLE', // 4
-			][this.tokenIndex - 2]
-		}
+		stream.skipToEnd()
+		return [
+			'MESSAGE', // 2
+			'LEVEL_NUMBER', // 3
+			'LEVEL_TITLE', // 4
+		][this.tokenIndex - 2]
 	}
 
 	if (this.tokenIndex === 1 && !stream.eol())
