@@ -326,11 +326,10 @@ function levelFromString(state, level)
 //also assigns glyphDict
 function levelsToArray(state)
 {
-	const levels = state.levels
 	let processedLevels = []
 	let levelNumber = 1
 
-	for (var level of levels)
+	for (let level of state.levels)
 	{
 		if (level.type === 'message')
 		{
@@ -341,13 +340,13 @@ function levelsToArray(state)
 			}
 			processedLevels.push(Object.assign({}, level))
 		}
-		else if (level.type === 'level')
+		else //if (level.type === 'level')
 		{
 			if (level.grid.length === 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
 				continue
-			if (!level.hasOwnProperty('number'))
+			if ( ! level.hasOwnProperty('number') )
 				level.number = '' + levelNumber
-			if (!level.hasOwnProperty('title'))
+			if ( ! level.hasOwnProperty('title') )
 				level.title = level.number
 
 			const msg_text = (
