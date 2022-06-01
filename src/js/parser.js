@@ -1514,6 +1514,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		else if (titleVerb = stream.match(/[\p{Separator}\s]*title\b(?::\w*)?[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 4
+			
 			const parts = titleVerb[0].trim().split(':')
 			let titleStyle = parts.length > 1 ? parts[1] : 'default'
 			if (titleStyles.indexOf(titleStyle) < 0)
@@ -1522,7 +1523,11 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 				titleStyle = 'default'
 				return 'ERROR'
 			}
+
 			const levelTitle = this.mixedCase.slice(stream.pos).trim()
+			if (levelTitle.length > 34)
+				this.logWarning(['long_level_title'])
+
 			let lastLevel = this.levels[this.levels.length - 1]
 			if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 			{

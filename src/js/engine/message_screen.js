@@ -97,40 +97,29 @@ MenuScreen.prototype.closeMenu = function()
 	canvasResize()
 }
 
-function getLevelName(lvl = curlevel)
+function getCurrentLevel(lvl = curlevel)
 {
-	var result = 1
-	for (var i=0; i<lvl; ++i)
-	{
-		if (state.levels[i].message === undefined)
-			result++
-	}
-	return result
-}
-
-function getLevelNumber(lvl = curlevel)
-{
-	// If this is called during a message, we return the number of the next level.
+	// If this is called during a message, we return the next level.
 	for (let i = lvl; i < state.levels.length; ++i)
 	{
 		if (state.levels[i].type === 'level')
 		{
-			return state.levels[i].number
+			return state.levels[i]
 		}
 	}
 
-	// If this is called for a message after the final level, we instead return the
-	// number of the final level.
+	// If this is called for a message after the final level, we instead return the final level.
 	for (let i = lvl-1; i >= 0; --i)
 	{
 		if (state.levels[i].type === 'level')
 		{
-			return state.levels[i].number
+			return state.levels[i]
 		}
 	}
 	
-	// Fallback for games without levels, I guess
-	return '1'
+	// Panic
+	return null
+	// (this should only happen if the game has no levels)
 }
 
 // sets: this.text
@@ -179,7 +168,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
-	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from level '+getLevelNumber(this.curlevel), () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from level '+getCurrentLevel(this.curlevel).number, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -224,7 +213,16 @@ function wordwrap(str, width = terminal_width)
 MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [empty_terminal_line, state.fgcolor]
-	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+getLevelNumber()), state.titlecolor], empty_line ]
+	const level = getCurrentLevel()
+	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+level.number), state.titlecolor] ]
+	if (level.title != level.number)
+	{
+		let title = level.title
+		if (title.length > empty_terminal_line.length)
+			title = title.substring(0, empty_terminal_line.length - 3) + '...'
+		this.text.push([centerText(title), state.titlecolor])
+	}
+	this.text.push( empty_line )
 	var menu_entries = [
 		['resume game', () => this.closeMenu()],
 		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
