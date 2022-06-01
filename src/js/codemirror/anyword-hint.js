@@ -39,6 +39,7 @@
 			'throttle_movement',
 			['zoomscreen', 'WxH'],
 			['level_title_style', 'number_title'],
+			'hide_level_title_in_menu',
         ];
         const color_keywords = [ 'author_color', 'background_color', 'keyhint_color', 'text_color', 'title_color' ]
 

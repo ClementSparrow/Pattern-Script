@@ -180,7 +180,7 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 //	------- METADATA --------
 
 const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size','level_title_style']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','hide_level_title_in_menu']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
@@ -1525,7 +1525,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			}
 
 			const levelTitle = this.mixedCase.slice(stream.pos).trim()
-			if (levelTitle.length > 34)
+			if (this.metadata_keys.indexOf('hide_level_title_in_menu') < 0 && levelTitle.length > 34)
 				this.logWarning(['long_level_title'])
 
 			let lastLevel = this.levels[this.levels.length - 1]
