@@ -97,17 +97,6 @@ MenuScreen.prototype.closeMenu = function()
 	canvasResize()
 }
 
-function getLevelName(lvl = curlevel)
-{
-	var result = 1
-	for (var i=0; i<lvl; ++i)
-	{
-		if (state.levels[i].message === undefined)
-			result++
-	}
-	return result
-}
-
 function getLevelNumber(lvl = curlevel)
 {
 	// If this is called during a message, we return the number of the next level.
