@@ -38,8 +38,7 @@
 			['title_color', 'blue'],
 			'throttle_movement',
 			['zoomscreen', 'WxH'],
-			'show_level_number',
-			'show_level_title',
+			['level_title_style', 'number_title'],
         ];
         const color_keywords = [ 'author_color', 'background_color', 'keyhint_color', 'text_color', 'title_color' ]
 

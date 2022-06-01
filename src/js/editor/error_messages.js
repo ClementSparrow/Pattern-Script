@@ -61,6 +61,7 @@ const error_messages = { // actually also warning messages
 	long_level_number: 'Level numbers should not be longer than 10 characters to fit on the title screen',
 	repeated_level_number: 'You\'ve already specified a number for this level. Overriding the previous number.',
 	repeated_level_title: 'You\'ve already specified a title for this level. Overriding the previous title.',
+	unknown_title_style: style => 'Unknown title style "' + style + '". Refer to the documentation for possible values.',
 	// rule_parser.js
 	// ==============
 

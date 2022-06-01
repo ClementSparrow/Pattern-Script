@@ -23,6 +23,7 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
+const titleStyles = ['default', 'none', 'number', 'title', 'number_title']
 
 const reg_commands = /(sfx0|sfx1|sfx2|sfx3|Sfx4|sfx5|sfx6|sfx7|sfx8|sfx9|sfx10|cancel|checkpoint|restart|win|message|again)\b/u;
 const reg_name = /[\p{Letter}\p{Number}_]+/u;
@@ -178,8 +179,8 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 
 //	------- METADATA --------
 
-const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','show_level_number','show_level_title']
+const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size','level_title_style']
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
@@ -403,8 +404,22 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 	}
 	else
 	{
-		this.metadata_keys.push('sprite_size')
-		this.metadata_values.push( [5, 5] )
+		this.registerMetaData('sprite_size', [5, 5])
+	}
+
+	const level_title_style_index = this.metadata_keys.indexOf('level_title_style')
+	if (level_title_style_index >= 0)
+	{
+		const level_title_style = this.metadata_values[level_title_style_index]
+		if (titleStyles.indexOf(level_title_style) < 0 || level_title_style == 'default')
+		{
+			this.logError(['unknown_title_style', level_title_style])
+			this.metadata_values[level_title_style_index] = 'none'
+		}
+	}
+	else
+	{
+		this.registerMetaData('level_title_style', 'none')
 	}
 }
 
@@ -1459,6 +1474,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 	// 4 = title
 	if (is_start_of_line)
 	{
+		let titleVerb
 		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 2
@@ -1495,10 +1511,18 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			lastLevel.number = levelNumber
 			return 'LEVEL_NUMBER_VERB'
 		}
-		else if (stream.match(/[\p{Separator}\s]*title\b[\p{Separator}\s]*/u, true))
+		else if (titleVerb = stream.match(/[\p{Separator}\s]*title\b(?::\w*)?[\p{Separator}\s]*/u, true))
 		{
 			this.tokenIndex = 4
-			let levelTitle = this.mixedCase.slice(stream.pos).trim()
+			const parts = titleVerb[0].trim().split(':')
+			let titleStyle = parts.length > 1 ? parts[1] : 'default'
+			if (titleStyles.indexOf(titleStyle) < 0)
+			{
+				this.logError(['unknown_title_style', titleStyle])
+				titleStyle = 'default'
+				return 'ERROR'
+			}
+			const levelTitle = this.mixedCase.slice(stream.pos).trim()
 			let lastLevel = this.levels[this.levels.length - 1]
 			if (lastLevel.type !== 'level' || lastLevel.grid.length > 0)
 			{
@@ -1508,6 +1532,7 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 			if (lastLevel.hasOwnProperty('title'))
 				this.logWarning(['repeated_level_title'])
 			lastLevel.title = levelTitle
+			lastLevel.titleStyle = titleStyle
 			return 'LEVEL_TITLE_VERB'
 		}
 		else

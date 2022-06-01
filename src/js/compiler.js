@@ -258,6 +258,27 @@ function makeMaskFromGlyph(glyph)
 	return glyphmask;
 }
 
+function generateLevelTitle(level, style)
+{
+	switch (style) {
+		case 'number':
+			return 'Level ' + level.number
+			
+		case 'title':
+			return level.title
+		
+		case 'number_title':
+			if (level.title != level.number)
+				return 'Level ' + level.number + '\n' + level.title
+			else
+				return 'Level ' + level.number
+	
+		case 'none':
+		default:
+			return ''
+	}
+}
+
 function levelFromString(state, level)
 {
 	const backgroundlayer = state.backgroundlayer;
@@ -342,33 +363,20 @@ function levelsToArray(state)
 			if (!level.hasOwnProperty('title'))
 				level.title = level.number
 
-			if ('show_level_number' in state.metadata)
-			{
-				if ('show_level_title' in state.metadata)
-				{
-					processedLevels.push({
-						type: 'message',
-						message: 'Level ' + level.number + '\n' + level.title,
-						lineNumber: level.lineNumber,
-					})
-				}
-				else
-				{
-					processedLevels.push({
-						type: 'message',
-						message: 'Level ' + level.number,
-						lineNumber: level.lineNumber,
-					})
-				}
-			}
-			else if ('show_level_title' in state.metadata)
-			{
+			const titleStyle = (
+				level.titleStyle == 'default'
+				? state.metadata['level_title_style']
+				: level.titleStyle
+			)
+
+			const titleMessage = generateLevelTitle(level, titleStyle)
+
+			if (titleMessage)
 				processedLevels.push({
 					type: 'message',
-					message: level.title,
+					message: titleMessage,
 					lineNumber: level.lineNumber,
 				})
-			}
 
 			let o = levelFromString(state, level)
 			processedLevels.push(o)
