@@ -342,7 +342,7 @@ function levelsToArray(state)
 		}
 		else //if (level.type === 'level')
 		{
-			if (level.grid.length === 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
+			if (level.grid.length === 0)
 				continue
 			if ( ! level.hasOwnProperty('number') )
 				level.number = '' + levelNumber
