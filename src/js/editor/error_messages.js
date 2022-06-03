@@ -54,6 +54,7 @@ const error_messages = { // actually also warning messages
 
 	// prelude:
 	unknown_metadata: 'Unrecognised stuff in the prelude.',
+	not_a_sprite_size: (value_str, default_value) => 'Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: ' + value_str + '. Reverting back to default ' + default_value + ' size.',
 	// objects:
 	palette_too_small: (i,n,l) => 'Trying to access color number ' + i + ' from the color palette of sprite ' + n + ', but there are only ' + l + ' defined in it.',
 	// sounds:
@@ -66,7 +67,7 @@ const error_messages = { // actually also warning messages
 	long_level_title: 'Long level title might get truncated on pause menu.',
 	repeated_level_number: 'You\'ve already specified a number for this level. Overriding the previous number.',
 	repeated_level_title: 'You\'ve already specified a title for this level. Overriding the previous title.',
-	unknown_title_style: style => 'Unknown title style "' + style + '". Refer to the documentation for possible values.',
+	unknown_title_style: (style, default_style) => 'Unknown title style "' + style + '". Reverting to default "' + default_style + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
 	// rule_parser.js
 	// ==============
 

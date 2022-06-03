@@ -386,43 +386,40 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 	return 'METADATA';
 }
 
+PuzzleScriptParser.prototype.finalizeMetaData = function(metadata_name, default_value, error_id, validate_func)
+{
+	const key_index = this.metadata_keys.indexOf(metadata_name)
+	if (key_index < 0)
+	{
+		this.registerMetaData(metadata_name, default_value)
+		return
+	}
+
+	const value_str = this.metadata_values[key_index]
+	const value = validate_func(value_str)
+	if (value === null)
+	{
+		this.logError([error_id, value_str, default_value])
+		this.metadata_values[key_index] = default_value
+		return
+	}
+
+	this.metadata_values[key_index] = value
+}
 
 // TODO: merge with twiddleMetaData defined in compiler.js. Also, it should be done directly as we parse, not after the preamble.
 PuzzleScriptParser.prototype.finalizePreamble = function()
 {
-	const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
-	if (sprite_size_key_index >= 0)
-	{
-		const [sprite_w, sprite_h] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
-		if ( isNaN(sprite_w) || isNaN(sprite_h) )
+	this.finalizeMetaData('sprite_size', [5, 5], 'not_a_sprite_size',
+		function(s)
 		{
-			this.logError('Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
-			this.metadata_values[sprite_size_key_index] = [5, 5]
+			const result = s.split('x').map(parseInt)
+			return result.some(isNaN) ? null : result
 		}
-		else
-		{
-			this.metadata_values[sprite_size_key_index] = [sprite_w, sprite_h]
-		}
-	}
-	else
-	{
-		this.registerMetaData('sprite_size', [5, 5])
-	}
-
-	const level_title_style_index = this.metadata_keys.indexOf('level_title_style')
-	if (level_title_style_index >= 0)
-	{
-		const level_title_style = this.metadata_values[level_title_style_index]
-		if (titleStyles.indexOf(level_title_style) < 0 || level_title_style == 'default')
-		{
-			this.logError(['unknown_title_style', level_title_style])
-			this.metadata_values[level_title_style_index] = 'none'
-		}
-	}
-	else
-	{
-		this.registerMetaData('level_title_style', 'none')
-	}
+	)
+	this.finalizeMetaData('level_title_style', 'none', 'unknown_title_style',
+		s => titleStyles.includes(level_title_style) ? level_title_style : null
+	)
 }
 
 
