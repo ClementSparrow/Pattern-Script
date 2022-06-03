@@ -23,7 +23,7 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
-const titleStyles = ['default', 'none', 'number', 'title', 'number_title']
+const titleStyles = ['none', 'number', 'title', 'number_title']
 
 const reg_name = /[\p{Letter}\p{Number}_]+/u;
 const reg_tagged_name = /[\p{Letter}\p{Number}_:]+/u
@@ -1530,11 +1530,12 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 		{
 			this.tokenIndex = 4
 			const parts = titleVerb[0].trim().split(':')
-			let titleStyle = parts.length > 1 ? parts[1] : 'default'
-			if (titleStyles.indexOf(titleStyle) < 0)
+			const default_style = this.metadata_values[this.metadata_keys.indexOf('level_title_style')]
+			let titleStyle = parts.length > 1 ? parts[1] : default_style
+			if ( ! titleStyles.includes(titleStyle) )
 			{
 				this.logError(['unknown_title_style', titleStyle])
-				titleStyle = 'default'
+				titleStyle = default_style
 				return 'ERROR'
 			}
 
