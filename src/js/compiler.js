@@ -265,6 +265,27 @@ function makeMaskFromGlyph(glyph)
 	return glyphmask;
 }
 
+function generateLevelTitle(level, style)
+{
+	switch (style) {
+		case 'number':
+			return 'Level ' + level.number
+			
+		case 'title':
+			return level.title
+		
+		case 'number_title':
+			if (level.title != level.number)
+				return 'Level ' + level.number + '\n' + level.title
+			else
+				return 'Level ' + level.number
+	
+		case 'none':
+		default:
+			return ''
+	}
+}
+
 function levelFromString(state, level)
 {
 	const backgroundlayer = state.backgroundlayer;
@@ -349,16 +370,19 @@ function levelsToArray(state)
 			if ( ! level.hasOwnProperty('title') )
 				level.title = level.number
 
-			const msg_text = (
-					( ('show_level_number' in state.metadata) ? 'Level '+ level.number : '' )
-					+ '\n' +
-					( ('show_level_title' in state.metadata) ? level.title : '' )
-				).trim()
-			if (msg_text.length > 0)
+			const titleStyle = (
+				level.titleStyle == 'default'
+				? state.metadata['level_title_style']
+				: level.titleStyle
+			)
+
+			const titleMessage = generateLevelTitle(level, titleStyle)
+
+			if (titleMessage)
 			{
 				processedLevels.push({
 					type: 'message',
-					message: msg_text,
+					message: titleMessage,
 					lineNumber: level.lineNumber,
 				})
 			}
