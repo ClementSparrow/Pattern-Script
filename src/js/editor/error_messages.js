@@ -68,8 +68,8 @@ const error_messages = { // actually also warning messages
 	long_level_title: 'Long level title might get truncated on pause menu.',
 	repeated_level_name: 'You\'ve already specified a name for this level. Overriding the previous name.',
 	repeated_level_title: 'You\'ve already specified a title for this level. Overriding the previous title.',
-	unknown_title_style: (style, default_style) => 'Unknown title style "' + style + '". Reverting to default "' + default_style + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
-	
+	invalid_preamble_option: (option, key) => '"' + option +'" is not a valid option for "' + key.toUpperCase() + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
+
 	// rule_parser.js
 	// ==============
 

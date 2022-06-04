@@ -23,7 +23,6 @@ for post-launch credits, check out activty on github.com/increpare/PuzzleScript
 const relativedirs = ['^', 'v', '<', '>', 'moving','stationary','parallel','perpendicular', 'no'];
 const logicWords = ['all', 'no', 'on', 'in', 'some'];
 const sectionNames = ['tags', 'objects', 'legend', 'sounds', 'collisionlayers', 'rules', 'winconditions', 'levels', 'mappings'];
-const title_styles = ['noheader', 'header']
 
 const reg_name = /[\p{Letter}\p{Number}_]+/u;
 const reg_tagged_name = /[\p{Letter}\p{Number}_:]+/u
@@ -181,7 +180,10 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 
 //	------- METADATA --------
 
-const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size','level_title_style','auto_level_titles']
+const metadata_with_mixedCase_value = ['youtube', 'author', 'homepage', 'title']
+const metadata_with_value = ['background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','sprite_size','level_title_style','auto_level_titles']
+const metadata_default_values = { auto_level_titles: 'always' }
+const metadata_accepted_values = { auto_level_titles: ['named'], level_title_style: ['noheader', 'header'] }
 const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','hide_level_title_in_menu']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
@@ -331,14 +333,10 @@ PuzzleScriptParser.prototype.blankLine = function() // called when the line is e
 
 PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream)
 {
-	if (is_start_of_line)
+	if ( ! is_start_of_line ) // we've already parsed the whole line, now we are necessarily in the metadata value's text
 	{
-		this.tokenIndex = 0;
-	}
-	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessarily in the metadata value's text
-	{
-		stream.match(reg_notcommentstart, true); // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
-		return "METADATATEXT";
+		stream.match(reg_notcommentstart, true) // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
+		return (this.tokenIndex == -1) ? 'ERROR' : 'METADATATEXT'
 	}
 
 //	Get the metadata key
@@ -349,41 +347,49 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 		return 'ERROR'; // TODO: we should probably log an error, here? It implies that if a line starts with an invalid character, it will be silently ignored...
 	}
 
-	if (is_start_of_line)
+	if ( metadata_without_value.includes(token) )
 	{
-		if ( metadata_with_value.includes(token) )
-		{
-			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
-			{
-				stream.string = this.mixedCase;
-			}
-			
-			var m2 = stream.match(reg_notcommentstart, false); // TODO: to end of line, not comment (see above)
-			
-			if(m2 != null)
-			{
-				this.registerMetaData(token, m2[0].trim())
-			} else {
-				this.logError('MetaData "'+token+'" needs a value.');
-			}
-			this.tokenIndex = 1;
-			return 'METADATA';
-		}
-		if ( metadata_without_value.includes(token) )
-		{
-			this.registerMetaData(token, "true") // TODO: return the value instead of a string?
-			this.tokenIndex = -1;
-			return 'METADATA';
-		}
+		this.registerMetaData(token, 'true') // TODO: return the value instead of a string?
+		this.tokenIndex = -1
+		return 'METADATA'
+	}
+
+	if ( metadata_with_mixedCase_value.includes(token) )
+	{
+		stream.string = this.mixedCase
+	}
+	else if ( ! metadata_with_value.includes(token) )
+	{
+		stream.match(reg_notcommentstart, true)
 		this.logError(['unknown_metadata'])
 		return 'ERROR'
 	}
-	if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
+
+	this.tokenIndex = 1
+
+	const m2 = stream.match(reg_notcommentstart, false) // TODO: to end of line, not comment (see above)
+	if (m2 === null)
 	{
-		this.logError('MetaData "'+token+'" has no parameters.');
-		return 'ERROR';
+		const default_value = metadata_default_values[token]
+		if (typeof default_value !== 'undefined')
+			this.registerMetaData(token, default_value)
+		else
+			this.logError('MetaData "'+token+'" needs a value.')
+		return 'METADATA'
 	}
-	return 'METADATA';
+
+	const param = m2[0].trim()
+	const accepted_values = metadata_accepted_values[token]
+	if ( (typeof accepted_values === 'undefined') || accepted_values.includes(param) )
+	{
+		this.registerMetaData(token, param)
+	}
+	else
+	{
+		this.logError(['invalid_preamble_option', param, token])
+		this.tokenIndex = -1
+	}
+	return 'METADATA'
 }
 
 PuzzleScriptParser.prototype.finalizeMetaData = function(metadata_name, default_value, error_id, validate_func)
@@ -417,9 +423,7 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 			return result.some(isNaN) ? null : result
 		}
 	)
-	this.finalizeMetaData('level_title_style', 'header', 'unknown_title_style',
-		s => title_styles.includes(s) ? s : null
-	)
+	this.finalizeMetaData('level_title_style', 'header', null, s => s)
 }
 
 
