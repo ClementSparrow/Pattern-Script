@@ -25,8 +25,9 @@ function getLocalFile(relative_url, error_message, success_callback)
 var standalone_JS_Strings = []
 const standalone_JS_Files = [
 	'globalVariables', 'debug_off', 'font', 'rng', 'riffwave', 'editor/random_sound_generators', 'sfxr2', 'codemirror/stringstream', 'colors', 'engine/screen_layout', 'graphics',
-	'engine/log', 'engine/message_screen', 'engine/level', 'engine/bitvec', 'engine/commands_set', 'engine/rule', 'engine/cell_pattern', 'engine/engine_base', 'compiler/identifiers',
-	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'parser', 'compiler', 'inputoutput', 'mobile'
+	'editor/error_messages', 'engine/log',
+	'engine/message_screen', 'engine/level', 'engine/bitvec', 'engine/commands_set', 'engine/rule', 'engine/cell_pattern', 'engine/engine_base', 'parser', 'compiler/identifiers',
+	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'compiler', 'inputoutput', 'mobile'
 ]
 
 function record_js_file(i, text, next_step)
