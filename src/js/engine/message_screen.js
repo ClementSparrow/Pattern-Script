@@ -219,7 +219,7 @@ MenuScreen.prototype.makePauseMenu = function()
 	{
 		let title = level.title
 		if (title.length > empty_terminal_line.length)
-			title = title.substring(0, empty_terminal_line.length - 3) + '...'
+			title = title.substring(0, empty_terminal_line.length - 1) + '…'
 		this.text.push([centerText(title), state.titlecolor])
 	}
 	this.text.push( empty_line )
