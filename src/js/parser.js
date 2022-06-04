@@ -351,7 +351,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 
 	if (is_start_of_line)
 	{
-		if (metadata_with_value.indexOf(token) >= 0)
+		if ( metadata_with_value.includes(token) )
 		{
 			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
 			{
@@ -369,7 +369,7 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 			this.tokenIndex = 1;
 			return 'METADATA';
 		}
-		if ( metadata_without_value.indexOf(token) >= 0)
+		if ( metadata_without_value.includes(token) )
 		{
 			this.registerMetaData(token, "true") // TODO: return the value instead of a string?
 			this.tokenIndex = -1;
@@ -1496,7 +1496,7 @@ PuzzleScriptParser.prototype.createLevelMessage = function(message_text)
 	this.levels.push(messageData)
 }
 
-const MAX_LEVEL_NAME_LENGTH = 16
+const MAX_LEVEL_NAME_LENGTH = terminal_width - 18
 PuzzleScriptParser.prototype.createLevel = function(level_name)
 {
 	if (level_name.length > MAX_LEVEL_NAME_LENGTH)
