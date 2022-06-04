@@ -1501,7 +1501,7 @@ PuzzleScriptParser.prototype.createLevel = function(level_name)
 {
 	if (level_name.length > MAX_LEVEL_NAME_LENGTH)
 	{
-		this.logWarning(['long_level_name'])
+		this.logWarning(['long_level_name', MAX_LEVEL_NAME_LENGTH])
 	}
 	let last_level = this.levels[this.levels.length - 1]
 	if (last_level.type !== 'level' || last_level.grid.length > 0)
@@ -1518,7 +1518,7 @@ PuzzleScriptParser.prototype.createLevelTitle = function(title_text, title_style
 {
 	title_style ||= this.metadata_values[this.metadata_keys.indexOf('level_title_style')]
 
-	if ( this.metadata_keys.includes('hide_level_title_in_menu') && (title_text.length > terminal_width) )
+	if ( (title_text.length > terminal_width) && this.metadata_keys.includes('hide_level_title_in_menu') )
 	{
 		this.logWarning(['long_level_title'])
 	}

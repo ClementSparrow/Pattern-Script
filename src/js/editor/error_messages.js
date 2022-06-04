@@ -1,5 +1,6 @@
 
 const error_messages = { // actually also warning messages
+
 	// identifiers.js
 	// ==============
 
@@ -63,11 +64,12 @@ const error_messages = { // actually also warning messages
 	object_in_multiple_layers: object_name => 'Object "' + object_name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!',
 	// levels
 	non_rectangular_level: 'Maps must be rectangular, yo (In a level, the length of each row must be the same).',
-	long_level_name: 'Level names should not be longer than 10 characters to fit on the title screen.',
+	long_level_name: max_length => 'Level names should not be longer than ' + max_length + ' characters to fit on the title screen.',
 	long_level_title: 'Long level title might get truncated on pause menu.',
 	repeated_level_name: 'You\'ve already specified a name for this level. Overriding the previous name.',
 	repeated_level_title: 'You\'ve already specified a title for this level. Overriding the previous title.',
 	unknown_title_style: (style, default_style) => 'Unknown title style "' + style + '". Reverting to default "' + default_style + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
+	
 	// rule_parser.js
 	// ==============
 
