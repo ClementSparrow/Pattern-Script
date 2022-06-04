@@ -354,7 +354,7 @@ function levelsToArray(state)
 		}
 		else
 		{
-			generate_title ||= (generation_cond == 'name')
+			generate_title ||= (generation_cond == 'named')
 		}
 
 		generate_title &&= (level.title_style != 'none')
