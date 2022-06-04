@@ -38,9 +38,10 @@
 			['title_color', 'blue'],
 			'throttle_movement',
 			['zoomscreen', 'WxH'],
-			['level_title_style', 'number_title'],
+			['level_title_style', 'header or noheader'],
+			['auto_level_titles', 'always or name'],
 			'hide_level_title_in_menu',
-        ];
+        ]
         const color_keywords = [ 'author_color', 'background_color', 'keyhint_color', 'text_color', 'title_color' ]
 
         const COLOR_WORDS = [
@@ -81,6 +82,12 @@
         const PRELUDE_COLOR_PALETTE_WORDS = [
             "mastersystem", "gameboycolour", "amiga", "arnecolors", "famicom", "atari", "pastel", "ega", "amstrad", "proteus_mellow", "proteus_rich", "proteus_night", "c64", "whitingjp"
         ]
+
+		const LEVEL_KEYWORDS = [
+			['MESSAGE_VERB', 'message'],
+			['LEVEL_NAME_VERB', 'level'],
+			['LEVEL_TITLE_VERB', 'title', 'title:none', 'title:header', 'title:noheader'],
+		]
 
         function renderHint(elt, data, cur)
         {
@@ -251,17 +258,15 @@
 					candlists.push(WINCONDITION_WORDS)
 					break
                 case 'levels':
-					if ('message'.indexOf(lineToCursor.trim()) === 0)
-					{
-						candlists.push(['MESSAGE_VERB', 'message'])
-					}
-					if ('number'.indexOf(lineToCursor.trim()) === 0)
-					{
-						candlists.push(['LEVEL_NUMBER_VERB', 'number'])
-					}
-					if ('title'.indexOf(lineToCursor.trim()) === 0)
-					{
-						candlists.push(['LEVEL_TITLE_VERB', 'title'])
+                	for (const level_keyword of LEVEL_KEYWORDS)
+                	{
+                		for (let level_kw_index = 1; level_kw_index<level_keyword.length; ++level_kw_index)
+                		{
+							if (level_keyword[level_kw_index].indexOf(lineToCursor.trim()) === 0)
+							{
+								candlists.push(level_keyword)
+							}
+						}
 					}
 					break
                 default: //preamble

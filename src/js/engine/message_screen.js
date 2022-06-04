@@ -168,7 +168,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
-	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from level '+getCurrentLevel(this.curlevel).number, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from '+getCurrentLevel(this.curlevel).name, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -214,8 +214,8 @@ MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [empty_terminal_line, state.fgcolor]
 	const level = getCurrentLevel()
-	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+level.number), state.titlecolor] ]
-	if (!('hide_level_title_in_menu' in state.metadata) && level.title != level.number)
+	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText(level.name), state.titlecolor] ]
+	if ( ! ('hide_level_title_in_menu' in state.metadata) )
 	{
 		let title = level.title
 		if (title.length > empty_terminal_line.length)

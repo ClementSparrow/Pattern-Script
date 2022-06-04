@@ -265,33 +265,12 @@ function makeMaskFromGlyph(glyph)
 	return glyphmask;
 }
 
-function generateLevelTitle(level, style)
-{
-	switch (style) {
-		case 'number':
-			return 'Level ' + level.number
-			
-		case 'title':
-			return level.title
-		
-		case 'number_title':
-			if (level.title != level.number)
-				return 'Level ' + level.number + '\n' + level.title
-			else
-				return 'Level ' + level.number
-	
-		case 'none':
-		default:
-			return ''
-	}
-}
-
 function levelFromString(state, level)
 {
 	const backgroundlayer = state.backgroundlayer;
 	const backgroundid = state.backgroundid;
 	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	let o = new Level(level.number, level.title, level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
+	let o = new Level(level.name, level.title, level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
 	o.lineNumber = level.lineNumber
 	execution_context.resetCommands()
 
@@ -348,7 +327,7 @@ function levelFromString(state, level)
 function levelsToArray(state)
 {
 	let processedLevels = []
-	let levelNumber = 1
+	let level_index = 1
 
 	for (let level of state.levels)
 	{
@@ -360,36 +339,43 @@ function levelsToArray(state)
 				logWarning('Message too long to fit on screen.', level.lineNumber)
 			}
 			processedLevels.push(Object.assign({}, level))
+			continue
 		}
-		else //if (level.type === 'level')
+
+		if (level.grid.length === 0)
+			continue
+
+		const generation_cond = state.metadata.auto_level_titles
+		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
+
+		if ( ! level.hasOwnProperty('name') )
 		{
-			if (level.grid.length === 0)
-				continue
-			if ( ! level.hasOwnProperty('number') )
-				level.number = '' + levelNumber
-			if ( ! level.hasOwnProperty('title') )
-				level.title = level.number
-
-			const titleStyle = (
-				level.titleStyle == 'default'
-				? state.metadata['level_title_style']
-				: level.titleStyle
-			)
-
-			const titleMessage = generateLevelTitle(level, titleStyle)
-
-			if (titleMessage)
-			{
-				processedLevels.push({
-					type: 'message',
-					message: titleMessage,
-					lineNumber: level.lineNumber,
-				})
-			}
-
-			processedLevels.push(levelFromString(state, level))
-			++levelNumber
+			level.name = 'Level ' + level_index
 		}
+		else
+		{
+			generate_title ||= (generation_cond == 'name')
+		}
+
+		generate_title &&= (level.title_style != 'none')
+		if (generate_title)
+		{
+			processedLevels.push({
+				type: 'message',
+				message: level.hasOwnProperty('title')
+					? (level.title_style == 'header' ? level.name + '\n' : '') + level.title
+					: level.name,
+				lineNumber: level.lineNumber,
+			})
+		}
+
+		if ( ! level.hasOwnProperty('title') )
+		{
+			level.title = ''
+		}
+
+		processedLevels.push(levelFromString(state, level))
+		++level_index
 
 	}
 	state.levels = processedLevels
