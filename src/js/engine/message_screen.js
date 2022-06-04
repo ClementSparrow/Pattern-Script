@@ -215,7 +215,7 @@ MenuScreen.prototype.makePauseMenu = function()
 	const empty_line = [empty_terminal_line, state.fgcolor]
 	const level = getCurrentLevel()
 	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText(level.name), state.titlecolor] ]
-	if ( ! ('hide_level_title_in_menu' in state.metadata) )
+	if ('show_level_title_in_menu' in state.metadata)
 	{
 		let title = level.title
 		if (title.length > empty_terminal_line.length)
