@@ -419,7 +419,7 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 	this.finalizeMetaData('sprite_size', [5, 5], 'not_a_sprite_size',
 		function(s)
 		{
-			const result = s.split('x').map(parseInt)
+			const result = s.split('x').map(str => parseInt(str))
 			return result.some(isNaN) ? null : result
 		}
 	)
