@@ -196,7 +196,7 @@
 					addTags = true
 					break
                 case 'objects':
-					switch (state.objects_section)
+					switch (state.line_type)
 					{
 					case 3:
 						addObjects = true // for 'copy:'. TODO: we should only set it to true if we are right after 'copy:'. Also, we should add the transformation keywords.

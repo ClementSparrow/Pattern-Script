@@ -44,7 +44,7 @@ function levelFromUnitTestString(str)
 	const lines = str.split('\n')
 	const height = lines.length - 1
 	const width = lines[0].split(',').length - 1
-	var lev = new Level('0', '0', width, height, new Int32Array(width * height * STRIDE_OBJ))
+	var lev = new Level(width, height, new Int32Array(width * height * STRIDE_OBJ))
 	execution_context.resetCommands()
 	var masks = []
 	for (const [y, line] of lines.entries())

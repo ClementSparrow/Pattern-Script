@@ -1,11 +1,8 @@
 // uses: STRIDE_OBJ, STRIDE_MOV
 
 // levels are only constructed in engine/engine_base.js/unloadGame and compiler.js/levelFromString
-function Level(name, title, width, height, objects)
+function Level(width, height, objects)
 {
-	this.name = name
-	this.title = title
-	this.type = 'level'
 	// Definition of the level layout (should be constant)
 	this.width = width
 	this.height = height
@@ -16,7 +13,7 @@ function Level(name, title, width, height, objects)
 
 Level.prototype.clone = function()
 {
-	return new Level(this.name, this.title, this.width, this.height, new Int32Array(this.objects))
+	return new Level(this.width, this.height, new Int32Array(this.objects))
 }
 
 Level.prototype.cellCoord = function(cell_index)

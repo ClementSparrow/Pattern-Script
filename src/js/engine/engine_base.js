@@ -98,8 +98,6 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	forceRegenImages() // why do we need that?
 	
 	execution_context.resetUndoStack()
-	// <---
-
 	level.restore(leveldat)
 	execution_context.setRestartTarget()
 
@@ -133,22 +131,21 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	canvasResize()
 }
 
-function loadLevelFromState(state, levelindex, randomseed, set_save = true, save_data = undefined)
+function loadLevelFromState(state, level_index, randomseed, set_save = true, save_data = undefined)
 {
-	const leveldat = state.levels[levelindex]
-	curlevel = levelindex
-	if (leveldat.message === undefined)
+	curlevel = level_index
+	if (level_index.box == 2)
 	{
 		tryPlaySimpleSound('startlevel')
-		loadLevelFromLevelDat(state, (save_data !== undefined) ? save_data.lev : leveldat, randomseed)
+		loadLevelFromLevelDat(state, (save_data !== undefined) ? save_data.lev : state.levels[level_index.level].grid, randomseed)
 	}
 	else
 	{
-		showTempMessage()
+		showTempMessage(level_index.getMessage())
 	}
 	if (set_save)
 	{
-		setSavePoint(levelindex, save_data) // always set the save point at the start of level
+		setSavePoint(level_index, save_data) // always set the save point at the start of level
 	}
 }
 
@@ -256,8 +253,55 @@ function tryActivateYoutube(){
 // GAME STATE
 // ==========
 
+// Current level
+function LevelState(level_index = 0, box_index = 0, msg_index = -1)
+{
+	this.level = level_index
+	this.box = box_index // 0=messages before title, 1=messages after title, 2=level, 3=messages after level
+	this.msg = msg_index
+}
+
+LevelState.prototype.getMessage = function()
+{
+	return state.levels[this.level].boxes[this.box][this.msg]
+}
+
+LevelState.prototype.nextBox = function()
+{
+	this.box += 1
+	this.msg = -1
+	return this.next()
+}
+LevelState.prototype.nextLevel = function() // TODO: assumes it exists
+{
+	this.level += 1
+	this.box = -1
+	return this.nextBox()
+}
+
+LevelState.prototype.next = function()
+{
+	if (this.box == 2)
+		return this.nextBox()
+	const l = state.levels[this.level]
+	if (l === undefined)
+		return null
+	if (this.msg < l.boxes[this.box].length - 1)
+	{
+		this.msg += 1
+		return this
+	}
+	if (this.box == 3)
+		return this.nextLevel()
+	if (this.box == 0)
+		return this.nextBox()
+	this.box = 2
+	this.msg = -1
+	return this
+}
+
 // Only called at the end of compile()
-// TODO: level_index being anything else than -1 is editor/unit_tests only features and should be removed from exported games.
+// TODO: level_index being anything else than null is editor/unit_tests only features and should be removed from exported games.
 function setGameState(_state, level_index, randomseed = null)
 {
 	oldflickscreendat=[];
@@ -275,7 +319,7 @@ function setGameState(_state, level_index, randomseed = null)
 	// show the title screen if there's no level_index
 	if ( (level_index === undefined) && ( (state.levels.length === 0) || (_state.levels.length === 0) ) )
 	{
-		level_index = -1
+		level_index = null
 	}
 	RandomGen = new RNG(randomseed)
 
@@ -314,7 +358,7 @@ function setGameState(_state, level_index, randomseed = null)
 		msg_screen.done = false
 		pause_menu_screen.done = false
 		level = new Level()
-		if (level_index < 0)
+		if (level_index === null)
 		{
 			// restart
 			goToTitleScreen(false)
@@ -343,8 +387,6 @@ function setGameState(_state, level_index, randomseed = null)
 // MORE LEVEL STUFF
 // ================
 
-
-var messagetext=""; // the text of a message command appearing in a rule only (not messages in LEVEL section !)
 
 function DoRestart(bak)
 {
@@ -642,10 +684,10 @@ function resolveMovements(level, bannedGroup, seedsToPlay_CanMove, seedsToPlay_C
 }
 
 
-function showTempMessage()
+function showTempMessage(message)
 {
 	tryPlaySimpleSound('showmessage')
-	msg_screen.doMessage()
+	msg_screen.doMessage(message)
 	canvasResize()
 }
 
@@ -662,7 +704,7 @@ CommandsSet.prototype.processOutput = function()
 	{
 		keybuffer = []
 		msg_screen.done = false
-		showTempMessage()
+		showTempMessage(this.message)
 	}
 }
 
@@ -930,8 +972,7 @@ function processInput(input)
 			// first have to verify that something's changed
 			// TODO: instead, we could precompute the next state and activate it when the again_interval times out. It would require to store the to-be-displayed console messages
 			// with the precomputed level, but I think we can do that, and for emulation/debugging purposes it might be good to associate the error messages with the state
-			var old_verbose_logging = verbose_logging
-			var oldmessagetext = messagetext
+			let old_verbose_logging = verbose_logging
 			verbose_logging = false
 			if (processInput(processing_causes.againing_test)) // This is the only place we call processInput with the againing_test cause
 			{
@@ -945,7 +986,6 @@ function processInput(input)
 				if (old_verbose_logging) { consolePrintFromRule('AGAIN command not executed, it wouldn\'t make any changes.', r) }
 			}
 			verbose_logging = old_verbose_logging
-			messagetext = oldmessagetext
 		}
 	}
 
@@ -1013,29 +1053,23 @@ function checkWin(cause_of_processing)
 function nextLevel()
 {
 	againing = false
-	messagetext = ''
-	if (state && state.levels && (curlevel > state.levels.length) )
+
+	const next_level = curlevel.next()
+	if (next_level === null) // end game
 	{
-		curlevel = state.levels.length-1
-	}
-	
-	if (curlevel < state.levels.length-1)
-	{
-		curlevel++
-		msg_screen.done = false
-		loadLevelFromState(state, curlevel)
+		setSavePoint(0) // actually removes save point
+		tryPlaySimpleSound('endgame') // TODO: we may need a small delay to play the sound before going back to the title screen which also plays a sound?
+		goToTitleScreen(false)
 		return
 	}
-	// end game
-	setSavePoint(0) // actually removes save point
-	tryPlaySimpleSound('endgame') // TODO: we may need a small delay to play the sound before going back to the title screen which also plays a sound?
-	goToTitleScreen(false)
+	
+	msg_screen.done = false
+	loadLevelFromState(state, next_level)
 }
 
 function goToTitleScreen(escapable = true)
 {
 	againing = false
-	messagetext = ''
 	;[ title_screen.curlevel, title_screen.curlevelTarget ] = getSavePoint()
 	title_screen.makeTitle()
 	title_screen.openMenu(escapable ? undefined : null)
@@ -1046,13 +1080,12 @@ function goToTitleScreen(escapable = true)
 function closeMessageScreen()
 {
 	msg_screen.done = false
-	if (messagetext === '') // was a message level
+	if (curlevel.box != 2) // was a message level
 	{
 		nextLevel()
 		return
 	}
 
-	messagetext = ''
 	if (state.metadata.flickscreen !== undefined)
 	{
 		screen_layout.content = tiled_world_screen

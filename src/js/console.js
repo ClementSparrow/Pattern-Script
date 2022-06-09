@@ -58,7 +58,7 @@ function selectText(containerid, e, ctrl_callback = null)
 	// load in level editor with Ctrl/Meta
 	if ( (ctrl_callback !== null) && e && (e.ctrlKey || e.metaKey) )
 	{
-		ctrl_callback(myspan.innerText.split('<br>'))
+		ctrl_callback(myspan.innerText.split('\n'))
 	}
 	// Copy in clipboard with Shift
 	if ( e && e.shiftKey )

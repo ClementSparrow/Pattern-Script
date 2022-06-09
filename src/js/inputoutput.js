@@ -315,7 +315,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		timer = 0
 		this.done = true
 		tryPlaySimpleSound('closemessage')
-		this.doMessage()
+		this.doMessage(curlevel.getMessage())
 		keybuffer = []
 	}
 	return false

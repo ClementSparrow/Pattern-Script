@@ -10,20 +10,25 @@ const terminal_height = 13
 
 MenuScreen.prototype.isContinuePossible = function()
 {
-	return ( (this.curlevel > 0) || (this.curlevelTarget !== undefined) ) && (this.curlevel in state.levels)
+	return ( (this.curlevel !== undefined) || (this.curlevelTarget !== undefined) ) && (this.curlevel.level in state.levels)
 }
 
 
 function skipTextLevels()
 {
-	while ( (state.levels[curlevel].message !== undefined) && (curlevel < state.levels.length - 1) )
-		curlevel++
-	loadLevelFromState(state, curlevel)
+	const next_level = new LevelState(curlevel.level+((curlevel.box === 3) ? 1 : 0), 2, 0)
+	if (next_level.level >= state.levels.length)
+	{
+		next_level.level--
+		next_level.box = 3
+		next_level.msg = state.levels[state.levels.length-1].boxes[3].length-1
+	}
+	loadLevelFromState(state, next_level)
 }
 
 function titleMenuNewGame()
 {
-	loadLevelFromState(state, 0)
+	loadLevelFromState(state, (new LevelState()).next())
 }
 
 MenuScreen.prototype.titleMenuContinue = function()
@@ -97,31 +102,6 @@ MenuScreen.prototype.closeMenu = function()
 	canvasResize()
 }
 
-function getCurrentLevel(lvl = curlevel)
-{
-	// If this is called during a message, we return the next level.
-	for (let i = lvl; i < state.levels.length; ++i)
-	{
-		if (state.levels[i].type === 'level')
-		{
-			return state.levels[i]
-		}
-	}
-
-	// If this is called for a message after the final level, we instead return the final level.
-	for (let i = lvl-1; i >= 0; --i)
-	{
-		if (state.levels[i].type === 'level')
-		{
-			return state.levels[i]
-		}
-	}
-	
-	// Panic
-	return null
-	// (this should only happen if the game has no levels)
-}
-
 // sets: this.text
 MenuScreen.prototype.makeTitle = function()
 {
@@ -168,7 +148,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
-	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from '+getCurrentLevel(this.curlevel).name, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from '+state.levels[this.curlevel.level].name, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -213,7 +193,7 @@ function wordwrap(str, width = terminal_width)
 MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [empty_terminal_line, state.fgcolor]
-	const level = getCurrentLevel()
+	const level = state.levels[curlevel.level]
 	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText(level.name), state.titlecolor] ]
 	if ('show_level_title_in_menu' in state.metadata)
 	{
@@ -233,22 +213,20 @@ MenuScreen.prototype.makePauseMenu = function()
 }
 
 
-// uses messagetext, state, curlevel
-TextModeScreen.prototype.doMessage = function()
+// uses state
+TextModeScreen.prototype.doMessage = function(message)
 {
 	screen_layout.content = this
 	const empty_line = [ empty_terminal_line, state.fgcolor ]
 
 	this.text = Array(terminal_height).fill(empty_line)
 
-	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext)
+	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(message.text.length/2) )
 
-	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(splitMessage.length/2) )
-
-	const count = Math.min(splitMessage.length, terminal_height - 1)
+	const count = Math.min(message.text.length, terminal_height - 1)
 	for (var i=0; i<count; i++)
 	{
-		this.text[offset+i] = [centerText(splitMessage[i]), state.fgcolor]
+		this.text[offset+i] = [centerText(message.text[i]), state.fgcolor]
 	}
 
 	if ( ! this.done )

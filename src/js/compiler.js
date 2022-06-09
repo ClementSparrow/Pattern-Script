@@ -265,23 +265,20 @@ function makeMaskFromGlyph(glyph)
 	return glyphmask;
 }
 
-function levelFromString(state, level)
+function levelFromString(state, lvl)
 {
-	const backgroundlayer = state.backgroundlayer;
-	const backgroundid = state.backgroundid;
-	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	let o = new Level(level.name, level.title, level.width, level.grid.length, new Int32Array(level.width * level.grid.length * STRIDE_OBJ))
-	o.lineNumber = level.lineNumber
+	const backgroundLayerMask = state.layerMasks[state.backgroundlayer]
+	let level = new Level(lvl.width, lvl.grid.length, new Int32Array(lvl.width * lvl.grid.length * STRIDE_OBJ))
+	level.lineNumber = lvl.lineNumber // only used in the editor to load the level clicked in the level editor.
 	execution_context.resetCommands()
-
-	for (let i = 0; i < o.width; i++)
+	for (let i = 0; i < level.width; i++)
 	{
-		for (let j = 0; j < o.height; j++)
+		for (let j = 0; j < level.height; j++)
 		{
-			let ch = level.grid[j].charAt(i);
+			let ch = lvl.grid[j].charAt(i);
 			if (ch.length == 0) // TODO: why is it possible to have that from the parser?
 			{
-				ch = level.grid[j].charAt(level.grid[j].length-1);
+				ch = lvl.grid[j].charAt(lvl.grid[j].length-1);
 			}
 
 			// TODO: this should be done in the parser
@@ -305,52 +302,53 @@ function levelFromString(state, level)
 			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
 			for (let w = 0; w < STRIDE_OBJ; ++w)
 			{
-				o.objects[STRIDE_OBJ * (i * o.height + j) + w] = maskint.data[w];
+				level.objects[STRIDE_OBJ * (i * level.height + j) + w] = maskint.data[w];
 			}
 		}
 	}
 
-	const levelBackgroundMask = o.calcBackgroundMask(state);
-	for (let i=0; i<o.n_tiles; i++)
+	const levelBackgroundMask = level.calcBackgroundMask(state)
+	for (let i=0; i<level.n_tiles; i++)
 	{
-		let cell = o.getCell(i);
+		let cell = level.getCell(i);
 		if ( ! backgroundLayerMask.anyBitsInCommon(cell) )
 		{
 			cell.ior(levelBackgroundMask);
-			o.setCell(i, cell);
+			level.setCell(i, cell);
 		}
 	}
-	return o;
+	return level
 }
 
 //also assigns glyphDict
 function levelsToArray(state)
 {
-	let processedLevels = []
-	let level_index = 1
+	if ( (state.levels.length === 1) && (state.levels[0].grid.length === 0) )
+	{	
+		logError(['no_level_found'], undefined, true)
+	}
 
-	for (let level of state.levels)
+	for (const [level_index, level] of state.levels.entries())
 	{
-		if (level.type === 'message')
+		for (const message_box of level.boxes)
 		{
-			// TODO: we should keep the result of wordwrap so that we don't have to recompute it in doMessage
-			if (wordwrap(level.message).length >= terminal_height)
+			for (let message of message_box)
 			{
-				logWarning('Message too long to fit on screen.', level.lineNumber)
+				message.text = wordwrap(message.text)
+				if (message.text.length >= terminal_height)
+				{
+					logWarning('Message too long to fit on screen.', message.lineNumber)
+				}
 			}
-			processedLevels.push(Object.assign({}, level))
-			continue
 		}
-
-		if (level.grid.length === 0)
-			continue
+		level.boxes.splice(2, 0, [])
 
 		const generation_cond = state.metadata.auto_level_titles
 		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
 
-		if ( ! level.hasOwnProperty('name') )
+		if (level.name === undefined)
 		{
-			level.name = 'Level ' + level_index
+			level.name = 'Level ' + (level_index+1)
 		}
 		else
 		{
@@ -360,12 +358,10 @@ function levelsToArray(state)
 		generate_title &&= (level.title_style != 'none')
 		if (generate_title)
 		{
-			processedLevels.push({
-				type: 'message',
-				message: level.hasOwnProperty('title')
-					? (level.title_style == 'header' ? level.name + '\n' : '') + level.title
-					: level.name,
-				lineNumber: level.lineNumber,
+			level.boxes[1].unshift({
+				text: level.hasOwnProperty('title')
+					? (level.title_style == 'header' ? [level.name] : []).concat(wordwrap(level.title))
+					: [level.name],
 			})
 		}
 
@@ -374,11 +370,8 @@ function levelsToArray(state)
 			level.title = ''
 		}
 
-		processedLevels.push(levelFromString(state, level))
-		++level_index
-
+		level.grid = levelFromString(state, level)
 	}
-	state.levels = processedLevels
 }
 
 var dirMasks = {
@@ -1105,7 +1098,7 @@ function loadFile(str)
 	delete state.commentLevel;
 	// delete state.abbrevNames; // we keep them for the level editor only
 	delete state.current_identifier_index;
-	delete state.objects_section;
+	delete state.line_type
 	delete state.objects_spritematrix;
 	delete state.section;
 	delete state.tokenIndex;
@@ -1120,7 +1113,7 @@ function loadFile(str)
 	return state;
 }
 
-function compile(level, text, randomseed) // level = -1 means restart, level = undefined means rebuild
+function compile(level, text, randomseed) // level = null means restart, level = undefined means rebuild
 {
 	matchCache = {}
 	lastDownTarget = screen_layout.canvas
@@ -1143,11 +1136,6 @@ function compile(level, text, randomseed) // level = -1 means restart, level = u
 		var state = loadFile(text)
 	} finally {
 		compiling = false
-	}
-
-	if (state && state.levels && (state.levels.length === 0) )
-	{	
-		logError(['no_level_found'], undefined, true)
 	}
 
 	if (errorStrings.length > MAX_ERRORS)

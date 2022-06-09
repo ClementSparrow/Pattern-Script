@@ -16,7 +16,7 @@ function setPageTitle()
 function runClick()
 {
 	clearConsole()
-	compile(-1)
+	compile(null)
 	setPageTitle()
 }
 
@@ -97,7 +97,6 @@ window.addEventListener("pageshow", function (event)
 
 window.addEventListener("popstate", function(event)
 {
-	console.log("hey");
 	location.reload();
 });
 
@@ -326,7 +325,7 @@ function rebuildClick()
 function exportClick()
 {
 	const sourceCode = editor.getValue();
-	compile(-1)
+	compile(null)
 	buildStandalone(JSON.stringify(sourceCode));
 }
 
