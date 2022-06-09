@@ -624,6 +624,37 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 							offset[1] += v[1]*parseInt(parts[2])
 						}
 						break
+					case 'trim':
+						{
+							if (sprite.length == 0)
+							{
+								const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
+								const [width, height] = this.metadata_values[sprite_size_key_index]
+								sprite = Array(height).fill('0'.repeat(width))
+							}
+
+							const trim_direction = expand_direction(parts[1], replaced_dir)
+							const trim_size = parts.length > 2 ? parseInt(parts[2]) : 1
+
+							switch (trim_direction)
+							{
+								case 2: // down
+									offset[1] -= trim_size
+									break
+								case 3: // left
+									offset[0] += trim_size
+									break
+								default:
+									break
+							}
+
+							f = [
+								( m => m.length <= trim_size ? ['.'] : Array.from(m.slice(trim_size))), // up
+								( m => m[0].length <= trim_size ? ['.'] : Array.from(m, l => l.slice(0, -trim_size))), // right
+								( m => m.length <= trim_size ? ['.'] : Array.from(m.slice(0, -trim_size))), // down
+								( m => m[0].length <= trim_size ? ['.'] : Array.from(m, l => l.slice(trim_size))), // left
+							][trim_direction]
+						}
 					default:
 				}
 			}
@@ -850,7 +881,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 	}
 	case 5: // copy spritematrix: transformations to apply
 	{
-		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
+		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+|trim:(?:left|up|right|down|[>v<^])(?::\d+)?)\s*/u, true)
 		if (transform_match === null)
 		{
 			this.logError('I do not understand this sprite transformation! Did you forget to insert a blank line between two object declarations?')
