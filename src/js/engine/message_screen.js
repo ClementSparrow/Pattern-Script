@@ -10,7 +10,14 @@ const terminal_height = 13
 
 MenuScreen.prototype.isContinuePossible = function()
 {
-	return ( (this.curlevel !== undefined) || (this.curlevelTarget !== undefined) ) && (this.curlevel.level in state.levels)
+	if ( (this.curlevel === undefined) && (this.curlevelTarget === undefined) )
+		return false
+	// test is savepoint is valid (TODO: use unique ids for levels instead)
+	const l = state.levels[this.curlevel.level]
+	if (l === undefined)
+		return false // some levels before save point have been deleted and now we're after the game
+	const b = l.boxes[this.curlevel.box]
+	return (b !== undefined) && (this.curlevel.msg in b) // box index is invalid or some messages have been deleted
 }
 
 
