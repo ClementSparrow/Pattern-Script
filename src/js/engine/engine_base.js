@@ -34,9 +34,9 @@ function setSavePoint(curlevel, new_restart_target)
 {
 	try
 	{
-		if ( (curlevel > 0) || (new_restart_target !== undefined) )
+		if ( (curlevel.level > 0) || (new_restart_target !== undefined) )
 		{
-			storage_set(document.URL, curlevel)
+			storage_set(document.URL, JSON.stringify(curlevel))
 		}
 		else
 		{
@@ -60,13 +60,16 @@ function getSavePoint()
 	try {
 		if (storage_has(document.URL))
 		{
-			const result_level = storage_get(document.URL)
+			const stored_level = JSON.parse(storage_get(document.URL))
+			const result_level = (stored_level instanceof Object)
+				? new LevelState(stored_level.level, stored_level.box, stored_level.msg)
+				: LevelState.prototype.makeFromOldSchoolIndex(stored_level)
 			if ( ! storage_has(document.URL+'_checkpoint') )
 				return [ result_level, undefined ]
 
-			var curlvlTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
+			let curlvlTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
 
-			var arr = []
+			let arr = []
 			const from = curlvlTarget.hasOwnProperty('lev') ? curlvlTarget.lev.objects : curlvlTarget.dat // compatibility feature
 			for(var p in Object.keys(from))
 			{
@@ -300,6 +303,14 @@ LevelState.prototype.next = function()
 	return this
 }
 
+LevelState.prototype.makeFromOldSchoolIndex = function(old_level_index)
+{
+	let result = new LevelState()
+	for (; old_level_index >= 0; --old_level_index)
+		result = result.next()
+	return result
+}
+
 // Only called at the end of compile()
 // TODO: level_index being anything else than null is editor/unit_tests only features and should be removed from exported games.
 function setGameState(_state, level_index, randomseed = null)
@@ -358,13 +369,17 @@ function setGameState(_state, level_index, randomseed = null)
 		msg_screen.done = false
 		pause_menu_screen.done = false
 		level = new Level()
-		if (level_index === null)
+		if ( (level_index === null) || (level_index === -1) )
 		{
 			// restart
 			goToTitleScreen(false)
 		}
 		else
 		{
+			if ( ! (level_index instanceof LevelState) ) // old school level indexes: integers including messages
+			{
+				level_index = LevelState.prototype.makeFromOldSchoolIndex(level_index)
+			}
 			// go to given level (can only happen when called from makeGIF or from the level editor with a callback level func)
 			loadLevelFromState(state, level_index, randomseed, false)
 		}

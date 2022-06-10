@@ -13,16 +13,7 @@ function runTest(dataarray) {
 	const targetlevel = dataarray[3] || 0
 	const randomseed = dataarray[4] || null
 
-	compile(function()
-		{
-			let level_index = new LevelState()
-			for (let i=0; i<=targetlevel; ++i)
-				level_index = level_index.next() // WIP TODO: can't make that computiation until the game is compiled
-			return level_index
-		},
-		levelString,
-		randomseed
-	)
+	compile(targetlevel, levelString, randomseed)
 
 	if (errorStrings.length > 0)
 		return false

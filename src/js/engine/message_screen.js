@@ -1,5 +1,5 @@
 
-// uses: state, messagetext
+// uses: state
 
 const empty_terminal_line    = '                                  ';
 const selected_terminal_line = '##################################';
