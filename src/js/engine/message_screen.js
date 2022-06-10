@@ -17,13 +17,13 @@ MenuScreen.prototype.isContinuePossible = function()
 	if (l === undefined)
 		return false // some levels before save point have been deleted and now we're after the game
 	const b = l.boxes[this.curlevel.box]
-	return (b !== undefined) && (this.curlevel.msg in b) // box index is invalid or some messages have been deleted
+	return (b !== undefined) && (this.curlevel.msg < b.length) // box index is invalid or some messages have been deleted
 }
 
 
-function skipTextLevels()
+function skipTextBox()
 {
-	const next_level = new LevelState(curlevel.level+((curlevel.box === 3) ? 1 : 0), 2, 0)
+	const next_level = new LevelState(curlevel.level+((curlevel.box === 3) ? 1 : 0), 2, -1)
 	if (next_level.level >= state.levels.length)
 	{
 		next_level.level--
@@ -212,7 +212,7 @@ MenuScreen.prototype.makePauseMenu = function()
 	this.text.push( empty_line )
 	var menu_entries = [
 		['resume game', () => this.closeMenu()],
-		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
+		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
 		['exit to title screen', goToTitleScreen]
 	]
 	this.makeMenuItems(terminal_height - 5, menu_entries)

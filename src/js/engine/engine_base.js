@@ -34,13 +34,13 @@ function setSavePoint(curlevel, new_restart_target)
 {
 	try
 	{
-		if ( (curlevel.level > 0) || (new_restart_target !== undefined) )
-		{
-			storage_set(document.URL, JSON.stringify(curlevel))
-		}
-		else
+		if (curlevel === undefined)
 		{
 			storage_remove(document.URL)
+		}
+		else if ( (curlevel.shouldSetSavePoint()) || (new_restart_target !== undefined) )
+		{
+			storage_set(document.URL, JSON.stringify(curlevel))
 		}
 
 		if (new_restart_target !== undefined)
@@ -309,6 +309,15 @@ LevelState.prototype.makeFromOldSchoolIndex = function(old_level_index)
 	for (; old_level_index >= 0; --old_level_index)
 		result = result.next()
 	return result
+}
+
+LevelState.prototype.shouldSetSavePoint = function()
+{
+	if (this.msg > 0) // Only save at the beginning of message boxes
+		return false
+	if (this.level > 0)
+		return true
+	return (this.box > (new LevelState()).next().box)
 }
 
 // Only called at the end of compile()
@@ -1072,7 +1081,7 @@ function nextLevel()
 	const next_level = curlevel.next()
 	if (next_level === null) // end game
 	{
-		setSavePoint(0) // actually removes save point
+		setSavePoint() // actually removes save point
 		tryPlaySimpleSound('endgame') // TODO: we may need a small delay to play the sound before going back to the title screen which also plays a sound?
 		goToTitleScreen(false)
 		return
