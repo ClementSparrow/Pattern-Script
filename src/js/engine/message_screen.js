@@ -195,6 +195,10 @@ function wordwrap(str, width = terminal_width)
 	return str.match( RegExp(regex, 'g') );
 }
 
+function wordwrapAndColor(str, color, width = terminal_width)
+{
+	return wordwrap(str, width).map(l => [centerText(l), color])
+}
 
 
 MenuScreen.prototype.makePauseMenu = function()
@@ -231,10 +235,7 @@ TextModeScreen.prototype.doMessage = function(message)
 	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(message.text.length/2) )
 
 	const count = Math.min(message.text.length, terminal_height - 1)
-	for (var i=0; i<count; i++)
-	{
-		this.text[offset+i] = [centerText(message.text[i]), state.fgcolor]
-	}
+	this.text.splice(offset, count, ...message.text)
 
 	if ( ! this.done )
 	{

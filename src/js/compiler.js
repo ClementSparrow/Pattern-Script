@@ -334,7 +334,7 @@ function levelsToArray(state)
 		{
 			for (let message of message_box)
 			{
-				message.text = wordwrap(message.text)
+				message.text = wordwrapAndColor(message.text, state.fgcolor)
 				if (message.text.length >= terminal_height)
 				{
 					logWarning('Message too long to fit on screen.', message.lineNumber)
@@ -360,8 +360,8 @@ function levelsToArray(state)
 		{
 			level.boxes[1].unshift({
 				text: level.hasOwnProperty('title')
-					? (level.title_style == 'header' ? [level.name] : []).concat(wordwrap(level.title))
-					: [level.name],
+					? (level.title_style == 'header' ? wordwrapAndColor(level.name, state.titlecolor) : []).concat(wordwrapAndColor(level.title, state.authorcolor))
+					: wordwrapAndColor(level.name, level.title_style == 'header' ? state.titlecolor : state.authorcolor),
 			})
 		}
 
