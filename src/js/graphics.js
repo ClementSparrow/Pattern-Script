@@ -122,7 +122,7 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 
 		let x2 = initial_col*sprite_width
 		let y2 = (initial_row+1)*sprite_height
-		let i2 = (mini+initial_row) + (minj+initial_col)*this.level.height
+		let i2 = (minj+initial_row) + (mini+initial_col)*this.level.height
 
 		for (let counter2 = size2; counter2 > 0; counter2--)
 		{

@@ -78,10 +78,10 @@ TiledWorldScreen.prototype.get_viewport = function()
 	const [px, py] = this.level.cellCoord(playerPosition)
 
 	const [mini, minj] = this.get_viewport_for_focus_point(px, py, w, h)
-	const maxi = Math.min(mini + w, this.level.width);
-	const maxj = Math.min(minj + h, this.level.height);
-	oldflickscreendat = [mini, minj, maxi, maxj];
-	return oldflickscreendat;
+	const maxi = Math.min(mini + w, this.level.width)
+	const maxj = Math.min(minj + h, this.level.height)
+	oldflickscreendat = [mini, minj, maxi, maxj]
+	return oldflickscreendat
 }
 TiledWorldScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [ Math.floor(px/w) * w, Math.floor(py/h) * h ]
 var tiled_world_screen = new TiledWorldScreen()
@@ -90,7 +90,11 @@ var tiled_world_screen = new TiledWorldScreen()
 // Zoom screen
 function CameraOnPlayerScreen() { TiledWorldScreen.call(this, 'zoomscreen') }
 CameraOnPlayerScreen.prototype = Object.create(TiledWorldScreen.prototype)
-CameraOnPlayerScreen.prototype.get_nb_tiles = () => state.metadata.zoomscreen
+CameraOnPlayerScreen.prototype.get_nb_tiles = function()
+{
+	const [w, h] = state.metadata.zoomscreen
+	return [ Math.min(w, this.level.width), Math.min(h, this.level.height) ]
+}
 CameraOnPlayerScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [
 	clamp(0, px - Math.floor(w/2), this.level.width  - w),
 	clamp(0, py - Math.floor(h/2), this.level.height - h)
