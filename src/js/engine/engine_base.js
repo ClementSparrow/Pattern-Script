@@ -32,24 +32,25 @@ function tryPlaySimpleSound(soundname)
 
 function setSavePoint(curlevel, new_restart_target)
 {
+	const key = ( state && state.metadata && (state.metadata.game_uri !== undefined) ) ? state.metadata.game_uri : document.URL
 	try
 	{
 		if (curlevel === undefined)
 		{
-			storage_remove(document.URL)
+			storage_remove(key)
 		}
 		else if ( (curlevel.shouldSetSavePoint()) || (new_restart_target !== undefined) )
 		{
-			storage_set(document.URL, JSON.stringify(curlevel))
+			storage_set(key, JSON.stringify(curlevel))
 		}
 
 		if (new_restart_target !== undefined)
 		{
-			storage_set(document.URL+'_checkpoint', JSON.stringify(new_restart_target))
+			storage_set(key+'_checkpoint', JSON.stringify(new_restart_target))
 		}
 		else
 		{
-			storage_remove(document.URL+'_checkpoint')
+			storage_remove(key+'_checkpoint')
 		}
 	}
 	catch (ex) { }
@@ -57,17 +58,24 @@ function setSavePoint(curlevel, new_restart_target)
 
 function getSavePoint()
 {
+	let keys = [ document.URL ]
+	if ( state && state.metadata && (state.metadata.game_uri !== undefined) )
+	{
+		keys.unshift(state.metadata.game_uri)
+	}
 	try {
-		if (storage_has(document.URL))
+		for (const key of keys)
 		{
-			const stored_level = JSON.parse(storage_get(document.URL))
+			if ( ! storage_has(key) )
+				continue
+			const stored_level = JSON.parse(storage_get(key))
 			const result_level = (stored_level instanceof Object)
 				? new LevelState(stored_level.level, stored_level.box, stored_level.msg)
 				: LevelState.prototype.makeFromOldSchoolIndex(stored_level)
-			if ( ! storage_has(document.URL+'_checkpoint') )
+			if ( ! storage_has(key+'_checkpoint') )
 				return [ result_level, undefined ]
 
-			let curlvlTarget = JSON.parse(storage_get(document.URL+'_checkpoint'))
+			let curlvlTarget = JSON.parse(storage_get(key+'_checkpoint'))
 
 			let arr = []
 			const from = curlvlTarget.hasOwnProperty('lev') ? curlvlTarget.lev.objects : curlvlTarget.dat // compatibility feature

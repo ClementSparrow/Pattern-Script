@@ -180,7 +180,7 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 
 //	------- METADATA --------
 
-const metadata_with_mixedCase_value = ['youtube', 'author', 'homepage', 'title']
+const metadata_with_mixedCase_value = ['youtube', 'author', 'homepage', 'title', 'game_uri']
 const metadata_with_value = ['background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','sprite_size','level_title_style','auto_level_titles']
 const metadata_default_values = { auto_level_titles: 'always' }
 const metadata_accepted_values = { auto_level_titles: ['named'], level_title_style: ['noheader', 'header'] }
