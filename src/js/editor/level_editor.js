@@ -43,6 +43,8 @@ LevelEditorScreen.prototype.toggle = function()
 	{
 		while ( ! (screen_layout.content instanceof LevelScreen) )
 		{
+			if (screen_layout.content instanceof MenuScreen)
+				return // TODO: we should exit the menu and get to the next level, but let's the user do it for now.
 			if (state.title === 'EMPTY GAME')
 			{
 				compile(
