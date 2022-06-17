@@ -346,13 +346,14 @@ function levelsToArray(state)
 		const generation_cond = state.metadata.auto_level_titles
 		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
 
-		if (level.name === undefined)
+		level.is_named = (level.name !== undefined)
+		if (level.is_named)
 		{
-			level.name = 'Level ' + (level_index+1)
+			generate_title ||= (generation_cond == 'named')
 		}
 		else
 		{
-			generate_title ||= (generation_cond == 'named')
+			level.name = 'Level ' + (level_index+1)
 		}
 
 		generate_title &&= (level.title_style != 'none')

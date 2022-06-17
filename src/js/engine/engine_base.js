@@ -41,7 +41,8 @@ function setSavePoint(curlevel, new_restart_target)
 		}
 		else if ( (curlevel.shouldSetSavePoint()) || (new_restart_target !== undefined) )
 		{
-			storage_set(key, JSON.stringify(curlevel))
+			const l = state.levels[curlevel.level]
+			storage_set(key, JSON.stringify(l.is_named ? Object.assign({name:l.name},curlevel) : curlevel) )
 		}
 
 		if (new_restart_target !== undefined)
@@ -70,7 +71,7 @@ function getSavePoint()
 				continue
 			const stored_level = JSON.parse(storage_get(key))
 			const result_level = (stored_level instanceof Object)
-				? new LevelState(stored_level.level, stored_level.box, stored_level.msg)
+				? LevelState.prototype.findSame(stored_level)
 				: LevelState.prototype.makeFromOldSchoolIndex(stored_level)
 			if ( ! storage_has(key+'_checkpoint') )
 				return [ result_level, undefined ]
@@ -309,6 +310,12 @@ LevelState.prototype.next = function()
 	this.box = 2
 	this.msg = -1
 	return this
+}
+
+LevelState.prototype.findSame = function(ls)
+{
+	const index = (ls.name !== undefined) ? state.levels.findIndex(l => l.is_named && (l.name == ls.name)) : ls.level
+	return new LevelState( (index<0) ? ls.level : index, ls.box, ls.msg)
 }
 
 LevelState.prototype.makeFromOldSchoolIndex = function(old_level_index)
