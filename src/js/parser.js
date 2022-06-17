@@ -1486,14 +1486,8 @@ PuzzleScriptParser.prototype.createLevelMessage = function(message_text, message
 	})
 }
 
-const MAX_LEVEL_NAME_LENGTH = terminal_width - 18
-PuzzleScriptParser.prototype.createLevel = function(level_name)
+PuzzleScriptParser.prototype.createLevel = function()
 {
-	if ( (level_name !== undefined) && (level_name.length > MAX_LEVEL_NAME_LENGTH) )
-	{
-		this.logWarning(['long_level_name', MAX_LEVEL_NAME_LENGTH])
-	}
-
 	if (this.levels[this.levels.length-1].grid.length === 0)
 	{
 		this.logWarning(['no_grid_in_level'])
@@ -1501,10 +1495,20 @@ PuzzleScriptParser.prototype.createLevel = function(level_name)
 	}
 
 	this.levels.push({
-		name: level_name,
+		name: undefined,
 		boxes: [ [], [], [], ],
 		grid: [],
 	})
+}
+
+const MAX_LEVEL_NAME_LENGTH = terminal_width - 18
+PuzzleScriptParser.prototype.setLevelName = function(level_name)
+{
+	if ( (level_name !== undefined) && (level_name.length > MAX_LEVEL_NAME_LENGTH) )
+	{
+		this.logWarning(['long_level_name', MAX_LEVEL_NAME_LENGTH])
+	}
+	this.levels[this.levels.length-1].name = level_name
 }
 
 PuzzleScriptParser.prototype.setLevelTitle = function(title_text, title_style)
@@ -1523,10 +1527,10 @@ PuzzleScriptParser.prototype.setLevelTitle = function(title_text, title_style)
 	current_level.title = title_text
 }
 
-PuzzleScriptParser.prototype.createLevelIfNeeded = function(new_line_type, command_arg)
+PuzzleScriptParser.prototype.createLevelIfNeeded = function(new_line_type)
 {
 	if (this.line_type > new_line_type)
-		this.createLevel(command_arg)
+		this.createLevel()
 	this.line_type = new_line_type
 }
 
@@ -1550,7 +1554,8 @@ PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, s
 					this.createLevelMessage(command_arg, (this.line_type-1)/2)
 					return 'MESSAGE_VERB'
 				case 'level':
-					this.createLevelIfNeeded(0, command_arg)
+					this.createLevelIfNeeded(0)
+					this.setLevelName(command_arg)
 					return 'LEVEL_NAME_VERB'
 				case 'title':
 				case 'title:noheader':
