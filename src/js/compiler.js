@@ -95,7 +95,7 @@ function generateExtraMembers(state)
 			var c = o.colors[i];
 			if (isColor(c))
 			{
-				c = colorToHex(state.color_palette, c)
+				c = colorToHex(state.metadata.color_palette, c)
 				o.colors[i] = c;
 			} else {
 				logError(['invalid_color_for_object', o.name, c], state.identifiers.lineNumbers[o.identifier_index] + 1)

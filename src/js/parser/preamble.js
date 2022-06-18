@@ -95,6 +95,7 @@ PuzzleScriptParser.prototype.finalizeMetaData = function(metadata_name, default_
 	{
 		this.logError([error_id, value_str, default_value])
 		this.metadata_values[key_index] = default_value
+		this.metadata_lines[key_index] = null // do not delete the line
 		return
 	}
 
@@ -118,13 +119,44 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 // WIP TODO: then, in another function after the parsing, we should remove from the text all
 // the lines that contained preamble declarations that have been transfered to the HTML,
 // taking the list backward (so that the line numbers stay valid).
+// note that metadata can be redeclared, so normally we should log multiple lines...
 }
 
-
+// This is called by the compiler, not by the parser.
 function twiddleMetaData(state)
 {
+	let tabcontent = metadata_tabmanager.getContent()
 	let newmetadata = {}
-	state.metadata_keys.forEach( function(key, i) { newmetadata[key] = state.metadata_values[i] } )
+	for (const [i, key] of state.metadata_keys.entries())
+	{
+		if (key in metadata_in_tab)
+		{
+			tabcontent[key] = state.metadata_values[i]
+		}
+		else
+		{
+			state.metadata_lines[i] = null // don't delete
+		}
+		newmetadata[key] = state.metadata_values[i] // WIP TODO: once the values of the metadata_tabmanager will be used instead of state.metadata, move that line in the else block above.
+	}
+	
+	metadata_tabmanager.setContent(tabcontent) // fill in the UI fields
+
+	// remove the lines from the file that have been used to fill in the UI fields
+	let code_txt = editor_tabmanager.getContent().split('\n')
+	for (let i=state.metadata_lines.length-1; i>=0; --i)
+	{
+		if (state.metadata_lines[i] === null)
+			continue
+		code_txt.splice(i, 1)
+	}
+	editor_tabmanager.setContent(code_txt.join('\n'))
+
+	delete state.metadata_keys
+	delete state.metadata_values
+	delete state.metadata_lines
+
+	// Below are the metadata that don't yet have an UI in the Meta tab.
 
 	if (newmetadata.flickscreen !== undefined)
 	{
@@ -138,29 +170,27 @@ function twiddleMetaData(state)
 	}
 	[ sprite_width, sprite_height ] = newmetadata['sprite_size']
 
-	state.metadata = newmetadata
-
 
 	// get colorpalette name
 	// TODO: move that in the parser so that it can display the exact colors
 	let colorPalette = colorPalettes.arnecolors
-	if ('color_palette' in state.metadata)
+	if ('color_palette' in newmetadata)
 	{
-		let val = state.metadata.color_palette
+		let val = newmetadata.color_palette
 		if (val in colorPalettesAliases)
 		{
 			val = colorPalettesAliases[val]
 		}
 		if (colorPalettes[val] === undefined)
 		{
-			logError(['palette_not_found', val]) // TODO: use the line number of the palette declaration
+			logError(['palette_not_found', val]) // WIP TODO: use the line number of the palette declaration, and don't delete the line
 		}
 		else
 		{
 			colorPalette = colorPalettes[val]
 		}
 	}
-	state.color_palette = colorPalette
+	newmetadata.color_palette = colorPalette
 
 	const color_metadata = [
 		[ 'background_color', 'bgcolor', '#000000FF' ],
@@ -171,16 +201,21 @@ function twiddleMetaData(state)
 	]
 	for (const [metadata_key, state_key, default_color] of color_metadata)
 	{
-		const color = (metadata_key in state.metadata) ? colorToHex(colorPalette, state.metadata[metadata_key]) : (default_color || state.fgcolor)
+		const color = (metadata_key in newmetadata) ? colorToHex(colorPalette, newmetadata[metadata_key]) : (default_color || newmetadata.fgcolor)
 		if ( isColor(color) )
 		{
-			state[state_key] = color
+			newmetadata[state_key] = color
 		}
 		else
 		{
-			const final_color = (default_color || state.fgcolor)
+			const final_color = (default_color || newmetadata.fgcolor)
 			logError(metadata_key + ' in incorrect format - found '+color+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to "+final_color+'.')
-			state[state_key] = final_color
+			newmetadata[state_key] = final_color
 		}
+		state[state_key] = newmetadata[state_key] // WIP TODO: stop using these and delete this line
 	}
+
+	state.metadata = newmetadata
+
+	// now we need to fill in the fields for all meta_data that have an UI field, and remove the corresponding line(s) from the file, in reverse order.
 }
