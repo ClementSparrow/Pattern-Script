@@ -15,40 +15,40 @@ function isValidHttpsUrl(string) // adapted from Pavlo https://stackoverflow.com
 
 
 // keyword, is_mandatory?, default_value, check_function, html_element_attribute
-const metadata_tab_sections = [
+const metadata_in_tab = {
 // { name: 'About the game', content: [
-	['title', true, 'My Game', null, 'value' ],
-	['author', true, 'My Name Here', null, 'value' ],
-	['homepage', false, '', isValidHttpsUrl, 'value' ],
-	['description', false, '', null, 'value' ],
+	title: [ true, 'My Game', null, 'value' ],
+	author: [ true, 'My Name Here', null, 'value' ],
+	homepage: [ false, '', isValidHttpsUrl, 'value' ],
+	description: [ false, '', null, 'value' ],
 	// ['vignette', false, null, null ],
 // ] },
 // { name: 'Colors', content: [
-// 	['color_palette', true, 'arne', check_palette_name ],
-// 	['background_color', true, '#000000FF', color_picker ],
-// 	['text_color', true, '#FFFFFFFF', color_picker ],
-// 	['title_color', false, undefined(text_color), color_picker ],
-// 	['author_color', false, undefined(text_color), color_picker ],
-// 	['keyhint_color', false, undefined(text_color), color_picker ],
+// 	color_palette: [ true, 'arne', check_palette_name ],
+// 	background_color: [ true, '#000000FF', color_picker ],
+// 	text_color: [ true, '#FFFFFFFF', color_picker ],
+// 	title_color: [ false, undefined(text_color), color_picker ],
+// 	author_color: [ false, undefined(text_color), color_picker ],
+// 	keyhint_color: [ false, undefined(text_color), color_picker ],
 // ] },
 // { name: 'Timing', content: [
-// 	['key_repeat_interval', true, 0.15, is_number ], // TODO: we should have a value to forbid key repeats?
-// 	['realtime_interval', true, 0, is_number ],
-// 	['again_interval', true, 0.15, is_number ],
+// 	key_repeat_interval: [ true, 0.15, is_number ], // TODO: we should have a value to forbid key repeats?
+// 	realtime_interval: [ true, 0, is_number ],
+// 	again_interval: [ true, 0.15, is_number ],
 // ] },
 // { name: 'Dimensions', content: [
-// 	['flickscreen', false, null, check_dim ],
-// 	['zoomscreen', false, null, check_dim ],
-// 	['sprite_size', true, [5, 5], check_dim ], // TODO: rename it
+// 	flickscreen: [ false, null, check_dim ],
+// 	zoomscreen: [ false, null, check_dim ],
+// 	sprite_size: [ true, [5, 5], check_dim ], // TODO: rename it
 // ] },
 // { name: 'Gameplay options', content: [
-	['run_rules_on_level_start', true, false, null, 'checked' ],
-	['throttle_movement', true, false, null, 'checked' ], // TODO: should be grayed if realtime_interval==0
-	['noaction', true, false, null, 'checked' ], // TODO: should be automatically detected.
-	['noundo', true, false, null, 'checked' ],
-	['norestart', true, false, null, 'checked' ],
-	['norepeat_action', true, false, null, 'checked' ], // TODO: should be grayed if noaction is set
-	['require_player_movement', true, false, null, 'checked' ],
+	run_rules_on_level_start: [ true, false, null, 'checked' ],
+	throttle_movement: [ true, false, null, 'checked' ], // TODO: should be grayed if realtime_interval==0
+	noaction: [ true, false, null, 'checked' ], // TODO: should be automatically detected.
+	noundo: [ true, false, null, 'checked' ],
+	norestart: [ true, false, null, 'checked' ],
+	norepeat_action: [ true, false, null, 'checked' ], // TODO: should be grayed if noaction is set
+	require_player_movement: [ true, false, null, 'checked' ],
 // ] },
 // // obsolete:
 // // 	youtube false '' URL // Broken, do not use. // TODO: add a music file selector instead
@@ -59,7 +59,7 @@ const metadata_tab_sections = [
 // // 	save_name
 // // 	save_format_version
 // // 	extensions_used
-]
+}
 
 
 
@@ -75,7 +75,7 @@ MetaDataTabManager.prototype =
 
 contentUpdated: function()
 {
-	for (const [keyword, is_mandatory, default_value, check_func, html_node_field] of metadata_tab_sections)
+	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
 	{
 		const field = document.querySelector('[name="meta_'+keyword+'"]')
 		const field_value = field[html_node_field]
@@ -99,7 +99,7 @@ setContent: function(content)
 	if (content === undefined)
 		content = {}
 	this.content = content
-	for (const [keyword, is_mandatory, default_value, check_func, html_node_field] of metadata_tab_sections)
+	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
 	{
 		document.querySelector('[name="meta_'+keyword+'"]')[html_node_field] = content[keyword] || default_value
 	}
