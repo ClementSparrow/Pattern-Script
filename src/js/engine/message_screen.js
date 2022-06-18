@@ -1,5 +1,5 @@
 
-// uses: state, messagetext
+// uses: state
 
 const empty_terminal_line    = '                                  ';
 const selected_terminal_line = '##################################';
@@ -10,20 +10,32 @@ const terminal_height = 13
 
 MenuScreen.prototype.isContinuePossible = function()
 {
-	return ( (this.curlevel > 0) || (this.curlevelTarget !== undefined) ) && (this.curlevel in state.levels)
+	if ( (this.curlevel === undefined) && (this.curlevelTarget === undefined) )
+		return false
+	// test is savepoint is valid (TODO: use unique ids for levels instead)
+	const l = state.levels[this.curlevel.level]
+	if (l === undefined)
+		return false // some levels before save point have been deleted and now we're after the game
+	const b = l.boxes[this.curlevel.box]
+	return (b !== undefined) && (this.curlevel.msg < b.length) // box index is invalid or some messages have been deleted
 }
 
 
-function skipTextLevels()
+function skipTextBox()
 {
-	while ( (state.levels[curlevel].message !== undefined) && (curlevel < state.levels.length - 1) )
-		curlevel++
-	loadLevelFromState(state, curlevel)
+	const next_level = new LevelState(curlevel.level+((curlevel.box === 3) ? 1 : 0), 2, -1)
+	if (next_level.level >= state.levels.length)
+	{
+		next_level.level--
+		next_level.box = 3
+		next_level.msg = state.levels[state.levels.length-1].boxes[3].length-1
+	}
+	loadLevelFromState(state, next_level)
 }
 
 function titleMenuNewGame()
 {
-	loadLevelFromState(state, 0)
+	loadLevelFromState(state, (new LevelState()).next())
 }
 
 MenuScreen.prototype.titleMenuContinue = function()
@@ -97,17 +109,6 @@ MenuScreen.prototype.closeMenu = function()
 	canvasResize()
 }
 
-function getLevelName(lvl = curlevel)
-{
-	var result = 1
-	for (var i=0; i<lvl; ++i)
-	{
-		if (state.levels[i].message === undefined)
-			result++
-	}
-	return result
-}
-
 // sets: this.text
 MenuScreen.prototype.makeTitle = function()
 {
@@ -154,7 +155,7 @@ MenuScreen.prototype.makeTitle = function()
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
 	// Add menu options
-	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from level '+getLevelName(this.curlevel), () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from '+state.levels[this.curlevel.level].name, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -194,15 +195,28 @@ function wordwrap(str, width = terminal_width)
 	return str.match( RegExp(regex, 'g') );
 }
 
+function wordwrapAndColor(str, color, width = terminal_width)
+{
+	return wordwrap(str, width).map(l => [centerText(l), color])
+}
 
 
 MenuScreen.prototype.makePauseMenu = function()
 {
 	const empty_line = [empty_terminal_line, state.fgcolor]
-	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText('Level '+getLevelName()), state.titlecolor], empty_line ]
+	const level = state.levels[curlevel.level]
+	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText(level.name), state.titlecolor] ]
+	if ('show_level_title_in_menu' in state.metadata)
+	{
+		let title = level.title
+		if (title.length > empty_terminal_line.length)
+			title = title.substring(0, empty_terminal_line.length - 1) + '…'
+		this.text.push([centerText(title), state.titlecolor])
+	}
+	this.text.push( empty_line )
 	var menu_entries = [
 		['resume game', () => this.closeMenu()],
-		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextLevels] : ['replay level from the start', pauseMenuRestart],
+		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
 		['exit to title screen', goToTitleScreen]
 	]
 	this.makeMenuItems(terminal_height - 5, menu_entries)
@@ -210,23 +224,18 @@ MenuScreen.prototype.makePauseMenu = function()
 }
 
 
-// uses messagetext, state, curlevel
-TextModeScreen.prototype.doMessage = function()
+// uses state
+TextModeScreen.prototype.doMessage = function(message)
 {
 	screen_layout.content = this
 	const empty_line = [ empty_terminal_line, state.fgcolor ]
 
 	this.text = Array(terminal_height).fill(empty_line)
 
-	const splitMessage = wordwrap((messagetext === '') ? state.levels[curlevel].message.trim() : messagetext)
+	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(message.text.length/2) )
 
-	const offset = Math.max(0, Math.floor((terminal_height-2)/2) - Math.floor(splitMessage.length/2) )
-
-	const count = Math.min(splitMessage.length, terminal_height - 1)
-	for (var i=0; i<count; i++)
-	{
-		this.text[offset+i] = [centerText(splitMessage[i]), state.fgcolor]
-	}
+	const count = Math.min(message.text.length, terminal_height - 1)
+	this.text.splice(offset, count, ...message.text)
 
 	if ( ! this.done )
 	{

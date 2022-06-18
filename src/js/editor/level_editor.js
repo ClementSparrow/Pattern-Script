@@ -47,17 +47,7 @@ LevelEditorScreen.prototype.toggle = function()
 				return // TODO: we should exit the menu and get to the next level, but let's the user do it for now.
 			if (state.title === 'EMPTY GAME')
 			{
-				compile(
-					function findFirstNonMessageLevel(levels)
-					{
-						for (var i=0; i<levels.length; i++)
-						{
-							if ( ! levels[i].hasOwnProperty('message') )
-								return i
-						}
-						return undefined
-					}
-				)
+				compile( new LevelState(0, 2) )
 			}
 			else
 			{
@@ -367,7 +357,7 @@ Level.prototype.removeBottomRow = function()   { if (this.height > 1) this.copyR
 
 function loadInLevelEditor(lines)
 {
-	loadLevelFromLevelDat(state, levelFromString(state, ['console'].concat(lines)), null)
+	loadLevelFromLevelDat(state, levelFromString(state, { width: lines[0].length, height: lines.length, grid:lines, lineNumber:'console', }), null)
 }
 
 // find mask with closest match

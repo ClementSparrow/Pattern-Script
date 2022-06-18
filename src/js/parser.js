@@ -43,7 +43,7 @@ const reg_ruledirectionindicators = /^(up|down|left|right|horizontal|vertical|or
 const reg_sounddirectionindicators = /(up|down|left|right|horizontal|vertical|orthogonal)\b/u;
 const reg_winconditionquantifiers = /^(all|any|no|some)\b$/;
 const reg_keywords = /(checkpoint|tags|objects|collisionlayers|legend|sounds|rules|winconditions|\.\.\.|levels|up|down|left|right|^|\||\[|\]|v|\>|\<|no|horizontal|orthogonal|vertical|any|all|no|some|moving|stationary|parallel|perpendicular|action)\b/;
-
+const reg_level_commands = /(level|message|title(?::(\w*))?)\b/u
 
 
 // ======== PARSER CONSTRUCTORS =========
@@ -65,8 +65,9 @@ function PuzzleScriptParser()
 
 	this.section = ''
 
+	this.is_start_of_line = false
 	this.tokenIndex = 0
-	this.is_start_of_line = false;
+	this.line_type = 0
 
 	// metadata defined in the preamble
 	this.metadata_keys = []   // TODO: we should not care about the keys, since it's a predefined set
@@ -74,7 +75,6 @@ function PuzzleScriptParser()
 
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
 	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed
-	this.objects_section = 0 //whether reading name/color/spritematrix
 	this.objects_spritematrix = []
 	this.sprite_transforms = []
 
@@ -97,7 +97,7 @@ function PuzzleScriptParser()
 
 	this.winconditions = []
 
-	this.levels = [[]]
+	this.levels = [ {boxes: [[],[],[],], grid: []} ]
 }
 
 PuzzleScriptParser.prototype.copy = function()
@@ -111,14 +111,14 @@ PuzzleScriptParser.prototype.copy = function()
 	result.commentLevel = this.commentLevel
 	result.section = this.section
 
+	result.is_start_of_line = this.is_start_of_line
 	result.tokenIndex = this.tokenIndex
-	result.is_start_of_line = this.is_start_of_line;
+	result.line_type = this.line_type
 
 	result.metadata_keys   = this.metadata_keys.concat([])
 	result.metadata_values = this.metadata_values.concat([])
 
 	result.current_identifier_index = this.current_identifier_index
-	result.objects_section = this.objects_section
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
 	result.sprite_transforms = this.sprite_transforms.concat([])
 
@@ -139,7 +139,13 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.abbrevNames = this.abbrevNames.concat([])
 
-	result.levels = this.levels.map( i => i.concat([]) )
+	// TODO: replace this with structuredClone
+	result.levels = this.levels.map( level => { 
+		let l = Object.assign({}, level)
+		l.grid = level.grid.concat([])
+		l.boxes = level.boxes.map( mb => mb.map(m => Object.assign({},m)) )
+		return l
+	})
 
 	result.STRIDE_OBJ = this.STRIDE_OBJ
 	result.STRIDE_MOV = this.STRIDE_MOV
@@ -174,8 +180,11 @@ PuzzleScriptParser.prototype.logWarning = function(msg)
 
 //	------- METADATA --------
 
-const metadata_with_value = ['title','author','homepage','background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','youtube', 'sprite_size']
-const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart']
+const metadata_with_mixedCase_value = ['youtube', 'author', 'homepage', 'title', 'game_uri']
+const metadata_with_value = ['background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','sprite_size','level_title_style','auto_level_titles']
+const metadata_default_values = { auto_level_titles: 'always' }
+const metadata_accepted_values = { auto_level_titles: ['named'], level_title_style: ['noheader', 'header'] }
+const metadata_without_value = ['run_rules_on_level_start','norepeat_action','require_player_movement','debug','verbose_logging','throttle_movement','noundo','noaction','norestart','show_level_title_in_menu']
 
 PuzzleScriptParser.prototype.registerMetaData = function(key, value)
 {
@@ -295,24 +304,24 @@ PuzzleScriptParser.prototype.parse_sprite_pixel = function(stream)
 
 PuzzleScriptParser.prototype.blankLine = function() // called when the line is empty or contains only spaces and/or comments
 {
-	if (this.section === 'objects')
+	switch (this.section)
 	{
-		if (this.objects_section >= 5)
-		{
-			this.copySpriteMatrix()
-		}
-		else if (this.objects_section == 3)
-		{
-			this.setSpriteMatrix()
-		}
-		this.objects_section = 0
-	}
-	else if (this.section === 'levels')
-	{
-		if (this.levels[this.levels.length - 1].length > 0)
-		{
-			this.levels.push([]);
-		}
+		case 'objects':
+			if (this.line_type >= 5)
+			{
+				this.copySpriteMatrix()
+			}
+			else if (this.line_type == 3)
+			{
+				this.setSpriteMatrix()
+			}
+			this.line_type = 0
+			return
+		case 'levels':
+			if ( (this.line_type === 4) && (this.levels[this.levels.length-1].grid.length > 0) )
+			{
+				this.line_type = 5
+			}
 	}
 }
 
@@ -323,14 +332,10 @@ PuzzleScriptParser.prototype.blankLine = function() // called when the line is e
 
 PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line, stream)
 {
-	if (is_start_of_line)
+	if ( ! is_start_of_line ) // we've already parsed the whole line, now we are necessarily in the metadata value's text
 	{
-		this.tokenIndex = 0;
-	}
-	else if (this.tokenIndex != 0) // we've already parsed the whole line, now we are necessiraly in the metadata value's text
-	{
-		stream.match(reg_notcommentstart, true); // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
-		return "METADATATEXT";
+		stream.match(reg_notcommentstart, true) // TODO: we probably want to read everything till the end of line instead, because comments should be forbiden on metadata lines as it prevents from putting parentheses in the metadata text...
+		return (this.tokenIndex == -1) ? 'ERROR' : 'METADATATEXT'
 	}
 
 //	Get the metadata key
@@ -341,66 +346,83 @@ PuzzleScriptParser.prototype.tokenInPreambleSection = function(is_start_of_line,
 		return 'ERROR'; // TODO: we should probably log an error, here? It implies that if a line starts with an invalid character, it will be silently ignored...
 	}
 
-	if (is_start_of_line)
+	if ( metadata_without_value.includes(token) )
 	{
-		if (metadata_with_value.indexOf(token) >= 0)
-		{
-			if (token==='youtube' || token==='author' || token==='homepage' || token==='title')
-			{
-				stream.string = this.mixedCase;
-			}
-			
-			var m2 = stream.match(reg_notcommentstart, false); // TODO: to end of line, not comment (see above)
-			
-			if(m2 != null)
-			{
-				this.registerMetaData(token, m2[0].trim())
-			} else {
-				this.logError('MetaData "'+token+'" needs a value.');
-			}
-			this.tokenIndex = 1;
-			return 'METADATA';
-		}
-		if ( metadata_without_value.indexOf(token) >= 0)
-		{
-			this.registerMetaData(token, "true") // TODO: return the value instead of a string?
-			this.tokenIndex = -1;
-			return 'METADATA';
-		}
+		this.registerMetaData(token, 'true') // TODO: return the value instead of a string?
+		this.tokenIndex = -1
+		return 'METADATA'
+	}
+
+	if ( metadata_with_mixedCase_value.includes(token) )
+	{
+		stream.string = this.mixedCase
+	}
+	else if ( ! metadata_with_value.includes(token) )
+	{
+		stream.match(reg_notcommentstart, true)
 		this.logError(['unknown_metadata'])
 		return 'ERROR'
 	}
-	if (this.tokenIndex == -1) // TODO: it seems we can never reach this point?
+
+	this.tokenIndex = 1
+
+	const m2 = stream.match(reg_notcommentstart, false) // TODO: to end of line, not comment (see above)
+	if (m2 === null)
 	{
-		this.logError('MetaData "'+token+'" has no parameters.');
-		return 'ERROR';
+		const default_value = metadata_default_values[token]
+		if (typeof default_value !== 'undefined')
+			this.registerMetaData(token, default_value)
+		else
+			this.logError('MetaData "'+token+'" needs a value.')
+		return 'METADATA'
 	}
-	return 'METADATA';
+
+	const param = m2[0].trim()
+	const accepted_values = metadata_accepted_values[token]
+	if ( (typeof accepted_values === 'undefined') || accepted_values.includes(param) )
+	{
+		this.registerMetaData(token, param)
+	}
+	else
+	{
+		this.logError(['invalid_preamble_option', param, token])
+		this.tokenIndex = -1
+	}
+	return 'METADATA'
 }
 
+PuzzleScriptParser.prototype.finalizeMetaData = function(metadata_name, default_value, error_id, validate_func)
+{
+	const key_index = this.metadata_keys.indexOf(metadata_name)
+	if (key_index < 0)
+	{
+		this.registerMetaData(metadata_name, default_value)
+		return
+	}
+
+	const value_str = this.metadata_values[key_index]
+	const value = validate_func(value_str)
+	if (value === null)
+	{
+		this.logError([error_id, value_str, default_value])
+		this.metadata_values[key_index] = default_value
+		return
+	}
+
+	this.metadata_values[key_index] = value
+}
 
 // TODO: merge with twiddleMetaData defined in compiler.js. Also, it should be done directly as we parse, not after the preamble.
 PuzzleScriptParser.prototype.finalizePreamble = function()
 {
-	const sprite_size_key_index = this.metadata_keys.indexOf('sprite_size')
-	if (sprite_size_key_index >= 0)
-	{
-		const [sprite_w, sprite_h] = this.metadata_values[sprite_size_key_index].split('x').map(s => parseInt(s))
-		if ( isNaN(sprite_w) || isNaN(sprite_h) )
+	this.finalizeMetaData('sprite_size', [5, 5], 'not_a_sprite_size',
+		function(s)
 		{
-			this.logError('Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: '+this.metadata_values[sprite_size_key_index]+'. Reverting back to default 5x5 size.')
-			this.metadata_values[sprite_size_key_index] = [5, 5]
+			const result = s.split('x').map(str => parseInt(str))
+			return result.some(isNaN) ? null : result
 		}
-		else
-		{
-			this.metadata_values[sprite_size_key_index] = [sprite_w, sprite_h]
-		}
-	}
-	else
-	{
-		this.metadata_keys.push('sprite_size')
-		this.metadata_values.push( [5, 5] )
-	}
+	)
+	this.finalizeMetaData('level_title_style', 'header', null, s => s)
 }
 
 
@@ -408,11 +430,6 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 
 PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, stream)
 {
-	if (is_start_of_line)
-	{
-		this.tokenIndex = 0;
-	}
-
 	switch (this.tokenIndex)
 	{
 		case 0: // tag class name
@@ -640,24 +657,24 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 {
 	if (is_start_of_line)
 	{
-		if ( [1,2].includes(this.objects_section) )
+		if ( [1,2].includes(this.line_type) )
 		{
-			this.objects_section += 1
+			this.line_type += 1
 		}
-		// else if (this.objects_section >= 5) // copy sprite matrix with a valid name
+		// else if (this.line_type >= 5) // copy sprite matrix with a valid name
 		// {
 		// 	this.copySpriteMatrix()
-		// 	this.objects_section = 0
+		// 	this.line_type = 0
 		// }
 	}
 
-	switch (this.objects_section)
+	switch (this.line_type)
 	{
 	case 0:
 	case 1: // name of the object or synonym
 		{
 			this.objects_spritematrix = []
-			this.objects_section = 1
+			this.line_type = 1
 			const result = this.tryParseName(is_start_of_line, stream)
 			if (is_start_of_line)
 			{
@@ -734,7 +751,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					}
 
 					// copy sprite from other object(s)
-					this.objects_section = 4
+					this.line_type = 4
 					if ( (new Set(this.current_expansion_context.parameters)).size !== this.current_expansion_context.parameters.length ) // check for duplicate class names
 					{
 						this.logWarning('Copying sprites for identifier '+this.identifiers.names[this.current_identifier_index].toUpperCase()+
@@ -746,7 +763,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 
 				if (is_start_of_line) // after the sprite matrix
 				{
-					this.objects_section = 5 // allow transformations after the sprite
+					this.line_type = 5 // allow transformations after the sprite
 					this.setSpriteMatrix()
 					const directions_idindex = this.identifiers.names.indexOf('directions')
 					const directions_index = this.current_expansion_context.parameters.indexOf(directions_idindex)
@@ -820,7 +837,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			return 'ERROR'
 		}
 		copy_from_id = copy_from_match[0].trim()
-		this.objects_section = 5
+		this.line_type = 5
 		const copy_from_identifier_index = this.identifiers.checkKnownIdentifier(copy_from_id, true, this)
 		if (copy_from_identifier_index < 0)
 		{
@@ -1022,11 +1039,11 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 	{
 		if (this.tokenIndex === 0)
 		{
-			this.objects_section = (this.objects_section+1) % 2
+			this.line_type = (this.line_type+1) % 2
 		}
-		else if (this.objects_section === 1) // we were parsing the first line
+		else if (this.line_type === 1) // we were parsing the first line
 		{
-			this.objects_section = 0;
+			this.line_type = 0
 			if (this.tokenIndex < 3)
 			{
 				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAME => MAPPING_NAME on the first line.');
@@ -1034,7 +1051,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 		}
 		else
 		{
-			this.objects_section = 1;
+			this.line_type = 1
 			if (this.tokenIndex < 2)
 			{
 				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAMES -> MAPPED_VALUES on the second line.');
@@ -1045,7 +1062,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 		this.tokenIndex = 0;
 	}
 
-	if (this.objects_section === 1) // first line
+	if (this.line_type === 1) // first line
 	{
 		switch (this.tokenIndex)
 		{
@@ -1345,7 +1362,7 @@ PuzzleScriptParser.prototype.tokenInRulesSection = function(is_start_of_line, st
 	{
 		var rule = reg_notcommentstart.exec(stream.string)[0];
 		this.rules.push([rule, this.lineNumber, this.mixedCase]);
-		this.tokenIndex = 0;//in rules, records whether bracket has been found or not
+		//in rules, tokenIndex records whether bracket has been found or not
 	}
 
 	if (this.tokenIndex === -4)
@@ -1461,65 +1478,137 @@ PuzzleScriptParser.prototype.tokenInWinconditionsSection = function(is_start_of_
 
 // ------ LEVELS -------
 
+PuzzleScriptParser.prototype.createLevelMessage = function(message_text, message_box_index)
+{
+	this.levels[this.levels.length-1].boxes[message_box_index].push({
+		text: message_text,
+		lineNumber: this.lineNumber,
+	})
+}
+
+PuzzleScriptParser.prototype.createLevel = function()
+{
+	if (this.levels[this.levels.length-1].grid.length === 0)
+	{
+		this.logWarning(['no_grid_in_level'])
+		return
+	}
+
+	this.levels.push({
+		name: undefined,
+		boxes: [ [], [], [], ],
+		grid: [],
+	})
+}
+
+const MAX_LEVEL_NAME_LENGTH = terminal_width - 18
+PuzzleScriptParser.prototype.setLevelName = function(level_name)
+{
+	if ( (level_name !== undefined) && (level_name.length > MAX_LEVEL_NAME_LENGTH) )
+	{
+		this.logWarning(['long_level_name', MAX_LEVEL_NAME_LENGTH])
+	}
+	this.levels[this.levels.length-1].name = level_name
+}
+
+PuzzleScriptParser.prototype.setLevelTitle = function(title_text, title_style)
+{
+	title_style ||= this.metadata_values[this.metadata_keys.indexOf('level_title_style')]
+
+	if ( (title_text.length > terminal_width) && this.metadata_keys.includes('show_level_title_in_menu') )
+	{
+		this.logWarning(['long_level_title'])
+	}
+
+	let current_level = this.levels[this.levels.length-1]
+	current_level.title_style = title_style
+	if ( (title_text == '') || (title_style == 'none') )
+		return
+	current_level.title = title_text
+}
+
+PuzzleScriptParser.prototype.createLevelIfNeeded = function(new_line_type)
+{
+	if (this.line_type > new_line_type)
+		this.createLevel()
+	this.line_type = new_line_type
+}
+
 PuzzleScriptParser.prototype.tokenInLevelsSection = function(is_start_of_line, stream, ch)
 {
+	// Line types:
+	// 0 = level command (name)
+	// 2 = title
+	// 4 = level's grid
+	// messages can be placed after any of the above, with index+1
 	if (is_start_of_line)
 	{
-		if (stream.match(/[\p{Separator}\s]*message\b[\p{Separator}\s]*/u, true))
+		const command_match = stream.match(reg_level_commands, true)
+		if (command_match)
 		{
-			this.tokenIndex = 1;//1/2 = message/level
-			var newdat = ['\n', this.mixedCase.slice(stream.pos).trim(), this.lineNumber];
-			if (this.levels[this.levels.length - 1].length == 0) {
-				this.levels.splice(this.levels.length - 1, 0, newdat);
-			} else {
-				this.levels.push(newdat);
+			const command_arg = this.mixedCase.slice(stream.pos).trim()
+			switch (command_match[0])
+			{
+				case 'message':
+					this.line_type |= 1
+					this.createLevelMessage(command_arg, (this.line_type-1)/2)
+					return 'MESSAGE_VERB'
+				case 'level':
+					this.createLevelIfNeeded(0)
+					this.setLevelName(command_arg)
+					return 'LEVEL_NAME_VERB'
+				case 'title':
+				case 'title:noheader':
+				case 'title:header':
+				case 'title:none':
+					this.createLevelIfNeeded(2)
+					this.setLevelTitle(command_arg, command_match[2])
+					return 'LEVEL_TITLE_VERB'
+				default: // invalid title style
+					this.createLevelIfNeeded(2)
+					this.logError(['unknown_title_style', command_match[2]])
+					this.setLevelTitle(command_arg)
+					return 'ERROR'
 			}
-			return 'MESSAGE_VERB';
-		} else {
-			var line = stream.match(reg_notcommentstart, false)[0].trim();
-			this.tokenIndex = 2;
-			var lastlevel = this.levels[this.levels.length - 1];
-			if (lastlevel[0] == '\n') {
-				this.levels.push([this.lineNumber, line]);
-			} else {
-				if (lastlevel.length == 0)
-				{
-					lastlevel.push(this.lineNumber);
-				}
-				lastlevel.push(line);  
+		}
 
-				if (lastlevel.length > 1) 
-				{
-					if (line.length != lastlevel[1].length) {
-						this.logWarning(['non_rectangular_level'])
-					}
-				}
-			}
-			
+		this.createLevelIfNeeded(4)
+		const line = stream.match(reg_notcommentstart, false)[0].trim()
+		const current_level = this.levels[this.levels.length-1]
+		current_level.grid.push(line)
+
+		if ( ! current_level.hasOwnProperty('lineNumber') )
+		{
+			current_level.lineNumber = this.lineNumber
+		}
+
+		if ( ! current_level.hasOwnProperty('width') )
+		{
+			current_level.width = line.length
+		}
+		else if (line.length != current_level.width)
+		{
+			this.logWarning(['non_rectangular_level'])
 		}
 	}
-	else
+	else if (this.line_type != 4)
 	{
-		if (this.tokenIndex == 1)
-		{
-			stream.skipToEnd();
-			return 'MESSAGE';
-		}
+		stream.skipToEnd()
+		return [
+			'LEVEL_NAME',  // 0
+			'MESSAGE',     // 1
+			'LEVEL_TITLE', // 2
+			'MESSAGE',     // 3
+			'LEVEL',       // 4
+			'MESSAGE',     // 5
+		][this.line_type]
 	}
 
-	if (this.tokenIndex === 2 && !stream.eol())
+	if (this.line_type === 4 && !stream.eol())
 	{
-		var ch = stream.peek()
+		const ch = stream.peek()
 		stream.next()
 		return (this.abbrevNames.indexOf(ch) >= 0) ? 'LEVEL' : 'ERROR'
-		// if (this.abbrevNames.indexOf(ch) >= 0)
-		// 	return 'LEVEL'
-
-		// if (this.identifiers.names.indexOf(ch) < 0)
-		// {
-		// 	this.logError('Key "' + ch.toUpperCase() + '" not found. Do you need to add it to the legend, or define a new object?')
-		// }
-		// return 'ERROR'
 	}
 }
 
@@ -1614,16 +1703,8 @@ PuzzleScriptParser.prototype.token = function(stream)
 	{
 		this.mixedCase = stream.string+'';
 		stream.string = stream.string.toLowerCase();
-		this.tokenIndex = 0;
-		if (this.commentLevel === 0)
-			this.is_start_of_line = true;
-		/*   if (this.lineNumber==undefined) {
-				this.lineNumber=1;
-		}
-		else {
-			this.lineNumber++;
-		}*/
-
+		this.tokenIndex = 0
+		this.is_start_of_line ||= (this.commentLevel === 0)
 	}
 
 	// ignore white space

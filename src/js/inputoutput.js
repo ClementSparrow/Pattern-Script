@@ -315,7 +315,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		timer = 0
 		this.done = true
 		tryPlaySimpleSound('closemessage')
-		this.doMessage()
+		this.doMessage(curlevel.getMessage())
 		keybuffer = []
 	}
 	return false
@@ -407,7 +407,7 @@ function update()
 	{
 		screen_layout.content.doSelectedFunction()
 	}
-    if ( againing && (timer > againinterval) && (messagetext.length == 0) && processInput(processing_causes.again_frame) )
+    if ( againing && (timer > againinterval) && (execution_context.commandQueue.message === null) && processInput(processing_causes.again_frame) )
     {
 		redraw()
 		keyRepeatTimer = 0

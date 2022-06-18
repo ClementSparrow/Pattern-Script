@@ -53,7 +53,7 @@ function runCompilationTest(game_string, recordedErrorStrings, recordedWarningSt
 	warningStrings = []
 
 	try{
-		compile(-1, game_string)
+		compile(null, game_string)
 	} catch (error){
 		console.log(error)
 	}

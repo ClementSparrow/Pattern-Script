@@ -141,14 +141,14 @@ editor.on('mousedown', function(cm, event)
 			document.activeElement.blur()  // unfocus code panel
 			editor.display.input.blur()
 			prevent(event)         // prevent refocus
-			const targetLine = cm.posFromMouse(event).line
+			const targetLine = cm.posFromMouse(event).line + 1
 			compile(
 				function(levels)
 				{
-					for (var i=levels.length-1; i>=0; i--)
+					for (let i=levels.length-1; i>=0; i--)
 					{
-						if (levels[i].lineNumber <= targetLine+1)
-							return i
+						if (levels[i].lineNumber <= targetLine)
+							return new LevelState(i, 2)
 					}
 					return undefined
 				}
@@ -301,7 +301,7 @@ function loadText(txt)
 	state = introstate
 	level = new Level(5, 5, new Int32Array(0))
 	title_screen.makeTitle()
-	compile(-1, txt)
+	compile(null, txt)
 	setPageTitle()
 }
 

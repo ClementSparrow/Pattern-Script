@@ -265,94 +265,114 @@ function makeMaskFromGlyph(glyph)
 	return glyphmask;
 }
 
-function levelFromString(state, level)
+function levelFromString(state, lvl)
 {
-	const backgroundlayer = state.backgroundlayer;
-	const backgroundid = state.backgroundid;
-	const backgroundLayerMask = state.layerMasks[backgroundlayer];
-	var o = new Level(level[1].length, level.length-1, new Int32Array(level[1].length * (level.length-1) * STRIDE_OBJ))
-	o.lineNumber = level[0]
+	const backgroundLayerMask = state.layerMasks[state.backgroundlayer]
+	let level = new Level(lvl.width, lvl.grid.length, new Int32Array(lvl.width * lvl.grid.length * STRIDE_OBJ))
+	level.lineNumber = lvl.lineNumber // only used in the editor to load the level clicked in the level editor.
 	execution_context.resetCommands()
-
-	for (var i = 0; i < o.width; i++)
+	for (let i = 0; i < level.width; i++)
 	{
-		for (var j = 0; j < o.height; j++)
+		for (let j = 0; j < level.height; j++)
 		{
-			var ch = level[j+1].charAt(i);
+			let ch = lvl.grid[j].charAt(i);
 			if (ch.length == 0) // TODO: why is it possible to have that from the parser?
 			{
-				ch = level[j+1].charAt(level[j+1].length-1);
+				ch = lvl.grid[j].charAt(lvl.grid[j].length-1);
 			}
 
-			const identifier_index = state.identifiers.names.indexOf(ch); // TODO: this should be done in the parser
+			// TODO: this should be done in the parser
+			const identifier_index = state.identifiers.checkIdentifierIsKnownWithType(ch, [identifier_type_object, identifier_type_aggregate], false,
+				{
+					logError: function(err_args)
+					{
+						logError( (err_args[2] == identifier_type_property) ? ['property_symbol_in_level', err_args[1]] : ['wrong_symbol_type_in_level', err_args[1], err_args[2]], level.lineNumber+j)
+					}
+				})
+
 			if (identifier_index < 0)
 			{
-				logError(['unknown_symbol_in_level', ch], level[0]+j)
-				continue
-			}
-			if (state.identifiers.comptype[identifier_index] == identifier_type_property)
-			{
-				logError(['property_symbol_in_level', ch], level[0]+j)
-				continue
-			}
-			if ( ! [identifier_type_object, identifier_type_aggregate].includes(state.identifiers.comptype[identifier_index]) )
-			{
-				logError(['wrong_symbol_type_in_level', ch, state.identifiers.comptype[identifier_index]], level[0]+j)
+				if (identifier_index == -2)
+				{
+					logError(['unknown_symbol_in_level', ch], level.lineNumber+j)
+				}
 				continue
 			}
 
 			const maskint = makeMaskFromGlyph( state.glyphDict[identifier_index].concat([]) );
-			for (var w = 0; w < STRIDE_OBJ; ++w)
+			for (let w = 0; w < STRIDE_OBJ; ++w)
 			{
-				o.objects[STRIDE_OBJ * (i * o.height + j) + w] = maskint.data[w];
+				level.objects[STRIDE_OBJ * (i * level.height + j) + w] = maskint.data[w];
 			}
 		}
 	}
 
-	var levelBackgroundMask = o.calcBackgroundMask(state);
-	for (var i=0; i<o.n_tiles; i++)
+	const levelBackgroundMask = level.calcBackgroundMask(state)
+	for (let i=0; i<level.n_tiles; i++)
 	{
-		var cell = o.getCell(i);
+		let cell = level.getCell(i);
 		if ( ! backgroundLayerMask.anyBitsInCommon(cell) )
 		{
 			cell.ior(levelBackgroundMask);
-			o.setCell(i, cell);
+			level.setCell(i, cell);
 		}
 	}
-	return o;
+	return level
 }
 
 //also assigns glyphDict
 function levelsToArray(state)
 {
-	var levels = state.levels;
-	var processedLevels = [];
+	if ( (state.levels.length === 1) && (state.levels[0].grid.length === 0) )
+	{	
+		logError(['no_level_found'], undefined, true)
+	}
 
-	for (var level of levels)
+	for (const [level_index, level] of state.levels.entries())
 	{
-		if (level.length == 0) // TODO: how could we get this result from the parser? If it's actually impossible, the whole loop could be simply a call to state.levels.map.
-			continue;
-
-		if (level[0] == '\n')
+		for (const message_box of level.boxes)
 		{
-			var o = {
-				message: level[1]
-			};
-			// TODO: we should keep the result of wordwrap so that we don't have to recompute it in doMessage
-			if (wordwrap(o.message).length >= terminal_height)
+			for (let message of message_box)
 			{
-				logWarning('Message too long to fit on screen.', level[2]);
+				message.text = wordwrapAndColor(message.text, state.fgcolor)
+				if (message.text.length >= terminal_height)
+				{
+					logWarning('Message too long to fit on screen.', message.lineNumber)
+				}
 			}
-			processedLevels.push(o);
+		}
+		level.boxes.splice(2, 0, [])
+
+		const generation_cond = state.metadata.auto_level_titles
+		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
+
+		level.is_named = (level.name !== undefined)
+		if (level.is_named)
+		{
+			generate_title ||= (generation_cond == 'named')
 		}
 		else
 		{
-			var o = levelFromString(state, level);
-			processedLevels.push(o);
+			level.name = 'Level ' + (level_index+1)
 		}
 
+		generate_title &&= (level.title_style != 'none')
+		if (generate_title)
+		{
+			level.boxes[1].unshift({
+				text: level.hasOwnProperty('title')
+					? (level.title_style == 'header' ? wordwrapAndColor(level.name, state.titlecolor) : []).concat(wordwrapAndColor(level.title, state.authorcolor))
+					: wordwrapAndColor(level.name, level.title_style == 'header' ? state.titlecolor : state.authorcolor),
+			})
+		}
+
+		if ( ! level.hasOwnProperty('title') )
+		{
+			level.title = ''
+		}
+
+		level.grid = levelFromString(state, level)
 	}
-	state.levels = processedLevels;
 }
 
 var dirMasks = {
@@ -1079,7 +1099,7 @@ function loadFile(str)
 	delete state.commentLevel;
 	// delete state.abbrevNames; // we keep them for the level editor only
 	delete state.current_identifier_index;
-	delete state.objects_section;
+	delete state.line_type
 	delete state.objects_spritematrix;
 	delete state.section;
 	delete state.tokenIndex;
@@ -1094,7 +1114,7 @@ function loadFile(str)
 	return state;
 }
 
-function compile(level, text, randomseed) // level = -1 means restart, level = undefined means rebuild
+function compile(level, text, randomseed) // level = null means restart, level = undefined means rebuild
 {
 	matchCache = {}
 	lastDownTarget = screen_layout.canvas
@@ -1117,11 +1137,6 @@ function compile(level, text, randomseed) // level = -1 means restart, level = u
 		var state = loadFile(text)
 	} finally {
 		compiling = false
-	}
-
-	if (state && state.levels && (state.levels.length === 0) )
-	{	
-		logError(['no_level_found'], undefined, true)
 	}
 
 	if (errorStrings.length > MAX_ERRORS)

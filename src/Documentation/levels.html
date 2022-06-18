@@ -80,10 +80,14 @@ A puzzlescript file is divided into 8 sections:
 
   <p>
     <h2>Levels</h2>
-    <p>
-    Here's where all the fun happens.  A level section of a file looks something like this:
+    <p>Here's where all the fun happens.
+
+    <h3>Structure of the section</h3>
+    <p>A level section of a file looks something like this:
     <p>
     <pre><code>
+LEVEL
+TITLE A tough start
 #########
 #.......#
 #.*.*.O.#
@@ -94,14 +98,14 @@ A puzzlescript file is divided into 8 sections:
 
 MESSAGE Woah, that was tough, eh?!
 
-
+LEVEL lvl two
 #########
 #.....@.#
 #.P.*.O.#
 #.......#
 #########
 
-
+TITLE:NOHEADER This is the last level
 #########
 #.....@.#
 #.P.*.O.#     
@@ -110,18 +114,41 @@ MESSAGE Woah, that was tough, eh?!
 
 MESSAGE Thank you for playing the game.</code></pre>
 <p>
-Levels are separated by blank lines, and you can also display messages if you want to.  If you want to have several objects occupying  single tile, you can specify this in the <a href="legend.html">legend</a> using <b>and</b>:
+Levels are separated by blank lines and preceded with an optional short name (<code>LEVEL</code>) and a description of a title screen for that level (<code>TITLE</code>). You can also display messages if you want to, before or after the level (<code>MESSAGE</code>).
+
+<h3>Specifying the content of a level</h3>
+The content of the levels themselves are defined with a grid of characters, using the definitions in the <a href="legend.html">legend section</a>.
+Notably, if you want to have several objects occupying a single tile, you can specify this in the legend using <b>and</b>:
 <p>
 <pre><code>@ = Crate and Target
 </code></pre>
 <p>
-If you hold CTRL (or, on a Mac, CMD) and left click on the level in the text editor, it will load it in game.
-<p>
+If you hold CTRL (or, on a Mac, CMD) and left click on the level in the text editor, it will load it in game. You can then open the <a href="leveleditor.html">level editor</a> with E.
+
+<h3>Level names</h3><a name="level_names"></a>
+
+<p>With the <code>LEVEL</code> command you can introduce a new level and give it a name (if you don't, it will be named <em>Level N</em>, where N is the index of the level in the list). This name will appear in the pause menu and in the "continue from" option of the game's title screen. For that reason, it should be short (maximum 16 characters) and make sense for the player.
+
+<h3>Title screens for levels</h3><a name="title"></a>
+
+<p>You can generate title screens to introduce your levels, and there are two ways to do it: explicitly or automatically.
+  <p>You can generate explicitly a title screen for a level with a command like:
+  <p><pre><code>TITLE Where our hero meets his destiny</code></pre>
+  <p>By default, the text following the <code>TITLE</code> keyword will be displayed below the level's name in a message screen (styling options will soon be available). You can change this default with the preamble option <code>LEVEL_TITLE_STYLE</code>, by setting it to <code>header</code> or <code>noheader</code>. The default is <code>header</code>, where a header with the level's name is added before the title text (which can be empty). <code>noheader</code> only displays the title text without header (if there is no text, it will use the level's name, but not styled as a header).
+    <p>You can also use the commands <code>TITLE:HEADER</code> and <code>TITLE:NOHEADER</code> to use the corresponding style instead of the default for a specific level.
+
+<p>You can also generate title screens automatically for each levels or for the levels that have been named. This is equivalent to (but more practical than) adding a <code>TITLE</code> command (without text following it) for each level or for each named level. You can decide which levels will automatically get a title screen with one of these preamble options:
+  <p><pre><code>AUTO_LEVEL_TITLES (all levels)
+AUTO_LEVEL_TITLES named (only the levels that have been given a name with a LEVEL command)
+(just don't write any of the above to get the default behavior: not generating any title automatically)</code></pre>
+
+<p>The automatic generation of a title screen can be prevented for specific levels by using the command <code>TITLE:NONE</code> in them.
+
 <h3>What stuff is hard to do?</h3>
 <p>
 Branching.  I have no support for it in terms of this level structure.  If you want a continuous open world you can set <b>zoomscreen</b> or <b>flickscreen</b> in the <a href="prelude.html">prelude</a>.
 <p>
-If you can think of an elegant way to implement level branching in the engine, <a href="mailto:analytic@gmail.com">let me know</a>, and I'll consider it : )
+If you can think of an elegant way to implement level branching in the engine, let me know, and I'll consider it : )
 
 
     </div><!-- /.container -->

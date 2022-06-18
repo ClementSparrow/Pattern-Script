@@ -332,7 +332,7 @@ Rule.prototype.queueCommands = function()
 
 	if (this.commands.message !== null)
 	{
-		messagetext = execution_context.commandQueue.message = this.commands.message
+		execution_context.commandQueue.message = this.commands.message
 	}
 
 	if (verbose_logging)

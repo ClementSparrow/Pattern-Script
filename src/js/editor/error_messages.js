@@ -1,10 +1,12 @@
 
 const error_messages = { // actually also warning messages
+
 	// identifiers.js
 	// ==============
 
 	identifier_name_is_keyword: (candname) => 'You named an object "' + candname.toUpperCase() + '", but this is a keyword. Don\'t do that!',
 	identifier_already_defined: (candname, definition_string, l) => 'Object "' + candname.toUpperCase() + '" already defined' + definition_string + ' on ' + makeLinkToLine(l, 'line ' + l.toString()),
+	wrong_identifier_type_generic: (identifier, identifier_type, accepted_types_descr) => 'You cannot use '+identifier.toUpperCase()+' here because it is ' + identifier_type_as_text[identifier_type] + ' but I was expecting ' + accepted_types_descr,
 
 	// compiler.js
 	// ===========
@@ -53,6 +55,8 @@ const error_messages = { // actually also warning messages
 
 	// prelude:
 	unknown_metadata: 'Unrecognised stuff in the prelude.',
+	not_a_sprite_size: (value_str, default_value) => 'Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: ' + value_str + '. Reverting back to default ' + default_value + ' size.',
+	invalid_preamble_option: (option, key) => '"' + option +'" is not a valid option for "' + key.toUpperCase() + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
 	// objects:
 	palette_too_small: (i,n,l) => 'Trying to access color number ' + i + ' from the color palette of sprite ' + n + ', but there are only ' + l + ' defined in it.',
 	// sounds:
@@ -60,7 +64,10 @@ const error_messages = { // actually also warning messages
 	// collision layers:
 	object_in_multiple_layers: object_name => 'Object "' + object_name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!',
 	// levels
+	no_grid_in_level: 'You are creating a new level with this line, but there was no grid in the previous level. A level NEEDS a grid. Otherwise, I will merge levels in a way that you may not expect.',
 	non_rectangular_level: 'Maps must be rectangular, yo (In a level, the length of each row must be the same).',
+	long_level_name: max_length => 'Level names should not be longer than ' + max_length + ' characters to fit on the title screen.',
+	long_level_title: 'Long level title might get truncated on pause menu.',
 
 	// rule_parser.js
 	// ==============
