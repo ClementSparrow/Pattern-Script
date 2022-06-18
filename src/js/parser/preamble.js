@@ -120,3 +120,67 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 // taking the list backward (so that the line numbers stay valid).
 }
 
+
+function twiddleMetaData(state)
+{
+	let newmetadata = {}
+	state.metadata_keys.forEach( function(key, i) { newmetadata[key] = state.metadata_values[i] } )
+
+	if (newmetadata.flickscreen !== undefined)
+	{
+		const coords = newmetadata.flickscreen.split('x')
+		newmetadata.flickscreen = [parseInt(coords[0]), parseInt(coords[1])]
+	}
+	if (newmetadata.zoomscreen !== undefined)
+	{
+		const coords = newmetadata.zoomscreen.split('x')
+		newmetadata.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])]
+	}
+	[ sprite_width, sprite_height ] = newmetadata['sprite_size']
+
+	state.metadata = newmetadata
+
+
+	// get colorpalette name
+	// TODO: move that in the parser so that it can display the exact colors
+	let colorPalette = colorPalettes.arnecolors
+	if ('color_palette' in state.metadata)
+	{
+		let val = state.metadata.color_palette
+		if (val in colorPalettesAliases)
+		{
+			val = colorPalettesAliases[val]
+		}
+		if (colorPalettes[val] === undefined)
+		{
+			logError(['palette_not_found', val]) // TODO: use the line number of the palette declaration
+		}
+		else
+		{
+			colorPalette = colorPalettes[val]
+		}
+	}
+	state.color_palette = colorPalette
+
+	const color_metadata = [
+		[ 'background_color', 'bgcolor', '#000000FF' ],
+		[ 'text_color', 'fgcolor', '#FFFFFFFF'],
+		[ 'title_color', 'titlecolor', undefined],
+		[ 'author_color', 'authorcolor', undefined],
+		[ 'keyhint_color', 'keyhintcolor', undefined],
+	]
+	for (const [metadata_key, state_key, default_color] of color_metadata)
+	{
+		const color = (metadata_key in state.metadata) ? colorToHex(colorPalette, state.metadata[metadata_key]) : (default_color || state.fgcolor)
+		if ( isColor(color) )
+		{
+			state[state_key] = color
+		}
+		else
+		{
+			const final_color = (default_color || state.fgcolor)
+			logError(metadata_key + ' in incorrect format - found '+color+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to "+final_color+'.')
+			state[state_key] = final_color
+		}
+	}
+}
