@@ -1,3 +1,15 @@
+function isColor(str)
+{
+	str = str.trim()
+	return ( (str in colorPalettes.arnecolors) || (/^#([0-9A-F]{3,8})$/i.test(str) && ([4,7,9]).includes(str.length) ) || (str === "transparent") )
+}
+
+function colorToHex(palette, str)
+{
+	str = str.trim()
+	return (str in palette) ? palette[str]+'FF' : str
+}
+
 colorPalettesAliases = {
 	1 : "mastersystem",
 	2 : "gameboycolour",
