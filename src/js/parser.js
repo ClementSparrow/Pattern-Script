@@ -75,7 +75,7 @@ function PuzzleScriptParser()
 	this.metadata_values = [] // TODO: we should initialize this with the predefined default values.
 	this.metadata_lines = []
 
-	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/loadFile.
+	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/compileTextCode.
 	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed
 	this.objects_spritematrix = []
 	this.sprite_transforms = []

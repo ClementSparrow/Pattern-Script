@@ -1038,7 +1038,7 @@ function formatHomePage(state)
 }
 
 const MAX_ERRORS=5;
-function loadFile(str)
+function compileTextCode(str)
 {
 
 //	Parse the file	
@@ -1107,7 +1107,7 @@ function loadFile(str)
 	return state;
 }
 
-// This function is misnammed as the compilation is actually done in loadFile, called
+// This function is misnammed as the compilation is actually done in compileTextCode, called
 // by this function, which principal job is to reinitialize the game and editor states.
 function compile(level, text, randomseed) // level = null means restart, level = undefined means rebuild
 {
@@ -1129,7 +1129,7 @@ function compile(level, text, randomseed) // level = null means restart, level =
 	consolePrint('=================================')
 	try
 	{
-		var state = loadFile(text)
+		var state = compileTextCode(text)
 	} finally {
 		compiling = false
 	}
