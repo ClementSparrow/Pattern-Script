@@ -227,6 +227,7 @@ MenuScreen.prototype.makePauseMenu = function()
 // uses state
 TextModeScreen.prototype.doMessage = function(message)
 {
+	message ||= this
 	screen_layout.content = this
 	const empty_line = [ empty_terminal_line, state.fgcolor ]
 

@@ -323,8 +323,8 @@ function parseRuleString(rule, state, curRules)
 			}
 			if (token === 'message')
 			{
-				var messageIndex = findIndexAfterToken(origLine, tokens, i);
-				var messageStr = origLine.substring(messageIndex).trim();
+				const messageIndex = findIndexAfterToken(origLine, tokens, i)
+				let messageStr = { text: wordwrapAndColor(origLine.substring(messageIndex).trim(), state.fgcolor) }
 				if (messageStr === '')
 				{
 					messageStr = ' ';
