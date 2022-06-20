@@ -141,6 +141,7 @@ CodeEditorTabManager.prototype =
 {
 	getContent: function() { return this.editor.getValue() },
 	setContent: function(txt) { this.editor.setValue(txt) },
+	checkDirty: function(saved) { return this.getContent() !== saved },
 
 	setLoading: function() { this.setContent('loading…') },
 
