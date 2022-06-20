@@ -22,6 +22,8 @@ getContent: function() {
 	)
 },
 
+// no 'setContent', functions with that name have to be called directly on the tab managers and uniquely when loading the game.
+
 setLoading: function()
 {
 	this.tabs.map( tab_manager => tab_manager.setLoading() )
@@ -31,7 +33,7 @@ checkDirty: function()
 {
 	// WIP TODO: the should be hosting_managers.every( hosting_manager => this.tabs.some(...))
 	this.is_dirty = this.tabs.some(
-		(tab_manager, tab_index) => (this.clean_states[tab_index] !== tab_manager.getContent())
+		(tab_manager, tab_index) => (tab_manager.checkDirty(this.clean_states[tab_index]))
 	)
 
 	hosting_managers.forEach( ([,hosting_manager]) => hosting_manager.updateInterfaceForDirtyness(this.is_dirty) )

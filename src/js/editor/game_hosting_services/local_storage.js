@@ -62,7 +62,7 @@ updateInterfaceForDirtyness: function(is_dirty)
 	const saveLink = document.getElementById('saveClickLink')
 	if (saveLink)
 	{
-		saveLink.innerHTML = this.is_dirty ? 'SAVE*' : 'SAVE'
+		saveLink.innerHTML = is_dirty ? 'SAVE*' : 'SAVE'
 	}
 },
 
