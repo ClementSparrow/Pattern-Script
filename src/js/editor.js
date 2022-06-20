@@ -1,4 +1,5 @@
 var metadata_tabmanager = new MetaDataTabManager(document.getElementById('editor_pane_meta'))
+tabs.addTab('meta', metadata_tabmanager)
 
 var editor_tabmanager = new CodeEditorTabManager(document.getElementById('code'))
 tabs.addTab('code', editor_tabmanager)
