@@ -77,7 +77,7 @@ const SAVED_FILES_CAPACITY = 30
 function saveClick()
 {
 	const saveDat = {
-		title: (state.metadata.title !== undefined) ? state.metadata.title : 'Untitled',
+		title: (game_def.title !== undefined) ? game_def.title : 'Untitled',
 		game: tabs.getContent(),
 		date: new Date()
 	}

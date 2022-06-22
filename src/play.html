@@ -265,6 +265,7 @@ a {
 <script src="js/engine/cell_pattern.js "></script>
 <script src="js/engine/engine_base.js"></script>
 <script src="js/parser.js"></script>
+<script src="js/parser/preamble.js"></script>
 <script src="js/compiler/identifiers.js"></script>
 <script src="js/compiler/sprites.js"></script>
 <script src="js/compiler/rule.js"></script>
@@ -290,11 +291,6 @@ function getParameterByName(name) {
     return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
-function strip_http(url) {
-   url = url.replace(/^https?:\/\//,'');
-   return url;
-}
-
 function getData(){ 
 	var id = getParameterByName("p").replace(/[\\\/]/,"");
 	if (id===null||id.length===0) {
@@ -317,22 +313,22 @@ function getData(){
 			displayError("HTTP Error "+ githubHTTPClient.status + ' - ' + githubHTTPClient.statusText);
 		}
 		const code = result["files"]["script.txt"]["content"]
-		compile(-1, code)
+		compile(null, code)
 
-		if (state.metadata.homepage!==undefined) {
-			var homepage=state.metadata.homepage;
-			var homepageLink = document.getElementById("homepagelink");
-			homepageLink.innerHTML=strip_http(homepage);
+		if (game_def.homepage !== undefined)
+    {
+			let homepage = game_def.homepage
+			let homepageLink = document.getElementById('homepagelink')
+			homepageLink.innerHTML = homepage.replace(/^https?:\/\//,'')
  			if (!homepage.match(/^https?:\/\//)) {
  				homepage = "http://" + homepage;
  			}
  			homepageLink.href = homepage;
 		}
-		if (state.metadata.title!==undefined) {
-			var title=state.metadata.title;
-			var gametitle = document.getElementById("gametitle");
-			gametitle.innerHTML=title;
-			window.document.title=title+" - Pattern:Script Game";
+		if (game_def.title !== undefined)
+    {
+			document.getElementById('gametitle').innerHTML = game_def.title
+			window.document.title = game_def.title + ' - Pattern:Script Game'
 		}
                 
 		document.getElementById('hacklink').href = qualifyURL('editor.html?hack='+id)

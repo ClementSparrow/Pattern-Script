@@ -109,7 +109,7 @@ EditorScreen.prototype.redraw_tooltip = function(ctx, y, m, width)
 	if (tooltip_string.length <= 0)
 		return
 	// show tooltip
-	ctx.fillStyle = state.fgcolor
+	ctx.fillStyle = game_def.text_color
 	ctx.font = 4*m + 'px sans-serif'
 	ctx.textAlign = 'center'
 	ctx.textBaseline = 'middle'
@@ -158,7 +158,7 @@ ScreenLayout.prototype.redraw = function()
 		screenlayout_redraw.call(this)
 		return
 	}
-	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillStyle = game_def.background_color
 	this.ctx.fillRect(0, this.margins[1]+this.content.editorRowCount*sprite_height*this.magnification, this.canvas.width, sprite_height*this.magnification)
 	screenlayout_redraw.call(this)
 	// high-resolution drawings

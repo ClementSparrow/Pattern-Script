@@ -63,7 +63,7 @@ var level_screen = new LevelScreen()
 // Flick screen, also base class for zoomscreen (could be the reverse, it's just to reuse the methods)
 function TiledWorldScreen(screen_type = 'flickscreen') { LevelScreen.call(this, screen_type) }
 TiledWorldScreen.prototype = Object.create(LevelScreen.prototype)
-TiledWorldScreen.prototype.get_nb_tiles = () => state.metadata.flickscreen
+TiledWorldScreen.prototype.get_nb_tiles = () => game_def.flickscreen
 TiledWorldScreen.prototype.get_viewport = function()
 {
 	// TODO: oldflickscreendat is a global variable because it needs to be recorded for undos
@@ -90,7 +90,7 @@ function CameraOnPlayerScreen() { TiledWorldScreen.call(this, 'zoomscreen') }
 CameraOnPlayerScreen.prototype = Object.create(TiledWorldScreen.prototype)
 CameraOnPlayerScreen.prototype.get_nb_tiles = function()
 {
-	const [w, h] = state.metadata.zoomscreen
+	const [w, h] = game_def.zoomscreen
 	return [ Math.min(w, this.level.width), Math.min(h, this.level.height) ]
 }
 CameraOnPlayerScreen.prototype.get_viewport_for_focus_point = (px, py, w, h) => [

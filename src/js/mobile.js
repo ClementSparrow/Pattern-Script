@@ -57,7 +57,7 @@ Mobile.log = function(message)
     // Time in milliseconds to complete the gesture.
     const SWIPE_TIMEOUT = 1000;
     // Time in milliseconds to repeat a motion if still holding down,
-    // ... and not specified in state.metadata.key_repeat_interval.
+    // ... and not specified in game_def.key_repeat_interval.
     const DEFAULT_REPEAT_INTERVAL = 150;
 
     // Lookup table mapping action to keyCode.
@@ -258,7 +258,7 @@ Mobile.log = function(message)
             return;
         }
         this.isRepeating = true;
-        repeatIntervalMilliseconds = state.metadata.key_repeat_interval * 1000;
+        repeatIntervalMilliseconds = game_def.key_repeat_interval * 1000;
         if (isNaN(repeatIntervalMilliseconds) || !repeatIntervalMilliseconds) {
             repeatIntervalMilliseconds = DEFAULT_REPEAT_INTERVAL;
         }
@@ -555,21 +555,16 @@ Mobile.log = function(message)
 
     proto.buildMenuString = function (state) {
     // Template for the menu.
-        var itemCount, menuLines;
-        var noUndo, noRestart;
 
-        noUndo = state.metadata.noundo;
-        noRestart = state.metadata.norestart;
-
-        itemCount = 3;
-        if (noUndo) {
+        let itemCount = 3;
+        if (game_def.noundo) {
             itemCount -= 1;
         }
-        if (noRestart) {
+        if (game_def.norestart) {
             itemCount -= 1;
         }
 
-        menuLines = [
+        let menuLines = [
             '<div class="mobile-menu item-count-' + itemCount + '">',
             '  <div class="close-affordance"></div>',
             '  <div class="close">',
@@ -578,10 +573,10 @@ Mobile.log = function(message)
             '  </div>'
         ];
 
-        if (!noUndo) {
+        if ( ! game_def.noundo ) {
             menuLines.push('  <div class="undo button">Undo</div>');
         }
-        if (!noRestart) {
+        if ( ! game_def.norestart ) {
             menuLines.push('  <div class="restart button">Restart</div>');
         }
         menuLines = menuLines.concat([

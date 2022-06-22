@@ -1,7 +1,9 @@
 const PSFORKNAME = 'Pattern:Script'
 
+var game_def = {}
+
 var unitTesting=false;
-var curlevel=0;
+var curlevel
 var muted=0;
 
 const storage_get = (key) => localStorage.getItem(key)
@@ -11,7 +13,6 @@ const storage_remove = (key) => localStorage.removeItem(key)
 
 var debug = false
 var verbose_logging=false;
-var throttle_movement=false;
 var cache_console_messages=false;
 const deltatime = 17
 var timer=0;
@@ -21,7 +22,6 @@ var autotickinterval=0;
 var winning=false;
 var againing=false;
 var againinterval=150;
-var norepeat_action=false;
 var oldflickscreendat=[];//used for buffering old flickscreen/scrollscreen positions, in case player vanishes
 var keybuffer = []
 
