@@ -55,17 +55,11 @@ function buildStandaloneJS(sourceCode, htmlString)
 
 function buildStandalonePack(sourceCode, htmlString, standalone_JS_String)
 {
-	if ('background_color' in state.metadata)
-	{
-		htmlString = htmlString.replace(/black;\/\*Don\'t/g, state.bgcolor+';\/\*Don\'t');
-	}
-	if ('text_color' in state.metadata)
-	{
-		htmlString = htmlString.replace(/lightblue;\/\*Don\'t/g, state.fgcolor+';\/\*Don\'t');
-	}
+	htmlString = htmlString.replace(/black;\/\*Don\'t/g, game_def.background_color+';\/\*Don\'t')
+	htmlString = htmlString.replace(/lightblue;\/\*Don\'t/g, game_def.text_color+';\/\*Don\'t')
 
-	htmlString = htmlString.replace(/__GAMETITLE__/g, (state.metadata.title !== undefined) ? state.metadata.title : "Pattern:Script Game");
-	htmlString = htmlString.replace(/__HOMEPAGE__/g, (state.metadata.homepage !== undefined) ? state.metadata.homepage : "www.puzzlescript.net");
+	htmlString = htmlString.replace(/__GAMETITLE__/g, (game_def.title !== undefined) ? game_def.title : "Pattern:Script Game");
+	htmlString = htmlString.replace(/__HOMEPAGE__/g, (game_def.homepage !== undefined) ? game_def.homepage.replace('https://', '') : 'www.puzzlescript.net')
 
 	// $ has special meaning to JavaScript's String.replace ($0, $1, etc.) Escape $ as $$.
 	sourceCode = sourceCode.replace(/\$/g, '$$$$');

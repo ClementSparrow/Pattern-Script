@@ -89,14 +89,14 @@ function dumpTestCase()
 {
 	//compiler error data
 	const levelDat = compiledText
-	const resultstring =  '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
+	const resultstring =  '\t[<br>\t\t`' + (game_def.title||'untitled test') + '`,<br>\t\t' +
 			JSON.stringify( [levelDat, errorStrings.map(stripHTMLTags), warningStrings.map(stripHTMLTags)] ) + '<br>\t],<br>'
 	consolePrint('<br>Compilation error/warning data (for error message tests - errormessage_testdata.js):<br><br>' + makeSelectableText(resultstring) + '<br>', true)
 	
 	//normal session recording data
 	if (level !== undefined)
 	{
-		const resultstring = '\t[<br>\t\t`' + (state.metadata.title||'untitled test') + '`,<br>\t\t' +
+		const resultstring = '\t[<br>\t\t`' + (game_def.title||'untitled test') + '`,<br>\t\t' +
 			JSON.stringify( [levelDat, inputHistory.concat([]), level.convertToString(), recordingStartsFromLevel, RandomGen.seed] ) + '<br>\t],<br>'
 		consolePrint('<br>Recorded play session data (for play session tests - testdata.js):<br><br>'+makeSelectableText(resultstring) + '<br>', true)
 	}

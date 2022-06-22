@@ -17,7 +17,7 @@ function createSprite(spritegrid, colors, margins, mag = 1, offset = [0,0])
 {
 	if (colors === undefined)
 	{
-		colors = [state.bgcolor, state.fgcolor]
+		colors = [game_def.background_color, game_def.text_color]
 	}
 	if (margins === undefined)
 	{
@@ -32,7 +32,7 @@ function createSprite(spritegrid, colors, margins, mag = 1, offset = [0,0])
 
 	var spritectx = sprite.getContext('2d')
 	spritectx.clearRect(0, 0, sprite_w, sprite_h)
-	spritectx.fillStyle = state.fgcolor
+	spritectx.fillStyle = game_def.text_color
 	spritectx.translate(margins[0]*mag, margins[1]*mag)
 	for (const [j, line] of spritegrid.entries())
 	{
@@ -178,7 +178,7 @@ ScreenLayout.prototype.redraw = function()
 		return
 
 	// Draw virtual screen's content
-	this.vc_ctx.fillStyle = state.bgcolor
+	this.vc_ctx.fillStyle = game_def.background_color
 	this.vc_ctx.fillRect(0, 0, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height)
 	this.content.redraw_virtual_screen(this.vc_ctx)
 
@@ -223,7 +223,7 @@ ScreenLayout.prototype.resize_canvas = function()
 	;[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), [c.width, c.height])
 
 	// clear background
-	this.ctx.fillStyle = state.bgcolor
+	this.ctx.fillStyle = game_def.background_color
 	this.ctx.fillRect(0, 0, c.width, c.height)
 
 	// Resize virtual canvas

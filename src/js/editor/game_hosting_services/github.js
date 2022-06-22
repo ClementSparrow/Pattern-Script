@@ -100,7 +100,7 @@ function shareOnGitHub(is_public, should_fork=false)
 
 	compile()
 
-	const game_name = (state.metadata.title !== undefined) ? state.metadata.title : 'Untitled'
+	const game_name = (game_def.title !== undefined) ? game_def.title : 'Untitled'
 	const gistToCreate = {
 		"description" : game_name + ' ('+PSFORKNAME+' Game)',
 		"public" : is_public,
