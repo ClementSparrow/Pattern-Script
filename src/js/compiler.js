@@ -77,8 +77,7 @@ function generateExtraMembers(state)
 	state.STRIDE_OBJ=STRIDE_OBJ;
 	state.STRIDE_MOV=STRIDE_MOV;
 
-	throttle_movement = ('throttle_movement' in state.metadata)
-	if ( ('debug' in state.metadata) || verbose_logging )
+	if ( (game_def.debug !== undefined) || verbose_logging )
 	{
 		cache_console_messages = true;
 	}
@@ -95,7 +94,7 @@ function generateExtraMembers(state)
 			var c = o.colors[i];
 			if (isColor(c))
 			{
-				c = colorToHex(state.metadata.color_palette, c)
+				c = colorToHex(game_def.game_palette, c)
 				o.colors[i] = c;
 			} else {
 				logError(['invalid_color_for_object', o.name, c], state.identifiers.lineNumbers[o.identifier_index] + 1)
@@ -281,7 +280,7 @@ function levelsToArray(state)
 		{
 			for (let message of message_box)
 			{
-				message.text = (message.text.length > 0) ? wordwrapAndColor(message.text, state.fgcolor) : []
+				message.text = (message.text.length > 0) ? wordwrapAndColor(message.text, game_def.text_color) : []
 				if (message.text.length >= terminal_height)
 				{
 					logWarning('Message too long to fit on screen.', message.lineNumber)
@@ -295,7 +294,7 @@ function levelsToArray(state)
 			level.title = ''
 		}
 
-		const generation_cond = state.metadata.auto_level_titles
+		const generation_cond = game_def.auto_level_titles
 		let generate_title = (level.title.length > 0) || (generation_cond == 'always')
 
 		level.is_named = (level.name !== undefined)
@@ -313,8 +312,8 @@ function levelsToArray(state)
 		{
 			level.boxes[1].unshift({
 				text: (level.title.length > 0)
-					? (level.title_style == 'header' ? wordwrapAndColor(level.name, state.titlecolor) : []).concat(wordwrapAndColor(level.title, state.authorcolor))
-					: wordwrapAndColor(level.name, level.title_style == 'header' ? state.titlecolor : state.authorcolor),
+					? (level.title_style == 'header' ? wordwrapAndColor(level.name, game_def.title_color) : []).concat(wordwrapAndColor(level.title, game_def.author_color))
+					: wordwrapAndColor(level.name, level.title_style == 'header' ? game_def.title_color : game_def.author_color),
 			})
 		}
 
@@ -932,35 +931,24 @@ function generateSoundData(state)
 
 function formatHomePage(state)
 {
-	if (canSetHTMLColors) {
+	if (canSetHTMLColors)
+	{		
+		document.body.style.backgroundColor = game_def.background_color
 		
-		if ('background_color' in state.metadata)  {
-			document.body.style.backgroundColor=state.bgcolor;
+		let separator = document.getElementById('separator')
+		if (separator!=null) {
+		   separator.style.color = game_def.text_color
 		}
 		
-		if ('text_color' in state.metadata) {
-			var separator = document.getElementById("separator");
-			if (separator!=null) {
-			   separator.style.color = state.fgcolor;
-			}
-			
-			var h1Elements = document.getElementsByTagName("a");
-			for(var i = 0; i < h1Elements.length; i++) {
-			   h1Elements[i].style.color = state.fgcolor;
-			}
-
-			var h1Elements = document.getElementsByTagName("h1");
-			for(var i = 0; i < h1Elements.length; i++) {
-			   h1Elements[i].style.color = state.fgcolor;
-			}
+		for (const e of document.getElementsByTagName('a'))
+		{
+		   e.style.color = game_def.text_color
 		}
-	}
 
-	if ('homepage' in state.metadata) {
-		var url = state.metadata['homepage'];
-		url=url.replace("http://","");
-		url=url.replace("https://","");
-		state.metadata['homepage']=url;
+		for (const e of document.getElementsByTagName('h1'))
+		{
+		   e.style.color = game_def.text_color
+		}
 	}
 }
 
@@ -1086,7 +1074,7 @@ function compile(level, text, randomseed) // level = null means restart, level =
 
 	consoleCacheDump()
 
-	document.title = PSFORKNAME + ( (state.metadata.title !== undefined) ? ' - ' + state.metadata.title : '' )
+	document.title = PSFORKNAME + ( (game_def.title !== undefined) ? ' - ' + game_def.title : '' )
 }
 
 

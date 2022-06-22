@@ -274,7 +274,7 @@ function checkKey(e, justPressed)
         case 67://c
         case 88://x
         {
-			if ( justPressed || (norepeat_action === false) )
+			if ( justPressed || (game_def.norepeat_action === false) )
 			{
 				inputdir = 4
 				break
@@ -308,7 +308,7 @@ function checkKey(e, justPressed)
 		}
     }
 	// prevent repetition of direction keys before the throttle_movement time
-    if ( throttle_movement && (inputdir >= 0) && (inputdir <= 3) )
+    if ( game_def.throttle_movement && (inputdir >= 0) && (inputdir <= 3) )
     {
     	if ( (lastinput == inputdir) && (input_throttle_timer < repeatinterval) )
     		return;
@@ -410,7 +410,7 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	if ( againing || (inputdir < 0) )
 		return false;
 
-	if ( (inputdir === 4) && ('noaction' in state.metadata) )
+	if ( (inputdir === 4) && (game_def.noaction) )
 		return true;
 
 	pushInput(inputdir)
@@ -452,7 +452,7 @@ function update()
     if (keybuffer.length > 0)
     {
 	    keyRepeatTimer += deltatime
-	    var ticklength = throttle_movement ? repeatinterval : repeatinterval/(Math.sqrt(keybuffer.length))
+	    const ticklength = game_def.throttle_movement ? repeatinterval : repeatinterval/(Math.sqrt(keybuffer.length))
 	    if (keyRepeatTimer > ticklength)
 		{
 			keyRepeatTimer = 0	

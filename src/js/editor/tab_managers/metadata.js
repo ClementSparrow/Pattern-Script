@@ -81,8 +81,27 @@ const metadata_in_tab = {
 function MetaDataTabManager(html_container)
 {
 	this.html_container = html_container
-	this.content = {} // must always be valid content, either the field's value if it's valid, or the default value
 	html_container.oninput = (event) => this.contentUpdated()
+
+	// Set custom getters and setters for the game_def properties that will be managed by the HTML fields
+	this.content = {}
+	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
+	{
+		const desc = Object.getOwnPropertyDescriptor(game_def, keyword)
+		let new_desc = { enumerable: true, configurable: true, }
+		if (desc === undefined || desc.set || desc.get)
+		{
+			this.content[keyword] = game_def[keyword]
+			new_desc.get = () => this.content[keyword]
+			new_desc.set = (val) => { this.updateHTMLField(keyword, html_node_field, check_func(val||default_value)[1]); this.content[keyword] = val }
+		}
+		else
+		{
+			new_desc.get = desc.get.bind(game_def)
+			new_desc.set = (val) => { this.updateHTMLField(keyword, html_node_field, check_func(val||default_value)[1]); desc.set(val) }
+		}
+		Object.defineProperty(game_def, keyword, new_desc)
+	}
 }
 
 MetaDataTabManager.prototype =
@@ -106,7 +125,7 @@ contentUpdated: function()
 		field.setCustomValidity(error_msg) // '' if the field is valid
 		if (error_msg.length == 0)
 		{
-			this.content[keyword] = fixed_value
+			game_def[keyword] = fixed_value
 			if (fixed_value !== field_value)
 			{
 				// WIP TODO: do not update the field while it is edited, only when it is validated or the user moves to another field?
@@ -115,22 +134,21 @@ contentUpdated: function()
 			continue
 		}
 // WIP TODO: the field is invalid, we should add a sign with the message next to it!
-		this.content[keyword] ||= default_value
+		game_def[keyword] ||= default_value
 	}
 	tabs.checkDirty()
 },
 
-// Fills in the fields with the provided content or default values. Only call when loading a game.
-// It does not trigger a call of contentUpdated.
+// Fills in the fields with the provided content or default values.
+// Only call this function when loading a game.
+// It does not trigger contentUpdated.
 setContent: function(content)
 {
 	if (content === undefined)
 		content = {}
-	this.content = content
 	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
 	{
-		const val = this.content[keyword] = check_func(content[keyword]||default_value)[1]
-		this.updateHTMLField(keyword, html_node_field, val)
+		game_def[keyword] = content[keyword]
 	}
 },
 getContent: function() { return this.content },

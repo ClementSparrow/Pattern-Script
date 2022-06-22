@@ -1,4 +1,5 @@
-//	------- METADATA --------
+// WIP TODO: the metadata keys that can be set in the Meta tab should be parsed only when the game is compiled during loading,
+// not when codemirror parses the code.
 
 const metadata_with_mixedCase_value = ['youtube', 'author', 'homepage', 'title', 'game_uri']
 const metadata_with_value = ['background_color','text_color','title_color','author_color','keyhint_color','key_repeat_interval','realtime_interval','again_interval','flickscreen','zoomscreen','color_palette','sprite_size','level_title_style','auto_level_titles']
@@ -102,7 +103,11 @@ PuzzleScriptParser.prototype.finalizeMetaData = function(metadata_name, default_
 	this.metadata_values[key_index] = value
 }
 
-// TODO: merge with twiddleMetaData defined in compiler.js. Also, it should be done directly as we parse, not after the preamble.
+// WIP TODO: these are the metadata that are used at a later stage during the parsing. Soon, these metadata will be
+// managed by the metadata_tabmanager (when the editor is opened) or loaded directly by the hosting_manager into game_def.
+// So, we should instead rely on the value in game_def, since it will be set to the default value if not specified explicitly.
+// Error checking would then be the last concern remaining for finalizePreamble, and only holds for sprite_size. Since the same
+// error checking applies to other diemension metadata like flickscreen, it should be moved directly into tokenInPreambleSection.
 PuzzleScriptParser.prototype.finalizePreamble = function()
 {
 // WIP TODO: we should simply fill the html fields if a valid value is found, otherwise
@@ -115,33 +120,20 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 		}
 	)
 	this.finalizeMetaData('level_title_style', 'header', null, s => s)
-// WIP TODO: we should take all the keys that have been found and transfer them to the HTML fields
-// WIP TODO: then, in another function after the parsing, we should remove from the text all
-// the lines that contained preamble declarations that have been transfered to the HTML,
-// taking the list backward (so that the line numbers stay valid).
-// note that metadata can be redeclared, so normally we should log multiple lines...
 }
 
 // This is called by the compiler, not by the parser.
 function twiddleMetaData(state)
 {
-	let tabcontent = metadata_tabmanager.getContent()
-	let newmetadata = {}
 	for (const [i, key] of state.metadata_keys.entries())
 	{
-		if (key in metadata_in_tab)
-		{
-			tabcontent[key] = state.metadata_values[i]
-		}
-		else
+		if ( ! (key in metadata_in_tab) ) // WIP TODO: we should only do that in the editor, not in the player!
 		{
 			state.metadata_lines[i] = null // don't delete
 		}
-		newmetadata[key] = state.metadata_values[i] // WIP TODO: once the values of the metadata_tabmanager will be used instead of state.metadata, move that line in the else block above.
+		game_def[key] = state.metadata_values[i]
 	}
 	
-	metadata_tabmanager.setContent(tabcontent) // fill in the UI fields
-
 	// remove the lines from the file that have been used to fill in the UI fields
 	let code_txt = editor_tabmanager.getContent().split('\n')
 	for (let i=state.metadata_lines.length-1; i>=0; --i)
@@ -158,28 +150,29 @@ function twiddleMetaData(state)
 
 	// Below are the metadata that don't yet have an UI in the Meta tab.
 
-	if (newmetadata.flickscreen !== undefined)
+	if (game_def.flickscreen !== undefined)
 	{
-		const coords = newmetadata.flickscreen.split('x')
-		newmetadata.flickscreen = [parseInt(coords[0]), parseInt(coords[1])]
+		const coords = game_def.flickscreen.split('x')
+		game_def.flickscreen = [parseInt(coords[0]), parseInt(coords[1])]
 	}
-	if (newmetadata.zoomscreen !== undefined)
+	if (game_def.zoomscreen !== undefined)
 	{
-		const coords = newmetadata.zoomscreen.split('x')
-		newmetadata.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])]
+		const coords = game_def.zoomscreen.split('x')
+		game_def.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])]
 	}
-	[ sprite_width, sprite_height ] = newmetadata['sprite_size']
+	[ sprite_width, sprite_height ] = game_def['sprite_size']
 
 
 	// get colorpalette name
 	// TODO: move that in the parser so that it can display the exact colors
 	let colorPalette = colorPalettes.arnecolors
-	if ('color_palette' in newmetadata)
+	if ('color_palette' in game_def)
 	{
-		let val = newmetadata.color_palette
-		if (val in colorPalettesAliases)
+		let val = game_def.color_palette
+		const palette_num = parseInt(val)
+		if ( ( ! isNaN(palette_num) ) && (palette_num > 0) && (palette_num <= colorPalettesAliases.length) )
 		{
-			val = colorPalettesAliases[val]
+			val = colorPalettesAliases[palette_num-1]
 		}
 		if (colorPalettes[val] === undefined)
 		{
@@ -190,32 +183,27 @@ function twiddleMetaData(state)
 			colorPalette = colorPalettes[val]
 		}
 	}
-	newmetadata.color_palette = colorPalette
+	game_def.game_palette = colorPalette
 
 	const color_metadata = [
-		[ 'background_color', 'bgcolor', '#000000FF' ],
-		[ 'text_color', 'fgcolor', '#FFFFFFFF'],
-		[ 'title_color', 'titlecolor', undefined],
-		[ 'author_color', 'authorcolor', undefined],
-		[ 'keyhint_color', 'keyhintcolor', undefined],
+		[ 'background_color', '#000000FF' ],
+		[ 'text_color', '#FFFFFFFF'],
+		[ 'title_color', undefined],
+		[ 'author_color', undefined],
+		[ 'keyhint_color', undefined],
 	]
-	for (const [metadata_key, state_key, default_color] of color_metadata)
+	for (const [metadata_key, default_color] of color_metadata)
 	{
-		const color = (metadata_key in newmetadata) ? colorToHex(colorPalette, newmetadata[metadata_key]) : (default_color || newmetadata.fgcolor)
+		const color = (game_def[metadata_key] !== undefined) ? colorToHex(colorPalette, game_def[metadata_key]) : (default_color || game_def.text_color)
 		if ( isColor(color) )
 		{
-			newmetadata[state_key] = color
+			game_def[metadata_key] = color
 		}
 		else
 		{
-			const final_color = (default_color || newmetadata.fgcolor)
+			const final_color = (default_color || game_def.text_color)
 			logError(metadata_key + ' in incorrect format - found '+color+", but I expect a color name (like 'pink') or hex-formatted color (like '#1412FA').  Defaulting to "+final_color+'.')
-			newmetadata[state_key] = final_color
+			game_def[metadata_key] = final_color
 		}
-		state[state_key] = newmetadata[state_key] // WIP TODO: stop using these and delete this line
 	}
-
-	state.metadata = newmetadata
-
-	// now we need to fill in the fields for all meta_data that have an UI field, and remove the corresponding line(s) from the file, in reverse order.
 }

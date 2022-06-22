@@ -7,8 +7,6 @@ const introstate = {
 	objectCount: 2,
 	metadata:[],
 	levels:[],
-	bgcolor:"#000000",
-	fgcolor:"#FFFFFF"
 }
 
 var state = introstate;
@@ -30,7 +28,7 @@ function tryPlaySimpleSound(soundname)
 
 function setSavePoint(curlevel, new_restart_target)
 {
-	const key = ( state && state.metadata && (state.metadata.game_uri !== undefined) ) ? state.metadata.game_uri : document.URL
+	const key = (game_def.game_uri !== undefined) ? game_def.game_uri : document.URL
 	try
 	{
 		if (curlevel === undefined)
@@ -58,9 +56,9 @@ function setSavePoint(curlevel, new_restart_target)
 function getSavePoint()
 {
 	let keys = [ document.URL ]
-	if ( state && state.metadata && (state.metadata.game_uri !== undefined) )
+	if ( game_def.game_uri !== undefined)
 	{
-		keys.unshift(state.metadata.game_uri)
+		keys.unshift(game_def.game_uri)
 	}
 	try {
 		for (const key of keys)
@@ -107,18 +105,18 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 	execution_context.setRestartTarget()
 
 	screen_layout.content = level_screen
-	if (state.metadata.flickscreen !== undefined)
+	if (game_def.flickscreen !== undefined)
 	{
 		screen_layout.content = tiled_world_screen
 	}
-	else if (state.metadata.zoomscreen !== undefined)
+	else if (game_def.zoomscreen !== undefined)
 	{
 		screen_layout.content = camera_on_player_screen
 	}
 	screen_layout.content.level = level
 
 	// init oldflickscreendat
-	if ( (state.metadata.flickscreen !== undefined) || (state.metadata.zoomscreen !== undefined) )
+	if ( (game_def.flickscreen !== undefined) || (game_def.zoomscreen !== undefined) )
 	{
 		oldflickscreendat = undefined
 		screen_layout.content.get_viewport()
@@ -126,7 +124,7 @@ function loadLevelFromLevelDat(state, leveldat, randomseed)
 
 	keybuffer = []
 
-	execution_context.run_rules_on_level_start_phase = ('run_rules_on_level_start' in state.metadata)
+	execution_context.run_rules_on_level_start_phase = game_def.run_rules_on_level_start
 	if (execution_context.run_rules_on_level_start_phase)
 	{
 		processInput(processing_causes.run_rules_on_level_start)
@@ -237,9 +235,9 @@ function tryActivateYoutube(){
 		return;
 	}
 	if (canYoutube) {
-		if ('youtube' in state.metadata) {
-			var youtubeid=state.metadata['youtube'];
-			var url = "https://www.youtube.com/embed/"+youtubeid+"?autoplay=1&loop=1&playlist="+youtubeid;
+		if (game_def.youtube) {
+			const youtubeid = game_def.youtube
+			const url = "https://www.youtube.com/embed/"+youtubeid+"?autoplay=1&loop=1&playlist="+youtubeid;
 			ifrm = document.createElement("IFRAME");
 			ifrm.setAttribute("src",url);
 			ifrm.setAttribute("id","youtubeFrame");
@@ -354,11 +352,10 @@ function setGameState(_state, level_index, randomseed = null)
 	state = _state
 
 	autotick = 0
-	autotickinterval = (state.metadata.realtime_interval !== undefined) ? state.metadata.realtime_interval*1000 : 0
-	repeatinterval = (state.metadata.key_repeat_interval !== undefined) ? state.metadata.key_repeat_interval*1000 : 150
-	againinterval = (state.metadata.again_interval !== undefined) ? state.metadata.again_interval*1000 : 150
-	norepeat_action = (state.metadata.norepeat_action !== undefined)
-	if ( throttle_movement && (autotickinterval === 0) )
+	autotickinterval = (game_def.realtime_interval !== undefined) ? game_def.realtime_interval*1000 : 0
+	repeatinterval = (game_def.key_repeat_interval !== undefined) ? game_def.key_repeat_interval*1000 : 150
+	againinterval = (game_def.again_interval !== undefined) ? game_def.again_interval*1000 : 150
+	if ( game_def.throttle_movement && (autotickinterval === 0) )
 	{
 		logWarning("throttle_movement is designed for use in conjunction with realtime_interval. Using it in other situations makes games gross and unresponsive, broadly speaking.  Please don't.");
 	}
@@ -393,7 +390,7 @@ function setGameState(_state, level_index, randomseed = null)
 
 	canvasResize()
 
-	if ( (state.sounds.length === 0) && (state.metadata.youtube === null) )
+	if ( (state.sounds.length === 0) && (game_def.youtube === null) )
 	{
 		killAudioButton()
 	}
@@ -411,7 +408,7 @@ function setGameState(_state, level_index, randomseed = null)
 
 function DoRestart(bak)
 {
-	if ( (bak === undefined) && ('norestart' in state.metadata) )
+	if ( (bak === undefined) && game_def.norestart )
 		return
 	execution_context.pushToUndoStack(bak)
 
@@ -421,7 +418,7 @@ function DoRestart(bak)
 
 	tryPlaySimpleSound('restart')
 
-	if ('run_rules_on_level_start' in state.metadata)
+	if (game_def.run_rules_on_level_start)
 	{
 		processInput(processing_causes.run_rules_on_level_start)
 	}
@@ -440,7 +437,7 @@ executionContext.prototype.backupDiffers = function()
 
 executionContext.prototype.doUndo = function()
 {
-	if ( ( ! screen_layout.alwaysAllowUndo() ) && ('noundo' in state.metadata) )
+	if ( ( ! screen_layout.alwaysAllowUndo() ) && game_def.noundo )
 		return
 
 	// See Pattern:Script issue #23
@@ -742,8 +739,7 @@ Level.prototype.getPlayerPositions = function()
 	var playerMask = state.playerMask
 	for (i=0; i<this.n_tiles; i++) // TODO: this scans the whole level, can't we optimize that by using level.mapCellContents, level.rowCellContents, or level.colCellContents?
 	{
-		this.getCellInto(i,_o11)
-		if (playerMask.anyBitsInCommon(_o11))
+		if (playerMask.anyBitsInCommon(this.getCellInto(i,_o11)))
 		{
 			result.push(i)
 		}
@@ -866,7 +862,7 @@ function processInput(input)
 	// require_player_movement
 	// TODO: shouldn't this be tested after CANCEL and RESTART commands? (and AGAIN ?)
 	// TODO: should this be ignored in run_rules_on_level_start_phase?
-	if ( (playerPositions.length > 0) && (state.metadata.require_player_movement !== undefined) )
+	if ( (playerPositions.length > 0) && game_def.require_player_movement )
 	{
 		// TODO: technically, this checks that at least one cell initially containing a player does not contain a player at the end. It fails to detect permutations of players.
 		if ( playerPositions.every( pos => ! state.playerMask.bitsClearInArray(level.getCell(pos).data) ) )
@@ -1107,11 +1103,11 @@ function closeMessageScreen()
 		return
 	}
 
-	if (state.metadata.flickscreen !== undefined)
+	if (game_def.flickscreen !== undefined)
 	{
 		screen_layout.content = tiled_world_screen
 	}
-	else if (state.metadata.zoomscreen  !== undefined)
+	else if (game_def.zoomscreen  !== undefined)
 	{
 		screen_layout.content = camera_on_player_screen
 	}
