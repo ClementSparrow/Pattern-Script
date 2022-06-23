@@ -80,8 +80,9 @@ const metadata_in_tab = {
 
 function MetaDataTabManager(html_container)
 {
+	this.name = 'meta'
 	this.html_container = html_container
-	html_container.oninput = (event) => this.contentUpdated()
+	html_container.oninput = (event) => this.updateModelFromView()
 
 	// Set custom getters and setters for the game_def properties that will be managed by the HTML fields
 	this.content = {}
@@ -89,17 +90,13 @@ function MetaDataTabManager(html_container)
 	{
 		const desc = Object.getOwnPropertyDescriptor(game_def, keyword)
 		let new_desc = { enumerable: true, configurable: true, }
-		if (desc === undefined || desc.set || desc.get)
+		if ( (desc !== undefined) && (desc.set||desc.get) )
 		{
-			this.content[keyword] = game_def[keyword]
-			new_desc.get = () => this.content[keyword]
-			new_desc.set = (val) => { this.updateHTMLField(keyword, html_node_field, check_func(val||default_value)[1]); this.content[keyword] = val }
+			Object.defineProperty(this.content, keyword, desc)
 		}
-		else
-		{
-			new_desc.get = desc.get.bind(game_def)
-			new_desc.set = (val) => { this.updateHTMLField(keyword, html_node_field, check_func(val||default_value)[1]); desc.set(val) }
-		}
+		this.content[keyword] = game_def[keyword]
+		new_desc.get = () => this.content[keyword]
+		new_desc.set = (val) => { this.updateModelSafely(keyword, val, false) }
 		Object.defineProperty(game_def, keyword, new_desc)
 	}
 }
@@ -112,7 +109,7 @@ updateHTMLField: function(keyword, html_node_field, value)
 	document.querySelector('[name="meta_'+keyword+'"]')[html_node_field] = value
 },
 
-contentUpdated: function()
+updateModelFromView: function()
 {
 	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
 	{
@@ -125,34 +122,48 @@ contentUpdated: function()
 		field.setCustomValidity(error_msg) // '' if the field is valid
 		if (error_msg.length == 0)
 		{
-			game_def[keyword] = fixed_value
-			if (fixed_value !== field_value)
+			if (fixed_value !== this.content[keyword])
 			{
 				// WIP TODO: do not update the field while it is edited, only when it is validated or the user moves to another field?
+				this.content[keyword] = fixed_value
 				this.updateHTMLField(keyword, html_node_field, fixed_value)
 			}
 			continue
 		}
-// WIP TODO: the field is invalid, we should add a sign with the message next to it!
-		game_def[keyword] ||= default_value
+		// WIP TODO: the field is invalid, we should add a sign with the message next to it!
+		// we should also say what value will be used (the last valid one if there is one, otherwise the default value)
 	}
 	tabs.checkDirty()
 },
 
+updateModelSafely: function(keyword, val, use_default)
+{
+	const [is_mandatory, default_value, check_func, html_node_field] = metadata_in_tab[keyword]
+	const [error_msg, fixed_value] = check_func( (val === undefined) ? default_value : val )
+	if (error_msg.length == 0)
+	{
+		this.content[keyword] = fixed_value
+	}
+	else if (use_default === true)
+	{
+		this.content[keyword] = default_value
+	}
+	this.updateHTMLField(keyword, html_node_field, fixed_value)
+},
+
 // Fills in the fields with the provided content or default values.
 // Only call this function when loading a game.
-// It does not trigger contentUpdated.
+// It does not trigger updateModelFromView, but the fields are updated directly when the model (game_def) is modified.
 setContent: function(content)
 {
-	if (content === undefined)
-		content = {}
-	for (const [keyword, [is_mandatory, default_value, check_func, html_node_field]] of Object.entries(metadata_in_tab))
+	for (const keyword of Object.keys(metadata_in_tab))
 	{
-		game_def[keyword] = content[keyword]
+		// TODO: this will call the check_func, which SHOULD filter out dangerous values (like code injection)!
+		this.updateModelSafely(keyword, content[keyword], true)
 	}
 },
-getContent: function() { return this.content },
-checkDirty: function(saved) { return Object.entries(this.content).every( (k,v) => saved[k] != v) },
+getContent: function() { return Object.fromEntries(Object.keys(metadata_in_tab).map(k => [k, game_def[k]])) },
+checkDirty: function(saved) { return Object.keys(metadata_in_tab).some( (k) => saved[k] != game_def[k]) },
 setLoading: function() { },
 removeFocus: function() { },
 setLightMode: function(mode) { },
