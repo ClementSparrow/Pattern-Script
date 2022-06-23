@@ -127,6 +127,8 @@ updateModelFromView: function()
 				// WIP TODO: do not update the field while it is edited, only when it is validated or the user moves to another field?
 				this.content[keyword] = fixed_value
 				this.updateHTMLField(keyword, html_node_field, fixed_value)
+				// WIP TODO: for each metadata, add a bitmask field telling which game states use the metadata, to determinate
+				// if the display and resources for that state need to be redrawn/rebuilt. Dirtyness could be one of the bits.
 			}
 			continue
 		}
@@ -134,6 +136,11 @@ updateModelFromView: function()
 		// we should also say what value will be used (the last valid one if there is one, otherwise the default value)
 	}
 	tabs.checkDirty()
+	if (screen_layout.content === title_screen)
+		title_screen.makeTitle()
+	else if (screen_layout.content === pause_menu_screen)
+		pause_menu_screen.makePauseMenu()
+	canvasResize()
 },
 
 updateModelSafely: function(keyword, val, use_default)
