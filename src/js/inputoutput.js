@@ -339,6 +339,7 @@ TextModeScreen.prototype.checkKey = function(e, inputdir)
 		tryPlaySimpleSound('closemessage')
 		this.doMessage(curlevel.getMessage())
 		keybuffer = []
+		return true
 	}
 	return false
 }
@@ -364,7 +365,7 @@ MenuScreen.prototype.checkKey = function(e, inputdir)
 	{
 		redraw()
 	}
-	return false
+	return true
 }
 
 
@@ -378,6 +379,7 @@ MenuScreen.prototype.checkRepeatableKey = function(e, inputdir)
 		this.item = clamp(0, this.item + ((inputdir === 0) ? -1 : 1), this.menu_entries.length - 1)
 		this.updateMenuItems()
 		redraw()
+		return true
 	}
 	return false
 }
