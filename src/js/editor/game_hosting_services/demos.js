@@ -11,7 +11,7 @@ tryLoadSource: function(fileName)
 	{		
 		if(fileOpenClient.readyState != 4)
 			return
-		loadGameFromDict({ code: fileOpenClient.responseText}) // TODO: convert the demos as dicts
+		loadGameFromDict({ code: fileOpenClient.responseText, metadata: {}}) // TODO: convert the demos as dicts
 	}
 	fileOpenClient.send()
 },

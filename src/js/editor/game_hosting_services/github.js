@@ -65,7 +65,7 @@ function tryLoadGist(id)
 		{
 			const files = result['files']
 			if (files['script.txt'] !== undefined)
-				loadGameFromDict( ({code: files['script.txt']['content']}) )
+				loadGameFromDict( ({code: files['script.txt']['content'], metadata: {}}) )
 			else
 				loadGameFromDict(  ) // WIP TODO: make a dict from the files 'content'. But also we need the version of the engine that was used to generate the file.
 			editor_tabmanager.editor.clearHistory()
