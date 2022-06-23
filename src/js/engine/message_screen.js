@@ -57,6 +57,7 @@ MenuScreen.prototype.doSelectedFunction = function()
 	func()
 }
 
+// WIP TODO: we should not need this anymore. Instead, compile the default game and show the title screen (including the Pattern:Script version in the title)
 MenuScreen.prototype.makeTerminalScreen = function()
 {
 	this.text = Array.from(
@@ -114,7 +115,7 @@ MenuScreen.prototype.makeTitle = function()
 {
 	if (state.levels.length === 0)
 	{
-		this.makeTerminalScreen()
+		this.makeTerminalScreen() // WIP TODO: we should show the title screen anyway but disable the "start" & "continue" options
 		return
 	}
 
@@ -218,7 +219,7 @@ MenuScreen.prototype.makePauseMenu = function()
 		terminal_height - 5,
 		[
 			['resume game', () => this.closeMenu()],
-			(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
+			(curlevel.box != 2) ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
 			['exit to title screen', goToTitleScreen]
 		]
 	)
