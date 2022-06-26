@@ -122,6 +122,12 @@
 	}
 	.form-info:hover::before { background-color: white; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 	.form-info:hover > :first-child { visibility: visible; opacity: 1; border-radius: 0em; }
+
+	#sprites_list li div { overflow: hidden; width: 500px; height: 200px;}
+	#sprites_list canvas {
+		width: 100%; height: 100%;
+		image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges;
+	}
 </style>
 </head>
 <body>
@@ -251,7 +257,7 @@ LEVELS
 #########
 
 </textarea></form>
-<div id="editor_pane_sprites"></div>
+<div id="editor_pane_sprites"><ul id="sprites_list"></ul><button type="button" onclick="createNewSpriteClicked()">Create new sprite</button></div>
 </div>
 </div>
 <div id="verticaldragbar"></div>
@@ -391,6 +397,7 @@ LEVELS
 <script src="js/editor/game_hosting_services/github.js"></script>
 <script src="js/editor/game_hosting_services/local_storage.js"></script>
 <script src="js/editor/tab_managers/metadata.js"></script>
+<script src="js/editor/tab_managers/sprites.js"></script>
 <script src="js/editor/tab_managers/code_editor.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/soundbar.js"></script>
