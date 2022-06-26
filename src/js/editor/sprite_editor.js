@@ -75,6 +75,7 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 	// }
 
 	this.content.pixels[pixel_index] = new_color_index
+	// WIP TODO: trigger an event to change the sprite
 	return 1
 }
 
@@ -145,12 +146,11 @@ SpriteScreen.prototype.resize = function(horizontal, near_origin, shrink)
 // Sprite Editor Widget
 // ====================
 
-function SpriteEditor()
+function SpriteEditor(canvas)
 {
-	ScreenLayout.call(this, document.getElementById('spriteeditor'))
+	ScreenLayout.call(this, canvas)
 	const e = this.content = new SpriteEditorScreen()
 	const s = e.content = new SpriteScreen()
+	this.register_listeners()
 }
 SpriteEditor.prototype = Object.create(ScreenLayout.prototype)
-// const sprite_editor = new SpriteEditor()
-// sprite_editor.register_listeners()
