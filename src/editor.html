@@ -123,7 +123,7 @@
 	.form-info:hover::before { background-color: white; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 	.form-info:hover > :first-child { visibility: visible; opacity: 1; border-radius: 0em; }
 
-	#sprites_list li div { overflow: hidden; width: 500px; height: 200px;}
+	#sprites_list div.list_widget div { overflow: hidden; width: 500px; height: 200px;}
 	#sprites_list canvas {
 		width: 100%; height: 100%;
 		image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges;
@@ -135,8 +135,9 @@
 <div id="leftpanel">
 <div id="editor_tabs"><ul>
 	<li id="editor_tab_meta"><a onclick="activateEditorTab('editor_pane_meta')">Meta</a></li>
-	<li id="editor_tab_code" class="active_tab"><a onclick="activateEditorTab('editor_pane_code')">Code</a></li>
+	<li id="editor_tab_palettes"><a onclick="activateEditorTab('editor_pane_palettes')">Palettes</a></li>
 	<li id="editor_tab_sprites"><a onclick="activateEditorTab('editor_pane_sprites')">Sprites</a></li>
+	<li id="editor_tab_code" class="active_tab"><a onclick="activateEditorTab('editor_pane_code')">Code</a></li>
 </ul></div>
 <div id="editor_panes">
 <div id="editor_pane_meta">
@@ -176,8 +177,13 @@
 	<div><label><input type="checkbox" name="meta_norepeat_action" />Do not repeat action key</label><div class="form-info"><p>For many games, you don't want holding action down to retrigger it - games where you're toggling a switch, say.  For these games, check this box, and the action button will only respond to individual presses.</p></div></div>
 	<div><label><input type="checkbox" name="meta_require_player_movement" />Require player movement</label><div class="form-info"><div>This is a common requirement in games - if the player doesn't move, cancel the whole move. This is equivalent, where there's only one player character, to the following:<pre><code>[ Player ] -> [ Player Temp ]<br/>late [ Player Temp ] -> CANCEL<br/>late [ Temp ] -> [ ]</code></pre></div></div></div>
  </fieldset>
-</div>
-<form id="editor_pane_code" name="editor_pane_code" action="javascript:void(0);" class="active_tabview"><textarea id="code" class="codeform" name="code" rows="20" cols="20">
+</div><div id="editor_pane_palettes">
+	<ul id="palettes_list"></ul>
+	<button type="button" onclick="createNewPaletteClicked()">Create new palette</button>
+</div><div id="editor_pane_sprites">
+	<ul id="sprites_list"></ul>
+	<button type="button" onclick="createNewSpriteClicked()">Create new sprite</button>
+</div><form id="editor_pane_code" name="editor_pane_code" action="javascript:void(0);" class="active_tabview"><textarea id="code" class="codeform" name="code" rows="20" cols="20">
 title My Game
 author My Name Here
 homepage www.your.homepage.net
@@ -257,7 +263,6 @@ LEVELS
 #########
 
 </textarea></form>
-<div id="editor_pane_sprites"><ul id="sprites_list"></ul><button type="button" onclick="createNewSpriteClicked()">Create new sprite</button></div>
 </div>
 </div>
 <div id="verticaldragbar"></div>
@@ -397,6 +402,8 @@ LEVELS
 <script src="js/editor/game_hosting_services/github.js"></script>
 <script src="js/editor/game_hosting_services/local_storage.js"></script>
 <script src="js/editor/tab_managers/metadata.js"></script>
+<script src="js/editor/tab_managers/widget_list.js"></script>
+<script src="js/editor/tab_managers/palettes.js"></script>
 <script src="js/editor/tab_managers/sprites.js"></script>
 <script src="js/editor/tab_managers/code_editor.js"></script>
 <script src="js/editor.js"></script>
