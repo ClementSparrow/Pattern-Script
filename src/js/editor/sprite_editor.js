@@ -2,9 +2,9 @@
 // Sprite Editor Screen
 // ====================
 
-function SpriteEditorScreen()
+function SpriteEditorScreen(content)
 {
-	EditorScreen.call(this, 'spriteEditor')
+	EditorScreen.call(this, 'spriteEditor', content)
 }
 SpriteEditorScreen.prototype = Object.create(EditorScreen.prototype)
 SpriteEditorScreen.prototype.get_palette_length = function() { return this.content.palette.length }
@@ -63,9 +63,9 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 {
 	const pixel_index = this.hovered_level_cell[2] + this.hovered_level_cell[3]*this.content.width
 
-	const new_color_index = this.glyphSelectedIndex
+	const new_color_index = right_mouse_button ? -1 : this.glyphSelectedIndex
 	const current_color_index = this.content.pixels[pixel_index]
-	if (new_color_index == current_color_index)
+	if ( (new_color_index == current_color_index) || (new_color_index === null) )
 		return 1 // redraw anyway to update highlight
 	// TODO: UNDO
 	// if (this.anyEditsSinceMouseDown === false)
@@ -90,13 +90,14 @@ SpriteEditorScreen.prototype.resize_content = function(horizontal, near_origin, 
 
 const sprite_magnification = 7
 
-function SpriteScreen()
+function SpriteScreen(width, height, palette)
 {
 	EmptyScreen.call(this, 'sprite_screen')
-	this.width = sprite_width
-	this.height = sprite_height
-	this.palette = ['blue', 'red']
-	this.pixels = Int32Array.from({length: sprite_width*sprite_height}, (_,i) => (i%3)-1)
+	this.width = width || sprite_width
+	this.height = height || sprite_height
+	this.palette = palette || ['blue', 'red']
+	// this.pixels = Int32Array.from({length: this.width*this.height}, (_,i) => (i%3)-1)
+	this.pixels = new Int32Array(this.width*this.height).fill(-1)
 }
 SpriteScreen.prototype = Object.create(EmptyScreen.prototype)
 SpriteScreen.prototype.get_nb_tiles = function() { return [this.width, this.height] }
@@ -113,9 +114,10 @@ SpriteScreen.prototype.redraw_virtual_screen = function(ctx)
 			const x = i * sprite_magnification
 			const pixel_index = i + j*this.width
 			const color_index = this.pixels[pixel_index]
-			if (color_index == -1)
+			const color = this.palette[color_index] // get_color(color_index)
+			if (color === undefined)
 				continue
-			ctx.fillStyle = this.palette[color_index] // get_color(color_index)
+			ctx.fillStyle = color
 			ctx.fillRect(x, y, sprite_magnification, sprite_magnification)
 		}
 	}
@@ -146,11 +148,10 @@ SpriteScreen.prototype.resize = function(horizontal, near_origin, shrink)
 // Sprite Editor Widget
 // ====================
 
-function SpriteEditor(canvas)
+function SpriteEditor(canvas, ...sprite_screen_args)
 {
 	ScreenLayout.call(this, canvas)
-	const e = this.content = new SpriteEditorScreen()
-	const s = e.content = new SpriteScreen()
+	const e = this.content = new SpriteEditorScreen(new SpriteScreen(...sprite_screen_args))
 	this.register_listeners()
 }
 SpriteEditor.prototype = Object.create(ScreenLayout.prototype)
