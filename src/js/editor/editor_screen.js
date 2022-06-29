@@ -1,13 +1,13 @@
 // TODO: editors should be split into a legend_EditorScreen and a content_EditorScreen
-function EditorScreen(screen_type)
+function EditorScreen(screen_type, content)
 {
 	EmptyScreen.call(this, screen_type)
-	this.content = empty_screen
+	this.content = (content === undefined) ? empty_screen : content
 	this.editorRowCount = 1
 	this.hovered_level_cell = null
 	this.hovered_glyph_index = null
 	this.hovered_content_resize = null
-	this.glyphSelectedIndex = 0
+	this.glyphSelectedIndex = (this.get_palette_length() > 0) ? 0 : null
 	this.anyEditsSinceMouseDown = false
 }
 EditorScreen.prototype = Object.create(EmptyScreen.prototype)

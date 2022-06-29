@@ -15,12 +15,10 @@ SpriteWidget = function(container, item_def)
 	// The menu should only contain the palettes that have enough colors in them compared to what the sprite uses.
 	// Maybe sort the menu by the number of colors in the palette?
 	// Of course, it requires to have a colors or palettes tab…
-	this.sprite_editor_container = document.createElement('div')
-	this.sprite_editor_container.setAttribute('width', '500px')
-	this.sprite_editor_container.setAttribute('height', '200px')
 	this.sprite_editor_canvas = document.createElement('canvas')
-	this.sprite_editor_container.appendChild(this.sprite_editor_canvas)
-	container.appendChild(this.sprite_editor_container)
+	this.sprite_editor_canvas.style.width = '500px'
+	this.sprite_editor_canvas.style.height = '200px'
+	container.appendChild(this.sprite_editor_canvas)
 }
 
 SpriteWidget.prototype = {
