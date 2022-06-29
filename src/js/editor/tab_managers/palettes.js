@@ -38,6 +38,11 @@ PaletteWidget = function(container, item_def)
 	container.appendChild(this.zbar_canvas)
 	this.zbar_canvas.addEventListener('mousedown', e => this.start_zdrag(e), false)
 
+	this.sprite_canvas = document.createElement('canvas')
+	this.sprite_canvas.style.width = '256px'
+	this.sprite_canvas.style.height = '256px'
+	container.appendChild(this.sprite_canvas)
+
 	this.setActiveColorSpace('rg', colorspaces['rg'], 1)
 }
 
@@ -66,6 +71,9 @@ PaletteWidget.prototype = {
 	addColor: function(color)
 	{
 		this.colors.push(color)
+		this.sprite_editor.content.content.palette.push('rgb('+color.join(',')+')')
+		this.sprite_editor.content.glyphSelectedIndex = this.colors.length - 1
+		this.sprite_editor.resize_canvas()
 		this.redraw()
 	},
 
@@ -206,6 +214,8 @@ PaletteWidget.prototype = {
 
 	finalize: function(item_def)
 	{
+		this.sprite_editor = new SpriteEditor(this.sprite_canvas, 6, 6, [])
+		this.sprite_editor.resize_canvas()
 		this.redraw()
 	},
 

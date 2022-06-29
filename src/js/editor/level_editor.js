@@ -10,9 +10,10 @@ function LevelEditorScreen()
 	this.noSwipe = true
 	this.alwaysAllowUndo = true
 	this.dontDoWin = true
+	this.glyphSelectedIndex = 0
 }
 LevelEditorScreen.prototype = Object.create(EditorScreen.prototype)
-LevelEditorScreen.prototype.get_palette_length = () => state.abbrevNames.length
+LevelEditorScreen.prototype.get_palette_length = () => (state.abbrevNames === undefined) ? 0 : state.abbrevNames.length
 
 LevelEditorScreen.prototype.toggle = function()
 {

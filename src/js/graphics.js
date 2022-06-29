@@ -218,8 +218,8 @@ ScreenLayout.prototype.resize_canvas = function()
 	const pixel_ratio = window.devicePixelRatio || 1
 	// Resize canvas
 	const c = this.canvas
-	c.width  = pixel_ratio * c.parentNode.clientWidth
-	c.height = pixel_ratio * c.parentNode.clientHeight
+	c.width  = pixel_ratio * c.clientWidth
+	c.height = pixel_ratio * c.clientHeight
 	;[this.magnification, this.margins] = centerAndMagnify(this.content.get_virtual_screen_size(), [c.width, c.height])
 
 	// clear background
