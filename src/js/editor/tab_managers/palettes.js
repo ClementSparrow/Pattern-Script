@@ -6,14 +6,11 @@ PaletteWidget = function(container, item_def)
 
 	const colorspaces = {
 		rg: { w:   1, v: [0, 0, 0]}, // xyz = rgb => no rotation
-		// gb: { w: 0.5, v: [0.5, 0.5, 0.5]}, // xyz = gbr 120° rotation (cos 60°=1/2, sin 60°=√3/2) around diagonal [1,1,1] of length √3
-		bg: { w: 0.7071067812, v: [0, -0.7071067812, 0]}, // xyz = bg-r -90° rotation (cos -45°=√2/2, sin -45°=-√2/2) around diagonal g
+		gb: { w: 0.5, v: [0.5, 0.5, 0.5]}, // xyz = gbr 120° rotation (cos 60°=1/2, sin 60°=√3/2) around diagonal [1,1,1] of length √3
+		// bg: { w: 0.7071067812, v: [0, -0.7071067812, 0]}, // xyz = bg-r -90° rotation (cos -45°=√2/2, sin -45°=-√2/2) around diagonal g
 		br: { w:-0.5, v: [0.5, 0.5, 0.5]}, // xyz = brg 240° rotation (cos 120°=-1/2, sin 120°=√3/2) around diagonal of length √3
 		hsl:{ w: 0.5773502692, v: [0.8164965809, -0.8164965809, 0.8164965809]},
 	}
-
-	this.lastframe_timestamp = null
-	this.quaternion_current = colorspaces.rg
 
 	this.colorspace_buttons = document.createElement('div')
 	this.colorspace_buttons.classList.add('colorspace_buttons')
@@ -22,7 +19,9 @@ PaletteWidget = function(container, item_def)
 		const button = document.createElement('button')
 		button.setAttribute('type', 'button')
 		button.innerText = label
-		button.addEventListener('click', (e) => this.changeColorSpace(quaternion))
+		button.addEventListener('click', (e) => this.setActiveColorSpace(label, quaternion), false )
+		button.addEventListener('mouseenter', (e) => this.changeColorSpace(quaternion), false )
+		button.addEventListener('mouseleave', (e) => this.changeColorSpace(colorspaces[this.active_colorspace]), false )
 		this.colorspace_buttons.appendChild(button)
 	}
 	container.appendChild(this.colorspace_buttons)
@@ -39,12 +38,11 @@ PaletteWidget = function(container, item_def)
 	container.appendChild(this.zbar_canvas)
 	this.zbar_canvas.addEventListener('mousedown', e => this.start_zdrag(e), false)
 
-	this.changeColorSpace(this.quaternion_current, 1)
+	this.setActiveColorSpace('rg', colorspaces['rg'], 1)
 }
 
 // WIP TODO:
 // - move colors around with drag and drop or click
-// - add buttons to change color space -> change them to toggles?
 // - add a sprite to showcase the colors in the palette
 // - change this.z by directly clicking in the zbar
 // - add rrggbb field to enter color directly as hex value
@@ -54,7 +52,15 @@ PaletteWidget.prototype = {
 
 	color_from_space: function(x, y, z)
 	{
-		return [0,1,2].map(c => 127 + (x-127)*this.x_color[c] + (127-y)*this.y_color[c] + (z-127)*this.z_color[c])
+		const base = [0,1,2].map(c => 127.5 + (x-127.5)*this.x_color[c] + (127.5-y)*this.y_color[c])
+		// 0 < base[c]+(z-127.5)*z_color[c] < 255
+		// => -base[c] < (z-127.5)*z_color[c] < 255 - base[c]
+		// => 127.5 - base[c]/z_color[c] < z < 127.5 + (255 - base[c])/z_color[c] if z_color[c] > 0
+		//    127.5 + (255 - base[c])/z_color[c] < z < 127.5 - base[c]/z_color[c] if z_color[c] < 0
+		const min_z = Math.max(0,   ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 255 : 0)-v)/this.z_color[c]))
+		const max_z = Math.min(255, ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 0 : 255)-v)/this.z_color[c]))
+		const new_z = (1-z/255)*min_z + max_z*z/255
+		return base.map( (v,c) => v+(new_z-127.5)*this.z_color[c])
 	},
 
 	addColor: function(color)
@@ -63,11 +69,19 @@ PaletteWidget.prototype = {
 		this.redraw()
 	},
 
+	setActiveColorSpace: function(name, quaternion, dt)
+	{
+		this.active_colorspace = name
+		this.colorspace_buttons.querySelectorAll('button').forEach(b => (b.innerText == name) ? b.classList.add('selected') : b.classList.remove('selected'))
+		this.changeColorSpace(quaternion, dt)
+	},
+
 	changeColorSpace: function(q, dt)
 	{
 		this.quaternion_goal = q
-		this.quaternion_start = this.quaternion_current
+		this.quaternion_start = this.quaternion_current || q
 		this.dt = dt || 0
+		this.lastframe_timestamp = null
 		this.updateColorSpace(null)
 	},
 
@@ -85,7 +99,7 @@ PaletteWidget.prototype = {
 		})
 		const normalize = (p) => { const l = Math.sqrt(p.w*p.w + dot(p.v, p.v)); return (Math.abs(l) < 0.0001) ? p : {w: p.w/l, v: scal(1/l, p.v) } }
 
-		const q = normalize({ // nlerp
+		const q = (this.dt > 1) ? this.quaternion_goal : normalize({ // nlerp
 			w: (1-this.dt)*this.quaternion_start.w + this.dt*this.quaternion_goal.w,
 			v: sum(scal(1-this.dt, this.quaternion_start.v), scal(this.dt, this.quaternion_goal.v)),
 		})
@@ -103,7 +117,7 @@ PaletteWidget.prototype = {
 			window.requestAnimationFrame(ts => this.updateColorSpace(ts))
 			if (this.lastframe_timestamp !== null)
 			{
-				this.dt = Math.min(1, this.dt + (timestamp - this.lastframe_timestamp)/350 ) // ms
+				this.dt = Math.min(1, this.dt + (timestamp - this.lastframe_timestamp)/450 ) // ms
 			}
 			this.lastframe_timestamp = timestamp
 		}
