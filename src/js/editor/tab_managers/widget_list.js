@@ -2,6 +2,7 @@
 function ListTabManager(html_list, game_def_property, name, widget_type)
 {
 	this.html_list = html_list
+	html_list.classList.add('managed_widget_list')
 	this.game_def_property = game_def_property
 	this.type_name = name
 	this.widget_type = widget_type
@@ -24,6 +25,7 @@ ListTabManager.prototype = {
 		name_field.setAttribute('type', 'text')
 		name_field.value = item_def.name
 		// WIP TODO: add callback when the name changes, because it can now become a name used in the objects
+		// WIP TODO: add a button to copy the name
 		name_label.appendChild(name_field)
 		widget.appendChild(name_label)
 
@@ -32,10 +34,19 @@ ListTabManager.prototype = {
 		const subwidget = new this.widget_type(subwidget_container, item_def)
 		widget.appendChild(subwidget_container)
 
-		const delete_button = document.createElement('button')
-		delete_button.innerText = 'Delete '+this.type_name
-		delete_button.addEventListener('click', (e) => this.removeWidget(widget, item_def.name) )
-		widget.appendChild(delete_button)
+		const widget_buttons = document.createElement('div')
+		const buttons_def = [
+			[ 'Delete', 'removeWidget' ],
+			[ 'Copy',   'copyWidget' ],
+		]
+		for (const [button_label, button_callback] of buttons_def)
+		{
+			const button = document.createElement('button')
+			button.innerText = button_label+' '+this.type_name
+			button.addEventListener('click', (e) => this[button_callback](widget, item_def.name) )
+			widget_buttons.appendChild(button)
+		}
+		widget.appendChild(widget_buttons)
 
 		this.html_list.appendChild(widget)
 
