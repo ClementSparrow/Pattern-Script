@@ -25,6 +25,7 @@
 
 	:root {
 		--selected-color: #e06f8b;
+		--section-background: #444;
 	}
 
 	/* TABS */
@@ -50,7 +51,7 @@
 	#editor_tabs li.active_tab { background-color: var(--selected-color) !important; }
 	#editor_tabs li.active_tab a { color: black; }
 	/* Light mode */
-	#editor_tabs { background-color: #444; }
+	#editor_tabs { background-color: var(--section-background); }
 	.light_mode #editor_tabs li { background-color: white; }
 	.light_mode #editor_tabs li.active_tab a { color: white; }
 	.light_mode #editor_tabs a { color: black; }
@@ -62,7 +63,7 @@
 	/* Sections  */
 	#editor_panes fieldset {
 		margin: 1em 0; padding: 0 1.5ex 1em; flex-grow: 1; /*flex-grow: 0; flex-basis: min-width;*/
-		border: none; border-radius: 0.75em; background-color: #444;
+		border: none; border-radius: 0.75em; background-color: var(--section-background);
 	}
 	#editor_panes fieldset legend {
 		font-size: 1.2em; line-height: 1.3em; font-variant: small-caps; 
@@ -128,13 +129,29 @@
 	.form-info:hover::before { background-color: white; border-bottom-right-radius: 0; border-bottom-left-radius: 0; }
 	.form-info:hover > :first-child { visibility: visible; opacity: 1; border-radius: 0em; }
 
+	ul.managed_widget_list { padding-left: 0; }
+	ul.managed_widget_list > li {
+		list-style-type: none; margin-bottom: 1.5em;
+		width: fit-content;
+		display: flex; flex-direction: column; align-items: center; gap: 0.5em;
+	}
+	ul.managed_widget_list div.list_widget {
+		max-width: 100%;
+		margin: 0; padding: 0.5em;
+		border: none;
+		border-radius: 0.5em; background-color: var(--section-background);
+	}
+
 	#sprites_list div.list_widget div { overflow: hidden; width: 500px; height: 200px;}
 	#sprites_list canvas {
 		width: 100%; height: 100%;
 		image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges;
 	}
 
-	#palettes_list div.list_widget { display: flex; flex-direction: row; align-items: stretch; gap:  0.5em; margin: 0.5em 0; }
+	#palettes_list div.list_widget {
+		display: flex; flex-direction: row; align-items: stretch; gap: 0.5em; 
+		width: fit-content;
+	}
 	.colorspace_buttons { display: flex; flex-direction: column; gap: 0.5em; height: 256px; align-items: stretch; }
 	.colorspace_buttons button { border: none; border-radius: 2px; margin: 0; flex-grow: 1;}
 	.colorspace_buttons button.selected { background-color: var(--selected-color); }
