@@ -1,11 +1,38 @@
 
+// function to create easily HTML elements, that I put there because it's convenient
+function make_HTML(element_type, options)
+{
+	const result = document.createElement(element_type)
+	const { attr: attributes = {}, classes = [], style = {}, data = {}, events = {}, text, value } = options
+	for (const [name, value] of Object.entries(attributes))
+	{
+		result.setAttribute(name, value)
+	}
+	result.classList.add(...classes)
+	for (const [name, value] of Object.entries(data))
+	{
+		result.dataset[name] = value
+	}
+	if (value != undefined) result.value = value
+	if (text !== undefined) result.innerText = text
+	for (const [name, value] of Object.entries(style))
+	{
+		result.style[name] = value
+	}
+	return result
+}
+
 function ListTabManager(html_list, game_def_property, name, widget_type)
 {
+	this.name = game_def_property
 	this.html_list = html_list
 	html_list.classList.add('managed_widget_list')
 	this.game_def_property = game_def_property
 	this.type_name = name
 	this.widget_type = widget_type
+	// to allow autocompletion of fields that ask for a name in this list
+	this.names_datalist = make_HTML('datalist', {attr: {id: name.toLowerCase()+'_names'}})
+	document.head.appendChild(this.names_datalist)
 }
 
 ListTabManager.prototype = {
@@ -15,22 +42,19 @@ ListTabManager.prototype = {
 		const widget = document.createElement('li')
 		if (item_def.name.length > 0)
 		{
-			widget.setAttribute('data-name', item_def.name)
+			widget.dataset.name = item_def.name
 			game_def[this.game_def_property].push(item_def)
 		}
 
 		const name_label = document.createElement('label')
 		name_label.innerText = this.type_name+' name:'
-		const name_field = document.createElement('input')
-		name_field.setAttribute('type', 'text')
-		name_field.value = item_def.name
-		// WIP TODO: add callback when the name changes, because it can now become a name used in the objects
+		const name_field = make_HTML('input', {attr: {type: 'text'}, value: item_def.name})
+		name_field.onchange = (e) => { widget.dataset.name = (name_field.value == '') ? null : name_field.value; this.updateNamesList() }
 		// WIP TODO: add a button to copy the name
 		name_label.appendChild(name_field)
 		widget.appendChild(name_label)
 
-		const subwidget_container = document.createElement('div')
-		subwidget_container.classList.add('list_widget')
+		const subwidget_container = make_HTML('div', {classes: ['list_widget']})
 		const subwidget = new this.widget_type(subwidget_container, item_def)
 		widget.appendChild(subwidget_container)
 
@@ -41,8 +65,7 @@ ListTabManager.prototype = {
 		]
 		for (const [button_label, button_callback] of buttons_def)
 		{
-			const button = document.createElement('button')
-			button.innerText = button_label+' '+this.type_name
+			const button = make_HTML('button', { text: button_label+' '+this.type_name })
 			button.addEventListener('click', (e) => this[button_callback](widget, item_def.name) )
 			widget_buttons.appendChild(button)
 		}
@@ -51,6 +74,19 @@ ListTabManager.prototype = {
 		this.html_list.appendChild(widget)
 
 		subwidget.finalize(item_def)
+		this.updateNamesList()
+	},
+
+	updateNamesList: function()
+	{
+		// update the datalist for name fields autocompletion
+		this.names_datalist.innerText = ''
+		for (const li of this.html_list.querySelectorAll('li[data-name]'))
+		{
+			this.names_datalist.appendChild( make_HTML('option', {attr: {value: li.dataset.name}}) )
+		}
+
+		// WIP TODO: recompile, because a name can have changed that was or has become used in the objects
 	},
 
 	// WIP TODO: the delete button should be grayed if the item is used, otherwise it can cause issues with live update

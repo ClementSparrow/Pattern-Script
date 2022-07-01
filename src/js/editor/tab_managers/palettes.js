@@ -13,13 +13,10 @@ PaletteWidget = function(container, item_def)
 		hsb: { w: 0.8804762392398382, v: [ -0.27984814235734057, 0.364705199662564, 0.11591689596228216 ] }, // like above but with additionnal 7.5° rotation along the z axis
 	}
 
-	this.colorspace_buttons = document.createElement('div')
-	this.colorspace_buttons.classList.add('colorspace_buttons')
+	this.colorspace_buttons = make_HTML('div', {classes:['colorspace_buttons']})
 	for (const [label, quaternion] of Object.entries(colorspaces))
 	{
-		const button = document.createElement('button')
-		button.setAttribute('type', 'button')
-		button.innerText = label
+		const button = make_HTML('button', {attr: {type: 'button'}, text: label})
 		button.addEventListener('click', (e) => this.setActiveColorSpace(label, quaternion), false )
 		button.addEventListener('mouseenter', (e) => this.changeColorSpace(quaternion), false )
 		button.addEventListener('mouseleave', (e) => this.changeColorSpace(colorspaces[this.active_colorspace]), false )
@@ -27,21 +24,15 @@ PaletteWidget = function(container, item_def)
 	}
 	container.appendChild(this.colorspace_buttons)
 
-	this.colorpicker_canvas = document.createElement('canvas')
-	this.colorpicker_canvas.width = 256
-	this.colorpicker_canvas.height = 256
+	this.colorpicker_canvas = make_HTML('canvas', {attr: {width: 256, height: 256}})
 	container.appendChild(this.colorpicker_canvas)
 	this.colorpicker_canvas.addEventListener('click', e => this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z)), false) // TODO: convert coordinates to color
 
-	this.zbar_canvas = document.createElement('canvas')
-	this.zbar_canvas.width = 16
-	this.zbar_canvas.height = 256
+	this.zbar_canvas = make_HTML('canvas', {attr: {width: 16, height: 256}})
 	container.appendChild(this.zbar_canvas)
 	this.zbar_canvas.addEventListener('mousedown', e => this.start_zdrag(e), false)
 
-	this.sprite_canvas = document.createElement('canvas')
-	this.sprite_canvas.style.width = '256px'
-	this.sprite_canvas.style.height = '256px'
+	this.sprite_canvas = make_HTML('canvas', {style: {width: '256px', height: '256px'}})
 	container.appendChild(this.sprite_canvas)
 
 	this.setActiveColorSpace('rg', colorspaces['rg'], 1)

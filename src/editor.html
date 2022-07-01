@@ -132,26 +132,26 @@
 	ul.managed_widget_list { padding-left: 0; }
 	ul.managed_widget_list > li {
 		list-style-type: none; margin-bottom: 1.5em;
-		width: fit-content;
 		display: flex; flex-direction: column; align-items: center; gap: 0.5em;
 	}
+	ul.managed_widget_list label > input { margin-left: 0.5em; }
 	ul.managed_widget_list div.list_widget {
 		max-width: 100%;
 		margin: 0; padding: 0.5em;
 		border: none;
 		border-radius: 0.5em; background-color: var(--section-background);
+		display: flex; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 0.5em; 
+		width: fit-content;
 	}
 
-	#sprites_list div.list_widget div { overflow: hidden; width: 500px; height: 200px;}
+	.palette_selector { display: flex; flex-direction: column; align-items: flex-start; flex-basis: 0; }
+	#sprites_list div.list_widget textarea { flex-grow: 0; flex-basis: content;}
+	/*#sprites_list div.list_widget div { overflow: hidden; width: 500px; height: 200px;}*/
 	#sprites_list canvas {
 		width: 100%; height: 100%;
 		image-rendering: -moz-crisp-edges; image-rendering: -webkit-crisp-edges; image-rendering: pixelated; image-rendering: crisp-edges;
 	}
 
-	#palettes_list div.list_widget {
-		display: flex; flex-direction: row; align-items: stretch; gap: 0.5em; 
-		width: fit-content;
-	}
 	.colorspace_buttons { display: flex; flex-direction: column; gap: 0.5em; height: 256px; align-items: stretch; }
 	.colorspace_buttons button { border: none; border-radius: 2px; margin: 0; flex-grow: 1;}
 	.colorspace_buttons button.selected { background-color: var(--selected-color); }
