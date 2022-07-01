@@ -19,6 +19,10 @@ function make_HTML(element_type, options)
 	{
 		result.style[name] = value
 	}
+	for (const [name, callback] of Object.entries(events))
+	{
+		result.addEventListener(name, callback, false)
+	}
 	return result
 }
 
@@ -40,22 +44,21 @@ ListTabManager.prototype = {
 	addNewWidget: function(item_def)
 	{
 		const widget = document.createElement('li')
-		if (item_def.name.length > 0)
-		{
-			widget.dataset.name = item_def.name
-			game_def[this.game_def_property].push(item_def)
-		}
 
-		const name_label = document.createElement('label')
-		name_label.innerText = this.type_name+' name:'
-		const name_field = make_HTML('input', {attr: {type: 'text'}, value: item_def.name})
-		name_field.onchange = (e) => { widget.dataset.name = (name_field.value == '') ? null : name_field.value; this.updateNamesList() }
+		const name_label = make_HTML('label', { text: this.type_name+' name:', })
+		const name_field = make_HTML('input', {
+			attr: {type: 'text'},
+			value: item_def.name,
+			events: {change: (e) => { widget.dataset.name = (e.target.value == '') ? null : e.target.value; this.updateNamesList() }}
+		})
 		// WIP TODO: add a button to copy the name
 		name_label.appendChild(name_field)
 		widget.appendChild(name_label)
 
 		const subwidget_container = make_HTML('div', {classes: ['list_widget']})
 		const subwidget = new this.widget_type(subwidget_container, item_def)
+		subwidget.onChangeContent = () => this.widgetContentChanged(name_field, subwidget)
+		subwidget.onChangeState = () => this.widgetStateChanged(name_field, subwidget)
 		widget.appendChild(subwidget_container)
 
 		const widget_buttons = document.createElement('div')
@@ -65,15 +68,22 @@ ListTabManager.prototype = {
 		]
 		for (const [button_label, button_callback] of buttons_def)
 		{
-			const button = make_HTML('button', { text: button_label+' '+this.type_name })
-			button.addEventListener('click', (e) => this[button_callback](widget, item_def.name) )
-			widget_buttons.appendChild(button)
+			widget_buttons.appendChild(make_HTML('button', {
+				text: button_label+' '+this.type_name,
+				events: { click: (e) => this[button_callback](widget, item_def.name) },
+			}))
 		}
 		widget.appendChild(widget_buttons)
 
 		this.html_list.appendChild(widget)
 
 		subwidget.finalize(item_def)
+
+		if (item_def.name.length > 0)
+		{
+			widget.dataset.name = item_def.name
+			game_def[this.game_def_property][item_def.name] = subwidget.toDef()
+		}
 		this.updateNamesList()
 	},
 
@@ -106,13 +116,13 @@ ListTabManager.prototype = {
 
 	getContent: function()
 	{
-		return Array.from(this.html_list.querySelectorAll('li[data-name] > .list_widget')).map(widget => widget.toDef())
+		return Array.from(this.html_list.querySelectorAll('li[data-name]')).map(li => game_def[this.game_def_property][li.dataset.name])
 	},
 
 	checkDirty: function(saved)
 	{
 		const current = this.getContent()
-		return (saved.length != current.length) || saved.some( ([s,i]) => ! this.widget_type.sameItems(s, current[i]) )
+		return (saved.length != current.length) || saved.some( ([s,i]) => ! this.widget_type.prototype.sameItems(s, current[i]) )
 	},
 
 	setLoading: function() { },

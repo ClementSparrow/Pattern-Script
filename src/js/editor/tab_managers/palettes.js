@@ -16,21 +16,29 @@ PaletteWidget = function(container, item_def)
 	this.colorspace_buttons = make_HTML('div', {classes:['colorspace_buttons']})
 	for (const [label, quaternion] of Object.entries(colorspaces))
 	{
-		const button = make_HTML('button', {attr: {type: 'button'}, text: label})
-		button.addEventListener('click', (e) => this.setActiveColorSpace(label, quaternion), false )
-		button.addEventListener('mouseenter', (e) => this.changeColorSpace(quaternion), false )
-		button.addEventListener('mouseleave', (e) => this.changeColorSpace(colorspaces[this.active_colorspace]), false )
-		this.colorspace_buttons.appendChild(button)
+		this.colorspace_buttons.appendChild(make_HTML('button', {
+			attr: {type: 'button'},
+			text: label,
+			events: {
+				click: (e) => this.setActiveColorSpace(label, quaternion),
+				mouseenter: (e) => this.changeColorSpace(quaternion),
+				mouseleave: (e) => this.changeColorSpace(colorspaces[this.active_colorspace]),
+			},
+		}))
 	}
 	container.appendChild(this.colorspace_buttons)
 
-	this.colorpicker_canvas = make_HTML('canvas', {attr: {width: 256, height: 256}})
+	this.colorpicker_canvas = make_HTML('canvas', {
+		attr: {width: 256, height: 256},
+		events: {click: e => this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z))}
+	})
 	container.appendChild(this.colorpicker_canvas)
-	this.colorpicker_canvas.addEventListener('click', e => this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z)), false) // TODO: convert coordinates to color
 
-	this.zbar_canvas = make_HTML('canvas', {attr: {width: 16, height: 256}})
+	this.zbar_canvas = make_HTML('canvas', {
+		attr: {width: 16, height: 256},
+		events: {mousedown: e => this.start_zdrag(e)}
+	})
 	container.appendChild(this.zbar_canvas)
-	this.zbar_canvas.addEventListener('mousedown', e => this.start_zdrag(e), false)
 
 	this.sprite_canvas = make_HTML('canvas', {style: {width: '256px', height: '256px'}})
 	container.appendChild(this.sprite_canvas)
@@ -67,6 +75,7 @@ PaletteWidget.prototype = {
 		this.sprite_editor.content.glyphSelectedIndex = this.colors.length - 1
 		this.sprite_editor.resize_canvas()
 		this.redraw()
+		this.onChangeContent()
 	},
 
 	setActiveColorSpace: function(name, quaternion, dt)
@@ -231,12 +240,12 @@ PaletteWidget.prototype = {
 
 	toDef: function(widget)
 	{
-
+		return this.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join(''))
 	},
 
 	sameItems: function(item1, item2)
 	{
-
+		return item1 == item2
 	},
 
 }
@@ -245,10 +254,23 @@ PaletteWidget.prototype = {
 function PalettesTabManager(html_list)
 {
 	ListTabManager.call(this, html_list, 'palettes', 'Palette', PaletteWidget)
+	game_def.palettes = {}
+	this.addNewBlankPaletteWidget('default_palette')
 }
 PalettesTabManager.prototype = Object.create(ListTabManager.prototype)
 
-PalettesTabManager.prototype.addNewBlankPaletteWidget = function()
+PalettesTabManager.prototype.addNewBlankPaletteWidget = function(name)
 {
-	this.addNewWidget({ name: '', })
+	this.addNewWidget({ name: name||'', })
+}
+
+PalettesTabManager.prototype.widgetContentChanged = function(name_field, widget)
+{
+	const palette_name = name_field.value
+	if (palette_name.length == 0)
+		return
+	const palette = widget.toDef()
+	game_def.palettes[palette_name] = palette // WIP TODO: be sure that the name is not duplicated
+	// WIP TODO: change the palette in all the widgets that use it, notably the sprite widgets
+	// WIP TODO: recompile the sprite transformations for the objects that use this palette
 }
