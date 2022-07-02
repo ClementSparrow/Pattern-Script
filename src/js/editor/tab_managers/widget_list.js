@@ -111,18 +111,22 @@ ListTabManager.prototype = {
 	{
 		this.html_list.textContent = ''
 		game_def[this.game_def_property] = {}
-		content.forEach(item_def => this.addNewWidget(item_def))
+		for(const item_def of Object.values(content))
+			this.addNewWidget(item_def)
 	},
 
 	getContent: function()
 	{
-		return Array.from(this.html_list.querySelectorAll('li[data-name]')).map(li => game_def[this.game_def_property][li.dataset.name])
+		return Object.assign({}, game_def[this.game_def_property])
+		// return Array.from(this.html_list.querySelectorAll('li[data-name]')).map(li => game_def[this.game_def_property][li.dataset.name])
 	},
 
 	checkDirty: function(saved)
 	{
 		const current = this.getContent()
-		return (saved.length != current.length) || saved.some( ([s,i]) => ! this.widget_type.prototype.sameItems(s, current[i]) )
+		if (Object.keys(saved).length != Object.keys(current).length)
+			return true
+		return Object.keys(saved).some( (k) => ! this.widget_type.prototype.sameItems(saved[k], current[k]) )
 	},
 
 	setLoading: function() { },
