@@ -72,7 +72,7 @@ function tryLoadGist(id)
 			gist_manager.updateInterfaceForDirtyness(false)
 		}
 	}
-	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+	githubHTTPClient.setRequestHeader('Content-type', 'application/vnd.github+json')
 	githubHTTPClient.send()
 }
 
@@ -106,7 +106,7 @@ function shareOnGitHub(is_public, should_fork=false)
 		public: is_public,
 		files: Object.fromEntries([
 			['\''+game_name+'\'', { content: "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html" }],
-			...Array.from( tabs.tabs, tab_manager => [ tab_manager.name+'.json', {content: tab_manager.getContent()} ] )
+			...Array.from( tabs.tabs, tab => [ tab.name+'.txt', {content: (tab.name == 'code') ? tab.getContent() : JSON.stringify(tab.getContent(), null, 2)} ] )
 		])
 	}
 
@@ -171,8 +171,8 @@ function shareOnGitHub(is_public, should_fork=false)
 			gist_manager.updateInterfaceForDirtyness(false)
 		}
 	}
-	githubHTTPClient.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-	githubHTTPClient.setRequestHeader("Authorization", "token "+oauthAccessToken)
+	githubHTTPClient.setRequestHeader('Content-type', 'application/vnd.github+json')
+	githubHTTPClient.setRequestHeader('Authorization', 'token '+oauthAccessToken)
 	githubHTTPClient.send(JSON.stringify(gistToCreate))
     lastDownTarget = screen_layout.canvas
 }
