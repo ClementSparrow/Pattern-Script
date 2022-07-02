@@ -334,7 +334,7 @@ function levelsToArray(state)
 		{
 			for (let message of message_box)
 			{
-				message.text = wordwrapAndColor(message.text, state.fgcolor)
+				message.text = (message.text.length > 0) ? wordwrapAndColor(message.text, state.fgcolor) : []
 				if (message.text.length >= terminal_height)
 				{
 					logWarning('Message too long to fit on screen.', message.lineNumber)
