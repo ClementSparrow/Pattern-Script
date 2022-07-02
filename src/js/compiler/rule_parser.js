@@ -324,14 +324,11 @@ function parseRuleString(rule, state, curRules)
 			if (token === 'message')
 			{
 				const messageIndex = findIndexAfterToken(origLine, tokens, i)
-				let messageStr = { text: wordwrapAndColor(origLine.substring(messageIndex).trim(), state.fgcolor) }
-				if (messageStr === '')
-				{
-					messageStr = ' ';
-					//needs to be nonempty or the system gets confused and thinks it's a whole level message rather than an interstitial.
-				}
-				commands.setMessage(messageStr)
-				i=tokens.length;
+				const message_string = origLine.substring(messageIndex).trim()
+				commands.setMessage({
+					text: (message_string.lenth > 0) ? wordwrapAndColor(message_string, state.fgcolor) : [],
+				})
+				i=tokens.length
 			} else {
 				commands.addCommand(token)
 			}
