@@ -54,7 +54,7 @@ tryLoadSource: function(date = null)
 
 	document.getElementById('loadDropDown').selectedIndex = 0
 	const save = saves[index]
-	loadGameFromDict( (save.text !== undefined) ? ({code:save.text, metadata: {}}) : save.game )
+	loadGameFromDict( (save.text !== undefined) ? ({code:save.text, meta: {}}) : save.game )
 },
 
 updateInterfaceForDirtyness: function(is_dirty)

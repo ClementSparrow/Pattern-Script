@@ -102,11 +102,11 @@ function shareOnGitHub(is_public, should_fork=false)
 
 	const game_name = (game_def.title !== undefined) ? game_def.title : 'Untitled'
 	const gistToCreate = {
-		"description" : game_name + ' ('+PSFORKNAME+' Game)',
-		"public" : is_public,
-		"files": Object.fromEntries([
-			['\''+game_name+'\'', { "content": "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html" }],
-			...Array.from( tabs.tabs, tab_manager => [ tab_manager.name+'.json', {'content': tab_manager.getContent()} ] )
+		description: game_name + ' ('+PSFORKNAME+' Game)',
+		public: is_public,
+		files: Object.fromEntries([
+			['\''+game_name+'\'', { content: "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html" }],
+			...Array.from( tabs.tabs, tab_manager => [ tab_manager.name+'.json', {content: tab_manager.getContent()} ] )
 		])
 	}
 
