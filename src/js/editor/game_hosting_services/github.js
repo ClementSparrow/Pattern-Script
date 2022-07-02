@@ -65,9 +65,17 @@ function tryLoadGist(id)
 		{
 			const files = result['files']
 			if (files['script.txt'] !== undefined)
-				loadGameFromDict( ({code: files['script.txt']['content'], metadata: {}}) )
+				loadGameFromDict( ({code: files['script.txt'].content, meta: {}}) )
 			else
-				loadGameFromDict(  ) // WIP TODO: make a dict from the files 'content'. But also we need the version of the engine that was used to generate the file.
+			{
+				// WIP TODO: We also need the version of the engine that was used to generate the files to decode them.
+				loadGameFromDict( {
+					code: files['code.txt'].content,
+					meta: JSON.parse(files['meta.txt'].content),
+					palettes: JSON.parse(files['palettes.txt'].content),
+					sprites: JSON.parse(files['sprites.txt'].content),
+				} )
+			}
 			editor_tabmanager.editor.clearHistory()
 			gist_manager.updateInterfaceForDirtyness(false)
 		}
@@ -105,7 +113,7 @@ function shareOnGitHub(is_public, should_fork=false)
 		description: game_name + ' ('+PSFORKNAME+' Game)',
 		public: is_public,
 		files: Object.fromEntries([
-			['\''+game_name+'\'', { content: "Play this game by pasting the script in "+HOSTPAGEURL+"/editor.html" }],
+			['\''+game_name+'\'', { content: metadata_tabmanager.getContent().description + "\n\nPlay this game at " + metadata_tabmanager.getContent().homepage + " or by pasting this gist's id at the end of this URL: "+HOSTPAGEURL+"/editor.html&hack=" }],
 			...Array.from( tabs.tabs, tab => [ tab.name+'.txt', {content: (tab.name == 'code') ? tab.getContent() : JSON.stringify(tab.getContent(), null, 2)} ] )
 		])
 	}
