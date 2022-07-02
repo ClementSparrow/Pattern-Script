@@ -7,7 +7,7 @@ SpriteWidget = function(container, item_def)
 		const palette_selector_label = make_HTML('label', {attr: {required: ''}, text: 'Edit with palette:'})
 		this.palette_name = make_HTML('input', {
 			attr: { type: 'text', list: 'palette_names' },
-			value: 'default_palette',
+			value: Object.keys(game_def.palettes)[0] || 'default_palette',
 			events: { change: (e) => this.changePalette() }
 		})
 		palette_selector_label.appendChild(this.palette_name)
@@ -51,7 +51,8 @@ SpriteWidget.prototype = {
 
 	finalize: function(item_def)
 	{
-		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas)
+		const palette = game_def.palettes[this.palette_name.value]
+		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas, undefined, undefined, palette)
 		this.sprite_editor.resize_canvas()
 	},
 
