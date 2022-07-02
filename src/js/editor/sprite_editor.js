@@ -95,8 +95,7 @@ function SpriteScreen(width, height, palette)
 	EmptyScreen.call(this, 'sprite_screen')
 	this.width = width || sprite_width
 	this.height = height || sprite_height
-	this.palette = palette || ['blue', 'red']
-	// this.pixels = Int32Array.from({length: this.width*this.height}, (_,i) => (i%3)-1)
+	this.palette = (palette !== undefined) ? palette : ['blue', 'red']
 	this.pixels = new Int32Array(this.width*this.height).fill(-1)
 }
 SpriteScreen.prototype = Object.create(EmptyScreen.prototype)

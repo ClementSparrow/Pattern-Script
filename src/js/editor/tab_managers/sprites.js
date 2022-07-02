@@ -5,12 +5,12 @@ SpriteWidget = function(container, item_def)
 	const palette_selector_container = make_HTML('div', {classes:['palette_selector']})
 	{
 		const palette_selector_label = make_HTML('label', {attr: {required: ''}, text: 'Edit with palette:'})
-		this.palette_name = make_HTML('input', {
+		this.palette_name_field = make_HTML('input', {
 			attr: { type: 'text', list: 'palette_names' },
 			value: Object.keys(game_def.palettes)[0] || 'default_palette',
-			events: { change: (e) => this.changePalette() }
+			events: { change: (e) => this.changePaletteName() }
 		})
-		palette_selector_label.appendChild(this.palette_name)
+		palette_selector_label.appendChild(this.palette_name_field)
 		palette_selector_container.appendChild(palette_selector_label)
 		
 		palette_selector_container.appendChild( make_HTML('div', {classes:['palette_selector_grid']}) )
@@ -39,19 +39,25 @@ SpriteWidget = function(container, item_def)
 
 SpriteWidget.prototype = {
 
-	changePalette: function()
+	changePaletteName: function()
 	{
-		const palette_name = this.palette_name.value
-		const palette = game_def.palettes[palette_name]
-		if (palette === undefined)
-			return
+		palettes_tabmanager.disconnectSprite(this, this.palette_name)
+		this.palette_name = this.palette_name_field.value
+		const palette = palettes_tabmanager.connectSprite(this, this.palette_name)
+		if (palette !== undefined)
+			this.updatePalette(palette)
+	},
+
+	updatePalette: function(palette)
+	{
 		this.sprite_editor.content.content.palette = palette
 		this.sprite_editor.redraw()
 	},
 
 	finalize: function(item_def)
 	{
-		const palette = game_def.palettes[this.palette_name.value]
+		this.palette_name = this.palette_name_field.value
+		const palette = palettes_tabmanager.connectSprite(this, this.palette_name)
 		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas, undefined, undefined, palette)
 		this.sprite_editor.resize_canvas()
 	},
@@ -81,4 +87,14 @@ SpritesTabManager.prototype.addNewBlankSpriteWidget = function()
 		name: '',
 		matrix: [[-1]],
 	})
+}
+
+SpritesTabManager.prototype.widgetContentChanged = function(name_field, widget)
+{
+	// TODO
+}
+
+SpritesTabManager.prototype.onRemoveWidget = function(widget, name)
+{
+	// TODO
 }

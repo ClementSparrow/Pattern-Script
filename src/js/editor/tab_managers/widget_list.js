@@ -105,6 +105,7 @@ ListTabManager.prototype = {
 		this.html_list.removeChild(widget)
 		if (name.length > 0)
 			delete game_def[this.game_def_property][name]
+		this.onRemoveWidget(widget, name)
 	},
 
 	setContent: function(content)

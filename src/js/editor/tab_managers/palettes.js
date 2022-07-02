@@ -254,8 +254,9 @@ PaletteWidget.prototype = {
 function PalettesTabManager(html_list)
 {
 	ListTabManager.call(this, html_list, 'palettes', 'Palette', PaletteWidget)
+	this.sprites_connected = {}
 	game_def.palettes = {}
-	this.addNewBlankPaletteWidget('default_palette')
+	this.addNewBlankPaletteWidget('default_palette') // WIP TODO: this should only be done if we're loading a blank project
 }
 PalettesTabManager.prototype = Object.create(ListTabManager.prototype)
 
@@ -272,5 +273,38 @@ PalettesTabManager.prototype.widgetContentChanged = function(name_field, widget)
 	const palette = widget.toDef()
 	game_def.palettes[palette_name] = palette // WIP TODO: be sure that the name is not duplicated
 	// WIP TODO: change the palette in all the widgets that use it, notably the sprite widgets
+	const sprites = this.sprites_connected[palette_name]
+	if (sprites !== undefined)
+	{
+		for (const sprite of sprites) sprite.updatePalette(palette)
+	}
 	// WIP TODO: recompile the sprite transformations for the objects that use this palette
+}
+
+PalettesTabManager.prototype.onRemoveWidget = function(widget, name)
+{
+	// TODO
+}
+
+PalettesTabManager.prototype.connectSprite = function(widget, palette_name)
+{
+	if (palette_name in this.sprites_connected)
+	{
+		this.sprites_connected[palette_name].push(widget)
+	}
+	else
+	{
+		this.sprites_connected[palette_name] = [widget]
+	}
+	return game_def.palettes[palette_name]
+}
+
+PalettesTabManager.prototype.disconnectSprite = function(widget, palette_name)
+{
+	const list = this.sprites_connected[palette_name]
+	if (list === undefined)
+		return
+	const index = list.indexOf(widget)
+	if (index >= 0)
+		list.splice(index, 1)
 }
