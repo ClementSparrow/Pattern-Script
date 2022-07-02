@@ -326,7 +326,7 @@ function parseRuleString(rule, state, curRules)
 				const messageIndex = findIndexAfterToken(origLine, tokens, i)
 				const message_string = origLine.substring(messageIndex).trim()
 				commands.setMessage({
-					text: (message_string.lenth > 0) ? wordwrapAndColor(message_string, state.fgcolor) : [],
+					text: (message_string.length > 0) ? wordwrapAndColor(message_string, state.fgcolor) : [],
 				})
 				i=tokens.length
 			} else {
