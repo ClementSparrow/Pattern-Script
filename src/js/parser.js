@@ -579,6 +579,11 @@ function expand_direction(direction_string, directions_is_expanded_as = 'right')
 
 PuzzleScriptParser.prototype.copySpriteMatrix = function()
 {
+	function rectanglify(s)
+	{
+		const w = Math.max(...s.map(l => l.length))
+		return s.map( l => l + '.'.repeat(w-l.length) )
+	}
 	for (const [object_index, [source_object_index, replaced_dir]] of this.current_expansion_context.expansion)
 	{
 		var object = this.identifiers.objects[object_index]
@@ -588,7 +593,10 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 		{
 			var f = (m) => m // default to identity function
 			if (transform === '|')
+			{
 				f = ( m => m.map( l => l.split('').reverse().join('') ) )
+				sprite = rectanglify(sprite)
+			}
 			else if (transform === '-')
 				f = ( m => Array.from(m).reverse() )
 			else 
@@ -611,6 +619,7 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 									(m => [ ...Array.from(m.slice(-delta)), ...Array.from(m.slice(0, -delta)) ]), // down
 									(m => Array.from(m, l => l.slice(delta) + l.slice(0, delta))) // left
 								])[shift_direction]
+							sprite = rectanglify(sprite)
 						}
 						break
 					case 'rot':
@@ -626,6 +635,7 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 									( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
 									( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
 								])[angle]
+							sprite = rectanglify(sprite)
 						}
 						break
 					case 'translate':
