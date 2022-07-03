@@ -620,12 +620,26 @@ function* cartesian_product(head, ...tail)
 			yield [h, ...r];
 }
 
+Identifiers.prototype.getExpansionForIdentifier = function(identifier_index)
+{
+	const objects = Array.from(this.object_set[identifier_index])
+	switch (this.comptype[identifier_index])
+	{
+		case identifier_type_tagset:
+			return objects // for tags, object_set actually contains identifiers
+		default:
+			console.log('WARNING! I should not get there! Trying to expand parameter ' + this.names[identifier_index] + ' that is neither a property or tag class but ' + identifier_type_as_text[this.comptype[identifier_index]])
+		case identifier_type_property:
+			return objects.map( object_index => this.objects[object_index].identifier_index )
+	}
+}
+
 Identifiers.prototype.make_expansion_parameter = function(identifiers_indexes)
 {
 	return Array.from(
 		identifiers_indexes,
-		identifier_index => Array.from(this.object_set[identifier_index])
-	);
+		identifier_index => this.getExpansionForIdentifier(identifier_index)
+	)
 }
 
 Identifiers.prototype.expand_parameters = function*(identifiers_indexes)
