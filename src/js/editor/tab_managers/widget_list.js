@@ -65,6 +65,48 @@ function ListTabManager(html_list, game_def_property, name, widget_type)
 
 ListTabManager.prototype = {
 
+	// Namespace management
+	// ====================
+
+	has_usable_name: function(widget)
+	{
+		return (this.widgets_by_name[widget.name] === widget.manager)
+	},
+
+	name_is_free: function(name)
+	{
+		return (name !== undefined) && (name.length > 0) && ! (name in this.widgets_by_name)
+	},
+
+	free_name: function(widget)
+	{
+		if ( ! this.has_usable_name(widget) )
+			return
+		delete game_def[this.game_def_property][widget.name]
+		delete this.widgets_by_name[widget.name]
+	},
+
+	register_name: function(new_name, widget_def, widget_manager)
+	{
+		if ( ! this.name_is_free(new_name) )
+			return
+		game_def[this.game_def_property][new_name] = widget_def
+		this.widgets_by_name[new_name] = widget_manager
+	},
+
+	updateNamesList: function()
+	{
+		// update the datalist for name fields autocompletion
+		this.names_datalist.innerText = ''
+		for (const name of Object.keys(this.widgets_by_name))
+		{
+			this.names_datalist.appendChild( make_HTML('option', {attr: {value: name}}) )
+		}
+	},
+
+
+	// Changes on list items
+	// =====================
 	addNewWidget: function(name, item_def)
 	{
 
@@ -72,7 +114,8 @@ ListTabManager.prototype = {
 		const manager = new this.widget_type(subwidget_container, item_def)
 		manager.onChangeContent = (w) => { this.widgetContentChanged(w); tabs.checkDirty() }
 		manager.onChangeState   = (w) => { this.widgetStateChanged(w);   tabs.checkDirty() }
-		this.widgets.push( { name: name, manager: manager, def: item_def } )
+		manager.widget = { name: name, manager: manager, def: item_def }
+		this.widgets.push( manager.widget )
 
 		this.register_name(name, item_def, manager)
 		this.updateNamesList()
@@ -111,69 +154,32 @@ ListTabManager.prototype = {
 		manager.finalize(item_def)
 	},
 
-	find_widget_by_manager: function(widget_manager)
-	{
-		return this.widgets[ this.widgets.findIndex( w => (w.manager === widget_manager) ) ]
-	},
-
-	has_usable_name: function(widget)
-	{
-		return (this.widgets_by_name[widget.name] === widget.manager)
-	},
-
-	name_is_free: function(name)
-	{
-		return (name !== undefined) && (name.length > 0) && ! (name in this.widgets_by_name)
-	},
-
-	free_name: function(widget)
-	{
-		if ( ! this.has_usable_name(widget) )
-			return
-		delete game_def[this.game_def_property][widget.name]
-		delete this.widgets_by_name[widget.name]
-	},
-
-	register_name: function(new_name, widget_def, widget_manager)
-	{
-		if ( ! this.name_is_free(new_name) )
-			return
-		game_def[this.game_def_property][new_name] = widget_def
-		this.widgets_by_name[new_name] = widget_manager
-	},
-
 	renameWidget: function(widget_manager, new_name)
 	{
-		const widget = this.find_widget_by_manager(widget_manager)
+		const widget = widget_manager.widget
 		this.free_name(widget)
 		widget.name = new_name
 		this.register_name(new_name, widget.def, widget_manager)
 		this.updateNamesList()
 		tabs.checkDirty()
-	},
-
-	updateNamesList: function()
-	{
-		// update the datalist for name fields autocompletion
-		this.names_datalist.innerText = ''
-		for (const name of Object.keys(this.widgets_by_name))
-		{
-			this.names_datalist.appendChild( make_HTML('option', {attr: {value: name}}) )
-		}
-
 		// WIP TODO: recompile, because a name can have changed that was or has become used in the objects
 	},
 
 	// WIP TODO: the delete button should be grayed if the item is used, otherwise it can cause issues with live update
 	removeWidget: function(html_widget, widget_manager)
 	{
-		const widget = this.find_widget_by_manager(widget_manager)
+		const widget = widget_manager.widget
 		this.html_list.removeChild(html_widget)
 		this.free_name(widget)
 		this.onRemoveWidget(widget)
 		this.updateNamesList()
 		tabs.checkDirty()
+		// no need to recompile here
 	},
+
+
+	// Tab Manager interface
+	// =====================
 
 	setContent: function(content)
 	{
