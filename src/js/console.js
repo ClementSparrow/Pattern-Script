@@ -1,6 +1,6 @@
 function jumpToLine(i)
 {
-    editor_tabmanager.editor.jumpToLine(i)
+    editor_tabmanager.jumpToLine(i)
 }
 
 // Selectable text in console
