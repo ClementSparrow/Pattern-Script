@@ -3,11 +3,9 @@ tabs.addTab('meta', metadata_tabmanager)
 
 var palettes_tabmanager = new PalettesTabManager(document.getElementById('palettes_list'))
 tabs.addTab('palettes', palettes_tabmanager)
-function createNewPaletteClicked() { palettes_tabmanager.addNewBlankPaletteWidget() }
 
 var sprites_tabmanager = new SpritesTabManager(document.getElementById('sprites_list'))
 tabs.addTab('sprites', sprites_tabmanager)
-function createNewSpriteClicked() { sprites_tabmanager.addNewBlankSpriteWidget() }
 
 var editor_tabmanager = new CodeEditorTabManager(document.getElementById('code'))
 tabs.addTab('code', editor_tabmanager)

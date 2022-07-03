@@ -18,7 +18,7 @@ addTab: function(tab_name, tab_manager)
 
 getContent: function() {
 	return Object.fromEntries(
-		Array.from(this.tab_names, (tab_name, i) => [tab_name, this.tabs[i].getContent()])
+		this.tab_names.map( (tab_name, i) => [tab_name, this.tabs[i].getContent()] )
 	)
 },
 
