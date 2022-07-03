@@ -68,9 +68,9 @@ ListTabManager.prototype = {
 	// Namespace management
 	// ====================
 
-	has_usable_name: function(widget)
+	has_usable_name: function(widget_manager)
 	{
-		return (this.widgets_by_name[widget.name] === widget.manager)
+		return (this.widgets_by_name[widget_manager.widget.name] === widget_manager)
 	},
 
 	name_is_free: function(name)
@@ -78,19 +78,20 @@ ListTabManager.prototype = {
 		return (name !== undefined) && (name.length > 0) && ! (name in this.widgets_by_name)
 	},
 
-	free_name: function(widget)
+	free_name: function(widget_manager)
 	{
-		if ( ! this.has_usable_name(widget) )
+		if ( ! this.has_usable_name(widget_manager) )
 			return
-		delete game_def[this.game_def_property][widget.name]
-		delete this.widgets_by_name[widget.name]
+		const name = widget_manager.widget.name
+		delete game_def[this.game_def_property][name]
+		delete this.widgets_by_name[name]
 	},
 
-	register_name: function(new_name, widget_def, widget_manager)
+	register_name: function(new_name, widget_manager)
 	{
 		if ( ! this.name_is_free(new_name) )
 			return
-		game_def[this.game_def_property][new_name] = widget_def
+		game_def[this.game_def_property][new_name] = widget_manager.widget.def
 		this.widgets_by_name[new_name] = widget_manager
 	},
 
@@ -107,6 +108,7 @@ ListTabManager.prototype = {
 
 	// Changes on list items
 	// =====================
+
 	addNewWidget: function(name, item_def)
 	{
 
@@ -114,10 +116,10 @@ ListTabManager.prototype = {
 		const manager = new this.widget_type(subwidget_container, item_def)
 		manager.onChangeContent = (w) => { this.widgetContentChanged(w); tabs.checkDirty() }
 		manager.onChangeState   = (w) => { this.widgetStateChanged(w);   tabs.checkDirty() }
-		manager.widget = { name: name, manager: manager, def: item_def }
+		manager.widget = { name: name, def: item_def, connected: {} } // "connected" should be removed for export
 		this.widgets.push( manager.widget )
 
-		this.register_name(name, item_def, manager)
+		this.register_name(name, manager)
 		this.updateNamesList()
 
 		const widget = document.createElement('li')
@@ -157,9 +159,9 @@ ListTabManager.prototype = {
 	renameWidget: function(widget_manager, new_name)
 	{
 		const widget = widget_manager.widget
-		this.free_name(widget)
+		this.free_name(widget_manager)
 		widget.name = new_name
-		this.register_name(new_name, widget.def, widget_manager)
+		this.register_name(new_name, widget_manager)
 		this.updateNamesList()
 		tabs.checkDirty()
 		// WIP TODO: recompile, because a name can have changed that was or has become used in the objects
@@ -170,7 +172,7 @@ ListTabManager.prototype = {
 	{
 		const widget = widget_manager.widget
 		this.html_list.removeChild(html_widget)
-		this.free_name(widget)
+		this.free_name(widget_manager)
 		this.onRemoveWidget(widget)
 		this.updateNamesList()
 		tabs.checkDirty()
@@ -185,28 +187,26 @@ ListTabManager.prototype = {
 	{
 		this.html_list.textContent = ''
 		game_def[this.game_def_property] = {}
-		for(const [item_name, item_def] of Object.values(content))
+		this.widgets = []
+		this.widgets_by_name = {}
+		for(const [item_name, item_def] of content)
 			this.addNewWidget(item_name, item_def)
 	},
 
 	getContent: function()
 	{
-		return Object.assign({}, game_def[this.game_def_property])
+		return Array.from(this.widgets, (widget) => [widget.name, this.widget_type.prototype.deepCopy(widget.def)])
 	},
 
 	checkDirty: function(saved)
 	{
 		const current = this.getContent()
-		const ids_saved = new Set(Object.keys(saved))
-		const ids_current = new Set(Object.keys(current))
-		if (ids_saved.size != ids_current.size)
+		if (saved.length != current.length)
 			return true
-		for (const elem of ids_saved)
-		{
-			if ( ! ids_current.has(elem) )
-				return true
-		}
-		return Object.keys(saved).some( (k) => ! this.widget_type.prototype.sameItems(saved[k], current[k]) )
+		return saved.some(
+			([name, widget], i) => (name != current[i][0])
+								|| ! this.widget_type.prototype.sameItems(widget, current[i][1])
+		)
 	},
 
 	setLoading: function() { },

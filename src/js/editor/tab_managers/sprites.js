@@ -62,6 +62,11 @@ SpriteWidget.prototype = {
 		this.sprite_editor.resize_canvas()
 	},
 
+	deepCopy: function(item)
+	{
+		
+	},
+
 	sameItems: function(item1, item2)
 	{
 
