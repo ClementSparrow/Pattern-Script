@@ -1,7 +1,7 @@
 
 PaletteWidget = function(container, item_def)
 {
-	this.colors = []
+	this.colors = item_def.colors
 	this.z = 0
 
 	const colorspaces = {
@@ -51,7 +51,6 @@ PaletteWidget = function(container, item_def)
 // - change this.z by directly clicking in the zbar
 // - add rrggbb field to enter color directly as hex value
 // - add copy/paste options for colors and palettes
-// - allow to use the palette in the sprite editors of the Sprites tab
 
 PaletteWidget.prototype = {
 
@@ -65,7 +64,7 @@ PaletteWidget.prototype = {
 		const min_z = Math.max(  0, ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 255 : 0)-v)/this.z_color[c]))
 		const max_z = Math.min(255, ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 0 : 255)-v)/this.z_color[c]))
 		const new_z = (1-z/255)*min_z + max_z*z/255
-		return base.map( (v,c) => v+(new_z-127.5)*this.z_color[c])
+		return base.map( (v,c) => Math.round( v+(new_z-127.5)*this.z_color[c] ) )
 	},
 
 	addColor: function(color)
@@ -75,7 +74,7 @@ PaletteWidget.prototype = {
 		this.sprite_editor.content.glyphSelectedIndex = this.colors.length - 1
 		this.sprite_editor.resize_canvas()
 		this.redraw()
-		this.onChangeContent()
+		this.onChangeContent(this)
 	},
 
 	setActiveColorSpace: function(name, quaternion, dt)
@@ -238,45 +237,48 @@ PaletteWidget.prototype = {
 		this.redraw()
 	},
 
-	toDef: function(widget)
+	toHex: function(item)
 	{
-		return this.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join(''))
+		return item.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join(''))
 	},
 
 	sameItems: function(item1, item2)
 	{
-		return item1 == item2
+		return this.toHex(item1).join(' ') == this.toHex(item2).join(' ')
 	},
+
 
 }
 
 
 function PalettesTabManager(html_list)
 {
+	game_def.palettes = {}
 	ListTabManager.call(this, html_list, 'palettes', 'Palette', PaletteWidget)
 	this.sprites_connected = {}
-	game_def.palettes = {}
-	this.addNewBlankPaletteWidget('default_palette') // WIP TODO: this should only be done if we're loading a blank project
+	this.addNewBlankWidget('default_palette') // WIP TODO: this should only be done if we're loading a blank project
 }
 PalettesTabManager.prototype = Object.create(ListTabManager.prototype)
 
-PalettesTabManager.prototype.addNewBlankPaletteWidget = function(name)
+PalettesTabManager.prototype.addNewBlankWidget = function(name)
 {
-	this.addNewWidget({ name: name||'', })
+	this.addNewWidget(name||'', { colors: [] })
 }
 
-PalettesTabManager.prototype.widgetContentChanged = function(name_field, widget)
+// WIP TODO: this way of doing does not work because we do not update sprites_connected when the palette is renammed
+// (it should disconnect the sprites that used that name, or change the name directly, and it should connect the sprites
+// that already had the new name)
+// So the good way to do it seems to have an editor_data managed by the ListTabManager in the same way than game_def,
+// and put the sprites connected in the entry for a palette.
+PalettesTabManager.prototype.widgetContentChanged = function(widget_manager)
 {
-	const palette_name = name_field.value
-	if (palette_name.length == 0)
+	const widget = this.find_widget_by_manager(widget_manager)
+	if ( ! this.has_usable_name(widget) )
 		return
-	const palette = widget.toDef()
-	game_def.palettes[palette_name] = palette // WIP TODO: be sure that the name is not duplicated
-	// WIP TODO: change the palette in all the widgets that use it, notably the sprite widgets
-	const sprites = this.sprites_connected[palette_name]
+	const sprites = this.sprites_connected[widget.name]
 	if (sprites !== undefined)
 	{
-		for (const sprite of sprites) sprite.updatePalette(palette)
+		for (const sprite of sprites) sprite.updatePalette(widget.def.colors)
 	}
 	// WIP TODO: recompile the sprite transformations for the objects that use this palette
 }
@@ -286,25 +288,26 @@ PalettesTabManager.prototype.onRemoveWidget = function(widget, name)
 	// TODO
 }
 
-PalettesTabManager.prototype.connectSprite = function(widget, palette_name)
+PalettesTabManager.prototype.connectSprite = function(sprite_widget, palette_name)
 {
 	if (palette_name in this.sprites_connected)
 	{
-		this.sprites_connected[palette_name].push(widget)
+		this.sprites_connected[palette_name].push(sprite_widget)
 	}
 	else
 	{
-		this.sprites_connected[palette_name] = [widget]
+		this.sprites_connected[palette_name] = [sprite_widget]
 	}
-	return game_def.palettes[palette_name]
+	const palette = game_def.palettes[palette_name]
+	return (palette === undefined) ? undefined : palette.colors
 }
 
-PalettesTabManager.prototype.disconnectSprite = function(widget, palette_name)
+PalettesTabManager.prototype.disconnectSprite = function(sprite_widget, palette_name)
 {
 	const list = this.sprites_connected[palette_name]
 	if (list === undefined)
 		return
-	const index = list.indexOf(widget)
+	const index = list.indexOf(sprite_widget)
 	if (index >= 0)
 		list.splice(index, 1)
 }
