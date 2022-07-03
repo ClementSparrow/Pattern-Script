@@ -200,7 +200,8 @@ Identifiers.prototype.registerNewMapping = function(identifier, original_case, f
  */
 
 // TODO: instead of having an 'accepts_mapping' parameter and check all possible values in the end set of the mapping, we should provide as argument the set of parameters
-// that can be replaced. accepts_mapping is only true for checking rules and the first parameter of copy: in sprites definitions. In both cases we should know the expansion params.
+// that can be replaced. accepts_mapping is only true for checking rules and the first parameter of copy: in sprites definitions (and in win conditions, but it should not ? - and we also want it in expanded collision layer declarations). In all cases, we should know the expansion params.
+// Also note that in all the cases where we know the extension parameters, the objects should not be declared implicitly (but properties defined by tag classes can). So we can use a version of this expansion that does not rely on string identifier names, and use indexes instead.
 
 Identifiers.prototype.visitTagExpansion = function(identifier, tagged_identifier, accepts_mapping, tag_operation, identifier_operation)
 {
@@ -324,7 +325,7 @@ Identifiers.prototype.identifierIsWellFormed = function(identifier, accepts_mapp
 		return [-1, identifier_base, tags];
 	}
 
-//	And they must be tag values or tag classes
+//	And they must be tag values or tag classes (or tag mappings)
 	const invalid_tags = tags.filter(
 		([tag_index, tn]) => ! this.checkIdentifierType(tag_index, [identifier_type_tag, identifier_type_tagset], accepts_mapping)
 	);
@@ -492,7 +493,7 @@ Identifiers.prototype.checkCompoundDefinition = function(identifiers, compound_n
 
 //	======== REGISTER AND CHECK =======
 
-Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_case, tagclass_identifier_index, log)
+Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_case, class_tagset, log)
 {
 
 //	Create a new tag if it does not already exists
@@ -500,31 +501,21 @@ Identifiers.prototype.checkAndRegisterNewTagValue = function(tagname, original_c
 	if (identifier_index < 0)
 	{
 		const new_identifier_index = this.registerNewIdentifier(tagname, original_case, identifier_type_tag, identifier_type_tag, new Set([this.names.length]), [], 0, log.lineNumber)
-		this.object_set[tagclass_identifier_index].add(new_identifier_index);
-		return new_identifier_index;
-	}
-
-//	Avoid circular definitions
-	if (identifier_index === tagclass_identifier_index)
-	{
-		log.logError('You cannot define tag class '+tagname.toUpperCase()+' as an element of itself. I will ignore that.');
-		return -1;
+		class_tagset.add(new_identifier_index)
+		return
 	}
 
 //	Reuse existing tag or tagset
 	if ( [identifier_type_tag, identifier_type_tagset].includes(this.comptype[identifier_index]) )
 	{
-		this.object_set[identifier_index].forEach(x => this.object_set[tagclass_identifier_index].add(x));
-		return identifier_index;
+		this.object_set[identifier_index].forEach(x => class_tagset.add(x))
+		return
 	}
-	// TODO: should we allow direction keywords to appear here too?
-	// If so, wouldn't it be easier to add them to this.names in the constructor or Identifiers with a lineNumber set to -1?
 
 //	Existing identifier but not a tag!
 	const l = this.lineNumbers[identifier_index]
 	log.logError('You are trying to define a new tag named "'+tagname.toUpperCase()+'", but this name is already used for '+
 		identifier_type_as_text[this.comptype[identifier_index]]+ ((l >= 0) ? ' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.' : ' keyword.'));
-	return -2;
 }
 
 

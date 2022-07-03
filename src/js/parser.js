@@ -447,25 +447,44 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				stream.match(reg_notcommentstart, true);
 				return 'ERROR'
 			}
+			this.tokenIndex = 1
 			const tagclass_name = tagclass_name_match[0];
 			if ( ! this.checkIfNewTagNameIsValid(tagclass_name) )
 			{
-				this.tokenIndex = 1;
-				return 'ERROR';
+				return 'ERROR'
 			}
-			const identifier_index = this.identifiers.names.indexOf(tagclass_name);
+
+			let tags = reg_notcommentstart.exec(stream.string)[0].split('=')[1].trim().split(' ').map(t => t.trim())
+			tags = tags.filter(tagname => (tagname.length > 0) && this.checkIfNewTagNameIsValid(tagname) )
+			if (tags.includes(tagclass_name))
+			{
+				this.logError('You cannot define tag class '+tagclass_name.toUpperCase()+' as an element of itself. I will ignore that.')
+			}
+
+			const identifier_index = this.identifiers.names.indexOf(tagclass_name)
 			if (identifier_index >= 0)
 			{
 				const l = this.identifiers.lineNumbers[identifier_index];
 				this.logError('You are trying to define a new tag class named "'+tagclass_name.toUpperCase()+'", but this name is already used for '+
 					identifier_type_as_text[this.identifiers.comptype[identifier_index]]+((l >= 0) ? ' defined '+makeLinkToLine(l, 'line ' + l.toString())+'.' : ' keyword.'));
-				this.tokenIndex = 1;
-				return 'ERROR';
+				return 'ERROR'
 			}
-			this.current_identifier_index = this.identifiers.names.length;
-			this.identifiers.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, new Set(), [null], 0, this.lineNumber);
-			this.tokenIndex = 1;
-			return 'NAME';
+
+			// we register the new tags now if they are valid. At that point the tag class can only be invalid if it contains no valid tag, so this is not an issue.
+			const tag_set = new Set()
+			for (const tagname of tags)
+			{
+				const added_tagset = this.identifiers.checkAndRegisterNewTagValue(tagname, findOriginalCaseName(tagname, this.mixedCase), tag_set, this)
+			}
+			if (tag_set.size === 0)
+			{
+				this.logError('The declaration of '+tagclass_name.toUpperCase()+' does not contain any valid tag. Tag classes cannot be empty!')
+				return 'ERROR'
+			}
+
+			this.current_identifier_index = this.identifiers.names.length
+			this.identifiers.registerNewIdentifier(tagclass_name, findOriginalCaseName(tagclass_name, this.mixedCase), identifier_type_tagset, identifier_type_tagset, tag_set, [null], 0, this.lineNumber)
+			return 'NAME'
 		}
 		case 1: // equal sign
 		{
@@ -482,11 +501,9 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 				stream.match(reg_notcommentstart, true);
 				return 'ERROR'
 			}
-			const tagname = tagname_match[0];
-			if ( ! this.checkIfNewTagNameIsValid(tagname) )
-				return 'ERROR';
-			const identifier_index = this.identifiers.checkAndRegisterNewTagValue(tagname, findOriginalCaseName(tagname, this.mixedCase), this.current_identifier_index, this);
-			return (identifier_index < 0) ? 'ERROR' : 'NAME';
+			const tagname = tagname_match[0]
+			const identifier_index = this.identifiers.names.indexOf(tagname)
+			return ( (identifier_index < 0) || ( ! this.identifiers.object_set[this.current_identifier_index].has(identifier_index) ) ) ? 'ERROR' : 'NAME';
 		}
 		default:
 		{
