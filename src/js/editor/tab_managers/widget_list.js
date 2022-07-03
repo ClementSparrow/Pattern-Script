@@ -26,14 +26,38 @@ function make_HTML(element_type, options)
 	return result
 }
 
+function make_name_inputline(prompt, default_value, events, field_extra_attributes)
+{
+	const name_label = make_HTML('label', { text: prompt, attr: {required: ''}} )
+	const name_field = make_HTML('input', {
+		attr: Object.assign({type: 'text'}, field_extra_attributes || {}),
+		value: default_value,
+		events: events,
+	})
+	// WIP TODO: add a button to copy the name
+	name_label.appendChild(name_field)
+	return name_label
+}
+
 function ListTabManager(html_list, game_def_property, name, widget_type)
 {
 	this.name = game_def_property
 	this.html_list = html_list
-	html_list.classList.add('managed_widget_list')
 	this.game_def_property = game_def_property
 	this.type_name = name
 	this.widget_type = widget_type
+	this.widgets = []
+	this.widgets_by_name = {} // name to index
+
+	html_list.classList.add('managed_widget_list')
+
+	// Add 'create new item' button
+	html_list.insertAdjacentElement('afterend', make_HTML('button', {
+		attr: {type: 'button'},
+		text: 'Create new '+this.type_name,
+		events: { click: (e) => { this.addNewBlankWidget(); tabs.checkDirty() } },
+	}))
+
 	// to allow autocompletion of fields that ask for a name in this list
 	this.names_datalist = make_HTML('datalist', {attr: {id: name.toLowerCase()+'_names'}})
 	document.head.appendChild(this.names_datalist)
@@ -41,26 +65,33 @@ function ListTabManager(html_list, game_def_property, name, widget_type)
 
 ListTabManager.prototype = {
 
-	addNewWidget: function(item_def)
+	addNewWidget: function(name, item_def)
 	{
-		const widget = document.createElement('li')
-
-		const name_label = make_HTML('label', { text: this.type_name+' name:', })
-		const name_field = make_HTML('input', {
-			attr: {type: 'text'},
-			value: item_def.name,
-			events: {change: (e) => { widget.dataset.name = (e.target.value == '') ? null : e.target.value; this.updateNamesList() }}
-		})
-		// WIP TODO: add a button to copy the name
-		name_label.appendChild(name_field)
-		widget.appendChild(name_label)
 
 		const subwidget_container = make_HTML('div', {classes: ['list_widget']})
-		const subwidget = new this.widget_type(subwidget_container, item_def)
-		subwidget.onChangeContent = () => this.widgetContentChanged(name_field, subwidget)
-		subwidget.onChangeState = () => this.widgetStateChanged(name_field, subwidget)
+		const manager = new this.widget_type(subwidget_container, item_def)
+		manager.onChangeContent = (w) => { this.widgetContentChanged(w); tabs.checkDirty() }
+		manager.onChangeState   = (w) => { this.widgetStateChanged(w);   tabs.checkDirty() }
+		this.widgets.push( { name: name, manager: manager, def: item_def } )
+
+		this.register_name(name, item_def, manager)
+		this.updateNamesList()
+
+		const widget = document.createElement('li')
+
+		// name widget
+		widget.appendChild(
+			make_name_inputline(
+				this.type_name+' name:',
+				name,
+				{ change: (e) => this.renameWidget(manager, e.target.value) }
+			)
+		)
+
+		// content widget
 		widget.appendChild(subwidget_container)
 
+		// item management buttons
 		const widget_buttons = document.createElement('div')
 		const buttons_def = [
 			[ 'Delete', 'removeWidget' ],
@@ -70,63 +101,105 @@ ListTabManager.prototype = {
 		{
 			widget_buttons.appendChild(make_HTML('button', {
 				text: button_label+' '+this.type_name,
-				events: { click: (e) => this[button_callback](widget, item_def.name) },
+				events: { click: (e) => this[button_callback](widget, manager) },
 			}))
 		}
 		widget.appendChild(widget_buttons)
 
 		this.html_list.appendChild(widget)
 
-		subwidget.finalize(item_def)
+		manager.finalize(item_def)
+	},
 
-		if (item_def.name.length > 0)
-		{
-			widget.dataset.name = item_def.name
-			game_def[this.game_def_property][item_def.name] = subwidget.toDef()
-		}
+	find_widget_by_manager: function(widget_manager)
+	{
+		return this.widgets[ this.widgets.findIndex( w => (w.manager === widget_manager) ) ]
+	},
+
+	has_usable_name: function(widget)
+	{
+		return (this.widgets_by_name[widget.name] === widget.manager)
+	},
+
+	name_is_free: function(name)
+	{
+		return (name !== undefined) && (name.length > 0) && ! (name in this.widgets_by_name)
+	},
+
+	free_name: function(widget)
+	{
+		if ( ! this.has_usable_name(widget) )
+			return
+		delete game_def[this.game_def_property][widget.name]
+		delete this.widgets_by_name[widget.name]
+	},
+
+	register_name: function(new_name, widget_def, widget_manager)
+	{
+		if ( ! this.name_is_free(new_name) )
+			return
+		game_def[this.game_def_property][new_name] = widget_def
+		this.widgets_by_name[new_name] = widget_manager
+	},
+
+	renameWidget: function(widget_manager, new_name)
+	{
+		const widget = this.find_widget_by_manager(widget_manager)
+		this.free_name(widget)
+		widget.name = new_name
+		this.register_name(new_name, widget.def, widget_manager)
 		this.updateNamesList()
+		tabs.checkDirty()
 	},
 
 	updateNamesList: function()
 	{
 		// update the datalist for name fields autocompletion
 		this.names_datalist.innerText = ''
-		for (const li of this.html_list.querySelectorAll('li[data-name]'))
+		for (const name of Object.keys(this.widgets_by_name))
 		{
-			this.names_datalist.appendChild( make_HTML('option', {attr: {value: li.dataset.name}}) )
+			this.names_datalist.appendChild( make_HTML('option', {attr: {value: name}}) )
 		}
 
 		// WIP TODO: recompile, because a name can have changed that was or has become used in the objects
 	},
 
 	// WIP TODO: the delete button should be grayed if the item is used, otherwise it can cause issues with live update
-	removeWidget: function(widget, name)
+	removeWidget: function(html_widget, widget_manager)
 	{
-		this.html_list.removeChild(widget)
-		if (name.length > 0)
-			delete game_def[this.game_def_property][name]
-		this.onRemoveWidget(widget, name)
+		const widget = this.find_widget_by_manager(widget_manager)
+		this.html_list.removeChild(html_widget)
+		this.free_name(widget)
+		this.onRemoveWidget(widget)
+		this.updateNamesList()
+		tabs.checkDirty()
 	},
 
 	setContent: function(content)
 	{
 		this.html_list.textContent = ''
 		game_def[this.game_def_property] = {}
-		for(const item_def of Object.values(content))
-			this.addNewWidget(item_def)
+		for(const [item_name, item_def] of Object.values(content))
+			this.addNewWidget(item_name, item_def)
 	},
 
 	getContent: function()
 	{
 		return Object.assign({}, game_def[this.game_def_property])
-		// return Array.from(this.html_list.querySelectorAll('li[data-name]')).map(li => game_def[this.game_def_property][li.dataset.name])
 	},
 
 	checkDirty: function(saved)
 	{
 		const current = this.getContent()
-		if (Object.keys(saved).length != Object.keys(current).length)
+		const ids_saved = new Set(Object.keys(saved))
+		const ids_current = new Set(Object.keys(current))
+		if (ids_saved.size != ids_current.size)
 			return true
+		for (const elem of ids_saved)
+		{
+			if ( ! ids_current.has(elem) )
+				return true
+		}
 		return Object.keys(saved).some( (k) => ! this.widget_type.prototype.sameItems(saved[k], current[k]) )
 	},
 
