@@ -270,9 +270,11 @@ PalettesTabManager.prototype.addNewBlankWidget = function(name)
 // that already had the new name)
 // So the good way to do it seems to have an editor_data managed by the ListTabManager in the same way than game_def,
 // and put the sprites connected in the entry for a palette.
+// No actually, it's simpler to put that in game_def directly and have a function in each tab_manager to create a cleaned up
+// game_def for export.
 PalettesTabManager.prototype.widgetContentChanged = function(widget_manager)
 {
-	const widget = this.find_widget_by_manager(widget_manager)
+	const widget = widget_manager.widget
 	if ( ! this.has_usable_name(widget) )
 		return
 	const sprites = this.sprites_connected[widget.name]
