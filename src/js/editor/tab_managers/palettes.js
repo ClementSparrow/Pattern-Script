@@ -9,8 +9,12 @@ PaletteWidget = function(container, item_def)
 		gb: { w: 0.5, v: [0.5, 0.5, 0.5]}, // xyz = gbr 120° rotation (cos 60°=1/2, sin 60°=√3/2) around diagonal [1,1,1] of length √3
 		// bg: { w: 0.7071067812, v: [0, -0.7071067812, 0]}, // xyz = bg-r -90° rotation (cos -45°=√2/2, sin -45°=-√2/2) around diagonal g
 		br: { w:-0.5, v: [0.5, 0.5, 0.5]}, // xyz = brg 240° rotation (cos 120°=-1/2, sin 120°=√3/2) around diagonal of length √3
-		// hsb:{ w: 0.888073834, v: [-0.3250575837, 0.3250575837, 0]}, // transforms the cube's diagonal (1,1,1)/√3 into x so the rotation axis is the cross product of these two vectors, (1,-1,0)/√3, which has norm √2/√3 = sin(Ω) so cos(Ω)=1/√3 (since Ω<90°) and sin(Ω)=2sin(Ω/2)cos(Ω/2) so 2/3 = 4sin^2(Ω/2)(1-sin^2(Ω/2)) (replacing sin^2 with 1-cos^2 would give the same expression with cosines instead of sines) hence x^2-x+1/6=0 with x=sin^2(Ω/2) (or cos^2) => ∆=1/3, x=(1±1/√3)/2 => sin(Ω/2) = √((1-1/√3)/2), cos(Ω/2) = √((1+1/√3)/2)
-		hsb: { w: 0.8804762392398382, v: [ -0.27984814235734057, 0.364705199662564, 0.11591689596228216 ] }, // like above but with additionnal 7.5° rotation along the z axis
+		// hsb: if v is transformed in v' after rotating around axis u, then u.v = u.v' <=> u.(v-v')=0. => u = (v-v')x(w-w') normalized
+		// here, v is the cube's diagonal (1,1,1)/√3 and v'=(0,0,1), w=(0,1,0) and w'= (0,sinΩ,cosΩ) with Ω the angle between v and w
+		// => sinΩ=|(1,1,1)x(0,1,0)|/√3 = |(-1,0,1)|/√3 = √2/√3 => w'=(0,√2,1)/√3
+		// => u = (1,1,1-√3)/√3x(0,1-√2/,-1)/√3=(-1-(1-√3)(1-√2),1,1-√2)/3 = (-2+√2+√3-√6,1,1-√2)/3 to be renormalized
+		// the rotation angle has sin = |(v-(v.u)u)x(v'-(v'.u)u)|/|v-(v.u)u)||v'-(v'.u)u)|...
+		hsb: { w: 0.8804762392398382, v: [ -0.27984814235734057, 0.364705199662564, 0.11591689596228216 ] },
 	}
 
 	this.colorspace_buttons = make_HTML('div', {classes:['colorspace_buttons']})
@@ -243,6 +247,7 @@ PaletteWidget.prototype = {
 		return { colors: Array.from(item.colors) }
 	},
 
+	// WIP TODO: the code in this function is duplicated in the parser for the spritematrix, it should be moved to colors.js
 	toHex: function(item)
 	{
 		return item.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join(''))

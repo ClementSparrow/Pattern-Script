@@ -62,6 +62,7 @@
 .cm-s-midnight span.cm-LEVEL_TITLE {color: orange;font-style:italic;}
 .cm-s-midnight span.cm-METADATA {color: #AE81FF;font-weight:bold;}
 .cm-s-midnight span.cm-METADATATEXT {color: orange;font-style:italic;}
+.cm-s-midnight span.cm-COPYWORD {color: #AE81FF; font-weight:bold;}
 
 span.cm-SOUND {
 	color: orange;
