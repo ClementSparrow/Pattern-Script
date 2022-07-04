@@ -120,6 +120,17 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 		}
 	)
 	this.finalizeMetaData('level_title_style', 'header', null, s => s)
+	this.finalizeMetaData('color_palette', 'arnecolors', 'palette_not_found',
+		function(val)
+		{
+			const palette_num = parseInt(val)
+			if ( ( ! isNaN(palette_num) ) && (palette_num > 0) && (palette_num <= colorPalettesAliases.length) )
+			{
+				val = colorPalettesAliases[palette_num-1]
+			}
+			return (colorPalettes[val] === undefined) ? null : val
+		}
+	)
 }
 
 // This is called by the compiler, not by the parser.
@@ -163,27 +174,8 @@ function twiddleMetaData(state)
 	[ sprite_width, sprite_height ] = game_def['sprite_size']
 
 
-	// get colorpalette name
-	// TODO: move that in the parser so that it can display the exact colors
-	let colorPalette = colorPalettes.arnecolors
-	if ('color_palette' in game_def)
-	{
-		let val = game_def.color_palette
-		const palette_num = parseInt(val)
-		if ( ( ! isNaN(palette_num) ) && (palette_num > 0) && (palette_num <= colorPalettesAliases.length) )
-		{
-			val = colorPalettesAliases[palette_num-1]
-		}
-		if (colorPalettes[val] === undefined)
-		{
-			logError(['palette_not_found', val]) // WIP TODO: use the line number of the palette declaration, and don't delete the line
-		}
-		else
-		{
-			colorPalette = colorPalettes[val]
-		}
-	}
-	game_def.game_palette = colorPalette
+	// get color palette from its name
+	game_def.game_palette = colorPalettes[game_def.color_palette]
 
 	const color_metadata = [
 		[ 'background_color', '#000000FF' ],
@@ -194,7 +186,7 @@ function twiddleMetaData(state)
 	]
 	for (const [metadata_key, default_color] of color_metadata)
 	{
-		const color = (game_def[metadata_key] !== undefined) ? colorToHex(colorPalette, game_def[metadata_key]) : (default_color || game_def.text_color)
+		const color = (game_def[metadata_key] !== undefined) ? colorToHex(game_def.game_palette, game_def[metadata_key]) : (default_color || game_def.text_color)
 		if ( isColor(color) )
 		{
 			game_def[metadata_key] = color

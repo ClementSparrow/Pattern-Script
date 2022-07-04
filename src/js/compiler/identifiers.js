@@ -76,6 +76,7 @@ Identifiers.prototype.copy = function()
 			name: o.name,
 			identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
+			palette: o.palette,
 			spritematrix: o.spritematrix.concat([]),
 			sprite_offset: Array.from(o.sprite_offset),
 			layer: o.layer
@@ -148,6 +149,7 @@ Identifiers.prototype.registerNewObject = function(identifier, original_case, im
 		name: identifier,
 		identifier_index: this.names.length,
 		colors: [],
+		palette: '',
 		spritematrix: [],
 		sprite_offset: [0, 0]
 	});

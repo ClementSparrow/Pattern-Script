@@ -57,13 +57,13 @@ function forceRegenImages()
 var spriteimages = []
 function regenSpriteImages()
 {
-	var sprites = []
+	const sprites = []
 	for (const o of state.identifiers.objects)
 	{
 		sprites[o.id] = o
 	}
 	spriteimages = sprites.map(
-		o => createSprite(o.spritematrix, o.colors, undefined, undefined, o.sprite_offset)
+		o => createSprite(o.spritematrix, (o.palette.length > 0) ? game_def.palettes[o.palette].colors : o.colors, undefined, undefined, o.sprite_offset)
 	)
 }
 

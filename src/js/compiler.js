@@ -82,32 +82,11 @@ function generateExtraMembers(state)
 		cache_console_messages = true;
 	}
 
-	//convert colors to hex
-	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-	for (var o of state.identifiers.objects)
-	{
-		if (o.colors.length>10) {
-			logError(['too_many_sprite_colors'], state.identifiers.lineNumbers[o.identifier_index]+1)
-		}
-		for (var i=0; i<o.colors.length; i++)
-		{
-			var c = o.colors[i];
-			if (isColor(c))
-			{
-				c = colorToHex(game_def.game_palette, c)
-				o.colors[i] = c;
-			} else {
-				logError(['invalid_color_for_object', o.name, c], state.identifiers.lineNumbers[o.identifier_index] + 1)
-				o.colors[i] = '#ff00ffff'; // magenta error color
-			}
-		}
-	}
-
 	//generate sprite matrix
 	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 	for (var o of state.identifiers.objects)
 	{
-		if (o.colors.length == 0)
+		if ( (o.palette.length == 0) && (o.colors.length == 0) )
 		{
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
 			logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])

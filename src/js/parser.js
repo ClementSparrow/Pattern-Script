@@ -593,11 +593,6 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		{
 			this.line_type += 1
 		}
-		// else if (this.line_type >= 5) // copy sprite matrix with a valid name
-		// {
-		// 	this.copySpriteMatrix()
-		// 	this.line_type = 0
-		// }
 	}
 
 	switch (this.line_type)
@@ -631,6 +626,13 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 2:
 		{
+			// Use a named palette
+			if (stream.match(/palette:[\p{Separator}\s]+/u, true) !== null)
+			{
+				this.line_type = 6
+				return 'COPYWORD'
+			}
+
 			//LOOK FOR COLOR
 			this.tokenIndex = 0;
 
@@ -646,8 +648,26 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return 'ERROR'
 			}
 
-			const color = match_color[0].trim();
+			const palette_metadata_index = this.metadata_keys.indexOf('color_palette')
+			const palette_name = this.metadata_values[palette_metadata_index]
+			const palette = colorPalettes[palette_name]
 
+			const color_string = match_color[0].trim()
+			let color
+			let color_issue = false
+			if ( ! isColor(color_string) )
+			{
+				const object_name = (this.current_identifier_index !== undefined) ? this.identifiers.names[this.current_identifier_index].toUpperCase() : undefined
+				this.logError(['invalid_color_for_object', object_name, color_string])
+				color = '#ff00ffff' // magenta error color
+				color_issue = true
+			}
+			else
+			{
+				color = colorToHex(palette, color_string)
+			}
+
+			let too_many_colors = false
 			this.current_expansion_context.expansion.forEach(
 				([object_index, expansed_parameters]) => {
 					var o = this.identifiers.objects[object_index]
@@ -655,17 +675,22 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					{
 						o.colors = [color]
 					} else {
+						too_many_colors ||= (o.colors.length == 11)
 						o.colors.push(color)
 					}
 				}
 			)
+			if (too_many_colors)
+			{
+				this.logWarning(['too_many_sprite_colors'])
+			}
 
-			const candcol = color.toLowerCase();
-			if (candcol in colorPalettes.arnecolors)
-				return 'COLOR COLOR-' + candcol.toUpperCase();
-			if (candcol==="transparent")
-				return 'COLOR FADECOLOR';
-			return 'MULTICOLOR'+match_color[0];
+			if (color_issue)
+				return 'ERROR'
+			const candcol = color_string.toLowerCase()
+			if (candcol === 'transparent')
+				return 'COLOR FADECOLOR'
+			return 'COLOR-'+color.substring(0, 7)
 		}
 	case 3: // sprite matrix
 		{
@@ -675,7 +700,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 				{
-					if (stream.match(/copy:\s+/u, true) === null)
+					if (stream.match(/copy:[\p{Separator}\s]+/u, true) === null)
 					{
 						stream.match(reg_notcommentstart, true)
 						this.logWarning('Unknown junk in object section. I was expecting the definition of a sprite matrix, directly as pixel values or indirectly with a "copy: [object name]" instruction. Maybe you forgot to insert a blank line between two object definitions?')
@@ -690,7 +715,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 							' is ambiguous and can have undesired consequences, because it contains multiple instances of a same tag class. To avoid this problem, use tag class aliases so that each tag class only appears once in the identifier.')
 						return 'WARNING'
 					}
-					return null // TODO: new lexer type?
+					return 'COPYWORD'
 				}
 
 				if (is_start_of_line) // after the sprite matrix
@@ -744,20 +769,22 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return null // TODO: we should keep the palette defined and use it to display the pixel color
 			for (const [object_index, expansed_parameters] of this.current_expansion_context.expansion)
 			{
-				var o = this.identifiers.objects[object_index];
-				if (n >= o.colors.length)
+				const o = this.identifiers.objects[object_index]
+				const palette = (o.palette.length > 0) ? game_def.palettes[o.palette] : undefined
+				const colors = (palette !== undefined) ? palette.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join('')) : o.colors
+				if (n >= colors.length)
 				{
-					this.logError(['palette_too_small', n, o.name.toUpperCase(), o.colors.length])
+					this.logError(['palette_too_small', n, o.name.toUpperCase(), colors.length])
 					ok = false
 				}
 				else
 				{
-					token_colors.add( 'COLOR BOLDCOLOR COLOR-' + o.colors[n].toUpperCase() )
+					token_colors.add( 'COLOR BOLDCOLOR COLOR-' + colors[n].toUpperCase() )
 				}
 			}
 			if (!ok)
-				return 'ERROR';
-			return (token_colors.size == 1) ? token_colors.values().next().value : null;
+				return 'ERROR'
+			return (token_colors.size == 1) ? token_colors.values().next().value : null
 		}
 	case 4: // copy spritematrix: name of the object to copy from
 	{
@@ -808,6 +835,25 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 		this.sprite_transforms.push(transform_match[1])
 		return 'NAME' // actually, we should add a new token type for the transform instructions but I'm lazy
+	}
+	case 6: // copy palette: name
+	{
+		this.line_type = 2 // will be incremented
+		const copy_from_match = stream.match(reg_tagged_name, true)
+		if (copy_from_match === null)
+		{
+			this.logError('Unexpected character ' + stream.peek() + ' found instead of palette name in definition of palette.')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR'
+		}
+		const palette_name = copy_from_match[0].trim()
+		this.current_expansion_context.expansion.forEach(
+			([object_index, expansed_parameters]) => {
+				this.identifiers.objects[object_index].palette = palette_name
+			}
+		)
+		// WIP TODO: should we return 'ERROR' if no palette of that name exists?
+		return 'NAME'
 	}
 	default:
 		window.console.logError("EEK shouldn't get here.")
