@@ -67,6 +67,7 @@ function PuzzleScriptParser()
 
 	this.is_start_of_line = false
 	this.tokenIndex = 0
+	this.lastTokenIndex = 0 // value of tokenIndex at the end of the previous line, if in the same section
 	this.line_type = 0
 
 	// metadata defined in the preamble
@@ -82,8 +83,17 @@ function PuzzleScriptParser()
 	this.abbrevNames = []
 
 	// data for the MAPPINGS section
-	this.current_mapping_startset = new Set();
-	this.current_mapping_startset_array = [];
+	this.current_mapping = {
+		from: {
+			name: '',
+			identifier_index: null,
+			set: new Set(),
+			array: []
+		},
+		name: '',
+		mapping_index: null,
+		result: [],
+	}
 
 	this.sounds = []
 
@@ -113,6 +123,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.is_start_of_line = this.is_start_of_line
 	result.tokenIndex = this.tokenIndex
+	result.lastTokenIndex = this.lastTokenIndex
 	result.line_type = this.line_type
 
 	result.metadata_keys   = this.metadata_keys.concat([])
@@ -122,8 +133,17 @@ PuzzleScriptParser.prototype.copy = function()
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
 	result.sprite_transforms = this.sprite_transforms.concat([])
 
-	result.current_mapping_startset = new Set(this.current_mapping_startset)
-	result.current_mapping_startset_array = Array.from(this.current_mapping_startset_array)
+	result.current_mapping = {
+		from: {
+			name: this.current_mapping.from.name,
+			identifier_index: this.current_mapping.from.identifier_index,
+			set: new Set(this.current_mapping.from.set),
+			array: Array.from(this.current_mapping.from.array)
+		},
+		name: this.current_mapping.name,
+		mapping_index: this.current_mapping.mapping_index,
+		result: Array.from(this.current_mapping.result),
+	}
 
 	result.sounds = this.sounds.map( i => i.concat([]) )
 
@@ -1064,29 +1084,39 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 {
 	if (is_start_of_line)
 	{
-		if (this.tokenIndex === 0)
+		this.line_type = (this.line_type+1) % 2
+		if (this.lastTokenIndex === 0)
 		{
-			this.line_type = (this.line_type+1) % 2
 		}
-		else if (this.line_type === 1) // we were parsing the first line
+		else if (this.line_type === 0) // we were parsing the first line
 		{
-			this.line_type = 0
-			if (this.tokenIndex < 3)
+			if (this.lastTokenIndex < 3)
 			{
-				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAME => MAPPING_NAME on the first line.');
+				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAME => MAPPING_NAME on the first line.')
 			}
 		}
 		else
 		{
-			this.line_type = 1
-			if (this.tokenIndex < 2)
+			if (this.lastTokenIndex < 2)
 			{
 				this.logError('You started a mapping definition but did not end it. There should be START_SET_NAMES -> MAPPED_VALUES on the second line.');
 			}
-			// else
-			// TODO: check that we can end the definition here, i.e. that all the values have been defined
 		}		
-		this.tokenIndex = 0;
+		if (this.line_type == 1) // first line
+		{
+			this.current_mapping = {
+				from: {
+					identifier_index: null,
+					name: '',
+					set: new Set(),
+					array: [],
+				},
+				name: '',
+				mapping_index: null,
+				result: [],
+			}
+			this.current_identifier_index = null
+		}
 	}
 
 	if (this.line_type === 1) // first line
@@ -1117,10 +1147,13 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					stream.match(reg_notcommentstart, true);
 					return 'ERROR';
 				}
-				this.current_identifier_index = identifier_index;
-				this.current_mapping_startset = new Set(this.identifiers.object_set[identifier_index])
-				this.current_mapping_startset_array = [];
-				return 'NAME';
+				this.current_mapping.from = {
+					name: fromset_name,
+					identifier_index: identifier_index,
+					set: new Set(this.identifiers.object_set[identifier_index]),
+					array: [],
+				}
+				return 'NAME'
 			}
 			case 1: // arrows
 			{
@@ -1134,9 +1167,9 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 			}
 			case 2: // name of the function
 			{
-				this.tokenIndex = 3;
-				const fromset_identifier_index = this.current_identifier_index;
-				this.current_identifier_index = null;
+				this.tokenIndex = 3
+				const fromset_identifier_index = this.current_mapping.from.identifier_index
+				this.current_identifier_index = null
 				const toset_name_match = stream.match(reg_tagged_name, true);
 				if (toset_name_match === null)
 				{
@@ -1144,15 +1177,20 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 					stream.match(reg_notcommentstart, true);
 					return 'ERROR'
 				}
-				const toset_name = toset_name_match[0];
+				const toset_name = toset_name_match[0]
+				this.current_mapping.name = toset_name
 				if ( (this.identifiers.comptype[fromset_identifier_index] === identifier_type_property) ? ! this.identifiers.checkIfNewIdentifierIsValid(toset_name, false, this) : ! this.checkIfNewTagNameIsValid(toset_name) )
 				{
 					this.logError('Invalid mapping name: '+toset_name.toUpperCase()+'.')
 					stream.match(reg_notcommentstart, true);
 					return 'ERROR';
 				}
-				this.current_identifier_index = this.identifiers.registerNewMapping(toset_name, findOriginalCaseName(toset_name, this.mixedCase), fromset_identifier_index, new Set(), 0, this.lineNumber);
-				return 'NAME';
+				if (fromset_identifier_index !== null)
+				{
+					this.current_identifier_index = this.identifiers.registerNewMapping(toset_name, findOriginalCaseName(toset_name, this.mixedCase), fromset_identifier_index, new Set(), 0, this.lineNumber)
+					this.current_mapping.mapping_index = this.identifiers.mappings.length-1
+				}
+				return 'NAME'
 			}
 			case 3: // error: extra stuff
 			{
@@ -1172,19 +1210,19 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				if (stream.match(/->/, true))
 				{
 					// check that we have listed all the values in the start set.
-					if (this.current_mapping_startset.size > 0)
+					if (this.current_mapping.from.set.size > 0)
 					{
 						// TODO: create a mean to get the name of the start set of the currently defined mapping
-						logError('You have not specified every values in the mapping start set '+this.identifiers.names[this.identifiers.tag_mappings[this.current_identifier_index][0]].toUpperCase()+
-							'. You forgot: '+Array.from(this.current_mapping_startset, ii => this.identifiers.names[ii].toUpperCase()).join(', ')+'.');
+						logError('You have not specified every values in the mapping start set '+this.current_mapping.from.name.toUpperCase()+
+							'. You forgot: '+Array.from(this.current_mapping.from.set, ii => this.identifiers.names[ii].toUpperCase()).join(', ')+'.');
 					}
-					if (this.current_identifier_index !== null)
+					if (this.current_mapping.mapping_index !== null)
 					{
-						this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].fromset = this.current_mapping_startset_array;
+						this.identifiers.mappings[this.current_mapping.mapping_index].fromset = this.current_mapping.from.array
 					}
-					this.current_mapping_startset_array = [];
-					this.tokenIndex = 2;
-					return 'ARROW';
+					this.current_mapping.result = []
+					this.tokenIndex = 2
+					return 'ARROW'
 				}
 				const fromvalue_match = stream.match(reg_tagged_name, true);
 				if (fromvalue_match === null)
@@ -1198,15 +1236,13 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(fromvalue_name, [identifier_type_object, identifier_type_tag], false, this);
 				if (identifier_index < 0)
 					return 'ERROR'
-				if (this.current_identifier_index === null)
-					return 'NAME';
-				if ( ! this.current_mapping_startset.delete(identifier_index) )
+				if ( ! this.current_mapping.from.set.delete(identifier_index) )
 				{
-					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.identifiers.names[this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from].toUpperCase()+'.')
+					this.logError('Invalid declaration of a mapping start set: '+fromvalue_name.toUpperCase()+' is not an atomic member of '+this.current_mapping.from.name.toUpperCase()+'.')
 					return 'ERROR';
 				}
 				// register the values in order and check that the whole set of values in the start set is covered.
-				this.current_mapping_startset_array.push(identifier_index);
+				this.current_mapping.from.array.push(identifier_index)
 				return 'NAME';
 			}
 			case 2: // elements of the end set
@@ -1221,21 +1257,20 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				const tovalue_name = tovalue_match[0];
 				if (this.current_identifier_index === null)
 					return 'NAME';
-				const fromset_identifier_index = this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]].from
-				const accepted_types = (this.identifiers.comptype[fromset_identifier_index] === identifier_type_property) ? [identifier_type_object, identifier_type_property] : [identifier_type_tag, identifier_type_tagset]
+				const accepted_types = (this.identifiers.comptype[this.current_mapping.from.identifier_index] === identifier_type_property) ? [identifier_type_object, identifier_type_property] : [identifier_type_tag, identifier_type_tagset]
 				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(tovalue_name, accepted_types, false, this); // todo: better error message when we use a tag instead or a property and vice versa.
 				if (identifier_index < 0)
 					return 'ERROR'
 				// TODO? check that the identifier is in the start set
 				// register the mapping for this value
-				var mapping = this.identifiers.mappings[this.identifiers.tag_mappings[this.current_identifier_index][0]];
-				mapping.toset.push( identifier_index );
+				var mapping = this.identifiers.mappings[this.current_mapping.mapping_index]
+				mapping.toset.push( identifier_index )
 				// if we got all the values in the set
 				if (mapping.toset.length === mapping.fromset.length)
 				{
 					this.tokenIndex = 3
 				}
-				return 'NAME';
+				return 'NAME'
 			}
 			case 3: // error: extra stuff
 			{
@@ -1670,7 +1705,7 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 			const sectionIndex = sectionNames.indexOf(this.section);
 
 		//	Initialize the parser state for some sections depending on what has been parsed before
-
+			this.lastTokenIndex = 0
 			if (this.section === 'levels')
 			{
 				//populate character abbreviations
@@ -1725,11 +1760,12 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 
 PuzzleScriptParser.prototype.token = function(stream)
 {
-	const token_starts_line = stream.sol();
+	const token_starts_line = stream.sol()
 	if (token_starts_line)
 	{
-		this.mixedCase = stream.string+'';
-		stream.string = stream.string.toLowerCase();
+		this.mixedCase = stream.string+''
+		stream.string = stream.string.toLowerCase()
+		this.lastTokenIndex = this.tokenIndex
 		this.tokenIndex = 0
 		this.is_start_of_line ||= (this.commentLevel === 0)
 	}
