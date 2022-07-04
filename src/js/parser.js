@@ -533,6 +533,13 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 2:
 		{
+			// Use a named palette
+			if (stream.match(/palette:[\p{Separator}\s]+/u, true) !== null)
+			{
+				this.line_type = 6
+				return 'COPYWORD'
+			}
+
 			//LOOK FOR COLOR
 			this.tokenIndex = 0;
 
@@ -599,7 +606,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 				{
-					if (stream.match(/copy:\s+/u, true) === null)
+					if (stream.match(/copy:[\p{Separator}\s]+/u, true) === null)
 					{
 						stream.match(reg_notcommentstart, true)
 						this.logWarning('Unknown junk in object section. I was expecting the definition of a sprite matrix, directly as pixel values or indirectly with a "copy: [object name]" instruction. Maybe you forgot to insert a blank line between two object definitions?')
@@ -614,7 +621,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 							' is ambiguous and can have undesired consequences, because it contains multiple instances of a same tag class. To avoid this problem, use tag class aliases so that each tag class only appears once in the identifier.')
 						return 'WARNING'
 					}
-					return null // TODO: new lexer type?
+					return 'COPYWORD'
 				}
 
 				if (is_start_of_line) // after the sprite matrix
@@ -662,14 +669,16 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			for (const [object_index, expansed_parameters] of this.current_expansion_context.expansion)
 			{
 				const o = this.identifiers.objects[object_index]
-				if (n >= o.colors.length)
+				const palette = (o.palette.length > 0) ? game_def.palettes[o.palette] : undefined
+				const colors = (palette !== undefined) ? palette.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join('')) : o.colors
+				if (n >= colors.length)
 				{
-					this.logError(['palette_too_small', n, o.name.toUpperCase(), o.colors.length])
+					this.logError(['palette_too_small', n, o.name.toUpperCase(), colors.length])
 					ok = false
 				}
 				else
 				{
-					token_colors.add( 'COLOR-' + o.colors[n].toUpperCase() )
+					token_colors.add( 'COLOR-' + colors[n].toUpperCase() )
 				}
 			}
 			if (!ok)
@@ -827,6 +836,25 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			this.sprites_to_compile[this.sprites_to_compile.length-1][2].push(compiled_transformation)
 		}
 		return 'NAME' // actually, we should add a new token type for the transform instructions but I'm lazy
+	}
+	case 6: // copy palette: name
+	{
+		this.line_type = 2 // will be incremented
+		const copy_from_match = stream.match(reg_tagged_name, true)
+		if (copy_from_match === null)
+		{
+			this.logError('Unexpected character ' + stream.peek() + ' found instead of palette name in definition of palette.')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR'
+		}
+		const palette_name = copy_from_match[0].trim()
+		this.current_expansion_context.expansion.forEach(
+			([object_index, expansed_parameters]) => {
+				this.identifiers.objects[object_index].palette = palette_name
+			}
+		)
+		// WIP TODO: should we return 'ERROR' if no palette of that name exists?
+		return 'NAME'
 	}
 	default:
 		window.console.logError("EEK shouldn't get here.")

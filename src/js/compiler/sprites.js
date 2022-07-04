@@ -130,7 +130,7 @@ function compileSprites(state)
 //	Compile sprites for all objects
 	for (const o of state.identifiers.objects)
 	{
-		if (o.colors.length == 0)
+		if ( (o.palette.length == 0) && (o.colors.length == 0) )
 		{
 			// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
