@@ -179,6 +179,12 @@ ListTabManager.prototype = {
 		// no need to recompile here
 	},
 
+	widgetContentChanged: function(widget_manager)
+	{
+		compileSprites(state)
+		forceRegenImages()
+		screen_layout.redraw()
+	},
 
 	// Tab Manager interface
 	// =====================
