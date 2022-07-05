@@ -24,7 +24,7 @@ SpriteWidget = function(container, item_def)
 			minlength: '1',
 		},
 		value: item_def.matrix.join('\n'),
-		events: { input: (e) => this.updateFromTextArea(e.target.value) },
+		events: { input: (e) => this.updateFromTextArea(e.target.value.trim()) },
 	})
 	// WIP TODO: add callback when the content of the textarea changes, to update the visual sprite editor and redraw the game
 	// also add error checking and copy/paste options
@@ -47,6 +47,7 @@ SpriteWidget.prototype = {
 		const palette = palettes_tabmanager.connectSprite(this, new_name)
 		if (palette !== undefined)
 			this.updatePalette(palette)
+		this.onChangeState()
 	},
 
 	updatePalette: function(palette)
@@ -64,9 +65,13 @@ SpriteWidget.prototype = {
 			console.log('invalid character')
 			return
 		}
-		const new_matrix = rectanglify(new_text_matrix.trim().split('\n'))
-		this.widget.def.matrix = new_matrix
-		this.updateSpriteEditorFromModel(new_matrix)
+		const new_matrix = rectanglify(new_text_matrix.split('\n'))
+		if ( new_text_matrix != this.widget.def.matrix.join('') )
+		{
+			this.widget.def.matrix = new_matrix
+			this.updateSpriteEditorFromModel(new_matrix)
+			this.onChangeContent()
+		}
 	},
 	updateSpriteEditorFromModel: function(new_matrix)
 	{
@@ -92,8 +97,12 @@ SpriteWidget.prototype = {
 			result += '\n'
 		}
 		result = result.substring(0, result.length-1)
-		this.widget.def.matrix = result.split('\n')
-		this.matrix_textarea.value = result
+		if (result != this.widget.def.matrix.join(''))
+		{
+			this.widget.def.matrix = result.split('\n')
+			this.matrix_textarea.value = result
+			this.onChangeContent()
+		}
 	},
 
 	finalize: function(item_def)
@@ -131,7 +140,9 @@ SpritesTabManager.prototype.addNewBlankWidget = function()
 
 SpritesTabManager.prototype.widgetContentChanged = function(name_field, widget)
 {
-	// TODO
+	compileSprites(state)
+	forceRegenImages()
+	screen_layout.redraw()
 }
 
 SpritesTabManager.prototype.onRemoveWidget = function(widget, name)

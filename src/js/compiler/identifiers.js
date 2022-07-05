@@ -77,8 +77,6 @@ Identifiers.prototype.copy = function()
 			identifier_index: o.identifier_index,
 			colors: o.colors.concat([]),
 			palette: o.palette,
-			spritematrix: o.spritematrix.concat([]),
-			sprite_offset: Array.from(o.sprite_offset),
 			layer: o.layer
 		}))
 	result.mappings = Array.from(this.mappings, (m) => ({
@@ -150,8 +148,6 @@ Identifiers.prototype.registerNewObject = function(identifier, original_case, im
 		identifier_index: this.names.length,
 		colors: [],
 		palette: '',
-		spritematrix: [],
-		sprite_offset: [0, 0]
 	});
 	return this.registerNewIdentifier(identifier, original_case, identifier_type_object, identifier_type_object, new Set([object_id]), [], implicit, lineNumber)
 }
