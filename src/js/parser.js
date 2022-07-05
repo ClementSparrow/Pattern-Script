@@ -30,6 +30,8 @@ const reg_maptagged_name = /[\p{Letter}\p{Number}_]+(?::[\p{Letter}\p{Number}_<^
 const reg_tagname = /[\p{Letter}\p{Number}_]+/u;
 const reg_number = /[\d]+/;
 const reg_soundseed = /\d+(?::[1-3]\d|:[1-9])?\b/
+// const reg_sprite_transform = /\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u
+const reg_sprite_transform = /\s*(shift:(?:[\p{Letter}\p{Number}_]+|[>v<^])(?::-?\d+|:[\p{Letter}\p{Number}_]+)?|[-]|\||rot:(?:[\p{Letter}\p{Number}_]+|[>v<^]):(?:[\p{Letter}\p{Number}_]+|[>v<^])|translate:(?:[\p{Letter}\p{Number}_]+|[>v<^]):(?:[\p{Letter}\p{Number}_]+|-?\d+))\s*/u
 const reg_spriterow = /[\.0-9]+[\p{Separator}\s]*/u;
 const reg_sectionNames = /(tags|objects|collisionlayers|legend|sounds|rules|winconditions|levels|mappings)\b/u;
 const reg_equalsrow = /[\=]+/;
@@ -133,7 +135,7 @@ PuzzleScriptParser.prototype.copy = function()
 
 	result.current_identifier_index = this.current_identifier_index
 	result.objects_spritematrix = this.objects_spritematrix.concat([])
-	result.sprite_transforms = this.sprite_transforms.concat([])
+	result.sprite_transforms = Array.from(this.sprite_transforms, t => Array.isArray(t) ? Array.from(t) : t)
 
 	result.current_mapping = {
 		from: {
@@ -489,15 +491,6 @@ PuzzleScriptParser.prototype.setSpriteMatrix = function()
 	)
 }
 
-function expand_direction(direction_string, directions_is_expanded_as = 'right')
-{
-	const absolute_direction = absolutedirs.indexOf(direction_string)
-	if (absolute_direction >= 0)
-		return absolute_direction
-	const relative_direction = relativeDirs.indexOf(direction_string)
-	const direction_mapping = relativeDict[directions_is_expanded_as]
-	return absolutedirs.indexOf(direction_mapping[relative_direction])
-}
 
 PuzzleScriptParser.prototype.copySpriteMatrix = function()
 {
@@ -506,75 +499,91 @@ PuzzleScriptParser.prototype.copySpriteMatrix = function()
 		const w = Math.max(...s.map(l => l.length))
 		return s.map( l => l + '.'.repeat(w-l.length) )
 	}
-	for (const [object_index, [source_object_index, replaced_dir]] of this.current_expansion_context.expansion)
+	function expand(expansion_def, expansion)
 	{
-		var object = this.identifiers.objects[object_index]
-		var sprite = Array.from( this.identifiers.objects[source_object_index].spritematrix )
-		var offset = Array.from( this.identifiers.objects[source_object_index].sprite_offset )
-		for (const transform of this.sprite_transforms)
+		if ( ! Array.isArray(expansion_def) )
+			return expansion_def
+		const [tag_index, fromset, toset] = expansion_def
+		let tag_is_expanded_as = expansion[tag_index]
+		if (tag_is_expanded_as === undefined) tag_is_expanded_as = 'right'
+		const result = toset[fromset.indexOf(tag_is_expanded_as)]
+		return result
+	}
+	function expand_direction(expansion_def, expansion)
+	{
+		return absolutedirs.indexOf(expand(expansion_def, expansion))
+	}
+	for (const [object_index, [source_object_index, expansion]] of this.current_expansion_context.expansion)
+	{
+		let object = this.identifiers.objects[object_index]
+		const source_object = this.identifiers.objects[source_object_index]
+		let sprite = Array.from( source_object.spritematrix )
+		let offset = Array.from( source_object.sprite_offset )
+		for (const parts of this.sprite_transforms)
 		{
-			var f = (m) => m // default to identity function
-			if (transform === '|')
+			let f = (m) => m // default to identity function
+			switch (parts[0])
 			{
-				f = ( m => m.map( l => l.split('').reverse().join('') ) )
-				sprite = rectanglify(sprite)
-			}
-			else if (transform === '-')
-				f = ( m => Array.from(m).reverse() )
-			else 
-			{
-				const parts = transform.split(':')
-				switch (parts[0])
-				{
-					case 'shift':
-						{
-							if (sprite.length === 0)
-								continue
-							const shift_direction = expand_direction(parts[1], replaced_dir)
-							const sprite_size = shift_direction % 2 ? sprite[0].length : sprite.length
-							const delta = (parts.length < 3
-								? 1
-								: parseInt(parts[2]) % sprite_size)
-							f = ([
-									(m => [ ...Array.from(m.slice(delta)), ...Array.from(m.slice(0, delta)) ]), // up
-									(m => Array.from(m, l => l.slice(-delta) + l.slice(0, -delta))), // right
-									(m => [ ...Array.from(m.slice(-delta)), ...Array.from(m.slice(0, -delta)) ]), // down
-									(m => Array.from(m, l => l.slice(delta) + l.slice(0, delta))) // left
-								])[shift_direction]
-							sprite = rectanglify(sprite)
-						}
+				case '|':
+					{
+						f = ( m => m.map( l => l.split('').reverse().join('') ) )
+						sprite = rectanglify(sprite)
 						break
-					case 'rot':
-						{
-							if (sprite.length === 0)
-								continue
-							const ref_direction = expand_direction(parts[1], replaced_dir)
-							const to_direction = expand_direction(parts[2], replaced_dir)
-							const angle = (4 + to_direction - ref_direction) % 4 // clockwise
-							f = ([
-									( m => Array.from(m) ), // 0°
-									( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
-									( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
-									( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
-								])[angle]
-							sprite = rectanglify(sprite)
-						}
+					}
+				case '-':
+					{
+						f = ( m => Array.from(m).reverse() )
 						break
-					case 'translate':
-						{
-							const translate_direction = expand_direction(parts[1], replaced_dir)
-							const v = ([
-									[ 0,-1], // up
-									[ 1, 0], // right
-									[ 0, 1], // down
-									[-1, 0] // left
-								])[translate_direction]
-							offset[0] += v[0]*parseInt(parts[2])
-							offset[1] += v[1]*parseInt(parts[2])
-						}
-						break
-					default:
-				}
+					}
+				case 'shift':
+					{
+						if (sprite.length === 0)
+							continue
+						const shift_direction = expand_direction(parts[1], expansion)
+						const sprite_size = shift_direction % 2 ? sprite[0].length : sprite.length
+						const delta = (parts.length < 3
+							? 1
+							: parseInt(expand(parts[2], expansion)) % sprite_size)
+						f = ([
+								(m => [ ...Array.from(m.slice(delta)), ...Array.from(m.slice(0, delta)) ]), // up
+								(m => Array.from(m, l => l.slice(-delta) + l.slice(0, -delta))), // right
+								(m => [ ...Array.from(m.slice(-delta)), ...Array.from(m.slice(0, -delta)) ]), // down
+								(m => Array.from(m, l => l.slice(delta) + l.slice(0, delta))) // left
+							])[shift_direction]
+						sprite = rectanglify(sprite)
+					}
+					break
+				case 'rot':
+					{
+						if (sprite.length === 0)
+							continue
+						const ref_direction = expand_direction(parts[1], expansion)
+						const to_direction = expand_direction(parts[2], expansion)
+						const angle = (4 + to_direction - ref_direction) % 4 // clockwise
+						f = ([
+								( m => Array.from(m) ), // 0°
+								( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
+								( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
+								( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
+							])[angle]
+						sprite = rectanglify(sprite)
+					}
+					break
+				case 'translate':
+					{
+						const translate_direction = expand_direction(parts[1], expansion)
+						const amount = parseInt(expand(parts[2], expansion))
+						const v = ([
+								[ 0,-1], // up
+								[ 1, 0], // right
+								[ 0, 1], // down
+								[-1, 0] // left
+							])[translate_direction]
+						offset[0] += v[0]*amount
+						offset[1] += v[1]*amount
+					}
+					break
+				default:
 			}
 			const newsprite = f(sprite)
 			sprite = newsprite
@@ -602,32 +611,32 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		{
 			this.objects_spritematrix = []
 			this.line_type = 1
+
 			const result = this.tryParseName(is_start_of_line, stream)
-			if (is_start_of_line)
+			if ( ! is_start_of_line )
+				return result
+
+			if (this.current_identifier_index === undefined) // invalid object name, check syntax but generate nothing
 			{
-				if (this.current_identifier_index === undefined)
-				{
-					this.current_expansion_context = new ExpansionContext()
-				}
-				else
-				{
-					this.current_expansion_context = this.identifiers.expansion_context_from_identifier(this.current_identifier_index)
-					// do not change the spritematrix and palette of an object that has been explicitely defined unless we're currently explicitly defining it.
-					this.current_expansion_context.filter(
-						([object_index, expansion]) =>
-						{
-							const identifier_index = this.identifiers.objects[object_index].identifier_index
-							return (identifier_index === this.current_identifier_index) || (this.identifiers.implicit[identifier_index] !== 0)
-						}
-					)
-				}
+				this.current_expansion_context = new ExpansionContext()
+				return result
 			}
+
+			this.current_expansion_context = this.identifiers.expansion_context_from_identifier(this.current_identifier_index)
+			// do not change the spritematrix and palette of an object that has been explicitely defined unless we're currently explicitly defining it.
+			this.current_expansion_context.filter(
+				([object_index, expansion]) =>
+				{
+					const identifier_index = this.identifiers.objects[object_index].identifier_index
+					return (identifier_index === this.current_identifier_index) || (this.identifiers.implicit[identifier_index] !== 0)
+				}
+			)
 			return result
 		}
 	case 2:
 		{
 			// Use a named palette
-			if (stream.match(/palette:[\p{Separator}\s]+/u, true) !== null)
+			if ( is_start_of_line && (stream.match(/palette:[\p{Separator}\s]+/u, true) !== null) )
 			{
 				this.line_type = 6
 				return 'COPYWORD'
@@ -636,10 +645,10 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			//LOOK FOR COLOR
 			this.tokenIndex = 0;
 
-			const match_color = stream.match(reg_color, true);
+			const match_color = stream.match(reg_color, true)
 			if (match_color === null)
 			{
-				var str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true)
+				const str = stream.match(reg_name, true) || stream.match(reg_notcommentstart, true)
 				this.logError(
 					'Was looking for color' +
 					( (this.current_identifier_index !== undefined) ? ' for object ' + this.identifiers.names[this.current_identifier_index].toUpperCase() : '' ) +
@@ -648,10 +657,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return 'ERROR'
 			}
 
+		//	Get the game's palette
 			const palette_metadata_index = this.metadata_keys.indexOf('color_palette')
 			const palette_name = this.metadata_values[palette_metadata_index]
 			const palette = colorPalettes[palette_name]
 
+		//	Get the actual color
 			const color_string = match_color[0].trim()
 			let color
 			let color_issue = false
@@ -667,10 +678,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				color = colorToHex(palette, color_string)
 			}
 
+		//	Set colors in every object defined
+			// TODO Performance: that can be very long, this expansion should be done only once, when the whole list of colors is found
 			let too_many_colors = false
 			this.current_expansion_context.expansion.forEach(
 				([object_index, expansed_parameters]) => {
-					var o = this.identifiers.objects[object_index]
+					const o = this.identifiers.objects[object_index]
 					if ( is_start_of_line || (o.colors === undefined) )
 					{
 						o.colors = [color]
@@ -685,6 +698,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				this.logWarning(['too_many_sprite_colors'])
 			}
 
+		//	Return appropriate lexer style
 			if (color_issue)
 				return 'ERROR'
 			const candcol = color_string.toLowerCase()
@@ -694,7 +708,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 3: // sprite matrix
 		{
-			var spritematrix = this.objects_spritematrix
+			const spritematrix = this.objects_spritematrix
 			const ch = this.parse_sprite_pixel(stream)
 			if (ch === undefined)
 			{
@@ -722,16 +736,11 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				{
 					this.line_type = 5 // allow transformations after the sprite
 					this.setSpriteMatrix()
-					const directions_idindex = this.identifiers.names.indexOf('directions')
-					const directions_index = this.current_expansion_context.parameters.indexOf(directions_idindex)
-					if ( (directions_index >= 0) && (this.current_expansion_context.parameters.indexOf(directions_idindex, directions_index+1) >= 0) ) // check for duplicate directions tag class
-					{
-						this.logWarning('Copying sprite matrixes for identifier '+this.identifiers.names[this.current_identifier_index].toUpperCase()+
-							' is ambiguous and can have undesired consequences, because it contains multiple instances of the "directions" tag class. To avoid this problem, use tag class aliases so that each tag class only appears once in the identifier.')
-					}
+
+				//	Compute the expansion that can be used by sprite transforms
 					this.current_expansion_context.expansion = Array.from(
 						this.current_expansion_context.expansion,
-						([object_index, replacements_identifier_indexes]) => [object_index, [object_index, (directions_index >= 0) ? this.identifiers.names[replacements_identifier_indexes[directions_index]] : undefined]]
+						([object_index, replacements_identifier_indexes]) => [object_index, [object_index, replacements_identifier_indexes]]
 					)
 					return null
 				}
@@ -744,6 +753,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return null
 			}
 
+		//	Add a new line to the sprite matrix
 			if (is_start_of_line)
 			{
 				spritematrix.push('')
@@ -763,10 +773,11 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				)
 				return 'ERROR'
 			}
-			var token_colors = new Set()
-			var ok = true
+			const token_colors = new Set()
+			let ok = true
 			if (this.current_identifier_index == undefined)
 				return null // TODO: we should keep the palette defined and use it to display the pixel color
+			// TODO Performance: this can take a lot of time, it would be much better to cache the result style
 			for (const [object_index, expansed_parameters] of this.current_expansion_context.expansion)
 			{
 				const o = this.identifiers.objects[object_index]
@@ -779,15 +790,17 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				}
 				else
 				{
-					token_colors.add( 'COLOR BOLDCOLOR COLOR-' + colors[n].toUpperCase() )
+					token_colors.add( 'COLOR-' + colors[n].toUpperCase() )
 				}
 			}
 			if (!ok)
 				return 'ERROR'
-			return (token_colors.size == 1) ? token_colors.values().next().value : null
+			return (token_colors.size == 1) ? 'COLOR BOLDCOLOR ' + token_colors.values().next().value : null
 		}
+
 	case 4: // copy spritematrix: name of the object to copy from
 	{
+	//	Get the name to copy the sprite matrix from
 		const copy_from_match = stream.match(reg_tagged_name, true)
 		if (copy_from_match === null)
 		{
@@ -797,6 +810,8 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 		copy_from_id = copy_from_match[0].trim()
 		this.line_type = 5
+
+	//	Get the identifier to copy from
 		const copy_from_identifier_index = this.identifiers.checkKnownIdentifier(copy_from_id, true, this)
 		if (copy_from_identifier_index < 0)
 		{
@@ -804,12 +819,18 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			this.current_expansion_context = new ExpansionContext()
 			return 'ERROR'
 		}
-		// Now we need to replace the tag classes in the identifier according to the expansion parameters in the currently defined object
-		var new_expansion = []
-		const directions_index = this.current_expansion_context.parameters.indexOf(this.identifiers.names.indexOf('directions'))
-		var result = 'NAME'
+
+	//	Now we need to replace the tag classes in the identifier according to the expansion parameters in the currently defined object
+		// A better way to do this would be to find the tag class appearing in copy_from_id and check that each class also appears in this.current_expansion_context.parameters, and appears only once
+		// it will also be faster because we don't actually expand the classes here
+		// However, the difficulty is that we need to apply the tag mappings
+		// but we have the same issue with transforms
+		// Also when in the future we will allow mappings in the name of the identifier defined, it's ok because it does not define a duplicated expansion parameter
+		let new_expansion = []
+		let result = 'NAME'
 		for (const [object_index, replacements_identifier_indexes] of this.current_expansion_context.expansion)
 		{
+		//	Get the identifier to copy from for this expansion
 			const replaced_source_identifier_index = this.identifiers.replace_parameters(copy_from_identifier_index, this.current_expansion_context.parameters, replacements_identifier_indexes)
 			if (this.identifiers.comptype[replaced_source_identifier_index] != identifier_type_object)
 			{
@@ -818,23 +839,103 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				result = 'ERROR'
 				continue
 			}
+		//	Remember the object which sprite will be copied
 			const source_object_index = this.identifiers.getObjectFromIdentifier(replaced_source_identifier_index)
-			new_expansion.push( [object_index, [source_object_index, (directions_index >= 0) ? this.identifiers.names[replacements_identifier_indexes[directions_index]] : undefined]] )
+			new_expansion.push( [object_index, [source_object_index, replacements_identifier_indexes]] )
 		}
 		this.current_expansion_context.expansion = new_expansion
 		return result
 	}
-	case 5: // copy spritematrix: transformations to apply
+	
+	case 5: // transformations to apply to the matrix
 	{
-		const transform_match = stream.match(/\s*(shift:(?:left|up|right|down|[>v<^])(?::-?\d+)?|[-]|\||rot:(?:left|up|right|down|[>v<^]):(?:left|up|right|down|[>v<^])|translate:(?:left|up|right|down|[>v<^]):\d+)\s*/u, true)
+	//	Get one transformation instruction
+		const transform_match = stream.match(reg_sprite_transform, true)
 		if (transform_match === null)
 		{
 			this.logError('I do not understand this sprite transformation! Did you forget to insert a blank line between two object declarations?')
 			stream.match(reg_notcommentstart, true)
 			return 'ERROR'
 		}
-		this.sprite_transforms.push(transform_match[1])
-		return 'NAME' // actually, we should add a new token type for the transform instructions but I'm lazy
+		const transform_string = transform_match[1]
+
+	//	Check the type of the transformation's parameters
+		const [transform_type, ...transform_parts] = transform_string.split(':')
+		const expected_types = ({
+			rot:['dir','dir'],
+			shift:['dir','num'],
+			translate:['dir','num'],
+			'-':[],
+			'|':[]
+		})[transform_type]
+		let compiled_transformation = [ transform_type, ...transform_parts ]
+		for (const [part_index, transform_part] of transform_parts.entries())
+		{
+			const expected_type = expected_types[part_index]
+			let strings_to_test = [ transform_part ]
+
+		//	If the parameter is a mapping name, apply it to replace the parameter
+			const part_identifier_index = this.identifiers.names.indexOf(transform_part)
+			if (part_identifier_index >= 0)
+			{
+				switch (this.identifiers.deftype[part_identifier_index])
+				{
+					case identifier_type_mapping:
+					{
+						// get the mapping
+						const mapping_index = this.identifiers.tag_mappings[part_identifier_index][0]
+						const mapping = this.identifiers.mappings[mapping_index]
+
+						// Use it only if there is a corresponding expansion parameter in the current context...
+						const tag_index = this.current_expansion_context.parameters.indexOf(mapping.from)
+						if ( (tag_index >= 0) || (expected_type == 'dir') ) // it's ok to use direction mappins without direction in the defined object, it allows to use ^<v> as absolute directions
+						{
+							// ... and it is unique
+							if ( (expected_type != 'dir') && this.current_expansion_context.parameters.indexOf(mapping.from, tag_index+1) >= 0 )
+							{
+								this.logError('You\'re trying to use the tag mapping '+transform_part.toUpperCase()+' in a sprite transformation but its start set, '+this.identifiers.names[mapping.from].toUpperCase()+' appears multiple times in the object definition and I don\'t know which one to use for the mapping.')
+								return 'ERROR'
+							}
+							strings_to_test = mapping.toset.map(ii => this.identifiers.names[ii])
+							compiled_transformation[part_index+1] = [tag_index, mapping.fromset, strings_to_test] // it's OK to have tag_index = -1 here
+						}
+						break
+					}
+					case identifier_type_tagset:
+					{
+						const tag_index = this.current_expansion_context.parameters.indexOf(part_identifier_index)
+						if (tag_index >= 0)
+						{
+							if ( this.current_expansion_context.parameters.indexOf(part_identifier_index, tag_index+1) >= 0 )
+							{
+								this.logError('You\'re trying to use the tag class '+transform_part.toUpperCase()+' in a sprite transformation but it appears multiple times in the object definition and I don\'t know which one to use for expansion.')
+								return 'ERROR'
+							}
+							const objects_ids = Array.from(this.identifiers.getObjectsForIdentifier(part_identifier_index))
+							strings_to_test = objects_ids.map(ii => this.identifiers.names[ii])
+							compiled_transformation[part_index+1] = [tag_index, objects_ids, strings_to_test]
+						}
+					}
+				}
+			}
+
+		//	Now test type
+			switch (expected_type)
+			{
+				case 'dir':
+					if ( strings_to_test.every( s => absolutedirs.includes(s) ) ) continue
+					this.logError(['invalid_value_in_transorm', 'direction', transform_part])
+					break
+				case 'num':
+					if ( strings_to_test.every( s => ! isNaN(parseInt(s)) ) ) continue
+					this.logError(['invalid_value_in_transorm', 'number', transform_part])
+				default:
+			}
+			return 'ERROR'
+		}
+
+		this.sprite_transforms.push(compiled_transformation)
+		return 'COPYWORD' // actually, we should add a new token type for the transform instructions but I'm lazy
 	}
 	case 6: // copy palette: name
 	{

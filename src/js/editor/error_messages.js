@@ -58,6 +58,7 @@ const error_messages = { // actually also warning messages
 	palette_not_found: (val, default_value) => 'Palette "'+val+'" not found, defaulting to '+default_value+'.',
 	// objects:
 	invalid_color_for_object: (object_name, c) => 'Invalid color specified for object'+((object_name !== undefined) ? ' "' + object_name + '"' : '')+', namely "' + c + '".',
+	invalid_value_in_transorm: (expected_type, received_value) => 'Invalid sprite transformation: I was expecting a '+expected_type+' but I got "'+received_value+'".',
 	palette_too_small: (i,n,l) => 'Trying to access color number ' + i + ' from the color palette of sprite ' + n + ', but there are only ' + l + ' defined in it.',
 	// sounds:
 	unexpected_sound_token: candname => 'unexpected sound token "'+candname+'".',
