@@ -50,8 +50,13 @@ const reg_level_commands = /(level|message|title(?::(\w*))?)\b/u
 // ======== PARSER CONSTRUCTORS =========
 
 // NOTE: CodeMirror creates A LOT of instances of this class, like more than 100 at the initial parsing. So, keep it simple!
-function PuzzleScriptParser()
+function PuzzleScriptParser(sprites_in_code, sprites_to_compile)
 {
+	/* Variables only used when the parser is called by the compiler, ignored when called by CodeMirror */
+	this.sprites_in_code = sprites_in_code
+	this.sprites_to_compile = sprites_to_compile
+	this.lineNumber = 0
+
 	/*
 		permanently useful
 	*/
@@ -60,8 +65,6 @@ function PuzzleScriptParser()
 	/*
 		for parsing
 	*/
-	this.lineNumber = 0
-
 	this.commentLevel = 0
 
 	this.section = ''
@@ -78,7 +81,6 @@ function PuzzleScriptParser()
 	// parsing state data used only in the OBJECTS section. Will be deleted by compiler.js/compileTextCode.
 	this.current_identifier_index = null // The index of the ientifier which definition is currently being parsed
 	this.objects_spritematrix = []
-	this.sprite_transforms = []
 
 	// data for the LEGEND section.
 	this.abbrevNames = []
@@ -111,13 +113,12 @@ function PuzzleScriptParser()
 	this.levels = [ {boxes: [[],[],[],], grid: []} ]
 }
 
+// Copying is only done by CodeMirror, never when called by the compiler
 PuzzleScriptParser.prototype.copy = function()
 {
-	var result = new PuzzleScriptParser()
+	const result = new PuzzleScriptParser()
 
 	result.identifiers = this.identifiers.copy()
-
-	result.lineNumber = this.lineNumber
 
 	result.commentLevel = this.commentLevel
 	result.section = this.section
@@ -131,8 +132,7 @@ PuzzleScriptParser.prototype.copy = function()
 	result.metadata_values = this.metadata_values.concat([])
 
 	result.current_identifier_index = this.current_identifier_index
-	result.objects_spritematrix = this.objects_spritematrix.concat([])
-	result.sprite_transforms = Array.from(this.sprite_transforms, t => Array.isArray(t) ? Array.from(t) : t)
+	result.objects_spritematrix = Array.from(this.objects_spritematrix)
 
 	result.current_mapping = {
 		from: {
@@ -325,14 +325,11 @@ PuzzleScriptParser.prototype.blankLine = function() // called when the line is e
 	switch (this.section)
 	{
 		case 'objects':
-			if (this.line_type >= 5)
-			{
-				this.copySpriteMatrix()
-			}
-			else if (this.line_type == 3)
+			if (this.line_type == 3) // a sprite matrix was given without transformations after
 			{
 				this.setSpriteMatrix()
 			}
+			// TODO: throw errors if line_type is 4 (waiting for object name to copy from)
 			this.line_type = 0
 			return
 		case 'levels':
@@ -603,117 +600,17 @@ PuzzleScriptParser.prototype.tryParseName = function(is_start_of_line, stream)
 
 PuzzleScriptParser.prototype.setSpriteMatrix = function()
 {
-	this.current_expansion_context.expansion.forEach(
-		([object_index, expansion]) =>
-			{
-				var o = this.identifiers.objects[object_index]
-				o.spritematrix = Array.from(this.objects_spritematrix)
-				o.sprite_offset = [0, 0]
-			}
-	)
+	if ( (this.sprites_in_code === undefined) || (this.sprites_to_compile === undefined) ) // ignore this function if not compiling
+		return
+	const spritematrix_index = this.sprites_in_code.length
+	this.sprites_in_code.push( Array.from(this.objects_spritematrix) )
+	this.sprites_to_compile.push([
+		Array.from(this.current_expansion_context.expansion, ([oi, replacements]) => [oi, [spritematrix_index, replacements]]),
+		0, // 0 is for 'sprite in code'
+		[] // transforms
+	])
 }
 
-PuzzleScriptParser.prototype.copySpriteMatrix = function()
-{
-	function rectanglify(s)
-	{
-		const w = Math.max(...s.map(l => l.length))
-		return s.map( l => l + '.'.repeat(w-l.length) )
-	}
-	function expand(expansion_def, expansion)
-	{
-		if ( ! Array.isArray(expansion_def) )
-			return expansion_def
-		const [tag_index, fromset, toset] = expansion_def
-		let tag_is_expanded_as = expansion[tag_index]
-		if (tag_is_expanded_as === undefined) tag_is_expanded_as = 'right'
-		return toset[fromset.indexOf(tag_is_expanded_as)]
-	}
-	function expand_direction(expansion_def, expansion)
-	{
-		return absolutedirs.indexOf(expand(expansion_def, expansion))
-	}
-
-	for (const [object_index, [source_object_index, expansion]] of this.current_expansion_context.expansion)
-	{
-		let object = this.identifiers.objects[object_index]
-		const source_object = this.identifiers.objects[source_object_index]
-		let sprite = Array.from( source_object.spritematrix )
-		let offset = Array.from( source_object.sprite_offset )
-		for (const parts of this.sprite_transforms)
-		{
-			let f = (m) => m // defaults to identity function
-			switch (parts[0])
-			{
-				case '|':
-					{
-						f = ( m => m.map( l => l.split('').reverse().join('') ) )
-						sprite = rectanglify(sprite)
-						break
-					}
-				case '-':
-					{
-						f = ( m => Array.from(m).reverse() )
-						break
-					}
-				case 'shift':
-					{
-						if (sprite.length === 0)
-							continue
-						const shift_direction = expand_direction(parts[1], expansion)
-						const sprite_size = shift_direction % 2 ? sprite[0].length : sprite.length
-						const delta = (parts.length < 3
-							? 1
-							: parseInt(expand(parts[2], expansion)) % sprite_size)
-						f = ([
-								(m => [ ...Array.from(m.slice(delta)), ...Array.from(m.slice(0, delta)) ]), // up
-								(m => Array.from(m, l => l.slice(-delta) + l.slice(0, -delta))), // right
-								(m => [ ...Array.from(m.slice(-delta)), ...Array.from(m.slice(0, -delta)) ]), // down
-								(m => Array.from(m, l => l.slice(delta) + l.slice(0, delta))) // left
-							])[shift_direction]
-						sprite = rectanglify(sprite)
-					}
-					break
-				case 'rot':
-					{
-						if (sprite.length === 0)
-							continue
-						const ref_direction = expand_direction(parts[1], expansion)
-						const to_direction = expand_direction(parts[2], expansion)
-						const angle = (4 + to_direction - ref_direction) % 4 // clockwise
-						f = ([
-								( m => Array.from(m) ), // 0°
-								( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
-								( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
-								( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
-							])[angle]
-						sprite = rectanglify(sprite)
-					}
-					break
-				case 'translate':
-					{
-						const translate_direction = expand_direction(parts[1], expansion)
-						const amount = parseInt(expand(parts[2], expansion))
-						const v = ([
-								[ 0,-1], // up
-								[ 1, 0], // right
-								[ 0, 1], // down
-								[-1, 0] // left
-							])[translate_direction]
-						offset[0] += v[0]*amount
-						offset[1] += v[1]*amount
-					}
-					break
-				default:
-			}
-			const newsprite = f(sprite)
-			sprite = newsprite
-		}
-		object.spritematrix = sprite
-		object.sprite_offset = offset
-	}
-	this.sprite_transforms = []
-}
 
 PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, stream)
 {
@@ -842,13 +739,9 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				if (is_start_of_line) // after the sprite matrix
 				{
 					this.line_type = 5 // allow transformations after the sprite
-					this.setSpriteMatrix()
 
 				//	Compute the expansion that can be used by sprite transforms
-					this.current_expansion_context.expansion = Array.from(
-						this.current_expansion_context.expansion,
-						([object_index, replacements_identifier_indexes]) => [object_index, [object_index, replacements_identifier_indexes]]
-					)
+					this.setSpriteMatrix()
 					return null
 				}
 
@@ -949,6 +842,15 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			new_expansion.push( [object_index, [source_object_index, replacements_identifier_indexes]] )
 		}
 		this.current_expansion_context.expansion = new_expansion
+
+		if (this.sprites_to_compile === undefined) // ignore sprites compilation if not compiling
+			return result
+
+		this.sprites_to_compile.push([
+			new_expansion,
+			1, // 1 is for 'copy from object'
+			[]
+		])
 		return result
 	}
 
@@ -1039,7 +941,10 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			return 'ERROR'
 		}
 
-		this.sprite_transforms.push(compiled_transformation)
+		if (this.sprites_to_compile !== undefined)
+		{
+			this.sprites_to_compile[this.sprites_to_compile.length-1][2].push(compiled_transformation)
+		}
 		return 'NAME' // actually, we should add a new token type for the transform instructions but I'm lazy
 	}
 	default:

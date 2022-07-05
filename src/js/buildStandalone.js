@@ -27,7 +27,7 @@ const standalone_JS_Files = [
 	'globalVariables', 'debug_off', 'font', 'rng', 'riffwave', 'editor/random_sound_generators', 'sfxr2', 'codemirror/stringstream', 'colors', 'engine/screen_layout', 'graphics',
 	'editor/error_messages', 'engine/log',
 	'engine/message_screen', 'engine/level', 'engine/bitvec', 'engine/commands_set', 'engine/rule', 'engine/cell_pattern', 'engine/engine_base', 'parser', 'compiler/identifiers',
-	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'compiler', 'inputoutput', 'mobile'
+	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'compiler/sprites', 'compiler', 'inputoutput', 'mobile'
 ]
 
 function record_js_file(i, text, next_step)

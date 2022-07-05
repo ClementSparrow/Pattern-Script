@@ -994,7 +994,7 @@ function compileTextCode(str)
 {
 
 //	Parse the file	
-	var state = new PuzzleScriptParser()
+	var state = new PuzzleScriptParser([], [])
 
 	const lines = str.split('\n');
 	for (const [i, line] of lines.entries())
@@ -1019,6 +1019,8 @@ function compileTextCode(str)
 	}
 
 	delete state.lineNumber;
+
+	compileSprites(state)
 
 	twiddleMetaData(state)
 
