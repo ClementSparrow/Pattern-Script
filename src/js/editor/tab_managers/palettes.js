@@ -34,7 +34,10 @@ PaletteWidget = function(container, item_def)
 
 	this.colorpicker_canvas = make_HTML('canvas', {
 		attr: {width: 256, height: 256},
-		events: {click: e => this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z))}
+		events: {
+			click: e => this.click_in_colorspace(e),
+			mousedown: e => this.start_colordrag(e),
+		},
 	})
 	container.appendChild(this.colorpicker_canvas)
 
@@ -58,6 +61,9 @@ PaletteWidget = function(container, item_def)
 
 PaletteWidget.prototype = {
 
+//	COORDINATES CONVERSIONS
+//	=======================
+
 	color_from_space: function(x, y, z)
 	{
 		const base = [0,1,2].map(c => 127.5 + (x-127.5)*this.x_color[c] + (127.5-y)*this.y_color[c])
@@ -71,6 +77,20 @@ PaletteWidget.prototype = {
 		return base.map( (v,c) => Math.round( v+(new_z-127.5)*this.z_color[c] ) )
 	},
 
+	color_to_space: function(r, g, b)
+	{
+		const s = this.color_scale * this.color_scale
+		const [r2, g2, b2] = [r-127.5, g-127.5, b-127.5]
+		return [
+			127.5 + (this.x_color[0]*r2 + this.x_color[1]*g2 + this.x_color[2]*b2)/s,
+			127.5 + (this.y_color[0]*r2 + this.y_color[1]*g2 + this.y_color[2]*b2)/s,
+			127.5 + (this.z_color[0]*r2 + this.z_color[1]*g2 + this.z_color[2]*b2)/s,
+		]
+	},
+
+//	EDIT CONTENT
+//	============
+
 	addColor: function(color)
 	{
 		this.colors.push(color)
@@ -80,6 +100,10 @@ PaletteWidget.prototype = {
 		this.redraw()
 		this.onChangeContent(this)
 	},
+
+
+//	EDIT STATE
+//	==========
 
 	setActiveColorSpace: function(name, quaternion, dt)
 	{
@@ -156,6 +180,10 @@ PaletteWidget.prototype = {
 		}
 	},
 
+
+//	DRAW
+//	====
+
 	drawField: function(canvas, color_func)
 	{
 		const ctx = canvas.getContext('2d')
@@ -194,19 +222,65 @@ PaletteWidget.prototype = {
 		this.drawField(this.colorpicker_canvas, (x,y,z) => this.color_from_space(x,y,z))
 		this.drawField(this.zbar_canvas, (x,y,z) => this.z_color.map(c => c*(255-y)) )
 		this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/2, 255-this.z], 'white', 'black')
-		const s = this.color_scale*this.color_scale
 		for (const [r,g,b] of this.colors)
 		{
 			const color_string = 'rgb('+r+','+g+','+b+')'
-			const [r2, g2, b2] = [r-127.5, g-127.5, b-127.5]
-			const screen_coords = [
-				127.5 + (this.x_color[0]*r2 + this.x_color[1]*g2 + this.x_color[2]*b2)/s,
-				127.5 + (this.y_color[0]*r2 + this.y_color[1]*g2 + this.y_color[2]*b2)/s,
-				127.5 + (this.z_color[0]*r2 + this.z_color[1]*g2 + this.z_color[2]*b2)/s,
-			]
+			const screen_coords = this.color_to_space(r, g, b)
 			this.drawMark(this.colorpicker_canvas, [screen_coords[0], 255 - screen_coords[1]], color_string, 'black')
 			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width, 255 - screen_coords[2]], color_string, 'black')
 		}
+	},
+
+//	MOUSE EVENTS
+//	============
+
+	click_in_colorspace: function (e)
+	{
+		if (this.color_dragged === undefined)
+			this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z))
+		this.color_dragged = undefined
+		return true
+	},
+
+	start_colordrag: function(event)
+	{
+		const x = event.offsetX
+		const y = 255 - event.offsetY
+
+	//	Find the closest color point
+		const color_positions = this.colors.map( ([r,g,b]) => this.color_to_space(r,g,b) )
+		const color_deltas = color_positions.map( ([x2,y2,z2]) => [x-x2, y-y2, this.z-z2])
+		let index_of_closest = undefined
+		let closest_sq_distance = Infinity
+		for (const [i, [dx,dy,dz]] of color_deltas.entries())
+		{
+			const sq_dist = dx*dx + dy*dy
+			if (sq_dist < closest_sq_distance)
+			{
+				index_of_closest = i
+				closest_sq_distance = sq_dist
+			}
+		}
+
+		if (closest_sq_distance > 25)
+			return false
+		this.color_dragged = index_of_closest
+		
+		const colordrag = (e) =>
+		{
+			this.colors[index_of_closest] = this.color_from_space(e.offsetX, e.offsetY, this.z).map(c => clamp(0,c,255))
+			this.redraw()
+			this.sprite_editor.redraw()
+			this.onChangeContent(this)
+			return true
+		}
+		const end_colordrag = (e) => {
+			document.removeEventListener('mousemove', colordrag)
+			return colordrag(e)
+		}
+		document.addEventListener('mousemove', colordrag, false)
+		document.addEventListener('mouseup', end_colordrag, {once:true})
+		return true
 	},
 
 	start_zdrag: function(event)
@@ -233,6 +307,10 @@ PaletteWidget.prototype = {
 		document.addEventListener('mouseup', end_zdrag, {once:true})
 		return true
 	},
+
+
+//	ListTabManager API
+//	==================
 
 	finalize: function(item_def)
 	{
@@ -285,7 +363,7 @@ PalettesTabManager.prototype.widgetContentChanged = function(widget_manager)
 	{
 		sprite.updatePalette(widget.def.colors)
 	}
-	// WIP TODO: recompile the sprite transformations for the objects that use this palette
+	ListTabManager.prototype.widgetContentChanged.call(this, widget_manager)
 }
 
 PalettesTabManager.prototype.onRemoveWidget = function(widget, name)
