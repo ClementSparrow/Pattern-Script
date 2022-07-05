@@ -1,7 +1,7 @@
 
 PaletteWidget = function(container, item_def)
 {
-	this.colors = []
+	this.colors = item_def.colors
 	this.z = 0
 
 	const colorspaces = {
@@ -237,9 +237,8 @@ PaletteWidget.prototype = {
 	finalize: function(item_def)
 	{
 		this.widget.connected.sprites = []
-		this.sprite_editor = new SpriteEditor(this.sprite_canvas, 6, 6, [])
+		this.sprite_editor = new SpriteEditor(this.sprite_canvas, 6, 6, this.colors.map(color => 'rgb('+color.join(',')+')'))
 		this.sprite_editor.resize_canvas()
-		item_def.colors.forEach(c => this.addColor(c))
 		this.redraw()
 	},
 
