@@ -10,10 +10,16 @@ function colorToHex(palette, str)
 	return (str in palette) ? palette[str]+'FF' : str
 }
 
+function rgbToHex(color)
+{
+	return '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join('')
+}
+
 colorPalettesAliases = [ 'mastersystem', 'gameboycolour', 'amiga', 'arnecolors', 'famicom', 'atari', 'pastel', 'ega', 'amstrad', 'proteus_mellow', 'proteus_rich', 'proteus_night', 'c64', 'whitingjp' ]
 
 colorPalettes = {
-	mastersystem : {
+
+mastersystem : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#555555",
@@ -38,9 +44,9 @@ colorPalettes = {
 	darkblue		: "#000055",
 	purple			: "#550055",
 	pink			: "#FFAAFF"
-	},
+},
 
-	gameboycolour : {
+gameboycolour : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#7F7F7C",
@@ -65,9 +71,9 @@ colorPalettes = {
 	darkblue		: "#4B575D",
 	purple			: "#3E3E44",
 	pink			: "#BA381F"
-	},
+},
 
-	amiga : {
+amiga : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#BBBBBB",
@@ -92,9 +98,9 @@ colorPalettes = {
 	darkblue		: "#666688",
 	purple			: "#665555",
 	pink			: "#997788"
-	},
+},
 
-	arnecolors : {
+arnecolors : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#9d9d9d",
@@ -119,8 +125,9 @@ colorPalettes = {
 	darkblue		: "#1B2632",
 	purple			: "#342a97",
 	pink			: "#de65e2"
-	},
-	famicom : {
+},
+
+famicom : {
 	black   		: "#000000",
 	white			: "#ffffff",
 	grey			: "#7c7c7c",
@@ -145,9 +152,9 @@ colorPalettes = {
 	darkblue		: "#0000BC",
 	purple			: "#6644FC",
 	pink			: "#F878F8"
-	},
+},
 
-	atari : {
+atari : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#909090",
@@ -172,8 +179,9 @@ colorPalettes = {
 	darkblue		: "#000088",
 	purple			: "#3C0080",
 	pink			: "#B484DC"
-	},
-	pastel : {
+},
+
+pastel : {
 	black   		: "#000000",
 	white			: "#FFFFFF",
 	grey			: "#3e3e3e",
@@ -198,8 +206,9 @@ colorPalettes = {
 	darkblue		: "#293a7b",
 	purple			: "#ff6554",
 	pink			: "#eb792d"
-	},
-	ega : {
+},
+
+ega : {
 	black   		: "#000000",
 	white			: "#ffffff",
 	grey			: "#555555",
@@ -224,10 +233,9 @@ colorPalettes = {
 	darkblue		: "#0000aa",
 	purple			: "#aa00aa",
 	pink			: "#ff55ff"
-	},
+},
 
-
-	proteus_mellow : {
+proteus_mellow : {
 	black   		: "#3d2d2e",
 	white			: "#ddf1fc",
 	grey			: "#9fb2d4",
@@ -252,10 +260,9 @@ colorPalettes = {
 	darkblue		: "#5c6b8c",
 	purple			: "#d39fac",
 	pink			: "#c8ac9e"
-	},
+},
 	
-
-	proteus_night : {
+proteus_night : {
 	black   		: "#010912",
 	white			: "#fdeeec",
 	grey			: "#051d40",
@@ -280,11 +287,9 @@ colorPalettes = {
 	darkblue		: "#08153b",
 	purple			: "#666a87",
 	pink			: "#754b4d"
-	},
+},
 	
-
-
-	proteus_rich: {
+proteus_rich: {
 	black   		: "#6f686f",
 	white			: "#d1b1e2",
 	grey			: "#b9aac1",
@@ -309,10 +314,8 @@ colorPalettes = {
 	darkblue		: "#0b2c70",
 	purple			: "#9b377f",
 	pink			: "#cd88e5"
-	},
-	
+},
 
-	
 amstrad : {
 	black   		: "#000000",
 	white			: "#ffffff",
@@ -338,7 +341,8 @@ amstrad : {
 	darkblue		: "#00007f",
 	purple			: "#7f007f",
 	pink			: "#ff7fff"
-	},
+},
+
 c64 : {
 	black   		: "#000000",
 	white			: "#ffffff",
@@ -365,38 +369,35 @@ c64 : {
 	purple			: "#6F3D86",
 	pink			: "#b044ac"
 },
+
 whitingjp : {
-  black       : "#202527",
-  white       : "#eff8fd",
-  grey        : "#7b7680",
-  darkgrey    : "#3c3b44",
-  lightgrey   : "#bed0d7",
-  gray        : "#7b7680",
-  darkgray    : "#3c3b44",
-  lightgray   : "#bed0d7",
-  red         : "#bd194b",
-  darkred     : "#6b1334",
-  lightred    : "#ef2358",
-  brown       : "#b52e1c",
-  darkbrown   : "#681c12",
-  lightbrown  : "#e87b45",
-  orange      : "#ff8c10",
-  yellow      : "#fbd524",
-  green       : "#36bc3c",
-  darkgreen   : "#317610",
-  lightgreen  : "#8ce062",
-  blue        : "#3f62c6",
-  lightblue   : "#57bbe0",
-  darkblue    : "#2c2fa0",
-  purple      : "#7037d9",
-  pink        : "#ec2b8f"
+	black       : "#202527",
+	white       : "#eff8fd",
+	grey        : "#7b7680",
+	darkgrey    : "#3c3b44",
+	lightgrey   : "#bed0d7",
+	gray        : "#7b7680",
+	darkgray    : "#3c3b44",
+	lightgray   : "#bed0d7",
+	red         : "#bd194b",
+	darkred     : "#6b1334",
+	lightred    : "#ef2358",
+	brown       : "#b52e1c",
+	darkbrown   : "#681c12",
+	lightbrown  : "#e87b45",
+	orange      : "#ff8c10",
+	yellow      : "#fbd524",
+	green       : "#36bc3c",
+	darkgreen   : "#317610",
+	lightgreen  : "#8ce062",
+	blue        : "#3f62c6",
+	lightblue   : "#57bbe0",
+	darkblue    : "#2c2fa0",
+	purple      : "#7037d9",
+	pink        : "#ec2b8f"
 }
 };
 
-var reg_color_names = /(black|white|darkgray|lightgray|gray|grey|darkgrey|lightgrey|red|darkred|lightred|brown|darkbrown|lightbrown|orange|yellow|green|darkgreen|lightgreen|blue|lightblue|darkblue|purple|pink|transparent)\b/
-var reg_color = /(black|white|gray|darkgray|lightgray|grey|darkgrey|lightgrey|red|darkred|lightred|brown|darkbrown|lightbrown|orange|yellow|green|darkgreen|lightgreen|blue|lightblue|darkblue|purple|pink|transparent|#(?:[0-9a-f]{3}){1,2})\b/
-
-
-
-
+const reg_color_names = /(black|white|darkgray|lightgray|gray|grey|darkgrey|lightgrey|red|darkred|lightred|brown|darkbrown|lightbrown|orange|yellow|green|darkgreen|lightgreen|blue|lightblue|darkblue|purple|pink|transparent)\b/
+const reg_color = /(black|white|gray|darkgray|lightgray|grey|darkgrey|lightgrey|red|darkred|lightred|brown|darkbrown|lightbrown|orange|yellow|green|darkgreen|lightgreen|blue|lightblue|darkblue|purple|pink|transparent|#(?:[0-9a-f]{3}){1,2})\b/
 
