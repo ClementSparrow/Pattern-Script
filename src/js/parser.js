@@ -610,22 +610,33 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			{
 				if (spritematrix.length === 0) // allows to not have a sprite matrix and start another object definition without a blank line
 				{
-					if (stream.match(/copy:[\p{Separator}\s]+/u, true) === null)
+					const copy_keyword_match = stream.match(/(copy|sprite):[\p{Separator}\s]+/u, true)
+					if (copy_keyword_match === null)
 					{
 						stream.match(reg_notcommentstart, true)
 						this.logWarning('Unknown junk in object section. I was expecting the definition of a sprite matrix, directly as pixel values or indirectly with a "copy: [object name]" instruction. Maybe you forgot to insert a blank line between two object definitions?')
 						return 'ERROR'
 					}
 
-					// copy sprite from other object(s)
-					this.line_type = 4
-					if ( (new Set(this.current_expansion_context.parameters)).size !== this.current_expansion_context.parameters.length ) // check for duplicate class names
+					switch (copy_keyword_match[1])
 					{
-						this.logWarning('Copying sprites for identifier '+this.identifiers.names[this.current_identifier_index].toUpperCase()+
-							' is ambiguous and can have undesired consequences, because it contains multiple instances of a same tag class. To avoid this problem, use tag class aliases so that each tag class only appears once in the identifier.')
-						return 'WARNING'
+						case 'copy':
+							// copy sprite from other object(s)
+							this.line_type = 4
+							// TODO: only show this warning if one of the duplicated classes is actually used in the implied mapping from the given object name
+							if ( (new Set(this.current_expansion_context.parameters)).size !== this.current_expansion_context.parameters.length ) // check for duplicate class names
+							{
+								this.logWarning('Copying sprites for identifier '+this.identifiers.names[this.current_identifier_index].toUpperCase()+
+									' is ambiguous and can have undesired consequences, because it contains multiple instances of a same tag class. To avoid this problem, use tag class aliases so that each tag class only appears once in the identifier.')
+								return 'WARNING'
+							}
+							return 'COPYWORD'
+						case 'sprite':
+							this.line_type = 7
+							return 'COPYWORD'
+						default:
+							return null
 					}
-					return 'COPYWORD'
 				}
 
 				if (is_start_of_line) // after the sprite matrix
@@ -860,6 +871,30 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		// WIP TODO: should we return 'ERROR' if no palette of that name exists?
 		return 'NAME'
 	}
+	case 7: // copy sprite: name
+		this.line_type = 5 // continue with transforms
+		const sprite_name_match = stream.match(reg_maptagged_name, true)
+		if (sprite_name_match === null)
+		{
+			this.logError('Unexpected character ' + stream.peek() + ' found instead of sprite name in definition of object.')
+			stream.match(reg_notcommentstart, true)
+			return 'ERROR'
+		}
+
+		if (this.sprites_to_compile === undefined)
+			return 'NAME'
+		const sprite_name = sprite_name_match[0].trim()
+		if (game_def.sprites[sprite_name] === undefined)
+		{
+			this.logError('Unknown sprite name "'+sprite_name+'". Sprite names are case-sensitive, maybe that\'s the issue?')
+			return 'ERROR'
+		}
+		this.sprites_to_compile.push([
+			Array.from(this.current_expansion_context.expansion, ([oi, replacements]) => [oi, [sprite_name, replacements]]),
+			2, // 2 is for 'copy from sprite in the Sprites tab or game_def'
+			[]
+		])
+		return 'NAME'
 	default:
 		window.console.logError("EEK shouldn't get here.")
 	}

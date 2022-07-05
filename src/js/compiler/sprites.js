@@ -1,10 +1,27 @@
+function rectanglify(s)
+{
+	const w = Math.max(...s.map(l => l.length))
+	return s.map( l => l + '.'.repeat(w-l.length) )
+}
+
+function spriteMatrixTextLinesToArrays(dat)
+{
+	return dat.map(
+		function(line)
+		{
+			const row = []
+			for (let j = 0; j < line.length; j++)
+			{
+				const ch = line.charAt(j)
+				row.push( (ch == '.') ? -1 : ch )
+			}
+			return row
+		}
+	)
+}
+
 function compileSprites(state)
 {
-	function rectanglify(s)
-	{
-		const w = Math.max(...s.map(l => l.length))
-		return s.map( l => l + '.'.repeat(w-l.length) )
-	}
 	function expand(expansion_def, expansion)
 	{
 		if ( ! Array.isArray(expansion_def) )
@@ -37,6 +54,8 @@ function compileSprites(state)
 					offset = Array.from( source_object.sprite_offset )
 					break
 				case 2: // copy from Sprites tab / game_def
+					sprite = game_def.sprites[source_id].matrix
+					offset = [0,0]
 					// TODO
 			}
 			for (const parts of transforms)
@@ -105,11 +124,38 @@ function compileSprites(state)
 						break
 					default:
 				}
-				const newsprite = f(sprite)
-				sprite = newsprite
+				sprite = f(sprite)
 			}
 			object.spritematrix = sprite
 			object.sprite_offset = offset
+		}
+	}
+
+//	Compile sprites for all objects
+	for (var o of state.identifiers.objects)
+	{
+		if (o.colors.length == 0)
+		{
+			if (o.palette.length == 0)
+			{
+				// TODO: since this can generate errors that could be highlighted, it should be done in the parser
+				// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
+				logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])
+				o.colors=["#ff00ffff"]
+			}
+			else
+			{
+				o.colors = game_def.palettes[o.palette].colors.map(rgbToHex)
+			}
+		}
+
+		if (o.spritematrix.length === 0)
+		{
+			o.spritematrix = Array.from( {length: sprite_height}, () => (new Array(sprite_width).fill(0)) )
+		}
+		else
+		{
+			o.spritematrix = spriteMatrixTextLinesToArrays(o.spritematrix)
 		}
 	}
 }

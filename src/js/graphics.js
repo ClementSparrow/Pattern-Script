@@ -63,7 +63,7 @@ function regenSpriteImages()
 		sprites[o.id] = o
 	}
 	spriteimages = sprites.map(
-		o => createSprite(o.spritematrix, (o.palette.length > 0) ? game_def.palettes[o.palette].colors : o.colors, undefined, undefined, o.sprite_offset)
+		o => createSprite(o.spritematrix, o.colors, undefined, undefined, o.sprite_offset)
 	)
 }
 
