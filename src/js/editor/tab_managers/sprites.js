@@ -66,6 +66,10 @@ SpriteWidget.prototype = {
 		}
 		const new_matrix = rectanglify(new_text_matrix.trim().split('\n'))
 		this.widget.def.matrix = new_matrix
+		this.updateSpriteEditorFromModel(new_matrix)
+	},
+	updateSpriteEditorFromModel: function(new_matrix)
+	{
 		const new_pixels = spriteMatrixTextLinesToArrays(new_matrix)
 		const editor_view = this.sprite_editor.content.content
 		editor_view.height = new_pixels.length
@@ -98,17 +102,17 @@ SpriteWidget.prototype = {
 		const palette = (colors === undefined) ? [] : colors.map(color => 'rgb('+color.join(',')+')')
 		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas, undefined, undefined, palette)
 		this.sprite_editor.content.onChange = () => this.updateFromSpriteEditor()
-		this.sprite_editor.resize_canvas()
+		this.updateSpriteEditorFromModel(item_def.matrix)
 	},
 
 	deepCopy: function(item)
 	{
-		
+		return { matrix: Array.from(item.matrix) }
 	},
 
 	sameItems: function(item1, item2)
 	{
-
+		return item1.matrix.join('') == item2.matrix.join('')
 	},
 
 }

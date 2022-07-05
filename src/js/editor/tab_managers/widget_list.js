@@ -190,7 +190,9 @@ ListTabManager.prototype = {
 		this.widgets = []
 		this.widgets_by_name = {}
 		for(const [item_name, item_def] of content)
+		{
 			this.addNewWidget(item_name, item_def)
+		}
 	},
 
 	getContent: function()
