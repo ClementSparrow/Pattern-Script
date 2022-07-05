@@ -70,7 +70,7 @@ SpriteWidget.prototype = {
 		{
 			this.widget.def.matrix = new_matrix
 			this.updateSpriteEditorFromModel(new_matrix)
-			this.onChangeContent()
+			this.onChangeContent(this)
 		}
 	},
 	updateSpriteEditorFromModel: function(new_matrix)
@@ -101,7 +101,7 @@ SpriteWidget.prototype = {
 		{
 			this.widget.def.matrix = result.split('\n')
 			this.matrix_textarea.value = result
-			this.onChangeContent()
+			this.onChangeContent(this)
 		}
 	},
 
@@ -136,13 +136,6 @@ SpritesTabManager.prototype = Object.create(ListTabManager.prototype)
 SpritesTabManager.prototype.addNewBlankWidget = function()
 {
 	this.addNewWidget('', { matrix: new Array(sprite_height).fill('.'.repeat(sprite_width)) })
-}
-
-SpritesTabManager.prototype.widgetContentChanged = function(name_field, widget)
-{
-	compileSprites(state)
-	forceRegenImages()
-	screen_layout.redraw()
 }
 
 SpritesTabManager.prototype.onRemoveWidget = function(widget, name)
