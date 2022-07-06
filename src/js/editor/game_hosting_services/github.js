@@ -176,7 +176,7 @@ function shareOnGitHub(is_public, should_fork=false)
 			}
 
 			window.history.replaceState(null, null, "?hack="+id)
-			gist_manager.updateInterfaceForDirtyness(false)
+			tabs.setClean()
 		}
 	}
 	githubHTTPClient.setRequestHeader('Content-type', 'application/vnd.github+json')
