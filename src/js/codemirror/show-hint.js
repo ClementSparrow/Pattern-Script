@@ -250,8 +250,10 @@
       }
       hints.style.left = (left = pos.left - overlapX) + "px";
     }
-    if (scrolls) for (var node = hints.firstChild; node; node = node.nextSibling)
+    if (scrolls && (cm.display.nativeBarWidth !== undefined)) for (var node = hints.firstChild; node; node = node.nextSibling)
+    {
       node.style.paddingRight = cm.display.nativeBarWidth + "px"
+    }
 
     cm.addKeyMap(this.keyMap = buildKeyMap(completion, {
       moveFocus: function(n, avoidWrap) { widget.changeActive(widget.selectedHint + n, avoidWrap); },
