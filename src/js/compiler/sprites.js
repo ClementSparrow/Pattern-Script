@@ -110,9 +110,9 @@ function compileSprites(state)
 							const angle = (4 + to_direction - ref_direction) % 4 // clockwise
 							f = ([
 									( m => Array.from(m) ), // 0°
-									( m => Array.from(m.keys(), c => m.map( l => l[c] ).reverse().join('')) ), // 90°
+									( m => Array.from(m[0], (ch,col) => m.map( row => row[col] ).reverse().join('')) ), // 90°
 									( m => Array.from(m, l => l.split('').reverse().join('') ).reverse() ), // 180°
-									( m => Array.from(m.keys(), c => m.map( l => l[c] ).join('')).reverse() ) // 270°
+									( m => Array.from(m[0], (ch,col) => m.map( row => row[col] ).join('')).reverse() ) // 270°
 								])[angle]
 							sprite = rectanglify(sprite)
 						}
