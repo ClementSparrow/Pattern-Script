@@ -270,6 +270,8 @@ PaletteWidget.prototype = {
 		{
 			this.colors[index_of_closest] = this.color_from_space(e.offsetX, e.offsetY, this.z).map(c => clamp(0,c,255))
 			this.redraw()
+			this.sprite_editor.content.content.palette = this.colors.map(color => 'rgb('+color.join(',')+')')
+			this.sprite_editor.content.glyphSelectedIndex = index_of_closest
 			this.sprite_editor.redraw()
 			this.onChangeContent(this)
 			return true
