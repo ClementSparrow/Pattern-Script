@@ -142,3 +142,5 @@ SpritesTabManager.prototype.onRemoveWidget = function(widget, name)
 {
 	// TODO
 }
+
+SpritesTabManager.prototype.widgetStateChanged = function() { }

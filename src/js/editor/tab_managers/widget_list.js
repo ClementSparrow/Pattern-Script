@@ -175,6 +175,7 @@ ListTabManager.prototype = {
 		this.free_name(widget_manager)
 		this.onRemoveWidget(widget)
 		this.updateNamesList()
+		this.widgets.splice(this.widgets.indexOf(widget), 1)
 		tabs.checkDirty()
 		// no need to recompile here
 	},
