@@ -894,7 +894,7 @@ function formatHomePage(state)
 }
 
 const MAX_ERRORS=5;
-function compileTextCode(str)
+function compileTextCode(str, in_exported_game)
 {
 
 //	Parse the file	
@@ -926,7 +926,9 @@ function compileTextCode(str)
 
 	compileSprites(state)
 
-	twiddleMetaData(state)
+	if (in_exported_game === undefined)
+		twiddleMetaData(state)
+	;[ sprite_width, sprite_height ] = game_def['sprite_size']
 
 	generateExtraMembers(state);
 	generateMasks(state);

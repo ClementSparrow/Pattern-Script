@@ -233,7 +233,19 @@ a {
 
 <script type="text/javascript">
 __JAVASCRIPT_GOES_HERE__
-compile(-1, __GAMEDAT__)
+function compile(text)
+{
+  errorStrings = []
+  var state = compileTextCode(text, true)
+  if (errorStrings.length > 0)
+  {
+    consoleError('<span class="systemMessage">Errors detected during compilation; the game may not work correctly.</span>')
+  }
+  setGameState(state, null)
+  forceRegenImages()
+}
+game_def = JSON.parse(__GAME_DEF_JSON__)
+compile(__GAMEDAT__)
 </script>
 
 </body>

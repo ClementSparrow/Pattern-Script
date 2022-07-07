@@ -27,7 +27,8 @@ const standalone_JS_Files = [
 	'globalVariables', 'debug_off', 'font', 'rng', 'riffwave', 'editor/random_sound_generators', 'sfxr2', 'codemirror/stringstream', 'colors', 'engine/screen_layout', 'graphics',
 	'editor/error_messages', 'engine/log',
 	'engine/message_screen', 'engine/level', 'engine/bitvec', 'engine/commands_set', 'engine/rule', 'engine/cell_pattern', 'engine/engine_base', 'parser', 'compiler/identifiers',
-	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'compiler', 'inputoutput', 'mobile'
+	// WIP TODO: parser/preamble should be removed when it can work without
+	'compiler/rule', 'compiler/rule_parser', 'compiler/rule_expansion', 'compiler/rule_groups', 'parser/preamble', 'compiler/sprites', 'compiler', 'inputoutput', 'mobile'
 ]
 
 function record_js_file(i, text, next_step)
@@ -68,6 +69,7 @@ function buildStandalonePack(sourceCode, htmlString, standalone_JS_String)
 	standalone_JS_String = standalone_JS_String.replace(/\/\/ <-- FONT START -->(?:.|\s)*?\/\/ <-- FONT END -->/m, 'font.src = "'+font.asDataURL() + '"')
 
 	htmlString = htmlString.split('__JAVASCRIPT_GOES_HERE__', 2).join(standalone_JS_String) // using replace would cause a bug, as standalone_JS_String contains $ characters
+	htmlString = htmlString.split('__GAME_DEF_JSON__', 2).join(JSON.stringify(JSON.stringify(game_def)))
 
 	downloadBlob(new Blob([htmlString], {type: "text/plain;charset=utf-8"}), 'index.html')
 }
