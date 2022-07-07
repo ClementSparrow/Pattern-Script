@@ -407,7 +407,11 @@ PuzzleScriptParser.prototype.tokenInTagsSection = function(is_start_of_line, str
 			}
 			const tagname = tagname_match[0]
 			const identifier_index = this.identifiers.names.indexOf(tagname)
-			return ( (identifier_index < 0) || ( ! this.identifiers.object_set[this.current_identifier_index].has(identifier_index) ) ) ? 'ERROR' : 'NAME';
+			if (identifier_index < 0)
+				return 'ERROR'
+			const tags_in_set = this.identifiers.object_set[this.current_identifier_index]
+			const ok = Array.from(this.identifiers.object_set[identifier_index]).every(ii => tags_in_set.has(ii) )
+			return ok ? 'NAME' : 'ERROR'
 		}
 		default:
 		{
