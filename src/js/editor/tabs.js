@@ -50,11 +50,8 @@ canExit: function()
 setClean: function() // called after a game has been loaded in the editor or after it has been saved (locally or on cloud)
 {
 	this.clean_states = this.tabs.map( tab_manager => tab_manager.getContent() )
-	if (this.is_dirty === true)
-	{
-		localhosting_manager.updateInterfaceForDirtyness(false)
-		this.is_dirty = false
-	}
+	localhosting_manager.updateInterfaceForDirtyness(false)
+	this.is_dirty = false
 },
 
 removeFocus: function()
