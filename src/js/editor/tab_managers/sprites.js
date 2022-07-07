@@ -60,9 +60,9 @@ SpriteWidget.prototype = {
 
 	updateFromTextArea: function(new_text_matrix)
 	{
-		if (/[^.\d\n\P{Separator}]/.test(new_text_matrix))
+		if (/[^.\da-zA-Z\n\P{Separator}\s]/.test(new_text_matrix))
 		{
-			console.log('invalid character')
+			console.log('invalid character') // WIP TODO: display an error in the field and highlight the character
 			return
 		}
 		const new_matrix = rectanglify(new_text_matrix.split('\n'))
@@ -92,7 +92,7 @@ SpriteWidget.prototype = {
 			for (let x=0; x<editor_view.width; ++x, ++i)
 			{
 				const v = editor_view.pixels[i]
-				result += ((v>=0) && (v<=9)) ? v+'' : '.'
+				result += ((v>=0) && (v<=35)) ? (v<=9) ? v+'' : String.fromCharCode(87+v) : '.'
 			}
 			result += '\n'
 		}
