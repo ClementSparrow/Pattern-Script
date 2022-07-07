@@ -12,8 +12,8 @@ function spriteMatrixTextLinesToArrays(dat)
 			const row = []
 			for (let j = 0; j < line.length; j++)
 			{
-				const ch = line.charAt(j)
-				row.push( (ch == '.') ? -1 : ch )
+				const ch = line.charAt(j).toLowerCase().charCodeAt(0) // '.'->46, '0-9'->48-57, 'a-z'->97-122
+				row.push( ((ch<48) || (ch>57)) ? ((ch>=97) && (ch<=122)) ? ch-87 : -1 : (ch-48) )
 			}
 			return row
 		}
