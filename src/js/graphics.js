@@ -158,11 +158,17 @@ ScreenLayout.prototype.init_graphics = function(canvas_id = 'gameCanvas')
 }
 screen_layout.init_graphics()
 
+// creates a buffer. To save memory, use rescale_canvas_into.
 function rescale_canvas(m, ctx_from, ctx_to, w, h, margins)
 {
+	const scaled_imagedata = ctx_to.getImageData(margins[0], margins[1], w*m, h*m)
+	rescale_canvas_into(m, ctx_from, scaled_imagedata.data, w, h)
+	return scaled_imagedata
+}
+
+function rescale_canvas_into(m, ctx_from, pixels, w, h)
+{
 	const vc_pixels = ctx_from.getImageData(0, 0, w, h).data
-	var scaled_imagedata = ctx_to.getImageData(margins[0], margins[1], w*m, h*m)
-	var pixels = scaled_imagedata.data
 
 	const delta_j = w*m*4
 	for (var y=0, i=0, j=0; y<h; ++y)
@@ -184,7 +190,7 @@ function rescale_canvas(m, ctx_from, ctx_to, w, h, margins)
 			pixels.copyWithin(j, jstart, jend)
 		}
 	}
-	return scaled_imagedata
+	return
 }
 
 ScreenLayout.prototype.redraw = function()
@@ -209,10 +215,8 @@ ScreenLayout.prototype.redraw = function()
 	else
 	{
 		this.ctx.scale(this.magnification, this.magnification)
-		this.ctx.putImageData(
-			rescale_canvas(this.magnification, this.vc_ctx, this.ctx, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height, this.margins),
-			...this.margins
-		)
+		rescale_canvas_into(this.magnification, this.vc_ctx, this.scaled_imagedata.data, this.virtual_screen_canvas.width, this.virtual_screen_canvas.height, this.margins)
+		this.ctx.putImageData(this.scaled_imagedata, ...this.margins)
 	}
 
 	this.ctx.restore()
@@ -231,7 +235,7 @@ function redraw()
 ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
 {
 	// Resize canvas
-	var c = this.canvas
+	const c = this.canvas
 	c.width  = pixel_ratio * c.parentNode.clientWidth
 	c.height = pixel_ratio * c.parentNode.clientHeight
 	this.resize( [c.width, c.height] )
@@ -241,10 +245,13 @@ ScreenLayout.prototype.resize_canvas = function(pixel_ratio)
 	this.ctx.fillRect(0, 0, c.width, c.height)
 
 	// Resize virtual canvas
-	var vc = this.virtual_screen_canvas
+	const vc = this.virtual_screen_canvas
 	const vc_size = this.content.get_virtual_screen_size()
 	vc.width  = vc_size[0]
 	vc.height = vc_size[1]
+
+	// Get the pixel buffer that we will use
+	this.scaled_imagedata = this.ctx.getImageData(this.margins[0], this.margins[1], vc_size[0]*this.magnification, vc_size[1]*this.magnification)
 
 	this.redraw()
 }
