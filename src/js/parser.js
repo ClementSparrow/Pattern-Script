@@ -1584,7 +1584,7 @@ PuzzleScriptParser.prototype.setLevelTitle = function(title_text, title_style)
 
 	let current_level = this.levels[this.levels.length-1]
 	current_level.title_style = title_style
-	if ( (title_text == '') || (title_style == 'none') )
+	if ( (title_text == '') )
 		return
 	current_level.title = title_text
 }
