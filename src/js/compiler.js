@@ -924,11 +924,11 @@ function compileTextCode(str, in_exported_game)
 
 	delete state.lineNumber;
 
-	compileSprites(state)
-
 	if (in_exported_game === undefined)
 		twiddleMetaData(state)
 	;[ sprite_width, sprite_height ] = game_def['sprite_size']
+
+	compileSprites(state)
 
 	generateExtraMembers(state);
 	generateMasks(state);
