@@ -624,7 +624,7 @@ function twiddleMetaData(state)
 		const coords = newmetadata.zoomscreen.split('x')
 		newmetadata.zoomscreen = [parseInt(coords[0]), parseInt(coords[1])]
 	}
-	[ sprite_width, sprite_height ] = newmetadata['sprite_size']
+	;[ sprite_width, sprite_height ] = newmetadata['sprite_size']
 
 	state.metadata = newmetadata
 
@@ -982,9 +982,9 @@ function compileTextCode(str)
 
 	delete state.lineNumber;
 
-	compileSprites(state)
-
 	twiddleMetaData(state)
+
+	compileSprites(state)
 
 	generateExtraMembers(state);
 	generateMasks(state);
