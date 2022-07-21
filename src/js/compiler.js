@@ -343,24 +343,17 @@ function levelsToArray(state)
 		}
 		level.boxes.splice(2, 0, [])
 
+		const generation_cond = state.metadata.auto_level_titles
+		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
+
 		level.is_named = (level.name !== undefined)
-		if (!level.is_named)
+		if (level.is_named)
+		{
+			generate_title ||= (generation_cond == 'named')
+		}
+		else
 		{
 			level.name = 'Level ' + (level_index+1)
-		}
-
-		const generation_cond = state.metadata.auto_level_titles
-
-		let generate_title = false
-
-		switch (generation_cond)
-		{
-			case 'always':
-				generate_title = true
-				break
-			case 'named':
-				generate_title = level.is_named
-				break
 		}
 
 		generate_title &&= (level.title_style != 'none')
