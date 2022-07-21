@@ -206,7 +206,7 @@ MenuScreen.prototype.makePauseMenu = function()
 	const empty_line = [empty_terminal_line, state.fgcolor]
 	const level = state.levels[curlevel.level]
 	this.text = [ empty_line, [centerText('-< GAME PAUSED >-'), state.titlecolor], [centerText(level.name), state.titlecolor] ]
-	if ('show_level_title_in_menu' in state.metadata)
+	if ( ('show_level_title_in_menu' in state.metadata) && (level.title.length > 0) )
 	{
 		let title = level.title
 		if (title.length > empty_terminal_line.length)
@@ -214,12 +214,14 @@ MenuScreen.prototype.makePauseMenu = function()
 		this.text.push([centerText(title), state.titlecolor])
 	}
 	this.text.push( empty_line )
-	var menu_entries = [
-		['resume game', () => this.closeMenu()],
-		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
-		['exit to title screen', goToTitleScreen]
-	]
-	this.makeMenuItems(terminal_height - 5, menu_entries)
+	this.makeMenuItems(
+		terminal_height - 5,
+		[
+			['resume game', () => this.closeMenu()],
+			(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
+			['exit to title screen', goToTitleScreen]
+		]
+	)
 	this.text.push( empty_line )
 }
 

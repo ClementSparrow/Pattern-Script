@@ -343,8 +343,13 @@ function levelsToArray(state)
 		}
 		level.boxes.splice(2, 0, [])
 
+		if ( ! level.hasOwnProperty('title') )
+		{
+			level.title = ''
+		}
+
 		const generation_cond = state.metadata.auto_level_titles
-		let generate_title = level.hasOwnProperty('title') || (generation_cond == 'always')
+		let generate_title = (level.title.length > 0) || (generation_cond == 'always')
 
 		level.is_named = (level.name !== undefined)
 		if (level.is_named)
@@ -360,15 +365,10 @@ function levelsToArray(state)
 		if (generate_title)
 		{
 			level.boxes[1].unshift({
-				text: level.hasOwnProperty('title')
+				text: (level.title.length > 0)
 					? (level.title_style == 'header' ? wordwrapAndColor(level.name, state.titlecolor) : []).concat(wordwrapAndColor(level.title, state.authorcolor))
 					: wordwrapAndColor(level.name, level.title_style == 'header' ? state.titlecolor : state.authorcolor),
 			})
-		}
-
-		if ( ! level.hasOwnProperty('title') )
-		{
-			level.title = ''
 		}
 
 		level.grid = levelFromString(state, level)
