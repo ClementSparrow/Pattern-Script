@@ -1704,6 +1704,7 @@ PuzzleScriptParser.prototype.parseActualToken = function(stream, ch) // parses s
 
 		//	Initialize the parser state for some sections depending on what has been parsed before
 			this.lastTokenIndex = 0
+			this.line_type = 0
 			if (this.section === 'levels')
 			{
 				//populate character abbreviations
