@@ -167,10 +167,7 @@ PuzzleScriptParser.prototype.copy = function()
 		return l
 	})
 
-	result.STRIDE_OBJ = this.STRIDE_OBJ
-	result.STRIDE_MOV = this.STRIDE_MOV
-
-	return result;
+	return result
 }
 
 
