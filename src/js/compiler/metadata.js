@@ -2,9 +2,11 @@
 // It can be ignored in the exported games, where the resulting game_def is provided directly
 function twiddleMetaData(state)
 {
+	const is_in_editor = (typeof editor_tabmanager !== 'undefined') // TODO: remove the need for that
+
 	for (const [i, key] of state.metadata_keys.entries())
 	{
-		if ( ! (key in metadata_in_tab) ) // WIP TODO: we should only do that in the editor, not in the player!
+		if ( is_in_editor && ! (key in metadata_in_tab) ) // WIP TODO: we should only do that in the editor, not in the player!
 		{
 			state.metadata_lines[i] = null // don't delete
 		}
@@ -12,19 +14,22 @@ function twiddleMetaData(state)
 	}
 	
 	// remove the lines from the file that have been used to fill in the UI fields
-	const code_txt = editor_tabmanager.getContent().split('\n')
-	const initial_code_txt_length = code_txt.length
-	for (let i=state.metadata_lines.length-1; i>=0; --i)
+	if (is_in_editor)
 	{
-		if (state.metadata_lines[i] === null)
-			continue
-		code_txt.splice(i, 1)
+		const code_txt = editor_tabmanager.getContent().split('\n')
+		const initial_code_txt_length = code_txt.length
+		for (let i=state.metadata_lines.length-1; i>=0; --i)
+		{
+			if (state.metadata_lines[i] === null)
+				continue
+			code_txt.splice(i, 1)
+		}
+		// WIP TODO: setContent scrolls back the editor to the top of the document. That's not a problem when we compile on load,
+		// but it is an issue when we compile on user's input. But in that case, unless the user adds an obsolete preamble command
+		// in the code, there will be no line deleted, so we can simply avoid setContent as a quick fix.
+		if (code_txt.length < initial_code_txt_length)
+			editor_tabmanager.setContent(code_txt.join('\n'))
 	}
-	// WIP TODO: setContent scrolls back the editor to the top of the document. That's not a problem when we compile on load,
-	// but it is an issue when we compile on user's input. But in that case, unless the user adds an obsolete preamble command
-	// in the code, there will be no line deleted, so we can simply avoid setContent as a quick fix.
-	if (code_txt.length < initial_code_txt_length)
-		editor_tabmanager.setContent(code_txt.join('\n'))
 
 	delete state.metadata_keys
 	delete state.metadata_values
