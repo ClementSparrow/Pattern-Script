@@ -3,6 +3,7 @@ function runTest(dataarray) {
 	levelString=dataarray[0];
 	errorStrings = []
 	warningStrings = []
+	game_def = {}
 
 	for (const s of errorStrings)
 	{
@@ -51,6 +52,7 @@ function runCompilationTest(game_string, recordedErrorStrings, recordedWarningSt
 	unitTesting = true
 	errorStrings = []
 	warningStrings = []
+	game_def = {}
 
 	try{
 		compile(null, game_string)
