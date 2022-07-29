@@ -733,25 +733,24 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			this.objects_spritematrix = []
 			this.line_type = 1
 			const result = this.tryParseName(is_start_of_line, stream)
-			if (is_start_of_line)
+			if ( ! is_start_of_line )
+				return result
+
+			if (this.current_identifier_index === undefined) // invalid object name, check syntax but generate nothing
 			{
-				if (this.current_identifier_index === undefined)
-				{
-					this.current_expansion_context = new ExpansionContext()
-				}
-				else
-				{
-					this.current_expansion_context = this.identifiers.expansion_context_from_identifier(this.current_identifier_index)
-					// do not change the spritematrix and palette of an object that has been explicitely defined unless we're currently explicitly defining it.
-					this.current_expansion_context.filter(
-						([object_index, expansion]) =>
-						{
-							const identifier_index = this.identifiers.objects[object_index].identifier_index
-							return (identifier_index === this.current_identifier_index) || (this.identifiers.implicit[identifier_index] !== 0)
-						}
-					)
-				}
+				this.current_expansion_context = new ExpansionContext()
+				return result
 			}
+
+			this.current_expansion_context = this.identifiers.expansion_context_from_identifier(this.current_identifier_index)
+			// do not change the spritematrix and palette of an object that has been explicitely defined unless we're currently explicitly defining it.
+			this.current_expansion_context.filter(
+				([object_index, expansion]) =>
+				{
+					const identifier_index = this.identifiers.objects[object_index].identifier_index
+					return (identifier_index === this.current_identifier_index) || (this.identifiers.implicit[identifier_index] !== 0)
+				}
+			)
 			return result
 		}
 	case 2:
@@ -771,10 +770,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return 'ERROR'
 			}
 
+		//	Get the game's palette
 			const palette_metadata_index = this.metadata_keys.indexOf('color_palette')
 			const palette_name = this.metadata_values[palette_metadata_index]
 			const palette = colorPalettes[palette_name]
 
+		//	Get the actual color
 			const color_string = match_color[0].trim()
 			const color_issue = ! isColor(color_string)
 			if (color_issue)
@@ -784,10 +785,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 			}
 			const color = color_issue ? '#ff00ffff' /* magenta error color */ : colorToHex(palette, color_string)
 
+		//	Set colors in every object defined
+			// TODO Performance: that can be very long, this expansion should be done only once, when the whole list of colors is found
 			let too_many_colors = false
 			this.current_expansion_context.expansion.forEach(
 				([object_index, expansed_parameters]) => {
-					var o = this.identifiers.objects[object_index]
+					const o = this.identifiers.objects[object_index]
 					if ( is_start_of_line || (o.colors === undefined) )
 					{
 						o.colors = [color]
@@ -802,6 +805,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				this.logWarning(['too_many_sprite_colors'])
 			}
 
+		//	Return appropriate lexer style
 			if (color_issue)
 				return 'ERROR'
 			const candcol = color_string.toLowerCase()
@@ -811,7 +815,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 	case 3: // sprite matrix
 		{
-			var spritematrix = this.objects_spritematrix
+			const spritematrix = this.objects_spritematrix
 			const ch = this.parse_sprite_pixel(stream)
 			if (ch === undefined)
 			{
@@ -901,6 +905,7 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 
 	case 4: // copy spritematrix: name of the object to copy from
 	{
+	//	Get the name to copy the sprite matrix from
 		const copy_from_match = stream.match(reg_tagged_name, true)
 		if (copy_from_match === null)
 		{
@@ -910,6 +915,8 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		}
 		copy_from_id = copy_from_match[0].trim()
 		this.line_type = 5
+
+	//	Get the identifier to copy from
 		const copy_from_identifier_index = this.identifiers.checkKnownIdentifier(copy_from_id, true, this)
 		if (copy_from_identifier_index < 0)
 		{
