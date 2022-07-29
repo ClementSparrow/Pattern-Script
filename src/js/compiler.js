@@ -83,27 +83,6 @@ function generateExtraMembers(state)
 		cache_console_messages = true;
 	}
 
-	//convert colors to hex
-	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-	for (var o of state.identifiers.objects)
-	{
-		if (o.colors.length>10) {
-			logError(['too_many_sprite_colors'], state.identifiers.lineNumbers[o.identifier_index]+1)
-		}
-		for (var i=0; i<o.colors.length; i++)
-		{
-			var c = o.colors[i];
-			if (isColor(c))
-			{
-				c = colorToHex(state.color_palette, c)
-				o.colors[i] = c;
-			} else {
-				logError(['invalid_color_for_object', o.name, c], state.identifiers.lineNumbers[o.identifier_index] + 1)
-				o.colors[i] = '#ff00ffff'; // magenta error color
-			}
-		}
-	}
-
 	//generate sprite matrix
 	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
 	for (var o of state.identifiers.objects)
@@ -688,26 +667,8 @@ function twiddleMetaData(state)
 	state.metadata = newmetadata
 
 
-	// get colorpalette name
-	// TODO: move that in the parser so that it can display the exact colors
-	let colorPalette = colorPalettes.arnecolors
-	if ('color_palette' in state.metadata)
-	{
-		let val = state.metadata.color_palette
-		if (val in colorPalettesAliases)
-		{
-			val = colorPalettesAliases[val]
-		}
-		if (colorPalettes[val] === undefined)
-		{
-			logError(['palette_not_found', val]) // TODO: use the line number of the palette declaration
-		}
-		else
-		{
-			colorPalette = colorPalettes[val]
-		}
-	}
-	state.color_palette = colorPalette
+	// get color palette from its name
+	state.game_palette = colorPalettes[state.metadata.color_palette]
 
 	const color_metadata = [
 		[ 'background_color', 'bgcolor', '#000000FF' ],
@@ -718,7 +679,7 @@ function twiddleMetaData(state)
 	]
 	for (const [metadata_key, state_key, default_color] of color_metadata)
 	{
-		const color = (metadata_key in state.metadata) ? colorToHex(colorPalette, state.metadata[metadata_key]) : (default_color || state.fgcolor)
+		const color = (metadata_key in state.metadata) ? colorToHex(state.game_palette, state.metadata[metadata_key]) : (default_color || state.fgcolor)
 		if ( isColor(color) )
 		{
 			state[state_key] = color

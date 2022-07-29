@@ -13,9 +13,7 @@ const error_messages = { // actually also warning messages
 
 	// generateExtraMembers
 	no_collision_layers: 'No collision layers defined.  All objects need to be in collision layers.',
-	palette_not_found: val => 'Palette "'+val+'" not found, defaulting to arnecolors.',
-	too_many_sprite_colors: 'A sprite cannot have more than 10 colors, since they are identified by digits in the sprite matrix.',
-	invalid_color_for_object: (object_name, c) => 'Invalid color specified for object "' + object_name + '", namely "' + c + '".',
+	too_many_sprite_colors: 'Colors are identified by digits in the sprite matrix, so you cannot use more than 10.',
 	no_palette_in_object: object_name => 'Colors not specified for object "' + object_name +'".',
 	no_object: 'You need to have some objects defined',
 	no_background: 'You have to define something to be the background',
@@ -57,7 +55,9 @@ const error_messages = { // actually also warning messages
 	unknown_metadata: 'Unrecognised stuff in the prelude.',
 	not_a_sprite_size: (value_str, default_value) => 'Wrong parameter for sprite_size in the preamble: was expecting WxH with W and H as numbers, but got: ' + value_str + '. Reverting back to default ' + default_value + ' size.',
 	invalid_preamble_option: (option, key) => '"' + option +'" is not a valid option for "' + key.toUpperCase() + '". Refer to <a href="../Documentation/prelude.html" target="Pattern_Script_Documentation">the documentation</a> for possible values.',
+	palette_not_found: (val, default_value) => 'Palette "'+val+'" not found, defaulting to '+default_value+'.',
 	// objects:
+	invalid_color_for_object: (object_name, c) => 'Invalid color specified for object'+((object_name !== undefined) ? ' "' + object_name + '"' : '')+', namely "' + c + '".',
 	palette_too_small: (i,n,l) => 'Trying to access color number ' + i + ' from the color palette of sprite ' + n + ', but there are only ' + l + ' defined in it.',
 	// sounds:
 	unexpected_sound_token: candname => 'unexpected sound token "'+candname+'".',

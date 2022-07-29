@@ -440,6 +440,17 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 		}
 	)
 	this.finalizeMetaData('level_title_style', 'header', null, s => s)
+	this.finalizeMetaData('color_palette', 'arnecolors', 'palette_not_found',
+		function(val)
+		{
+			const palette_num = parseInt(val)
+			if ( ( ! isNaN(palette_num) ) && (palette_num > 0) && (palette_num <= colorPalettesAliases.length) )
+			{
+				val = colorPalettesAliases[palette_num-1]
+			}
+			return (colorPalettes[val] === undefined) ? null : val
+		}
+	)
 }
 
 
@@ -705,11 +716,6 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 		{
 			this.line_type += 1
 		}
-		// else if (this.line_type >= 5) // copy sprite matrix with a valid name
-		// {
-		// 	this.copySpriteMatrix()
-		// 	this.line_type = 0
-		// }
 	}
 
 	switch (this.line_type)
@@ -758,8 +764,20 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				return 'ERROR'
 			}
 
-			const color = match_color[0].trim();
+			const palette_metadata_index = this.metadata_keys.indexOf('color_palette')
+			const palette_name = this.metadata_values[palette_metadata_index]
+			const palette = colorPalettes[palette_name]
 
+			const color_string = match_color[0].trim()
+			const color_issue = ! isColor(color_string)
+			if (color_issue)
+			{
+				const object_name = (this.current_identifier_index !== undefined) ? this.identifiers.names[this.current_identifier_index].toUpperCase() : undefined
+				this.logError(['invalid_color_for_object', object_name, color_string])
+			}
+			const color = color_issue ? '#ff00ffff' /* magenta error color */ : colorToHex(palette, color_string)
+
+			let too_many_colors = false
 			this.current_expansion_context.expansion.forEach(
 				([object_index, expansed_parameters]) => {
 					var o = this.identifiers.objects[object_index]
@@ -767,17 +785,22 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 					{
 						o.colors = [color]
 					} else {
+						too_many_colors ||= (o.colors.length == 11)
 						o.colors.push(color)
 					}
 				}
 			)
+			if (too_many_colors)
+			{
+				this.logWarning(['too_many_sprite_colors'])
+			}
 
-			const candcol = color.toLowerCase();
-			if (candcol in colorPalettes.arnecolors)
-				return 'COLOR COLOR-' + candcol.toUpperCase();
-			if (candcol==="transparent")
-				return 'COLOR FADECOLOR';
-			return 'MULTICOLOR'+match_color[0];
+			if (color_issue)
+				return 'ERROR'
+			const candcol = color_string.toLowerCase()
+			if (candcol === 'transparent')
+				return 'COLOR FADECOLOR'
+			return 'COLOR-'+color.substring(0, 7)
 		}
 	case 3: // sprite matrix
 		{
@@ -850,13 +873,14 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				)
 				return 'ERROR'
 			}
-			var token_colors = new Set()
-			var ok = true
+			const token_colors = new Set()
+			let ok = true
 			if (this.current_identifier_index == undefined)
 				return null // TODO: we should keep the palette defined and use it to display the pixel color
+			// TODO Performance: this can take a lot of time, it would be much better to cache the result style
 			for (const [object_index, expansed_parameters] of this.current_expansion_context.expansion)
 			{
-				var o = this.identifiers.objects[object_index];
+				const o = this.identifiers.objects[object_index]
 				if (n >= o.colors.length)
 				{
 					this.logError(['palette_too_small', n, o.name.toUpperCase(), o.colors.length])
@@ -864,12 +888,12 @@ PuzzleScriptParser.prototype.tokenInObjectsSection = function(is_start_of_line, 
 				}
 				else
 				{
-					token_colors.add( 'COLOR BOLDCOLOR COLOR-' + o.colors[n].toUpperCase() )
+					token_colors.add( 'COLOR-' + o.colors[n].toUpperCase() )
 				}
 			}
 			if (!ok)
-				return 'ERROR';
-			return (token_colors.size == 1) ? token_colors.values().next().value : null;
+				return 'ERROR'
+			return (token_colors.size == 1) ? 'COLOR BOLDCOLOR ' + token_colors.values().next().value : null
 		}
 	case 4: // copy spritematrix: name of the object to copy from
 	{
