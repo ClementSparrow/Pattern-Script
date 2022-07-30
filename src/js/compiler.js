@@ -10,23 +10,6 @@
                      also, we want the bits in these masks to be in the order of objects in state.objects rather than in the order of idDict?
 */
 
-function generateSpriteMatrix(dat)
-{
-	return dat.map(
-		function(line)
-		{
-			var row = [];
-			for (var j = 0; j < line.length; j++)
-			{
-				const ch = line.charAt(j);
-				row.push( (ch == '.') ? -1 : ch );
-			}
-			return row;
-		}
-	);
-}
-
-
 
 function generateExtraMembers(state)
 {
@@ -82,27 +65,6 @@ function generateExtraMembers(state)
 	{
 		cache_console_messages = true;
 	}
-
-	//generate sprite matrix
-	// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-	for (var o of state.identifiers.objects)
-	{
-		if (o.colors.length == 0)
-		{
-			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
-			logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])
-			o.colors=["#ff00ffff"];
-		}
-		if (o.spritematrix.length === 0)
-		{
-			o.spritematrix = Array.from( {length: sprite_height}, () => (new Array(sprite_width).fill(0)) )
-		}
-		else
-		{
-			o.spritematrix = generateSpriteMatrix(o.spritematrix);
-		}
-	}
-
 
 	//calculate glyph dictionary
 	state.glyphDict = state.identifiers.names.map(
