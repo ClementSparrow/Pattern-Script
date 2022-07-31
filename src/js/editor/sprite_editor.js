@@ -75,14 +75,17 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 	// }
 
 	this.content.pixels[pixel_index] = new_color_index
-	// WIP TODO: trigger an event to change the sprite
+	this.onChange()
 	return 1
 }
 
 SpriteEditorScreen.prototype.resize_content = function(horizontal, near_origin, shrink)
 {
 	this.content.resize(horizontal, near_origin, shrink)
+	this.onChange()
 }
+
+SpriteEditorScreen.prototype.onChange = () => null
 
 
 // Sprite Screen
