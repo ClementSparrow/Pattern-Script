@@ -23,7 +23,6 @@ function makeGIF()
 
 	gifctx.drawImage(screen_layout.canvas, -screen_layout.margins[0], -screen_layout.margins[1]);
   	encoder.addFrame(gifctx);
-	var autotimer=0;
 
 	for(const val of inputDat)
   	{
@@ -48,7 +47,6 @@ function makeGIF()
 		gifctx.drawImage(screen_layout.canvas, -screen_layout.margins[0], -screen_layout.margins[1])
 		encoder.addFrame(gifctx)
 		encoder.setDelay(realtimeframe ? autotickinterval : repeatinterval)
-		autotimer += repeatinterval
 
 		while (againing)
 		{
