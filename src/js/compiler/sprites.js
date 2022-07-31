@@ -53,10 +53,13 @@ function compileSprites(state)
 					sprite = Array.from( source_object.spritematrix )
 					offset = Array.from( source_object.sprite_offset )
 					break
+				case 2: // copy from Sprites tab / game_def
+					sprite = game_def.sprites[source_id].matrix
+					offset = [0,0]
 			}
 			for (const parts of transforms)
 			{
-				let f = (m) => m // default to identity function
+				let f = (m) => m // defaults to identity function
 				switch (parts[0])
 				{
 					case '|':
@@ -130,13 +133,21 @@ function compileSprites(state)
 //	Compile sprites for all objects
 	for (const o of state.identifiers.objects)
 	{
-		if ( (o.palette.length == 0) && (o.colors.length == 0) )
+		if (o.colors.length == 0)
 		{
-			// TODO: since this can generate errors that could be highlighted, it should be done in the parser
-			// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
-			logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])
-			o.colors = ['#ff00ffff']
+			if (o.palette.length == 0)
+			{
+				// TODO: since this can generate errors that could be highlighted, it should be done in the parser
+				// TODO: We may want to silently use transparency in that case, considering how frequent it is to use transparent markers in PuzzleScript...
+				logError(['no_palette_in_object', o.name], state.identifiers.lineNumbers[o.identifier_index])
+				o.colors = ['#ff00ffff']
+			}
+			else
+			{
+				o.colors = game_def.palettes[o.palette].colors.map(rgbToHex)
+			}
 		}
+		
 		if (o.spritematrix.length === 0)
 		{
 			o.spritematrix = Array.from( {length: sprite_height}, () => (new Array(sprite_width).fill(0)) )

@@ -250,7 +250,7 @@ PaletteWidget.prototype = {
 	// WIP TODO: the code in this function is duplicated in the parser for the spritematrix, it should be moved to colors.js
 	toHex: function(item)
 	{
-		return item.colors.map( (color) => '#' + color.map(c => ('00'+c.toString(16)).slice(-2)).join(''))
+		return item.colors.map(rgbToHex)
 	},
 
 	sameItems: function(item1, item2)

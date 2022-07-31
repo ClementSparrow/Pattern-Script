@@ -23,7 +23,8 @@ SpriteWidget = function(container, item_def)
 			autocomplete: 'off', spellcheck: 'false',
 			minlength: '1',
 		},
-		value: item_def.matrix.join('\n')
+		value: item_def.matrix.join('\n'),
+		events: { input: (e) => this.updateFromTextArea(e.target.value) },
 	})
 	// WIP TODO: add callback when the content of the textarea changes, to update the visual sprite editor and redraw the game
 	// also add error checking and copy/paste options
@@ -50,8 +51,45 @@ SpriteWidget.prototype = {
 
 	updatePalette: function(palette)
 	{
-		this.sprite_editor.content.content.palette = palette.map(color => 'rgb('+color.join(',')+')')
+		const editor_view = this.sprite_editor.content
+		editor_view.glyphSelectedIndex = clamp(0, editor_view.glyphSelectedIndex, palette.length-1)
+		editor_view.content.palette = palette.map(color => 'rgb('+color.join(',')+')')
 		this.sprite_editor.redraw()
+	},
+
+	updateFromTextArea: function(new_text_matrix)
+	{
+		if (/[^.\d\n\P{Separator}]/.test(new_text_matrix))
+		{
+			console.log('invalid character')
+			return
+		}
+		const new_matrix = rectanglify(new_text_matrix.trim().split('\n'))
+		this.widget.def.matrix = new_matrix
+		const new_pixels = spriteMatrixTextLinesToArrays(new_matrix)
+		const editor_view = this.sprite_editor.content.content
+		editor_view.height = new_pixels.length
+		editor_view.width = new_pixels[0].length
+		editor_view.pixels = new Int32Array([].concat(...new_pixels))
+		this.sprite_editor.resize_canvas()
+	},
+
+	updateFromSpriteEditor: function()
+	{
+		const editor_view = this.sprite_editor.content.content
+		let result = ''
+		for(let y = 0, i=0; y<editor_view.height; ++y)
+		{
+			for (let x=0; x<editor_view.width; ++x, ++i)
+			{
+				const v = editor_view.pixels[i]
+				result += ((v>=0) && (v<=9)) ? v+'' : '.'
+			}
+			result += '\n'
+		}
+		result = result.substring(0, result.length-1)
+		this.widget.def.matrix = result.split('\n')
+		this.matrix_textarea.value = result
 	},
 
 	finalize: function(item_def)
@@ -59,6 +97,7 @@ SpriteWidget.prototype = {
 		const colors = palettes_tabmanager.connectSprite(this, this.palette_name)
 		const palette = (colors === undefined) ? [] : colors.map(color => 'rgb('+color.join(',')+')')
 		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas, undefined, undefined, palette)
+		this.sprite_editor.content.onChange = () => this.updateFromSpriteEditor()
 		this.sprite_editor.resize_canvas()
 	},
 
