@@ -491,7 +491,7 @@ window.console.log(psstring);*/
 		rep_limit = 0;
 
 	//var gain = 2.0 * Math.log(1 + (Math.E - 1) * ps.sound_vol);
-	var gain = 2.0 * ps.sound_vol;
+	// var gain = 2.0 * ps.sound_vol;
 	var gain = Math.exp(ps.sound_vol) - 1;
 
 	var num_clipped = 0;
