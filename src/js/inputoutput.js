@@ -53,6 +53,10 @@ ScreenLayout.prototype.handleEvent = function(event)
 		case 'mousedown':
 			result = this.onMouseDown(event)
 			stop_event = (result >= 0)
+			this.event_listeners = [
+				document.addEventListener('touchmove', this, false),
+				document.addEventListener('mousemove', this, false),
+			]
 			break
 		case 'touchmove':
 		case 'mousemove':
@@ -61,6 +65,8 @@ ScreenLayout.prototype.handleEvent = function(event)
 		case 'touchend':
 		case 'mouseup':
 			result = this.onMouseUp(event)
+			document.removeEventListener('touchmove', this.event_listeners[0])
+			document.removeEventListener('mousemove', this.event_listeners[1])
 	}
 
 	switch (result)
@@ -80,8 +86,8 @@ ScreenLayout.prototype.handleEvent = function(event)
 ScreenLayout.prototype.register_listeners = function()
 {
 	this.drag_state = 0 // 0 = no dragging, 1 = left mouse dragging, 2 = right mouse dragging
-	;(['touchstart', 'touchend', 'touchmove', 'mousedown', 'mousemove', 'mouseup']).forEach(
-		n => document.addEventListener(n, this, false)
+	;(['touchstart', 'touchend', /*'touchmove',*/ 'mousedown', /*'mousemove'*/, 'mouseup']).forEach(
+		n => this.canvas.addEventListener(n, this, false)
 	)
 }
 screen_layout.register_listeners()
