@@ -182,8 +182,11 @@ ListTabManager.prototype = {
 
 	widgetContentChanged: function(widget_manager)
 	{
-		compileSprites(state)
-		forceRegenImages()
+		if (state.sprites_in_code !== undefined)
+		{
+			compileSprites(state)
+			forceRegenImages()
+		}
 		screen_layout.redraw()
 	},
 
