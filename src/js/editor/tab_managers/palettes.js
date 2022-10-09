@@ -187,25 +187,28 @@ PaletteWidget.prototype = {
 	drawField: function(canvas, color_func)
 	{
 		const ctx = canvas.getContext('2d')
-		ctx.fillStyle = 'black'
 		const [w, h] = [canvas.width, canvas.height]
-		ctx.fillRect(0, 0, w, h)
-		const image_data = ctx.getImageData(0, 0, w, h)
-		const pixels = image_data.data
+		if (canvas.image_data === undefined) canvas.image_data = ctx.getImageData(0, 0, w, h)
+		const pixels = canvas.image_data.data
 		for (let y=0, i=0; y<h; ++y)
 		{
 			for (let x=0; x<w; ++x, i+=4)
 			{
 				const color = color_func(x, y, this.z)
 				if (color.some(c => (c<=-0.5) || (c>255.5)))
-					continue
-				pixels[i  ] = color[0]
-				pixels[i+1] = color[1]
-				pixels[i+2] = color[2]
+				{
+					pixels.fill(0, i, i+3) // black
+				}
+				else
+				{
+					pixels[i  ] = color[0]
+					pixels[i+1] = color[1]
+					pixels[i+2] = color[2]
+				}
 				pixels[i+3] = 255
 			}
 		}
-		ctx.putImageData(image_data, 0, 0)
+		ctx.putImageData(canvas.image_data, 0, 0)
 	},
 
 	drawMark: function(canvas, pos, fill_color, stroke_color)
