@@ -118,6 +118,10 @@ PaletteWidget.prototype = {
 		this.quaternion_start = this.quaternion_current || q
 		this.dt = dt || 0
 		this.lastframe_timestamp = null
+		if (this.frame_request !== undefined)
+		{
+			window.cancelAnimationFrame(this.frame_request)
+		}
 		this.updateColorSpace(null)
 	},
 
@@ -166,7 +170,7 @@ PaletteWidget.prototype = {
 
 		if (this.dt < 1)
 		{
-			window.requestAnimationFrame(ts => this.updateColorSpace(ts))
+			this.frame_request = window.requestAnimationFrame(ts => this.updateColorSpace(ts))
 			if (this.lastframe_timestamp !== null)
 			{
 				this.dt = Math.min(1, this.dt + (timestamp - this.lastframe_timestamp)/450 ) // ms
