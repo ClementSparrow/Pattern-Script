@@ -152,7 +152,7 @@ CodeEditorTabManager.prototype =
 		this.editor.setOption('theme', (['midnight', 'midday'])[mode])
 	},
 
-	jumpToLine: function(i)
+	scrollToLine: function(i)
 	{
 		// editor.getLineHandle does not help as it does not return the reference of line.
 		const ll = this.editor.doc.lastLine()

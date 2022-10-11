@@ -1,6 +1,7 @@
 function jumpToLine(i)
 {
-    editor_tabmanager.jumpToLine(i)
+	activateEditorTab('editor_pane_code')
+    editor_tabmanager.scrollToLine(i)
 }
 
 // Selectable text in console
