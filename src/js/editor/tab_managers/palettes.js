@@ -215,27 +215,45 @@ PaletteWidget.prototype = {
 		ctx.putImageData(canvas.image_data, 0, 0)
 	},
 
-	drawMark: function(canvas, pos, fill_color, stroke_color)
+	drawMark: function(canvas, pos, fill_color, stroke_color, size=10, shape=0)
 	{
 		const ctx = canvas.getContext('2d')
+		ctx.save()
+		ctx.translate(pos[0], pos[1])
+		if (shape == 2) ctx.rotate(Math.PI / 4)
+		if (shape != 1) ctx.translate(-size/2, -size/2)
 		ctx.fillStyle = fill_color
-		ctx.fillRect(pos[0]-5, pos[1]-5, 10, 10)
 		ctx.strokeStyle = stroke_color
-		ctx.strokeRect(pos[0]-5, pos[1]-5, 10, 10)
+		if (shape == 1)
+		{
+			ctx.beginPath()
+			ctx.arc(0, 0, size/2, 0, 2*Math.PI)
+			ctx.fill()
+			ctx.stroke()
+		}
+		else
+		{
+			ctx.fillRect(  0, 0, size, size)
+			ctx.strokeRect(0, 0, size, size)
+		}
+		ctx.restore()
 	},
 
 	redraw: function()
 	{
 		this.drawField(this.colorpicker_canvas, (x,y,z) => this.color_from_space(x,y,z))
 		this.drawField(this.zbar_canvas, (x,y,z) => this.z_color.map(c => c*(255-y)) )
-		this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/2, 255-this.z], 'white', 'black')
-		for (const [r,g,b] of this.colors)
+		for (const [i, [r,g,b]] of this.colors.entries())
 		{
 			const color_string = 'rgb('+r+','+g+','+b+')'
 			const screen_coords = this.color_to_space(r, g, b)
-			this.drawMark(this.colorpicker_canvas, [screen_coords[0], 255 - screen_coords[1]], color_string, 'black')
-			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width, 255 - screen_coords[2]], color_string, 'black')
+			const [size, shape] = (this.sprite_editor !== undefined) && (i == this.sprite_editor.content.glyphSelectedIndex) ? [12, 1] : [7, 2]
+			// const field_color = this.color_from_space(screen_coords[0], screen_coords[1], this.z)
+			const contrast_color = 'black'
+			this.drawMark(this.colorpicker_canvas, [screen_coords[0], 255 - screen_coords[1]], color_string, contrast_color, size, shape)
+			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/3, 255 - screen_coords[2]],  color_string, contrast_color, size, shape)
 		}
+		this.drawMark(this.zbar_canvas, [2*this.zbar_canvas.width/3, 255 - this.z], 'white', 'black', 10, 0)
 	},
 
 //	MOUSE EVENTS
