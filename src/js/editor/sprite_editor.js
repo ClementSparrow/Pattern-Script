@@ -56,6 +56,7 @@ SpriteEditorScreen.prototype.hover_palette = function(gridCoordX, gridCoordY)
 SpriteEditorScreen.prototype.select_hovered_legend_item = function()
 {
 	this.glyphSelectedIndex = this.hovered_glyph_index
+	this.onChangeTool()
 	return 1
 }
 
@@ -75,17 +76,19 @@ SpriteEditorScreen.prototype.edit_hovered_cell = function(right_mouse_button)
 	// }
 
 	this.content.pixels[pixel_index] = new_color_index
-	this.onChange()
+	this.onChangeSprite()
 	return 1
 }
 
 SpriteEditorScreen.prototype.resize_content = function(horizontal, near_origin, shrink)
 {
 	this.content.resize(horizontal, near_origin, shrink)
-	this.onChange()
+	this.onChangeSprite()
 }
 
-SpriteEditorScreen.prototype.onChange = () => null
+// Callbacks
+SpriteEditorScreen.prototype.onChangeSprite = () => null
+SpriteEditorScreen.prototype.onChangeTool = () => null
 
 
 // Sprite Screen

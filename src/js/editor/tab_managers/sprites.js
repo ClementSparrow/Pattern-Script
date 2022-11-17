@@ -110,7 +110,7 @@ SpriteWidget.prototype = {
 		const colors = palettes_tabmanager.connectSprite(this, this.palette_name)
 		const palette = (colors === undefined) ? [] : colors.map(color => 'rgb('+color.join(',')+')')
 		this.sprite_editor = new SpriteEditor(this.sprite_editor_canvas, undefined, undefined, palette)
-		this.sprite_editor.content.onChange = () => this.updateFromSpriteEditor()
+		this.sprite_editor.content.onChangeSprite = () => this.updateFromSpriteEditor()
 		this.updateSpriteEditorFromModel(item_def.matrix)
 	},
 

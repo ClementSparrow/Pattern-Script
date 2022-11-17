@@ -344,6 +344,7 @@ PaletteWidget.prototype = {
 		this.widget.connected.sprites = []
 		this.sprite_editor = new SpriteEditor(this.sprite_canvas, 6, 6, this.colors.map(color => 'rgb('+color.join(',')+')'))
 		this.sprite_editor.resize_canvas()
+		this.sprite_editor.content.onChangeTool = () => this.redraw()
 		this.redraw()
 	},
 
