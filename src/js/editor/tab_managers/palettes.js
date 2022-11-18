@@ -25,8 +25,8 @@ PaletteWidget = function(container, item_def)
 			text: label,
 			events: {
 				click: (e) => this.setActiveColorSpace(label, quaternion),
-				mouseenter: (e) => this.changeColorSpace(quaternion),
-				mouseleave: (e) => this.changeColorSpace(colorspaces[this.active_colorspace]),
+				mouseenter: (e) => this.startColorSpaceTransition(quaternion),
+				mouseleave: (e) => this.startColorSpaceTransition(colorspaces[this.active_colorspace]),
 			},
 		}))
 	}
@@ -109,10 +109,10 @@ PaletteWidget.prototype = {
 	{
 		this.active_colorspace = name
 		this.colorspace_buttons.querySelectorAll('button').forEach(b => (b.innerText == name) ? b.classList.add('selected') : b.classList.remove('selected'))
-		this.changeColorSpace(quaternion, dt)
+		this.startColorSpaceTransition(quaternion, dt)
 	},
 
-	changeColorSpace: function(q, dt)
+	startColorSpaceTransition: function(q, dt)
 	{
 		this.quaternion_goal = q
 		this.quaternion_start = this.quaternion_current || q
@@ -122,10 +122,10 @@ PaletteWidget.prototype = {
 		{
 			window.cancelAnimationFrame(this.frame_request)
 		}
-		this.updateColorSpace(null)
+		this.updateColorSpaceTransition(null)
 	},
 
-	updateColorSpace: function(timestamp)
+	updateColorSpaceTransition: function(timestamp)
 	{
 		const dot = (u,v) => u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
 		const scal = (a,u) => u.map(c => a*c)
@@ -170,7 +170,7 @@ PaletteWidget.prototype = {
 
 		if (this.dt < 1)
 		{
-			this.frame_request = window.requestAnimationFrame(ts => this.updateColorSpace(ts))
+			this.frame_request = window.requestAnimationFrame(ts => this.updateColorSpaceTransition(ts))
 			if (this.lastframe_timestamp !== null)
 			{
 				this.dt = Math.min(1, this.dt + (timestamp - this.lastframe_timestamp)/450 ) // ms
