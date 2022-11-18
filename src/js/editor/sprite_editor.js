@@ -42,7 +42,7 @@ SpriteEditorScreen.prototype.compute_tooltip = function()
 	// pixel in the sprite
 	const pixel_index = this.hovered_level_cell[3]*this.content.width + this.hovered_level_cell[2]
 	const color_index = this.content.pixels[pixel_index]
-	return color_index // TODO: add hex color representation
+	return (color_index < 0) ? 'transparent' : color_index // TODO: add hex color representation
 }
 
 SpriteEditorScreen.prototype.hover_palette = function(gridCoordX, gridCoordY)
@@ -120,7 +120,7 @@ SpriteScreen.prototype.redraw_virtual_screen = function(ctx)
 			const pixel_index = i + j*this.width
 			const color_index = this.pixels[pixel_index]
 			const color = this.palette[color_index] // get_color(color_index)
-			if (color === undefined)
+			if ( (color_index < 0) || (color === undefined) )
 				continue
 			ctx.fillStyle = color
 			ctx.fillRect(x, y, sprite_magnification, sprite_magnification)
