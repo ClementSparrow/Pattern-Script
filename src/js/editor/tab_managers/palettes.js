@@ -1,3 +1,51 @@
+class Vec
+{
+	constructor(x, y, z) { this.x = x; this.y = y; this.z = z; }
+	scal(a) { return new Vec(a*this.x, a*this.y, a*this.z) }
+	dot(u) { return u.x*this.x + u.y*this.y + u.z*this.z }
+	add(u) { return new Vec(this.x+u.x, this.y+u.y, this.z+u.z) }
+	sub(u) { return new Vec(this.x-u.x, this.y-u.y, this.z-u.z) }
+	cross(u) { return new Vec(
+		this.y*u.z-this.z*u.y,
+		this.z*u.x-this.x*u.z,
+		this.x*u.y-this.y*u.x
+	) }
+	toArray() { return [ this.x, this.y, this.z ] }
+	some(f) { return f(this.x) || f(this.y) || f(this.z) }
+	map(f) { return new Vec(f(this.x), f(this.y), f(this.z)) }
+	max() { return Math.max(this.x, this.y, this.z) }
+	min() { return Math.min(this.x, this.y, this.z) }
+	cproduct(v) { return new Vec(this.x*v.x, this.y*v.y, this.z*v.z) }
+	cdiv(v) { return new Vec(this.x/v.x, this.y/v.y, this.z/v.z) }
+	static null = new Vec(0, 0, 0)
+	static x_axis = new Vec(1, 0, 0)
+	static y_axis = new Vec(0, 1, 0)
+	static z_axis = new Vec(0, 0, 1)
+	static diag_axis = new Vec(1, 1, 1)
+	static white = new Vec(255, 255, 255)
+	static gray = Vec.diag_axis.scal(127.5)
+	static cube_vertexes = Array.from(
+		cartesian_product([-1,1], [-1,1], [-1,1]),
+		u => new Vec(...u)
+	)
+}
+
+class Quaternion
+{
+	constructor(w, v) { this.w = w; this.v = v; }
+	conj() { return new Quaternion(this.w, this.v.scal(-1)) }
+	mult(q) { return new Quaternion(
+		this.w*q.w - this.v.dot(q.v),
+		q.v.scal(this.w).add( this.v.scal(q.w) ).sub( this.v.cross(q.v) )
+	)}
+	normalize() {
+		const l = Math.sqrt(this.w*this.w + this.v.dot(this.v))
+		return (Math.abs(l) < 0.0001) ? this : new Quaternion(this.w/l, this.v.scal(1/l))
+	}
+	static x_axis = new Quaternion(0, Vec.x_axis)
+	static y_axis = new Quaternion(0, Vec.y_axis)
+	static z_axis = new Quaternion(0, Vec.z_axis)
+}
 
 PaletteWidget = function(container, item_def)
 {
@@ -5,16 +53,16 @@ PaletteWidget = function(container, item_def)
 	this.z = 0
 
 	const colorspaces = {
-		rg: { w:   1, v: [0, 0, 0]}, // xyz = rgb => no rotation
-		gb: { w: 0.5, v: [0.5, 0.5, 0.5]}, // xyz = gbr 120° rotation (cos 60°=1/2, sin 60°=√3/2) around diagonal [1,1,1] of length √3
+		rg: new Quaternion(1, Vec.null), // xyz = rgb => no rotation
+		gb: new Quaternion(0.5, Vec.diag_axis.scal(0.5)), // xyz = gbr 120° rotation (cos 60°=1/2, sin 60°=√3/2) around diagonal [1,1,1] of length √3
 		// bg: { w: 0.7071067812, v: [0, -0.7071067812, 0]}, // xyz = bg-r -90° rotation (cos -45°=√2/2, sin -45°=-√2/2) around diagonal g
-		br: { w:-0.5, v: [0.5, 0.5, 0.5]}, // xyz = brg 240° rotation (cos 120°=-1/2, sin 120°=√3/2) around diagonal of length √3
+		br: new Quaternion(-0.5, Vec.diag_axis.scal(0.5)), // xyz = brg 240° rotation (cos 120°=-1/2, sin 120°=√3/2) around diagonal of length √3
 		// hsb: if v is transformed in v' after rotating around axis u, then u.v = u.v' <=> u.(v-v')=0. => u = (v-v')x(w-w') normalized
 		// here, v is the cube's diagonal (1,1,1)/√3 and v'=(0,0,1), w=(0,1,0) and w'= (0,sinΩ,cosΩ) with Ω the angle between v and w
 		// => sinΩ=|(1,1,1)x(0,1,0)|/√3 = |(-1,0,1)|/√3 = √2/√3 => w'=(0,√2,1)/√3
 		// => u = (1,1,1-√3)/√3x(0,1-√2/,-1)/√3=(-1-(1-√3)(1-√2),1,1-√2)/3 = (-2+√2+√3-√6,1,1-√2)/3 to be renormalized
 		// the rotation angle has sin = |(v-(v.u)u)x(v'-(v'.u)u)|/|v-(v.u)u)||v'-(v'.u)u)|...
-		hsb: { w: 0.8804762392398382, v: [ -0.27984814235734057, 0.364705199662564, 0.11591689596228216 ] },
+		hsb: new Quaternion(0.8804762392398382, new Vec(-0.27984814235734057, 0.364705199662564, 0.11591689596228216)),
 	}
 
 	this.colorspace_buttons = make_HTML('div', {classes:['colorspace_buttons']})
@@ -66,26 +114,26 @@ PaletteWidget.prototype = {
 
 	color_from_space: function(x, y, z)
 	{
-		const base = [0,1,2].map(c => 127.5 + (x-127.5)*this.x_color[c] + (127.5-y)*this.y_color[c])
+		const base = this.x_color.scal(x-127.5).add(this.y_color.scal(127.5-y)).add(Vec.gray)
 		// 0 < base[c]+(z-127.5)*z_color[c] < 255
 		// => -base[c] < (z-127.5)*z_color[c] < 255 - base[c]
 		// => 127.5 - base[c]/z_color[c] < z < 127.5 + (255 - base[c])/z_color[c] if z_color[c] > 0
 		//    127.5 + (255 - base[c])/z_color[c] < z < 127.5 - base[c]/z_color[c] if z_color[c] < 0
-		const min_z = Math.max(  0, ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 255 : 0)-v)/this.z_color[c]))
-		const max_z = Math.min(255, ...base.map( (v,c) => 127.5 + ((this.z_color[c]<0 ? 0 : 255)-v)/this.z_color[c]))
+		const min_z = Math.max(  0, 127.5 + this.z_color.map( c => (c<0) ? 255 : 0 ).sub(base).cdiv(this.z_color).max() )
+		const max_z = Math.min(255, 127.5 + this.z_color.map( c => (c<0) ? 0 : 255 ).sub(base).cdiv(this.z_color).min() )
 		const new_z = (1-z/255)*min_z + max_z*z/255
-		return base.map( (v,c) => Math.round( v+(new_z-127.5)*this.z_color[c] ) )
+		return base.add(this.z_color.scal(new_z-127.5))
 	},
 
 	color_to_space: function(r, g, b)
 	{
 		const s = this.color_scale * this.color_scale
-		const [r2, g2, b2] = [r-127.5, g-127.5, b-127.5]
-		return [
-			127.5 + (this.x_color[0]*r2 + this.x_color[1]*g2 + this.x_color[2]*b2)/s,
-			127.5 + (this.y_color[0]*r2 + this.y_color[1]*g2 + this.y_color[2]*b2)/s,
-			127.5 + (this.z_color[0]*r2 + this.z_color[1]*g2 + this.z_color[2]*b2)/s,
-		]
+		const color = new Vec(r, g, b).sub(Vec.gray)
+		return new Vec(
+				this.x_color.dot(color),
+				this.y_color.dot(color),
+				this.z_color.dot(color),
+			).scal(1/s).add(Vec.gray)
 	},
 
 //	EDIT CONTENT
@@ -93,8 +141,9 @@ PaletteWidget.prototype = {
 
 	addColor: function(color)
 	{
-		this.colors.push(color)
-		this.sprite_editor.content.content.palette.push('rgb('+color.join(',')+')')
+		const color_as_array = color.toArray()
+		this.colors.push(color_as_array)
+		this.sprite_editor.content.content.palette.push('rgb('+color_as_array.join(',')+')')
 		this.sprite_editor.content.glyphSelectedIndex = this.colors.length - 1
 		this.sprite_editor.resize_canvas()
 		this.redraw()
@@ -110,6 +159,7 @@ PaletteWidget.prototype = {
 		this.active_colorspace = name
 		this.colorspace_buttons.querySelectorAll('button').forEach(b => (b.innerText == name) ? b.classList.add('selected') : b.classList.remove('selected'))
 		this.startColorSpaceTransition(quaternion, dt)
+		// console.log('set quaternion:', quaternion)
 	},
 
 	startColorSpaceTransition: function(q, dt)
@@ -127,44 +177,36 @@ PaletteWidget.prototype = {
 
 	updateColorSpaceTransition: function(timestamp)
 	{
-		const dot = (u,v) => u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
-		const scal = (a,u) => u.map(c => a*c)
-		const sum = (u,v) => [u[0]+v[0], u[1]+v[1], u[2]+v[2]]
-		const sub = (u,v) => [u[0]-v[0], u[1]-v[1], u[2]-v[2]]
-		const cross = (u,v) => [u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]]
-		const conj = (q) => ({ w: q.w, v: scal(-1, q.v) })
-		const mult = (p, q) => ({
-			w: p.w*q.w - dot(p.v, q.v),
-			v: sub( sum(scal(p.w,q.v), scal(q.w,p.v)), cross(p.v, q.v) )
-		})
-		const normalize = (p) => { const l = Math.sqrt(p.w*p.w + dot(p.v, p.v)); return (Math.abs(l) < 0.0001) ? p : {w: p.w/l, v: scal(1/l, p.v) } }
-
 		let q = this.quaternion_goal
 		if (this.dt < 1)
 		{
-			const diff = mult(this.quaternion_goal, conj(this.quaternion_start))
+			const diff = this.quaternion_goal.mult(this.quaternion_start.conj())
 			const theta0 = Math.acos(diff.w)*2
 			const theta = (theta0 > Math.PI) ? theta0 - 2*Math.PI : theta0
 			if (Math.abs(theta) > 0.0001 )
 			{
-				q = mult({ w: Math.cos(theta*this.dt/2), v: scal(Math.sin(theta*this.dt/2)/Math.sin(theta0/2), diff.v)}, this.quaternion_start)
+				q = new Quaternion(Math.cos(theta*this.dt/2), diff.v.scal(Math.sin(theta*this.dt/2)/Math.sin(theta0/2))).mult(this.quaternion_start)
 			}
-			// q = normalize({ // nlerp
-			// 	w: t1*this.quaternion_start.w + t2*this.quaternion_goal.w,
-			// 	v: sum(scal(t1, this.quaternion_start.v), scal(t2, this.quaternion_goal.v)),
-			// })
+			// q = normalize(new Quaternion( // nlerp
+			// 	t1*this.quaternion_start.w + t2*this.quaternion_goal.w,
+			// 	this.quaternion_start.v.scal(t1).add(this.quaternion_goal.v.scal(t2)),
+			// ))
 		}
 		this.quaternion_current = q
 
-		this.x_color = mult( conj(q), mult({w:0, v:[1,0,0]}, q) ).v
-		this.y_color = mult( conj(q), mult({w:0, v:[0,1,0]}, q) ).v
-		this.z_color = mult( conj(q), mult({w:0, v:[0,0,1]}, q) ).v
+		const q_conj = q.conj()
+		this.x_color = q_conj.mult( Quaternion.x_axis.mult(q) ).v
+		this.y_color = q_conj.mult( Quaternion.y_axis.mult(q) ).v
+		this.z_color = q_conj.mult( Quaternion.z_axis.mult(q) ).v
 
 		// rescale to fit the whole cube projection in the canvas
-		this.color_scale = Math.max(...Array.from(cartesian_product([-1,1], [-1,1], [-1,1])).map( (u) => Math.max(Math.abs(dot(this.x_color,u)), Math.abs(dot(this.y_color,u)))))
-		this.x_color = scal(this.color_scale, this.x_color)
-		this.y_color = scal(this.color_scale, this.y_color)
-		this.z_color = scal(this.color_scale, this.z_color)
+		this.color_scale = Math.max(...Array.from(
+			Vec.cube_vertexes,
+			v => Math.max(Math.abs(this.x_color.dot(v)), Math.abs(this.y_color.dot(v)))
+		))
+		this.x_color = this.x_color.scal(this.color_scale)
+		this.y_color = this.y_color.scal(this.color_scale)
+		this.z_color = this.z_color.scal(this.color_scale)
 		
 		this.redraw()
 
@@ -205,9 +247,9 @@ PaletteWidget.prototype = {
 				}
 				else
 				{
-					pixels[i  ] = color[0]
-					pixels[i+1] = color[1]
-					pixels[i+2] = color[2]
+					pixels[i  ] = color.x
+					pixels[i+1] = color.y
+					pixels[i+2] = color.z
 				}
 				pixels[i+3] = 255
 			}
@@ -242,16 +284,15 @@ PaletteWidget.prototype = {
 	redraw: function()
 	{
 		this.drawField(this.colorpicker_canvas, (x,y,z) => this.color_from_space(x,y,z))
-		this.drawField(this.zbar_canvas, (x,y,z) => this.z_color.map(c => c*(255-y)) )
+		this.drawField(this.zbar_canvas, (x,y,z) => this.z_color.scal(255-y) )
 		for (const [i, [r,g,b]] of this.colors.entries())
 		{
 			const color_string = 'rgb('+r+','+g+','+b+')'
 			const screen_coords = this.color_to_space(r, g, b)
 			const [size, shape] = (this.sprite_editor !== undefined) && (i == this.sprite_editor.content.glyphSelectedIndex) ? [12, 1] : [7, 2]
-			// const field_color = this.color_from_space(screen_coords[0], screen_coords[1], this.z)
 			const contrast_color = 'black'
-			this.drawMark(this.colorpicker_canvas, [screen_coords[0], 255 - screen_coords[1]], color_string, contrast_color, size, shape)
-			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/3, 255 - screen_coords[2]],  color_string, contrast_color, size, shape)
+			this.drawMark(this.colorpicker_canvas, [screen_coords.x, 255 - screen_coords.y], color_string, contrast_color, size, shape)
+			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/3, 255 - screen_coords.z],  color_string, contrast_color, size, shape)
 		}
 		this.drawMark(this.zbar_canvas, [2*this.zbar_canvas.width/3, 255 - this.z], 'white', 'black', 10, 0)
 	},
@@ -274,7 +315,7 @@ PaletteWidget.prototype = {
 
 	//	Find the closest color point
 		const color_positions = this.colors.map( ([r,g,b]) => this.color_to_space(r,g,b) )
-		const color_deltas = color_positions.map( ([x2,y2,z2]) => [x-x2, y-y2, this.z-z2])
+		const color_deltas = color_positions.map( c => [x-c.x, y-c.y, this.z-c.z])
 		let index_of_closest = undefined
 		let closest_sq_distance = Infinity
 		for (const [i, [dx,dy,dz]] of color_deltas.entries())
@@ -293,7 +334,7 @@ PaletteWidget.prototype = {
 		
 		const colordrag = (e) =>
 		{
-			this.colors[index_of_closest] = this.color_from_space(e.offsetX, e.offsetY, this.z).map(c => clamp(0,c,255))
+			this.colors[index_of_closest] = this.color_from_space(e.offsetX, e.offsetY, this.z).map(c => clamp(0,c,255)).toArray()
 			this.redraw()
 			this.sprite_editor.content.content.palette = this.colors.map(color => 'rgb('+color.join(',')+')')
 			this.sprite_editor.content.glyphSelectedIndex = index_of_closest
