@@ -34,7 +34,10 @@ SpriteEditorScreen.prototype.compute_tooltip = function()
 {
 	// Legend for highlighted editor icon
 	if (this.hovered_glyph_index !== null)
-		return this.hovered_glyph_index + ': ' // TODO: add hex color representation
+	{
+		const color_value = this.content.palette[this.hovered_glyph_index]
+		return this.hovered_glyph_index + ': ' + color_value
+	}
 
 	if ( this.hovered_level_cell === null )
 		return ''

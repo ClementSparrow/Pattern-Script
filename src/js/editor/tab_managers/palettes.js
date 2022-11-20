@@ -272,20 +272,23 @@ PaletteWidget.prototype = {
 		this.selected_color = this.colors.length
 		this.colors.push(color_as_array)
 		this.sprite_editor.content.content.palette.push('rgb('+color_as_array.join(',')+')')
-		this.sprite_editor.content.glyphSelectedIndex = this.selected_color
-		this.sprite_editor.resize_canvas()
-		this.redraw()
-		this.onChangeContent(this)
+		this.onPaletteChange(true)
 	},
 
 	change_color_in_palette: function(index_of_color, new_color)
 	{
-		this.colors[index_of_color] = new_color
 		this.selected_color = index_of_color
-		this.redraw()
+		this.colors[index_of_color] = new_color
 		this.sprite_editor.content.content.palette = this.colors.map(color => 'rgb('+color.join(',')+')')
+		this.onPaletteChange(false)
+	},
+
+	onPaletteChange: function(palette_resized)
+	{
+		this.redraw()		
 		this.sprite_editor.content.glyphSelectedIndex = this.selected_color
-		this.sprite_editor.redraw()
+		this.sprite_editor.content.hovered_glyph_index = this.selected_color
+		palette_resized ? this.sprite_editor.resize_canvas() : this.sprite_editor.redraw()
 		this.onChangeContent(this)
 	},
 
