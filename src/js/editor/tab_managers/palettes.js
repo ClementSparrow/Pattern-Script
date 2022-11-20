@@ -47,10 +47,138 @@ class Quaternion
 	static z_axis = new Quaternion(0, Vec.z_axis)
 }
 
+
+
+class ColorField
+{
+	constructor(w, h, field_to_color, color_to_field, palette_manager)
+	{
+		this.field_to_color = field_to_color
+		this.color_to_field = color_to_field
+		this.palette_manager = palette_manager
+		this.canvas = make_HTML('canvas', {
+			attr: {width: w, height: h},
+			events: {
+				click: e => this.click(e),
+				mousedown: e => this.start_drag(e),
+			},
+		})
+	}
+
+	// EVENTS
+	// ======
+
+	click(event)
+	{
+		if (this.color_dragged === undefined)
+			this.palette_manager.addColor(this.field_to_color(event.offsetX, event.offsetY))
+		this.color_dragged = undefined
+		return true
+	}
+
+	start_drag(event)
+	{
+		const event_pos = new Vec(event.offsetX, event.offsetY, 0)
+
+	//	Find the closest color point
+		let index_of_closest = undefined
+		let closest_sq_distance = Infinity
+		for (const [i, [r,g,b]] of this.palette_manager.colors.entries())
+		{
+			const v = this.color_to_field(r,g,b)
+			const d = event_pos.sub(v)
+			const sq_dist = d.dot(d)
+			if (sq_dist < closest_sq_distance)
+			{
+				index_of_closest = i
+				closest_sq_distance = sq_dist
+			}
+		}
+
+		if (closest_sq_distance > 25) // WIP TODO: use the dots sizes
+			return false
+		this.color_dragged = index_of_closest
+		this.palette_manager.selected_color = index_of_closest
+		
+		const drag = (e) =>
+		{
+			const new_color = this.field_to_color(e.offsetX, e.offsetY).map(c => clamp(0,c,255)).toArray()
+			this.palette_manager.change_color_in_palette(index_of_closest, new_color)
+			return true
+		}
+		const end_drag = (e) => {
+			document.removeEventListener('mousemove', drag)
+			drag(e)
+			return true
+		}
+
+		document.addEventListener('mousemove', drag, false)
+		document.addEventListener('mouseup', end_drag, {once:true})
+		return true
+	}
+
+	// DRAWING
+	// =======
+
+	drawField(color_func = this.field_to_color)
+	{
+		const ctx = this.canvas.getContext('2d')
+		const [w, h] = [this.canvas.width, this.canvas.height]
+		if (this.canvas.image_data === undefined)
+			this.canvas.image_data = ctx.getImageData(0, 0, w, h)
+		const pixels = this.canvas.image_data.data
+		for (let y=0, i=0; y<h; ++y)
+		{
+			for (let x=0; x<w; ++x, i+=4)
+			{
+				const color = color_func(x, y)
+				if (color.some(c => (c<=-0.5) || (c>255.5)))
+				{
+					pixels.fill(0, i, i+3) // black
+				}
+				else
+				{
+					pixels[i  ] = color.x
+					pixels[i+1] = color.y
+					pixels[i+2] = color.z
+				}
+				pixels[i+3] = 255
+			}
+		}
+		ctx.putImageData(this.canvas.image_data, 0, 0)
+	}
+
+	drawMark(color, fill_color, stroke_color, size=10, shape=0)
+	{
+		const pos = this.color_to_field(...color)
+		const ctx = this.canvas.getContext('2d')
+		ctx.save()
+		ctx.translate(pos.x, pos.y)
+		if (shape == 2) ctx.rotate(Math.PI / 4)
+		if (shape != 1) ctx.translate(-size/2, -size/2)
+		ctx.fillStyle = fill_color
+		ctx.strokeStyle = stroke_color
+		if (shape == 1)
+		{
+			ctx.beginPath()
+			ctx.arc(0, 0, size/2, 0, 2*Math.PI)
+			ctx.fill()
+			ctx.stroke()
+		}
+		else
+		{
+			ctx.fillRect(  0, 0, size, size)
+			ctx.strokeRect(0, 0, size, size)
+		}
+		ctx.restore()
+	}
+}
+
+
 PaletteWidget = function(container, item_def)
 {
 	this.colors = item_def.colors
-	this.z = 0
+	this.selected_color = 0
 
 	const colorspaces = {
 		rg: new Quaternion(1, Vec.null), // xyz = rgb => no rotation
@@ -80,20 +208,21 @@ PaletteWidget = function(container, item_def)
 	}
 	container.appendChild(this.colorspace_buttons)
 
-	this.colorpicker_canvas = make_HTML('canvas', {
-		attr: {width: 256, height: 256},
-		events: {
-			click: e => this.click_in_colorspace(e),
-			mousedown: e => this.start_colordrag(e),
-		},
-	})
-	container.appendChild(this.colorpicker_canvas)
+	this.color_field_xy = new ColorField(
+		256, 256,
+		(x,y) => this.color_from_space(x, y, this.color_to_space(...this.colors[this.selected_color]).z),
+		(x,y,z) => {const position = this.color_to_space(x, y, z); return new Vec(position.x, position.y, 0) },
+		this
+	)
+	container.appendChild(this.color_field_xy.canvas)
 
-	this.zbar_canvas = make_HTML('canvas', {
-		attr: {width: 16, height: 256},
-		events: {mousedown: e => this.start_zdrag(e)}
-	})
-	container.appendChild(this.zbar_canvas)
+	this.color_field_z = new ColorField(
+		16, 256,
+		(x,y) => { const base_position = this.color_to_space(...this.colors[this.selected_color]); return this.color_from_space(base_position.x, base_position.y, y) },
+		(x, y, z) => {const position = this.color_to_space(x, y, z); return new Vec(16/2, position.z, 0) },
+		this
+	)
+	container.appendChild(this.color_field_z.canvas)
 
 	this.sprite_canvas = make_HTML('canvas', {style: {width: '256px', height: '256px'}})
 	container.appendChild(this.sprite_canvas)
@@ -102,8 +231,6 @@ PaletteWidget = function(container, item_def)
 }
 
 // WIP TODO:
-// - move colors around with drag and drop or click
-// - change this.z by directly clicking in the zbar
 // - add rrggbb field to enter color directly as hex value
 // - add copy/paste options for colors and palettes
 
@@ -131,7 +258,7 @@ PaletteWidget.prototype = {
 		const color = new Vec(r, g, b).sub(Vec.gray)
 		return new Vec(
 				this.x_color.dot(color),
-				this.y_color.dot(color),
+				-this.y_color.dot(color),
 				this.z_color.dot(color),
 			).scal(1/s).add(Vec.gray)
 	},
@@ -142,14 +269,25 @@ PaletteWidget.prototype = {
 	addColor: function(color)
 	{
 		const color_as_array = color.toArray()
+		this.selected_color = this.colors.length
 		this.colors.push(color_as_array)
 		this.sprite_editor.content.content.palette.push('rgb('+color_as_array.join(',')+')')
-		this.sprite_editor.content.glyphSelectedIndex = this.colors.length - 1
+		this.sprite_editor.content.glyphSelectedIndex = this.selected_color
 		this.sprite_editor.resize_canvas()
 		this.redraw()
 		this.onChangeContent(this)
 	},
 
+	change_color_in_palette: function(index_of_color, new_color)
+	{
+		this.colors[index_of_color] = new_color
+		this.selected_color = index_of_color
+		this.redraw()
+		this.sprite_editor.content.content.palette = this.colors.map(color => 'rgb('+color.join(',')+')')
+		this.sprite_editor.content.glyphSelectedIndex = this.selected_color
+		this.sprite_editor.redraw()
+		this.onChangeContent(this)
+	},
 
 //	EDIT STATE
 //	==========
@@ -159,7 +297,6 @@ PaletteWidget.prototype = {
 		this.active_colorspace = name
 		this.colorspace_buttons.querySelectorAll('button').forEach(b => (b.innerText == name) ? b.classList.add('selected') : b.classList.remove('selected'))
 		this.startColorSpaceTransition(quaternion, dt)
-		// console.log('set quaternion:', quaternion)
 	},
 
 	startColorSpaceTransition: function(q, dt)
@@ -230,150 +367,18 @@ PaletteWidget.prototype = {
 //	DRAW
 //	====
 
-	drawField: function(canvas, color_func)
-	{
-		const ctx = canvas.getContext('2d')
-		const [w, h] = [canvas.width, canvas.height]
-		if (canvas.image_data === undefined) canvas.image_data = ctx.getImageData(0, 0, w, h)
-		const pixels = canvas.image_data.data
-		for (let y=0, i=0; y<h; ++y)
-		{
-			for (let x=0; x<w; ++x, i+=4)
-			{
-				const color = color_func(x, y, this.z)
-				if (color.some(c => (c<=-0.5) || (c>255.5)))
-				{
-					pixels.fill(0, i, i+3) // black
-				}
-				else
-				{
-					pixels[i  ] = color.x
-					pixels[i+1] = color.y
-					pixels[i+2] = color.z
-				}
-				pixels[i+3] = 255
-			}
-		}
-		ctx.putImageData(canvas.image_data, 0, 0)
-	},
-
-	drawMark: function(canvas, pos, fill_color, stroke_color, size=10, shape=0)
-	{
-		const ctx = canvas.getContext('2d')
-		ctx.save()
-		ctx.translate(pos[0], pos[1])
-		if (shape == 2) ctx.rotate(Math.PI / 4)
-		if (shape != 1) ctx.translate(-size/2, -size/2)
-		ctx.fillStyle = fill_color
-		ctx.strokeStyle = stroke_color
-		if (shape == 1)
-		{
-			ctx.beginPath()
-			ctx.arc(0, 0, size/2, 0, 2*Math.PI)
-			ctx.fill()
-			ctx.stroke()
-		}
-		else
-		{
-			ctx.fillRect(  0, 0, size, size)
-			ctx.strokeRect(0, 0, size, size)
-		}
-		ctx.restore()
-	},
-
 	redraw: function()
 	{
-		this.drawField(this.colorpicker_canvas, (x,y,z) => this.color_from_space(x,y,z))
-		this.drawField(this.zbar_canvas, (x,y,z) => this.z_color.scal(255-y) )
-		for (const [i, [r,g,b]] of this.colors.entries())
+		this.color_field_xy.drawField()
+		this.color_field_z.drawField()
+		for (const [i, color] of this.colors.entries())
 		{
-			const color_string = 'rgb('+r+','+g+','+b+')'
-			const screen_coords = this.color_to_space(r, g, b)
-			const [size, shape] = (this.sprite_editor !== undefined) && (i == this.sprite_editor.content.glyphSelectedIndex) ? [12, 1] : [7, 2]
+			const color_string = 'rgb('+color.join(',')+')'
+			const [size, shape] = (i == this.selected_color) ? [12, 1] : [7, 2]
 			const contrast_color = 'black'
-			this.drawMark(this.colorpicker_canvas, [screen_coords.x, 255 - screen_coords.y], color_string, contrast_color, size, shape)
-			this.drawMark(this.zbar_canvas, [this.zbar_canvas.width/3, 255 - screen_coords.z],  color_string, contrast_color, size, shape)
+			this.color_field_xy.drawMark(color, color_string, contrast_color, size, shape)
+			this.color_field_z.drawMark( color, color_string, contrast_color, size, shape)
 		}
-		this.drawMark(this.zbar_canvas, [2*this.zbar_canvas.width/3, 255 - this.z], 'white', 'black', 10, 0)
-	},
-
-//	MOUSE EVENTS
-//	============
-
-	click_in_colorspace: function (e)
-	{
-		if (this.color_dragged === undefined)
-			this.addColor(this.color_from_space(e.offsetX, e.offsetY, this.z))
-		this.color_dragged = undefined
-		return true
-	},
-
-	start_colordrag: function(event)
-	{
-		const x = event.offsetX
-		const y = 255 - event.offsetY
-
-	//	Find the closest color point
-		const color_positions = this.colors.map( ([r,g,b]) => this.color_to_space(r,g,b) )
-		const color_deltas = color_positions.map( c => [x-c.x, y-c.y, this.z-c.z])
-		let index_of_closest = undefined
-		let closest_sq_distance = Infinity
-		for (const [i, [dx,dy,dz]] of color_deltas.entries())
-		{
-			const sq_dist = dx*dx + dy*dy
-			if (sq_dist < closest_sq_distance)
-			{
-				index_of_closest = i
-				closest_sq_distance = sq_dist
-			}
-		}
-
-		if (closest_sq_distance > 25)
-			return false
-		this.color_dragged = index_of_closest
-		
-		const colordrag = (e) =>
-		{
-			this.colors[index_of_closest] = this.color_from_space(e.offsetX, e.offsetY, this.z).map(c => clamp(0,c,255)).toArray()
-			this.redraw()
-			this.sprite_editor.content.content.palette = this.colors.map(color => 'rgb('+color.join(',')+')')
-			this.sprite_editor.content.glyphSelectedIndex = index_of_closest
-			this.sprite_editor.redraw()
-			this.onChangeContent(this)
-			return true
-		}
-		const end_colordrag = (e) => {
-			document.removeEventListener('mousemove', colordrag)
-			return colordrag(e)
-		}
-		document.addEventListener('mousemove', colordrag, false)
-		document.addEventListener('mouseup', end_colordrag, {once:true})
-		return true
-	},
-
-	start_zdrag: function(event)
-	{
-		const dy = event.pageY - window.scrollY - this.zbar_canvas.getBoundingClientRect().top - 255 + this.z
-		if (Math.abs(dy) > 5)
-			return false
-		this.drag_zbar = this.z
-		
-		const zdrag = (e) =>
-		{
-			this.z = clamp(0, this.drag_zbar + event.pageY - e.pageY, 255)
-			this.redraw()
-			return true
-		}
-		const end_zdrag = (e) => {
-			document.removeEventListener('mousemove', zdrag)
-			zdrag(e)
-			this.drag_zbar = null
-			this.redraw()
-			return true
-		}
-		document.addEventListener('mousemove', zdrag, false)
-		document.addEventListener('mouseup', end_zdrag, {once:true})
-		return true
 	},
 
 
@@ -385,7 +390,7 @@ PaletteWidget.prototype = {
 		this.widget.connected.sprites = []
 		this.sprite_editor = new SpriteEditor(this.sprite_canvas, 6, 6, this.colors.map(color => 'rgb('+color.join(',')+')'))
 		this.sprite_editor.resize_canvas()
-		this.sprite_editor.content.onChangeTool = () => this.redraw()
+		this.sprite_editor.content.onChangeTool = () => { this.selected_color = this.sprite_editor.content.glyphSelectedIndex; this.redraw() }
 		this.redraw()
 	},
 
@@ -394,7 +399,6 @@ PaletteWidget.prototype = {
 		return { colors: Array.from(item.colors) }
 	},
 
-	// WIP TODO: the code in this function is duplicated in the parser for the spritematrix, it should be moved to colors.js
 	toHex: function(item)
 	{
 		return item.colors.map(rgbToHex)
@@ -419,7 +423,7 @@ PalettesTabManager.prototype = Object.create(ListTabManager.prototype)
 
 PalettesTabManager.prototype.addNewBlankWidget = function(name)
 {
-	this.addNewWidget(name||'', { colors: [] })
+	this.addNewWidget(name||'', { colors: [ [0,0,0], ] })
 }
 
 PalettesTabManager.prototype.widgetContentChanged = function(widget_manager)
