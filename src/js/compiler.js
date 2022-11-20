@@ -973,7 +973,6 @@ function compileTextCode(str, in_exported_game)
 function compile(level, text, randomseed) // level = null means restart, level = undefined means rebuild
 {
 	matchCache = {}
-	lastDownTarget = screen_layout.canvas
 
 	if (text === undefined)
 	{

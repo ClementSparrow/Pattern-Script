@@ -33,7 +33,6 @@ loadDropdown.selectedIndex=0;
 function levelEditorClick_Fn()
 {
 	level_editor_screen.toggle()
-	lastDownTarget = screen_layout.canvas
 }
 
 /* I don't want to setup the required server for an OAuth App, so for now we will use a slightly more complex method for the user,

@@ -7,8 +7,6 @@ var lastinput=-100;
 // GENERIC EVENT HANDLER
 // =====================
 
-var lastDownTarget;
-
 window.addEventListener('focus', onMyFocusOrBlur, false)
 window.addEventListener('blur', onMyFocusOrBlur, false)
 
@@ -101,7 +99,6 @@ ScreenLayout.prototype.onMouseDown = function(event)
 	
 	if (lmb && !rmb)
 	{
-        lastDownTarget = event.target;
         keybuffer=[];
         if (event.target===this.canvas || event.target.className==="tapFocusIndicator")
         {
@@ -153,23 +150,12 @@ EmptyScreen.prototype.checkRepeatableKey = (e, inputdir) => false
 document.addEventListener('keydown', onKeyDown, false)
 document.addEventListener('keyup', onKeyUp, false)
 
-function onKeyDown(event)
+function onKeyDown(event) // global key handler
 {
 	ULBS()
 
     event = event || window.event
-
-	// Prevent arrows/space from scrolling page
-	if ( ( ! IDE ) && ([32, 37, 38, 39, 40]).includes(event.keyCode) )
-	{
-		if ( event && (event.ctrlKey || event.metaKey) )
-		{
-		}
-		else
-		{
-			prevent(event)
-		}
-	}
+	const has_modificator_key = event && (event.ctrlKey || event.metaKey)
 
 	if ( ( ! IDE) && (event.keyCode === 77) ) // M
 	{
@@ -179,45 +165,53 @@ function onKeyDown(event)
     if (keybuffer.includes(event.keyCode))
     	return
 
-    // TODO: this is the only place in the code where lastDownTarget is used, so instead of comparing it to something, we should directly set it to true/false where it is curently set to a specific target. Basically it's just a way to ensure the canvas has focus and can recive key events.
-    if( (lastDownTarget === screen_layout.canvas) || (window.Mobile && (lastDownTarget === window.Mobile.focusIndicator) ) )
-    {
-    	if ( ! keybuffer.includes(event.keyCode) )
-    	{
-    		if ( event && (event.ctrlKey || event.metaKey || event.repeat) )
-    		{
-		    } else
-		    {
-    		    keybuffer.splice(keyRepeatIndex, 0, event.keyCode)
-	    	    keyRepeatTimer = 0
-	    	    checkKey(event, true)
-		    }
+	if ( has_modificator_key && (canDump === true) )
+	{
+		switch (event.keyCode)
+		{
+			case 74: // ctrl+j
+				dumpTestCase()
+				break
+			case 75: // ctrl+k
+				makeGIF()
+				break
+			case 83: // ctrl+s
+				saveClick()
+				break
+			case 13: // ctrl+enter
+				screen_layout.canvas.focus()
+				tabs.removeFocus()
+				if (event.shiftKey) {
+					runClick()
+				} else {
+					rebuildClick()
+				}
+				break
+			default:
+				return
 		}
+		prevent(event)
 	}
-
-
-    if (canDump===true) {
-        if (event.keyCode===74 && (event.ctrlKey||event.metaKey)) {//ctrl+j
-            dumpTestCase();
-            prevent(event);
-        } else if (event.keyCode===75 && (event.ctrlKey||event.metaKey)) {//ctrl+k
-            makeGIF();
-            prevent(event);
-        }  else if (event.keyCode===83 && (event.ctrlKey||event.metaKey)) {//ctrl+s
-            saveClick();
-            prevent(event);
-        } else if (event.keyCode===13 && (event.ctrlKey||event.metaKey)){//ctrl+enter
-			screen_layout.canvas.focus()
-			tabs.removeFocus()
-            if (event.shiftKey) {
-				runClick()
-			} else {
-				rebuildClick()
-			}
-            prevent(event)
-		}
-	}
+	return false
 }
+
+function onKeyDownInCanvas(event)
+{
+	ULBS()
+
+	event = event || window.event
+
+	if (keybuffer.includes(event.keyCode))
+		return
+
+	if ( event && (event.ctrlKey || event.metaKey || event.repeat) )
+		return
+
+	keybuffer.splice(keyRepeatIndex, 0, event.keyCode)
+	keyRepeatTimer = 0
+	checkKey(event, true)
+}
+screen_layout.canvas.addEventListener('keydown', onKeyDownInCanvas, false)
 
 function onKeyUp(event)
 {
@@ -234,7 +228,7 @@ function onKeyUp(event)
 }
 
 
-function checkKey(e, justPressed)
+function checkKey(e, justPressed) // only for when the canvas has focus
 {
 	ULBS()
 	
@@ -243,35 +237,14 @@ function checkKey(e, justPressed)
 	if (e&&(e.ctrlKey || e.metaKey|| e.altKey))
 		return
 	
-    var inputdir=-1;
-    switch(e.keyCode)
+	let inputdir = Math.max(
+		([38,37,40,39]).indexOf(e.keyCode), // up, left, down, right
+		([87,65,83,68]).indexOf(e.keyCode), // wasd
+	)
+	if (inputdir < 0) switch(e.keyCode)
     {
-        case 65://a
-        case 37: //left
-        {
-            inputdir=1;
-	        break
-        }
-        case 38: //up
-        case 87: //w
-        {
-            inputdir=0;
-	        break
-        }
-        case 68://d
-        case 39: //right
-        {
-            inputdir=3;
-	        break
-        }
-        case 83://s
-        case 40: //down
-        {
-            inputdir=2;
-	        break
-        }
         case 80://p
-        {
+        { // TODO: should only work in the IDE?
 			level.printToConsole()
         	break
         }
@@ -299,7 +272,6 @@ function checkKey(e, justPressed)
 				pause_menu_screen.openMenu()
 			}
 			return prevent(e)
-			break
 		}
         case 69: {//e
         	if (typeof level_editor_screen !== 'undefined') // can open editor
@@ -308,11 +280,12 @@ function checkKey(e, justPressed)
         		{
 					level_editor_screen.toggle()
         		}
-        		return prevent(e);
+        		return prevent(e)
         	}
-            break;
+            break
 		}
     }
+
 	// prevent repetition of direction keys before the throttle_movement time
     if ( game_def.throttle_movement && (inputdir >= 0) && (inputdir <= 3) )
     {

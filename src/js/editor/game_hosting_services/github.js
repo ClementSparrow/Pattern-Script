@@ -182,7 +182,6 @@ function shareOnGitHub(is_public, should_fork=false)
 	githubHTTPClient.setRequestHeader('Content-type', 'application/vnd.github+json')
 	githubHTTPClient.setRequestHeader('Authorization', 'token '+oauthAccessToken)
 	githubHTTPClient.send(JSON.stringify(gistToCreate))
-    lastDownTarget = screen_layout.canvas
 }
 
 function githubLogOut()
