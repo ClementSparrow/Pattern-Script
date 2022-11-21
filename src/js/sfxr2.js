@@ -172,12 +172,7 @@ ToneEffect.prototype.reset = function()
 ToneEffect.prototype.tick = function(fperiod)
 {
 	this.fslide += this.fdslide
-	const result = fperiod * this.fslide
-	if (result > this.fmaxperiod)
-	{
-		return this.fmaxperiod;
-	}
-	return result;
+	return Math.min(fperiod * this.fslide, this.fmaxperiod)
 }
 
 
@@ -439,16 +434,6 @@ FrequencyFilterEffect.prototype.subtick = function(sub_sample)
 
 SoundEffect.generate = function(ps)
 {
-/*  window.console.log(ps.wave_type + "\t" + ps.seed);
-
-	var psstring="";
-	for (var n in ps) {
-		if (ps.hasOwnProperty(n)) {
-			psstring = psstring +"result." + n+" = " + ps[n] + ";\n";
-		}
-	}
-window.console.log(ps);
-window.console.log(psstring);*/
 	function repeat()
 	{
 		rep_time = 0;
