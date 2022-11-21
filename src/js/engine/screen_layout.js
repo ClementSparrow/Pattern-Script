@@ -111,9 +111,9 @@ function ScreenLayout(canvas)
 	// drawing
 	this.canvas = canvas
 	this.canvas.tabIndex = 0 // allows canvas to get focus and receive key events
-	this.ctx = this.canvas.getContext('2d')
+	this.ctx = this.canvas.getContext('2d', {willReadFrequently: true})
 	this.virtual_screen_canvas = document.createElement('canvas')
-	this.vc_ctx = this.virtual_screen_canvas.getContext('2d')
+	this.vc_ctx = this.virtual_screen_canvas.getContext('2d', {willReadFrequently: true}) // https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-will-read-frequently
 	window.addEventListener('resize',  () => this.resize_canvas(), false)
 }
 
