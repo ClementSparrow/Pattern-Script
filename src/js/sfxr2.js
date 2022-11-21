@@ -53,32 +53,24 @@ SoundEffect.prototype.getBuffer = function()
 	return this._buffer.getChannelData(0);
 }
 
-
 //unlock bullshit
 function ULBS()
 {
 	if (AUDIO_CONTEXT.state === 'suspended')
 	{
-		var unlock = function()
-		{
-			AUDIO_CONTEXT.resume().then(function()
-				{
-					document.body.removeEventListener('touchstart', unlock);
-					document.body.removeEventListener('touchend', unlock);
-					document.body.removeEventListener('mousedown', unlock);
-					document.body.removeEventListener('mouseup', unlock);
-					document.body.removeEventListener('keydown', unlock);
-					document.body.removeEventListener('keyup', unlock);
-				}
-			);
-		};
+		const interaction_event_types = ['touchstart', 'touchend', 'mousedown', 'mouseup', 'keydown', 'keyup']
 
-		document.body.addEventListener('touchstart', unlock, false);
-		document.body.addEventListener('touchend', unlock, false);
-		document.body.addEventListener('mousedown', unlock, false);
-		document.body.addEventListener('mouseup', unlock, false);
-		document.body.addEventListener('keydown', unlock, false);
-		document.body.addEventListener('keyup', unlock, false);
+		function unlock()
+		{
+			AUDIO_CONTEXT.resume().then(
+				function()
+				{
+					interaction_event_types.forEach( et => document.body.removeEventListener(et, unlock))
+				}
+			)
+		}
+
+		interaction_event_types.forEach( event_type => document.body.addEventListener(event_type, unlock, true))
 	}
 }
 
