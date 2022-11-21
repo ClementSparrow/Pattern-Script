@@ -88,15 +88,17 @@ class ColorField
 			const v = this.color_to_field(r,g,b)
 			const d = event_pos.sub(v)
 			const sq_dist = d.dot(d)
-			if (sq_dist < closest_sq_distance)
+			if (sq_dist > 25) // WIP TODO: use the dots sizes
+				continue
+			if ( (i == this.palette_manager.selected_color) || (sq_dist < closest_sq_distance) )
 			{
 				index_of_closest = i
 				closest_sq_distance = sq_dist
 			}
 		}
-
-		if (closest_sq_distance > 25) // WIP TODO: use the dots sizes
+		if (index_of_closest === undefined)
 			return false
+
 		this.color_dragged = index_of_closest
 		this.palette_manager.selected_color = index_of_closest
 		
@@ -376,12 +378,18 @@ PaletteWidget.prototype = {
 		this.color_field_z.drawField()
 		for (const [i, color] of this.colors.entries())
 		{
-			const color_string = 'rgb('+color.join(',')+')'
-			const [size, shape] = (i == this.selected_color) ? [12, 1] : [7, 2]
-			const contrast_color = 'black'
-			this.color_field_xy.drawMark(color, color_string, contrast_color, size, shape)
-			this.color_field_z.drawMark( color, color_string, contrast_color, size, shape)
+			if (i != this.selected_color)
+				this.drawMarkInColorField(color, 7, 2)
 		}
+		this.drawMarkInColorField(this.colors[this.selected_color], 12, 1)
+	},
+
+	drawMarkInColorField: function(color, size, shape)
+	{
+		const color_string = 'rgb('+color.join(',')+')'
+		const contrast_color = 'black'
+		this.color_field_xy.drawMark(color, color_string, contrast_color, size, shape)
+		this.color_field_z.drawMark( color, color_string, contrast_color, size, shape)
 	},
 
 
