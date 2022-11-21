@@ -157,11 +157,6 @@ function onKeyDown(event) // global key handler
     event = event || window.event
 	const has_modificator_key = event && (event.ctrlKey || event.metaKey)
 
-	if ( ( ! IDE) && (event.keyCode === 77) ) // M
-	{
-		toggleMute()
-	}
-
     if (keybuffer.includes(event.keyCode))
     	return
 
@@ -207,11 +202,18 @@ function onKeyDownInCanvas(event)
 	if ( event && (event.ctrlKey || event.metaKey || event.repeat) )
 		return
 
+	if (event.keyCode === 77) // M
+	{
+		toggleMute()
+		return prevent(event)
+	}
+
 	keybuffer.splice(keyRepeatIndex, 0, event.keyCode)
 	keyRepeatTimer = 0
 	checkKey(event, true)
 }
 screen_layout.canvas.addEventListener('keydown', onKeyDownInCanvas, false)
+
 
 function onKeyUp(event)
 {
