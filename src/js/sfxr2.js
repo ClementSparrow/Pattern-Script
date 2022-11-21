@@ -151,14 +151,14 @@ if (typeof AUDIO_CONTEXT == 'undefined')
 // ----- TONE -----
 
 /* Sets a variable base period for the generator */
-function ToneEffect(sound_params)
+function ToneEffect(tone_params)
 {
 	// parameters
-	this.fperiod = 100.0 / (sound_params.p_base_freq * sound_params.p_base_freq + 0.001)
-	this.fmaxperiod = 100.0 / (sound_params.p_freq_limit * sound_params.p_freq_limit + 0.001)
-	this.stop_at_max = (sound_params.p_freq_limit > 0.0)
-	this.fdslide = -Math.pow(sound_params.p_freq_dramp, 3.0) * 0.000001
-	this.initial_fslide = 1.0 - Math.pow(sound_params.p_freq_ramp, 3.0) * 0.01
+	this.fperiod = 100.0 / (tone_params.base * tone_params.base + 0.001)
+	this.fmaxperiod = 100.0 / (tone_params.limit * tone_params.limit + 0.001)
+	this.stop_at_max = (tone_params.limit > 0.0)
+	this.fdslide = -Math.pow(tone_params.dramp, 3.0) * 0.000001
+	this.initial_fslide = 1.0 - Math.pow(tone_params.ramp, 3.0) * 0.01
 
 	// state
 	this.reset()
@@ -179,11 +179,11 @@ ToneEffect.prototype.tick = function(fperiod)
 // ----- ARPEGIO -----
 
 /* Arpegio: multiplies the base period of the sound by a given factor, only once, after a given delay. */
-function ArpegioEffect(sound_params)
+function ArpegioEffect(arp_params)
 {
 	// parameters
-	this.mod = (sound_params.p_arp_mod >= 0.0) ? (1.0 - Math.pow(sound_params.p_arp_mod, 2.0) * 0.9) : (1.0 + Math.pow(sound_params.p_arp_mod, 2.0) * 10.0)
-	this.limit = (sound_params.p_arp_speed == 1.0) ? 0 : (Math.floor(Math.pow(1.0 - sound_params.p_arp_speed, 2.0) * 20000 + 32))
+	this.mod = (arp_params.mod >= 0.0) ? (1.0 - Math.pow(arp_params.mod, 2.0) * 0.9) : (1.0 + Math.pow(arp_params.mod, 2.0) * 10.0)
+	this.limit = (arp_params.speed == 1.0) ? 0 : (Math.floor(Math.pow(1.0 - arp_params.speed, 2.0) * 20000 + 32))
 
 	// state
 	this.reset()
@@ -207,11 +207,11 @@ ArpegioEffect.prototype.tick = function(fperiod, t)
 
 // ----- VIBRATO -----
 
-function VibratoEffect(sound_params)
+function VibratoEffect(vib_params)
 {
 	this.phase = 0.0
-	this.speed = Math.pow(sound_params.p_vib_speed, 2.0) * 0.01
-	this.amp = sound_params.p_vib_strength * 0.5
+	this.speed = Math.pow(vib_params.speed, 2.0) * 0.01
+	this.amp = vib_params.strength * 0.5
 }
 
 VibratoEffect.prototype.tick = function(fperiod)
@@ -227,12 +227,12 @@ VibratoEffect.prototype.tick = function(fperiod)
 
 // ----- Wave -----
 
-function WaveFunction(sound_params)
+function WaveFunction(wave_params)
 {
 	// parameters
-	this.initial_square_duty = 0.5 - sound_params.p_duty * 0.5
-	this.square_slide = -sound_params.p_duty_ramp * 0.00005
-	const wave_type = sound_params.wave_type
+	this.initial_square_duty = 0.5 - wave_params.duty * 0.5
+	this.square_slide = wave_params.duty_ramp * -0.00005
+	const wave_type = wave_params.type
 	this.wave_type = wave_type
 	this.is_noise = (wave_type === NOISE)
 	const wave_functions = [ this.square, this.sawtooth, this.sine, this.noise, this.triangle, this.breaker ]
@@ -298,7 +298,7 @@ WaveFunction.prototype.breaker = (fp) => (Math.abs(1 - fp * fp * 2) - 1)
 
 // ----- Envelope -----
 
-function EnvelopeEffect(sound_params)
+function EnvelopeEffect(env_params)
 {
 	// state
 	// this.vol = 0.0
@@ -307,12 +307,12 @@ function EnvelopeEffect(sound_params)
 
 	// parameters
 	this.length = [
-		Math.floor(sound_params.p_env_attack * sound_params.p_env_attack * 100000.0),
-		Math.floor(sound_params.p_env_sustain * sound_params.p_env_sustain * 100000.0),
-		Math.floor(sound_params.p_env_decay * sound_params.p_env_decay * 100000.0)
+		Math.floor(env_params.attack * env_params.attack * 100000.0),
+		Math.floor(env_params.sustain * env_params.sustain * 100000.0),
+		Math.floor(env_params.decay * env_params.decay * 100000.0)
 	]
 	this.total_length = this.length[0] + this.length[1] + this.length[2]
-	this.punch = sound_params.p_env_punch
+	this.punch = env_params.punch
 }
 
 EnvelopeEffect.prototype.tick = function()
@@ -339,16 +339,16 @@ EnvelopeEffect.prototype.tick = function()
 // ----- Phaser -----
 
 /* Adds a short-delay (normally in the same phase) repetition of the signal to itself, with a varying delay. */
-function PhaserEffect(sound_params)
+function PhaserEffect(phaser_params)
 {
 	// definition
-	this.fdphase = Math.pow(sound_params.p_pha_ramp, 2.0) * 1.0;
-	if (sound_params.p_pha_ramp < 0.0)
+	this.fdphase = Math.pow(phaser_params.ramp, 2.0) * 1.0;
+	if (phaser_params.ramp < 0.0)
 		this.fdphase = -this.fdphase;
 
 	// state
-	this.fphase = Math.pow(sound_params.p_pha_offset, 2.0) * 1020.0;
-	if (sound_params.p_pha_offset < 0.0)
+	this.fphase = Math.pow(phaser_params.offset, 2.0) * 1020.0;
+	if (phaser_params.offset < 0.0)
 		this.fphase = -this.fphase;
 	this.iphase = Math.abs(Math.floor(this.fphase));
 	this.ipp = 0;
@@ -373,26 +373,26 @@ PhaserEffect.prototype.subtick = function(sub_sample)
 
 // ----- Frequency Filters -----
 
-function FrequencyFilterEffect(sound_params)
+function FrequencyFilterEffect(lpf_params, hpf_params)
 {
 	// Parameters of the low-pass filter
-	this.w = Math.pow(sound_params.p_lpf_freq, 3.0) * 0.1;
-	this.dmp = Math.min(0.8, 5.0 / (1.0 + Math.pow(sound_params.p_lpf_resonance, 2.0) * 20.0) * (0.01 + this.w) )
+	this.w = Math.pow(lpf_params.freq, 3.0) * 0.1;
+	this.dmp = Math.min(0.8, 5.0 / (1.0 + Math.pow(lpf_params.resonance, 2.0) * 20.0) * (0.01 + this.w) )
 
 	// state of the low-pass filter
 	this.p = 0.0
 	this.dp = 0.0
 
 	// Parameters of the high-pass filter
-	this.hp = Math.pow(sound_params.p_hpf_freq, 2.0) * 0.1;
+	this.hp = Math.pow(hpf_params.freq, 2.0) * 0.1;
 
 	// state of the high-pass filter
 	this.php = 0.0;
 
 	// parameters for the variation of the actual parameters (should be treated as an effect affecting the parameters)
-	this.w_d = 1.0 + sound_params.p_lpf_ramp * 0.0001;
-	this.hp_d = 1.0 + sound_params.p_hpf_ramp * 0.0003;
-	this.do_lowpass = (sound_params.p_lpf_freq != 1.0)
+	this.w_d = 1.0 + lpf_params.ramp * 0.0001;
+	this.hp_d = 1.0 + hpf_params.ramp * 0.0003;
+	this.do_lowpass = (lpf_params.freq != 1.0)
 }
 
 // increases or decreases the high pass filter strength. Should actually probably be a different effect affecting the parameter 'hp' of the FrequencyFilterEffect.
@@ -450,21 +450,21 @@ SoundEffect.generate = function(ps)
 	var rep_time;
 	var period;
 
-	var tone = new ToneEffect(ps)
-	var arpegio = new ArpegioEffect(ps)
-	var vibrato = new VibratoEffect(ps)
+	var tone = new ToneEffect(ps.tone)
+	var arpegio = new ArpegioEffect(ps.arp)
+	var vibrato = new VibratoEffect(ps.vib)
 
-	var generator = new WaveFunction(ps)
-	var freq_filter = new FrequencyFilterEffect(ps)
-	var envelope = new EnvelopeEffect(ps)
-	var phaser = new PhaserEffect(ps)
+	var generator = new WaveFunction(ps.wave)
+	var freq_filter = new FrequencyFilterEffect(ps.lpf, ps.hpf)
+	var envelope = new EnvelopeEffect(ps.env)
+	var phaser = new PhaserEffect(ps.phaser)
 
 	repeat();  // First time through, this is a bit of a misnomer
 
 	// Repeat
-	var rep_limit = Math.floor(Math.pow(1.0 - ps.p_repeat_speed, 2.0) * 20000
+	var rep_limit = Math.floor(Math.pow(1.0 - ps.repeat.speed, 2.0) * 20000
 														 + 32);
-	if (ps.p_repeat_speed == 0.0)
+	if (ps.repeat.speed == 0.0)
 		rep_limit = 0;
 
 	//var gain = 2.0 * Math.log(1 + (Math.E - 1) * ps.sound_vol);
