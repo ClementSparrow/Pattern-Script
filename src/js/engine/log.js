@@ -36,7 +36,7 @@ function logErrorAux(str, lineNumber, urgent = false, text_class, text_cache, pr
 		const txt = get_error_message(str)
 		const lineString = (lineNumber !== undefined) ? makeLinkToLine(lineNumber, '<span class="errorTextLineNumber"> line ' + lineNumber.toString() + '</span>') + ': ' : ''
 		const errorString = lineString + '<span class="'+text_class+'">' + txt + '</span>'
-		const key = (typeof str === 'string') ? errorString : [str, lineNumber]
+		const key = (typeof str === 'string') ? str : [str, lineNumber]
 		if (text_cache.findIndex(x => error_message_equal(x, key)) < 0 || urgent)
 		{
 			// not a duplicate error, we need to log it
