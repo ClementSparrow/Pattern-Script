@@ -399,8 +399,11 @@ LevelScreen.prototype.checkRepeatableKey = function(e, inputdir)
 	return true;
 }
 
-function update()
+function update(timestamp)
 {
+	const deltatime = (update.previous_timestamp !== undefined) ? timestamp - update.previous_timestamp : 0
+    update.previous_timestamp = timestamp
+
     timer += deltatime
     input_throttle_timer += deltatime
 	if ( (screen_layout.content instanceof MenuScreen) && screen_layout.content.done && (timer/1000>0.3) )
@@ -448,11 +451,18 @@ function update()
             }
         }
     }
+	update.request = window.requestAnimationFrame(update)
 }
 
 function updateUpdate()
 {
-	update.interval = (document.visibilityState == 'visible') ? update.interval || setInterval(update, deltatime) : clearInterval(update.interval)
+	if (document.visibilityState == 'visible')
+	{
+		update.request ||= window.requestAnimationFrame(update)
+		return
+	}
+	update.request = window.cancelAnimationFrame(update.request)
+	update.previous_timestamp = undefined
 }
 document.addEventListener('visibilitychange', updateUpdate)
 updateUpdate()
