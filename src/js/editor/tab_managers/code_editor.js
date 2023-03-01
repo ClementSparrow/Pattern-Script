@@ -117,7 +117,7 @@ function CodeEditorTabManager(code)
 						for (var i=levels.length-1; i>=0; i--)
 						{
 							if (levels[i].lineNumber <= targetLine+1)
-								return i
+								return new LevelState(i, 2, 0)
 						}
 						return undefined
 					}
