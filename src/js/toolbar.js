@@ -233,7 +233,7 @@ function shareOnGitHub(is_public, should_fork=false)
 		}
 	};
 
-	const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
+	const update_gist_id = is_public ? null : new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
 
 	consolePrint("<br>Sending code to github...", true)
 	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id+(should_fork ? '/forks' : '') : '' )
