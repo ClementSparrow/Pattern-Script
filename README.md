@@ -6,8 +6,11 @@ About
 
 *Pattern:Script* is an open-source HTML5 game engine based on [PuzzleScript](https://www.puzzlescript.net). Try it out [here](https://clementsparrow.github.io/Pattern-Script/src/editor.html)!
 
-The manual has not been updated yet from PuzzleScript, as the project targets game devs with prior knowledge of PuzzleScript. A list of the new features (and planned features) is available [on the project's wiki](https://github.com/ClementSparrow/Pattern-Script/wiki) – you should start there to learn what Pattern:Script can do for you!
+The manual has only been partially updated from PuzzleScript, as the project targets game devs with prior knowledge of PuzzleScript. A list of the new features (and planned features) is available [on the project's wiki](https://github.com/ClementSparrow/Pattern-Script/wiki) – you should start there to learn what Pattern:Script can do for you!
 
+If you want to contribute to the project, I suggest starting with reading these pages:
+- [What to contribute?](https://github.com/ClementSparrow/Pattern-Script/wiki/What-To-Contribute%3F) – most needed features and easiest features to implement
+- [How to contribute?]() – what do I need to contribute, how do I setup an environment to contribute, what code standard should I follow, how do I send my contributions, etc?
 
 Licence
 -------
