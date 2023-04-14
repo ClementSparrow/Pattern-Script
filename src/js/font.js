@@ -20,16 +20,16 @@ font.asDataURL = function()
 	return canvas.toDataURL("image/png")
 }
 // <-- FONT END -->
+font.on_load = function() {}
 font.addEventListener('load', function()
 {
-	var canvas = document.createElement('canvas')
+	const canvas = document.createElement('canvas')
 	canvas.width = font.width
 	canvas.height = font.height
-	var fctx = canvas.getContext('2d')
+	const fctx = canvas.getContext('2d')
 	fctx.drawImage(font, 0, 0)
 	font.pixels = fctx.getImageData(0, 0, canvas.width, canvas.height).data
-
-	redraw()
+	font.on_load()
 })
 
 font.colored_fonts = { '1-#FFFFFFFF': font }

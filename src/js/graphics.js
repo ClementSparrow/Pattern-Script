@@ -221,6 +221,8 @@ ScreenLayout.prototype.redraw = function()
 
 	this.ctx.restore()
 }
+font.on_load = function() { screen_layout.redraw() }
+
 
 function redraw()
 {
