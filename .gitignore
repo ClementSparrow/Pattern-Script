@@ -1,9 +1,5 @@
 bin/
-.DS_Store
-*/.DS_Store
-*/*/.DS_Store
-*/*/*/.DS_Store
-*/*/*/*.DS_Store
-*/*/*/*/*.DS_Store
-
+**/.DS_Store
 *.swp
+/node_modules
+/work
