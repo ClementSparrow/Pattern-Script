@@ -1,0 +1,163 @@
+title puzz-min-level-select
+author polymino
+homepage www.polyomino.com
+( Demo/Test program for level select )
+
+verbose_logging
+debug
+
+level_select
+========
+OBJECTS
+========
+Background
+black
+
+PLAYER P
+white
+
+R
+RED
+
+B
+BLUE
+
+g
+green
+
+=======
+LEGEND
+=======
+. = Background
+a = b and g
+o = b or g
+=======
+SOUNDS
+=======
+================
+COLLISIONLAYERS
+================
+Background
+Player, R, B
+g
+======
+RULES
+======
+[ > P | R ] -> [ > P | > R ]
+==============
+WINCONDITIONS
+==============
+some R on G
+=======
+LEVELS
+=======
+message level 1
+
+PR..G
+.....
+G....
+
+PR..G
+.....
+GG...
+
+PR..G
+.....
+GGG..
+
+PR..G
+.....
+GGGG.
+
+PR..G
+.....
+GGGGG
+
+message level 6
+
+PR..G
+B....
+G....
+
+PR..G
+B....
+GG...
+
+PR..G
+B....
+GGG..
+
+PR..G
+B....
+GGGG.
+
+PR..G
+B....
+GGGGG
+
+message level 11
+
+PR..G
+BB...
+G....
+
+PR..G
+BB...
+GG...
+
+PR..G
+BB...
+GGG..
+
+PR..G
+BB...
+GGGG.
+
+PR..G
+BB...
+GGGGG
+
+message level 16
+
+PR..G
+BBB..
+G....
+
+PR..G
+BBB..
+GG...
+
+PR..G
+BBB..
+GGG..
+
+PR..G
+BBB..
+GGGG.
+
+PR..G
+BBB..
+GGGGG
+
+message level 21
+
+PR..G
+BBBB.
+G....
+
+PR..G
+BBBB.
+GG...
+
+PR..G
+BBBB.
+GGG..
+
+PR..G
+BBBB.
+GGGG.
+
+PR..G
+BBBB.
+GGGGG
+

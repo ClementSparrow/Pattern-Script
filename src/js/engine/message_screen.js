@@ -8,6 +8,8 @@ const doted_terminal_line    = '..................................';
 const terminal_width = empty_terminal_line.length
 const terminal_height = 13
 
+let lastOffset = 0; // remember offset for level select menu
+
 MenuScreen.prototype.isContinuePossible = function()
 {
 	if ( (this.curlevel === undefined) && (this.curlevelTarget === undefined) )
@@ -33,20 +35,26 @@ function skipTextBox()
 	loadLevelFromState(state, next_level)
 }
 
-function titleMenuNewGame()
-{
+function titleMenuNewGame() {
 	loadLevelFromState(state, (new LevelState()).next())
 }
 
-MenuScreen.prototype.titleMenuContinue = function()
-{
+MenuScreen.prototype.titleMenuContinue = function () {
 	loadLevelFromState(state, this.curlevel, undefined, true, this.curlevelTarget)
 }
 
+function titleMenuSelectLevel(offset = 0) {
+	const levsel = new MenuScreen('levselscreen');
+	levsel.makeLevelSelect(offset);
+	levsel.openMenu();
+}
 
-function pauseMenuRestart()
-{
+function pauseMenuRestart() {
 	loadLevelFromState(state, curlevel)
+}
+
+function selectMenuLoadLevel(levelno) {
+	loadLevelFromState(state, (new LevelState(levelno).next()));
 }
 
 MenuScreen.prototype.doSelectedFunction = function()
@@ -62,7 +70,7 @@ MenuScreen.prototype.makeTerminalScreen = function()
 	this.text = Array.from(
 		{
 			3: ' Pattern:Script Terminal ',
-			4: ' v 1.7 ',
+			4: ' v 1.7a ',
 			8: ' insert cartridge ',
 			length:terminal_height
 		},
@@ -154,8 +162,15 @@ MenuScreen.prototype.makeTitle = function()
 	}
 	this.text.push( ...Array(author_bottomline - this.text.length).fill(empty_line) )
 
-	// Add menu options
-	this.makeMenuItems(3,  this.isContinuePossible() ? [['continue from '+state.levels[this.curlevel.level].name, () => this.titleMenuContinue()], ['new game', titleMenuNewGame]] : [['start', titleMenuNewGame]])
+	// Add menu items, with optional level select
+	let items = this.isContinuePossible()
+		? [['continue from ' + state.levels[this.curlevel.level].name, () => this.titleMenuContinue()], 
+		   ['new game', titleMenuNewGame]] 
+		: [['start', titleMenuNewGame]];
+	if ('level_select' in state.metadata) {
+		items.push(['level select', titleMenuSelectLevel ]);
+	}
+	this.makeMenuItems(3, items)
 	this.text.push( empty_line )
 
 	// Add key configuration info:
@@ -214,14 +229,15 @@ MenuScreen.prototype.makePauseMenu = function()
 		this.text.push([centerText(title), state.titlecolor])
 	}
 	this.text.push( empty_line )
-	this.makeMenuItems(
-		terminal_height - 5,
-		[
-			['resume game', () => this.closeMenu()],
-			(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
-			['exit to title screen', goToTitleScreen]
-		]
-	)
+
+	let items = [
+		['resume game', () => this.closeMenu()],
+		(screen_layout.content.screen_type === 'text') ? ['skip text', skipTextBox] : ['replay level from the start', pauseMenuRestart],
+		['exit to title screen', goToTitleScreen]
+	]
+	if ('level_select' in state.metadata) items.splice(2, 0, ['level select', () => titleMenuSelectLevel(lastOffset)]);
+	this.makeMenuItems(terminal_height - 5, items);
+	
 	this.text.push( empty_line )
 }
 
@@ -246,4 +262,25 @@ TextModeScreen.prototype.doMessage = function(message)
 	}
 	
 	canvasResize()
+}
+
+// create the level select menu for a given offset
+MenuScreen.prototype.makeLevelSelect = function (offset) {
+	lastOffset = offset;
+	const empty_line = ['', state.fgcolor];
+	const numrows = 8;
+	this.text = [empty_line];
+
+	const title = 'Select Level';
+	this.text.push([centerText(title), state.titlecolor]);
+	this.text.push(empty_line);
+
+	const levs = state.levels.slice(offset, offset + numrows);
+	let items = (offset > 0) ? [['Previous page', () => titleMenuSelectLevel(offset - numrows) ]] : [];
+	items.push(...levs.map((lv,x) => [lv.name, () => selectMenuLoadLevel(x + offset)]));
+	if (state.levels.length > offset + numrows) items.push(['Next page', () => titleMenuSelectLevel(offset + numrows)]);
+
+	this.makeMenuItems(items.length, items)
+
+	this.text.push(empty_line)
 }
