@@ -53,7 +53,7 @@ function tryLoadGist(id)
 		}
 
 		const result = JSON.parse(githubHTTPClient.responseText)
-		if (githubHTTPClient.status === 403)
+		if ([401, 403].includes(githubHTTPClient.status)) // 401=unauthorized
 		{
 			consoleError(result.message)
 		}
