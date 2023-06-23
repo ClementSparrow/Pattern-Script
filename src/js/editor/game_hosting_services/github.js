@@ -108,17 +108,22 @@ function shareOnGitHub(is_public, should_fork=false)
 
 	compile()
 
+	const update_gist_id = new URL(window.location).searchParams.get('hack') // null if no such URL parameter
+
 	const game_name = (game_def.title !== undefined) ? game_def.title : 'Untitled'
+	const game_description_url = 'Play this game at ' + metadata_tabmanager.getContent().homepage + ' or edit it ' + (
+		update_gist_id !== null
+			? 'at '+HOSTPAGEURL+'/editor.html&hack='+update_gist_id
+			: ("by pasting this gist's id at the end of this URL: "+HOSTPAGEURL+"/editor.html&hack=")
+	)
 	const gistToCreate = {
 		description: game_name + ' ('+PSFORKNAME+' Game)',
 		public: is_public,
 		files: Object.fromEntries([
-			['\''+game_name+'\'', { content: metadata_tabmanager.getContent().description + "\n\nPlay this game at " + metadata_tabmanager.getContent().homepage + " or by pasting this gist's id at the end of this URL: "+HOSTPAGEURL+"/editor.html&hack=" }],
+			['\''+game_name+'\'', { content: metadata_tabmanager.getContent().description + '\n\n' + game_description_url }],
 			...Array.from( tabs.tabs, tab => [ tab.name+'.txt', {content: (tab.name == 'code') ? tab.getContent() : JSON.stringify(tab.getContent(), null, 2)} ] )
 		])
 	}
-
-	const update_gist_id = new URL(window.location).searchParams.get("hack"); // null if no such URL parameter
 
 	consolePrint("<br>Sending code to github…", true)
 	const githubURL = 'https://api.github.com/gists' + ( (update_gist_id !== null) ? '/'+update_gist_id+(should_fork ? '/forks' : '') : '' )
