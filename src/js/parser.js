@@ -434,7 +434,9 @@ PuzzleScriptParser.prototype.finalizePreamble = function()
 		function(s)
 		{
 			const result = s.split('x').map(str => parseInt(str))
-			return result.some(isNaN) ? null : result
+			if (result.some(isNaN) || (result.length == 0) )
+				return null
+			return [result[0], result[(result.length<2) ? 0 : 1]]
 		}
 	)
 	this.finalizeMetaData('level_title_style', 'header', null, s => s)
