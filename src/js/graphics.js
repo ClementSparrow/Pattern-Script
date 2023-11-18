@@ -152,9 +152,9 @@ LevelScreen.prototype.redraw_virtual_screen = function(ctx)
 ScreenLayout.prototype.init_graphics = function(canvas_id = 'gameCanvas')
 {
 	this.canvas = document.getElementById(canvas_id)
-	this.ctx = this.canvas.getContext('2d')
+	this.ctx = this.canvas.getContext('2d', {willReadFrequently: true})
 	this.virtual_screen_canvas = document.createElement('canvas')
-	this.vc_ctx = this.virtual_screen_canvas.getContext('2d')
+	this.vc_ctx = this.virtual_screen_canvas.getContext('2d', {willReadFrequently: true})
 }
 screen_layout.init_graphics()
 
