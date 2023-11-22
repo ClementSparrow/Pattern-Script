@@ -1285,11 +1285,15 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				}
 				const tovalue_name = tovalue_match[0];
 				if (this.current_identifier_index === null)
-					return 'NAME';
-				const accepted_types = (this.identifiers.comptype[this.current_mapping.from.identifier_index] === identifier_type_property) ? [identifier_type_object, identifier_type_property] : [identifier_type_tag, identifier_type_tagset]
+					return 'NAME'
+				const is_property_mapping = (this.identifiers.comptype[this.current_mapping.from.identifier_index] === identifier_type_property)
+				const accepted_types = is_property_mapping ? [identifier_type_object, identifier_type_property] : [identifier_type_tag, identifier_type_tagset]
 				const identifier_index = this.identifiers.checkIdentifierIsKnownWithType(tovalue_name, accepted_types, false, this); // todo: better error message when we use a tag instead or a property and vice versa.
-				if (identifier_index < 0)
-					return 'ERROR'
+				const result_token = (identifier_index < 0) ? 'ERROR' : 'NAME'
+				if (identifier_index == -2)
+				{
+					this.logError(['unknown_identifier_in_mapping', is_property_mapping ? 'property' : 'tag', tovalue_name])
+				}
 				// TODO? check that the identifier is in the start set
 				// register the mapping for this value
 				var mapping = this.identifiers.mappings[this.current_mapping.mapping_index]
@@ -1299,7 +1303,7 @@ PuzzleScriptParser.prototype.tokenInMappingSection = function(is_start_of_line, 
 				{
 					this.tokenIndex = 3
 				}
-				return 'NAME'
+				return result_token
 			}
 			case 3: // error: extra stuff
 			{

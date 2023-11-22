@@ -64,6 +64,8 @@ const error_messages = { // actually also warning messages
 	unexpected_sound_token: candname => 'unexpected sound token "'+candname+'".',
 	// collision layers:
 	object_in_multiple_layers: object_name => 'Object "' + object_name.toUpperCase() + '" appears in multiple collision layers. I ignored it, but you should fix this!',
+	// mappings:
+	unknown_identifier_in_mapping: (mapping_type, identifier) => 'Unknown ' + mapping_type + ' "' + identifier.toUpperCase() +'" cannot be used in a mapping definition.',
 	// levels
 	no_grid_in_level: 'You are creating a new level with this line, but there was no grid in the previous level. A level NEEDS a grid. Otherwise, I will merge levels in a way that you may not expect.',
 	non_rectangular_level: 'Maps must be rectangular, yo (In a level, the length of each row must be the same).',
